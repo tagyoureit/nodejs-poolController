@@ -36,16 +36,16 @@ export class NixieHeaterCollection extends NixieEquipmentCollection<NixieHeater>
     public async setHeaterAsync(heater: Heater, data: any) {
         // By the time we get here we know that we are in control and this is a Nixie heater.
         try {
-            let c: NixieHeater = this.find(elem => elem.id === heater.id) as NixieHeater;
-            if (typeof c === 'undefined') {
+            let h: NixieHeater = this.find(elem => elem.id === heater.id) as NixieHeater;
+            if (typeof h === 'undefined') {
                 heater.master = 1;
-                c = new NixieHeater(this.controlPanel, heater);
-                this.push(c);
-                await c.setHeaterAsync(data);
+                h = new NixieHeater(this.controlPanel, heater);
+                this.push(h);
+                await h.setHeaterAsync(data);
                 logger.info(`A Heater was not found for id #${heater.id} creating Heater`);
             }
             else {
-                await c.setHeaterAsync(data);
+                await h.setHeaterAsync(data);
             }
         }
         catch (err) { logger.error(`setHeaterAsync: ${err.message}`); return Promise.reject(err); }

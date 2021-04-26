@@ -939,10 +939,10 @@ export class NixieValveCommands extends ValveCommands {
 }
 export class NixieHeaterCommands extends HeaterCommands {
     public async setHeaterAsync(obj: any): Promise<Heater> {
-        return new Promise<Heater>((resolve, reject) => {
+        try {
             let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
-            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
-            else if (id < 256 && id > 0) return reject(new InvalidEquipmentIdError('Virtual Heaters controlled by njspc must have an Id > 256.', obj.id, 'Heater'));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
+            else if (id < 256 && id > 0) return Promise.reject(new InvalidEquipmentIdError('Virtual Heaters controlled by njspc must have an Id > 256.', obj.id, 'Heater'));
             let heater: Heater;
             if (id <= 0) {
                 // We are adding a heater.  In this case all heaters are virtual.
@@ -961,9 +961,10 @@ export class NixieHeaterCommands extends HeaterCommands {
             hstate.name = heater.name;
             hstate.type = heater.type;
             heater.master = 1;
-            sys.board.heaters.updateHeaterServices();
-            resolve(heater);
-        });
+            await ncp.heaters.setHeaterAsync(heater, obj);
+            await sys.board.heaters.updateHeaterServices();
+            return heater;
+        } catch (err) { return Promise.reject(new Error(`Error setting heater configuration: ${err}`)); }
     }
     public async deleteHeaterAsync(obj: any): Promise<Heater> {
         return new Promise<Heater>((resolve, reject) => {
