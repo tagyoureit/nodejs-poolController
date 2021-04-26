@@ -1270,6 +1270,7 @@ export class Pump extends EqItem {
     public get model(): number { return this.data.model; }
     public set model(val: number) { this.setDataVal('model', val); }
     public get circuits(): PumpCircuitCollection { return new PumpCircuitCollection(this.data, "circuits"); }
+    public get relays(): PumpCircuitCollection { return new PumpCircuitCollection(this.data, "relays"); }
     /*     public setPump(obj?: any) { sys.board.pumps.setPump(this, obj); }
         public setPumpCircuit(pumpCircuit: any) {
             return sys.board.pumps.setPumpCircuit(this, pumpCircuit);
@@ -1319,11 +1320,27 @@ export class PumpCircuit extends EqItem {
     public set flow(val: number) { this.setDataVal('flow', val); }
     public get speed(): number { return this.data.speed; }
     public set speed(val: number) { this.setDataVal('speed', val); }
+    public get relay(): number { return this.data.relay; }
+    public set relay(val: number) { this.setDataVal('relay', val); }
     public get units(): number | any { return this.data.units; }
     public set units(val: number | any) { this.setDataVal('units', sys.board.valueMaps.pumpUnits.encode(val)); }
     public get maxPressure(): number { return this.data.maxPressure; }
     public set maxPressure(val: number) { this.setDataVal('maxPressure', val); }
 }
+export class PumpRelayCollection extends EqItemCollection<PumpRelay> {
+    constructor(data: any, name?: string) { super(data, name || "relays"); }
+    public createItem(data: any): PumpRelay { return new PumpRelay(data); }
+}
+export class PumpRelay extends EqItem {
+    public dataName = 'pumpCircuitConfig';
+    public get id(): number { return this.data.id; }
+    public set id(val: number) { this.setDataVal('id', val); }
+    public get connectionId(): string { return this.data.connectionId; }
+    public set connectionId(val: string) { this.setDataVal('connectionId', val); }
+    public get deviceBinding(): string { return this.data.deviceBinding; }
+    public set deviceBinding(val: string) { this.setDataVal('deviceBinding', val); }
+}
+
 export class ChlorinatorCollection extends EqItemCollection<Chlorinator> {
     constructor(data: any, name?: string) { super(data, name || "chlorinators"); }
     public createItem(data: any): Chlorinator { return new Chlorinator(data); }

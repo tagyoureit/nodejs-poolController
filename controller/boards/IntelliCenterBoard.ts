@@ -59,7 +59,8 @@ export class IntelliCenterBoard extends SystemBoard {
             [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 8, hasAddress: false, hasBody:true }],
             [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
             [4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
-            [5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }]
+            [5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
+            [100, {name: 'sf', desc: 'SuperFlo VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1}]
         ]);
         // RSG - same as systemBoard definition; can delete.
         this.valueMaps.heatModes = new byteValueMap([
@@ -2561,6 +2562,11 @@ class IntelliCenterPumpCommands extends PumpCommands {
         }
     } */
     public async setPumpAsync(data: any): Promise<Pump> {
+        let id = (typeof data.id === 'undefined' || data.id <= 0) ? sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps) : parseInt(data.id, 10);
+        if (isNaN(id)) return Promise.reject(new Error(`Invalid pump id: ${data.id}`));
+        let pump = sys.pumps.getItemById(id, false);
+        if (data.master > 0 || pump.master > 0 || pump.isVirtual) return await super.setPumpAsync(data);
+
         //                                        0                    6              10   11  12           15
         //[255, 0, 255][165, 63, 15, 16, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 128,   2, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][11, 218]
         //[255, 0, 255][165, 63, 15, 16, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9,   1,   2, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][11, 91]
@@ -2568,12 +2574,10 @@ class IntelliCenterPumpCommands extends PumpCommands {
 
         //[255, 0, 255][165, 63, 15, 33, 168, 33][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 640, 255, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0][14, 231]
         //[255, 0, 255][165, 63, 15, 33, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 300, 255,   3, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][12, 152]
-        let id = (typeof data.id === 'undefined' || data.id <= 0) ? sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps) : parseInt(data.id, 10);
         if (isNaN(id)) return Promise.reject(new Error(`Invalid pump id: ${data.id}`));
         else if (id >= sys.equipment.maxPumps) return Promise.reject(new Error(`Pump id out of range: ${data.id}`));
         // We now need to get the type for the pump.  If the incoming data doesn't include it then we need to
         // get it from the current pump configuration.
-        let pump = sys.pumps.getItemById(id, false);
         let ntype = (typeof data.type === 'undefined' || isNaN(parseInt(data.type, 10))) ? pump.type : parseInt(data.type, 10);
         // While we are dealing with adds in the setPumpConfig we are not dealing with deletes so this needs to be a value greater than nopump.  If someone sends
         // us a type that is <= 0 we need to throw an error.  If they dont define it or give us an invalid number we can move on.

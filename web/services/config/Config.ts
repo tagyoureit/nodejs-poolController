@@ -132,32 +132,35 @@ export class ConfigRoute {
                 return res.status(200).send(opts);
             } catch (err) { next(err); }
         });
-        app.get('/config/options/pumps', (req, res) => {
-            let opts: any = {
-                maxPumps: sys.equipment.maxPumps,
-                pumpUnits: sys.board.valueMaps.pumpUnits.toArray(),
-                pumpTypes: sys.board.valueMaps.pumpTypes.toArray(),
-                models: {
-                    ss: sys.board.valueMaps.pumpSSModels.toArray(),
-                    ds: sys.board.valueMaps.pumpDSModels.toArray(),
-                    vs: sys.board.valueMaps.pumpVSModels.toArray(),
-                    vf: sys.board.valueMaps.pumpVSModels.toArray(),
-                    vsf: sys.board.valueMaps.pumpVSFModels.toArray(),
-                    vssvrs: sys.board.valueMaps.pumpVSSVRSModels.toArray()
-                },
-                circuits: sys.board.circuits.getCircuitReferences(true, true, true, true),
-                bodies: sys.board.valueMaps.pumpBodies.toArray(),
-                pumps: sys.pumps.get()
-            };
-            // RKS: Why do we need the circuit names?  We have the circuits.  Is this so
-            // that we can name the pump.  I thought that *Touch uses the pump type as the name
-            // plus a number.
-            // RG: because I need the name/val of the Not Used circuit for displaying pumpCircuits that are
-            // empty.  EG A pump circuit can be not used even if all the circuits are used.
-            if (sys.controllerType !== ControllerType.IntelliCenter) {
-                opts.circuitNames = sys.board.circuits.getCircuitNames().filter(c => c.name === 'notused');
-            }
-            return res.status(200).send(opts);
+        app.get('/config/options/pumps', async (req, res, next) => {
+            try {
+                let opts: any = {
+                    maxPumps: sys.equipment.maxPumps,
+                    pumpUnits: sys.board.valueMaps.pumpUnits.toArray(),
+                    pumpTypes: sys.board.valueMaps.pumpTypes.toArray(),
+                    models: {
+                        ss: sys.board.valueMaps.pumpSSModels.toArray(),
+                        ds: sys.board.valueMaps.pumpDSModels.toArray(),
+                        vs: sys.board.valueMaps.pumpVSModels.toArray(),
+                        vf: sys.board.valueMaps.pumpVSModels.toArray(),
+                        vsf: sys.board.valueMaps.pumpVSFModels.toArray(),
+                        vssvrs: sys.board.valueMaps.pumpVSSVRSModels.toArray()
+                    },
+                    circuits: sys.board.circuits.getCircuitReferences(true, true, true, true),
+                    bodies: sys.board.valueMaps.pumpBodies.toArray(),
+                    pumps: sys.pumps.get(),
+                    servers: await sys.ncp.getREMServers()
+                };
+                // RKS: Why do we need the circuit names?  We have the circuits.  Is this so
+                // that we can name the pump.  I thought that *Touch uses the pump type as the name
+                // plus a number.
+                // RG: because I need the name/val of the Not Used circuit for displaying pumpCircuits that are
+                // empty.  EG A pump circuit can be not used even if all the circuits are used.
+                if (sys.controllerType !== ControllerType.IntelliCenter) {
+                    opts.circuitNames = sys.board.circuits.getCircuitNames().filter(c => c.name === 'notused');
+                }
+                return res.status(200).send(opts);
+            } catch (err) { next(err); }
         });
         app.get('/config/options/schedules', (req, res) => {
             let opts = {

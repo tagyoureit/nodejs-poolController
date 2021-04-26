@@ -32,7 +32,7 @@ export class NixieBoard extends SystemBoard {
         this.equipmentIds.circuits = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxCircuits - 1; });
         this.equipmentIds.features = new EquipmentIdRange(function () { return 129; }, function () { return this.start + sys.equipment.maxFeatures - 1; });
         this.equipmentIds.circuitGroups = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
-        this.equipmentIds.virtualCircuits = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuitGroups + sys.equipment.maxLightGroups - 1; });
+        this.equipmentIds.virtualCircuits = new EquipmentIdRange(function () { return this.start; }, function () { return 254; });
         this.equipmentIds.features.start = 129;
         this.equipmentIds.circuitGroups.start = 193;
         this.equipmentIds.virtualCircuits.start = 237;
@@ -102,9 +102,9 @@ export class NixieBoard extends SystemBoard {
             return { val: b, days: days };
         };
         this.valueMaps.expansionBoards = new byteValueMap([
-            [0, { name: 'nxp', part: 'NXP', desc: 'Nixie Single Body', bodies: 1, valves: 2, shared: false, dual: false }],
-            [1, { name: 'nxps', part: 'NXPS', desc: 'Nixie Shared Body', bodies: 2, valves: 4, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
-            [2, { name: 'nxpd', part: 'NXPD', desc: 'Nixie Dual Body', bodies: 2, valves: 2, shared: false, dual: true, chlorinators: 2, chemControllers: 2 }],
+            [0, { name: 'nxp', part: 'NXP', desc: 'Nixie Single Body', bodies: 1, valves: 0, shared: false, dual: false }],
+            [1, { name: 'nxps', part: 'NXPS', desc: 'Nixie Shared Body', bodies: 2, valves: 2, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
+            [2, { name: 'nxpd', part: 'NXPD', desc: 'Nixie Dual Body', bodies: 2, valves: 0, shared: false, dual: true, chlorinators: 2, chemControllers: 2 }],
             [255, { name: 'nxnb', part: 'NXNB', desc: 'Nixie No Body', bodies: 0, valves: 0, shared: false, dual: false, chlorinators: 0, chemControllers: 0 }]
         ]);
         this.valueMaps.virtualCircuits = new byteValueMap([
@@ -362,6 +362,7 @@ export class NixieBoard extends SystemBoard {
             }
         } catch (err) { logger.error(`Error verifying setup`); }
     }
+    public equipmentMaster = 1;
     public system: NixieSystemCommands = new NixieSystemCommands(this);
     public circuits: NixieCircuitCommands = new NixieCircuitCommands(this);
     public features: NixieFeatureCommands = new NixieFeatureCommands(this);

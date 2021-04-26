@@ -1364,7 +1364,7 @@ export class PumpCommands extends BoardCommands {
     public async setPumpAsync(data: any): Promise<Pump> {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-            if (id <= 0) id = sys.pumps.length + 1;
+            if (id <= 0) id = sys.pumps.filter(elem => elem.master === 1).getMaxId(false, 49) + 1;
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump'));
             let pump = sys.pumps.getItemById(id, data.id <= 0);
             pump.master = 1;
@@ -1382,22 +1382,31 @@ export class PumpCommands extends BoardCommands {
                 for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
                     let c = data.circuits[i - 1];
                     let speed = parseInt(c.speed, 10);
+                    let relay = parseInt(c.relay, 10);
                     let flow = parseInt(c.flow, 10);
                     if (isNaN(speed)) speed = type.minSpeed;
                     if (isNaN(flow)) flow = type.minFlow;
-                    // outc.setPayloadByte(i * 2 + 3, parseInt(c.circuit, 10), 0);
+                    if (isNaN(relay)) relay = 1;
+
                     c.units = parseInt(c.units, 10) || type.name === 'vf' ? sys.board.valueMaps.pumpUnits.getValue('gpm') : sys.board.valueMaps.pumpUnits.getValue('rpm');
                     if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
-                        // outc.setPayloadByte(i * 2 + 4, Math.floor(speed / 256)); // Set to rpm
-                        // outc.setPayloadByte(i + 21, speed - (Math.floor(speed / 256) * 256));
                         c.speed = speed;
                     }
                     else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
-                        // outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
                         c.flow = flow;
                     }
+                    else if (type.maxRelays > 0)
+                        c.relay = relay;
                 }
             }
+            //if (typeof type.maxRelays !== 'undefined' && type.maxRelays > 0 && typeof data.relays !== 'undefined') {
+            //    // This pump supports relays such as the SuperFlo VS.
+            //    for (let i = 0; i < data.relays.length && i < type.maxRelatys; i++) {
+            //        let r = data.relays[i];
+
+            //    }
+
+            //}
             data.id = id;
             pump.set(data); // Sets all the data back to the pump.
             spump.name = pump.name;
@@ -1697,7 +1706,7 @@ export class CircuitCommands extends BoardCommands {
                     if(cstate.isOn) await ncp.circuits.setCircuitStateAsync(cstate, cstate.isOn);
                 }
             }
-        } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
+        } catch (err) { logger.error(`syncCircuitRelayStates: Error synchronizing circuit relays ${err.message}`); }
     }
 
     public syncVirtualCircuitStates() {
@@ -4244,7 +4253,7 @@ export class FilterCommands extends BoardCommands {
                     await sys.board.filters.setFilterStateAsync(filter, fstate, sys.board.bodies.isBodyOn(filter.body));
                 }
             }
-        } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
+        } catch (err) { logger.error(`syncFilterStates: Error synchronizing filters ${err.message}`); }
     }
     public async setFilterStateAsync(filter: Filter, fstate: FilterState, isOn: boolean) { fstate.isOn = isOn; }
     public setFilter(data: any): any {

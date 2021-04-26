@@ -1678,6 +1678,7 @@ class TouchPumpCommands extends PumpCommands {
         }
         else {
             pump = sys.pumps.getItemById(id, false);
+            if (data.master > 0 || pump.master > 0 || pump.isVirtual) return await super.setPumpAsync(data);
             ntype = typeof data.type === 'undefined' ? pump.type : parseInt(data.type, 10);
             if (isNaN(ntype)) return Promise.reject(new InvalidEquipmentDataError(`Pump type ${data.type} is not valid`, 'Pump', data));
             type = sys.board.valueMaps.pumpTypes.transform(ntype);
