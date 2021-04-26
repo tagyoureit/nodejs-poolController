@@ -217,6 +217,8 @@ export class NixieBoard extends SystemBoard {
             sys.equipment.maxCustomNames = 0;
             state.equipment.model = type.desc;
             state.equipment.maxBodies = sys.equipment.maxBodies = type.bodies;
+            
+            if (typeof state.temps.units === 'undefined') state.temps.units = sys.general.options.units;
             if (type.bodies > 0) {
                 let pool = sys.bodies.getItemById(1, true);
                 let sbody = state.temps.bodies.getItemById(1, true);
