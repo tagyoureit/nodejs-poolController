@@ -307,6 +307,7 @@ export class NixieBoard extends SystemBoard {
             await ncp.initAsync(sys);
             sys.board.heaters.updateHeaterServices();
             state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
+            state.cleanupState();
             // At this point we should have the start of a board so lets check to see if we are ready or if we are stuck initializing.
             setTimeout(() => this.processStatusAsync(), 5000);
         } catch (err) { state.status = 255; logger.error(`Error Initializing Nixie Control Panel ${err.message}`); }
@@ -550,7 +551,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             else if (!circuit.name && !data.name) circuit.name = scircuit.name = Circuit.getIdName(id);
             if (typeof data.type !== 'undefined' || typeof circuit.type === 'undefined') circuit.type = scircuit.type = parseInt(data.type, 10) || 0;
             if (typeof data.freeze !== 'undefined' || typeof circuit.freeze === 'undefined') circuit.freeze = utils.makeBool(data.freeze) || false;
-            if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures) || true;
+            if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures);
             if (typeof data.dontStop !== 'undefined' && utils.makeBool(data.dontStop) === true) data.eggTimer = 1440;
             if (typeof data.eggTimer !== 'undefined' || typeof circuit.eggTimer === 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10) || 0;
             if (typeof data.connectionId !== 'undefined') circuit.connectionId = data.connectionId;
