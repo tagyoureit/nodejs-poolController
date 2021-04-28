@@ -426,6 +426,13 @@ export class NixieCircuitCommands extends CircuitCommands {
     public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         sys.board.suspendStatus(true);
         try {
+            // We need to do some routing here as it is now critical that circuits, groups, and features
+            // have their own processing.  The virtual controller used to only deal with one circuit.
+            if (sys.board.equipmentIds.circuitGroups.isInRange(id))
+                return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
+            else if (sys.board.equipmentIds.features.isInRange(id))
+                return await sys.board.features.setFeatureStateAsync(id, val);
+
             let circuit: ICircuit = sys.circuits.getInterfaceById(id, false, { isActive: false });
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit or Feature id ${id} not valid`, id, 'Circuit'));
             let circ = state.circuits.getInterfaceById(id, circuit.isActive !== false);

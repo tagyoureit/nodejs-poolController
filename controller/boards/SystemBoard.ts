@@ -1852,9 +1852,12 @@ export class CircuitCommands extends BoardCommands {
     public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         sys.board.suspendStatus(true);
         try {
-            if (sys.board.equipmentIds.circuitGroups.isInRange(id)) {
+            // We need to do some routing here as it is now critical that circuits, groups, and features
+            // have their own processing.  The virtual controller used to only deal with one circuit.
+            if (sys.board.equipmentIds.circuitGroups.isInRange(id))
                 return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
-            }
+            else if (sys.board.equipmentIds.features.isInRange(id))
+                return await sys.board.features.setFeatureStateAsync(id, val);
             let circuit: ICircuit = sys.circuits.getInterfaceById(id, false, { isActive: false });
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit or Feature id ${id} not valid`, id, 'Circuit'));
             let circ = state.circuits.getInterfaceById(id, circuit.isActive !== false);
@@ -1884,10 +1887,10 @@ export class CircuitCommands extends BoardCommands {
         }
         catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
         finally {
-            state.emitEquipmentChanges();
             sys.board.virtualPumpControllers.start();
             sys.board.suspendStatus(false);
             this.board.processStatusAsync();
+            state.emitEquipmentChanges();
         }
     }
     public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
@@ -2882,6 +2885,9 @@ export class HeaterCommands extends BoardCommands {
                 let cfgBody: Body = sys.bodies.getItemById(body.id);
                 let isHeating = false;
                 if (body.isOn) {
+                    if (typeof body.temp === 'undefined') {
+                        logger.warn(`The body temperature for ${body.name} cannot be determined. Heater status for this body cannot be calculated.`);
+                    }
                     for (let j = 0; j < heaters.length; j++) {
                         let heater: Heater = heaters[j];
                         if (heater.isActive === false) continue;
@@ -2908,7 +2914,7 @@ export class HeaterCommands extends BoardCommands {
                                 if (body.id === 4) isAssociated = true;
                                 break;
                         }
-                        logger.debug(`Heater ${heater.name} is ${isAssociated === true ? '' : 'not '}associated with ${body.name}`);
+                        logger.silly(`Heater ${heater.name} is ${isAssociated === true ? '' : 'not '}associated with ${body.name}`);
                         if (isAssociated) {
                             let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
                             let status = sys.board.valueMaps.heatStatus.transform(body.heatStatus);
@@ -4176,6 +4182,7 @@ export class VirtualPumpController extends BoardCommands {
     }
 
     public start() {
+        logger.debug(`Starting virtual pump controller.`);
         for (let i = 1; i <= sys.pumps.length; i++) {
             let pump = sys.pumps.getItemByIndex(i);
             let spump = state.pumps.getItemById(pump.id);
