@@ -4181,7 +4181,7 @@ export class VirtualPumpController extends BoardCommands {
             let spump = state.pumps.getItemById(pump.id);
             sys.board.virtualPumpControllers.setTargetSpeed();
             if (pump.isVirtual && pump.isActive && ['vs', 'vf'].includes(sys.board.valueMaps.pumpTypes.getName(pump.type).substring(0, 2))) {
-                if (state.pumps.getItemById(i).virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) continue;
+                if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) continue;
                 logger.info(`Starting Virtual Pump Controller: Pump ${pump.id}`);
                 spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
                 setTimeout(sys.board.pumps.run, 100, pump);
