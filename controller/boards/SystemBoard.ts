@@ -1602,6 +1602,7 @@ export class PumpCommands extends BoardCommands {
         // payload[0] === 1 is for VS (type 128); 10 for VSF (type 64)
         sys.board.virtualPumpControllers.setTargetSpeed();
         let speed = spump.targetSpeed;
+        let type = sys.board.valueMaps.pumpTypes.getName(pump.type);
         if (speed === 0 && callbackStack.length > 0) {
             let cb = callbackStack.shift();
             if (typeof cb.fn === 'function') {
@@ -1611,7 +1612,7 @@ export class PumpCommands extends BoardCommands {
         let out = Outbound.create({
             protocol: Protocol.Pump,
             dest: pump.address,
-            action: pump.type === 128 ? 1 : 10,
+            action: type === 'vs' ? 1 : 10,
             payload: [2, 196, Math.floor(speed / 256), speed % 256],
             retries: 1,
             // timeout: 250,
@@ -1634,6 +1635,7 @@ export class PumpCommands extends BoardCommands {
     private runGPM(pump: Pump, spump: PumpState, callbackStack?: any[]) {
         // return new Promise<void>((resolve, reject) => {
         sys.board.virtualPumpControllers.setTargetSpeed();
+        let type = sys.board.valueMaps.pumpTypes.getName(pump.type);
         let speed = spump.targetSpeed;
         if (speed === 0 && callbackStack.length > 0) {
             let cb = callbackStack.shift();
@@ -1644,7 +1646,7 @@ export class PumpCommands extends BoardCommands {
         let out = Outbound.create({
             protocol: Protocol.Pump,
             dest: pump.address,
-            action: pump.type === 128 ? 1 : 10,
+            action: type === 'vs' ? 1 : 10,
             payload: [],
             retries: 1,
             onComplete: (err, msg) => {
@@ -1661,7 +1663,7 @@ export class PumpCommands extends BoardCommands {
             }
         });
 
-        if (pump.type === 1) {
+        if (type === 'vf') {
             // vf
             out.payload = [1, 4, 2, 228, speed, 0];
         }
@@ -2887,9 +2889,7 @@ export class HeaterCommands extends BoardCommands {
                 let cfgBody: Body = sys.bodies.getItemById(body.id);
                 let isHeating = false;
                 if (body.isOn) {
-                    if (typeof body.temp === 'undefined') {
-                        logger.warn(`The body temperature for ${body.name} cannot be determined. Heater status for this body cannot be calculated.`);
-                    }
+                    if (typeof body.temp === 'undefined') logger.warn(`The body temperature for ${body.name} cannot be determined. Heater status for this body cannot be calculated.`);
                     for (let j = 0; j < heaters.length; j++) {
                         let heater: Heater = heaters[j];
                         if (heater.isActive === false) continue;
@@ -4017,9 +4017,7 @@ export class ChemControllerCommands extends BoardCommands {
 
             }
         }
-
     }
-
 }
 export class VirtualChlorinatorController extends BoardCommands {
     // this method will check to see if we have any virtual chlors we are responsible for
