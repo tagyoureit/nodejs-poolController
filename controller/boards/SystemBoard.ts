@@ -2303,15 +2303,17 @@ export class FeatureCommands extends BoardCommands {
             Promise.reject(new InvalidEquipmentIdError('Feature id has not been defined', undefined, 'Feature'));
     }
     public async setFeatureStateAsync(id: number, val: boolean): Promise<ICircuitState> {
-        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
-        if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
-        let feature = sys.features.getItemById(id);
-        let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
-        fstate.isOn = val;
-        sys.board.valves.syncValveStates();
-        sys.board.virtualPumpControllers.start();
-        state.emitEquipmentChanges();
-        return Promise.resolve(fstate.get(true));
+        try {
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
+            if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
+            let feature = sys.features.getItemById(id);
+            let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
+            fstate.isOn = val;
+            sys.board.valves.syncValveStates();
+            sys.board.virtualPumpControllers.start();
+            state.emitEquipmentChanges();
+            return fstate;
+        } catch (err) { return Promise.reject(new Error(`Error setting feature state ${err.message}`)); }
     }
     public async toggleFeatureStateAsync(id: number): Promise<ICircuitState> {
         let feat = state.features.getItemById(id);
@@ -4128,7 +4130,7 @@ export class VirtualPumpController extends BoardCommands {
         }
     }
     public setTargetSpeed() {
-        for (let i = 1; i <= sys.pumps.length; i++) {
+        for (let i = 0; i < sys.pumps.length; i++) {
             let pump = sys.pumps.getItemByIndex(i);
             let spump = state.pumps.getItemById(pump.id);
             let _newSpeed = 0;
@@ -4142,6 +4144,7 @@ export class VirtualPumpController extends BoardCommands {
                         if (_units === pumpCircuits[i].units && pumpCircuits[i].speed > _newSpeed) { _newSpeed = pumpCircuits[i].speed; }
                     }
                 }
+                if (spump.targetSpeed !== _newSpeed) logger.debug(`New speed calculated for pump ${pump.name}: ${_newSpeed}`);
                 spump.targetSpeed = _newSpeed;
             }
         }
@@ -4149,7 +4152,7 @@ export class VirtualPumpController extends BoardCommands {
     public async softStop() {
         // reset the values when the app starts; this is in case there is a system failure while the pumps are running
         // turn off all pumps
-        for (let i = 1; i <= sys.pumps.length; i++) {
+        for (let i = 0; i < sys.pumps.length; i++) {
             let pump = sys.pumps.getItemByIndex(i);
             let spump = state.pumps.getItemById(pump.id);
             if (pump.isVirtual && pump.type !== 0) {
@@ -4165,7 +4168,7 @@ export class VirtualPumpController extends BoardCommands {
         return new Promise<void>((resolve, reject) => {
             // turn off all pumps
             let bAnyVirtual = false;
-            for (let i = 1; i <= sys.pumps.length; i++) {
+            for (let i = 0; i < sys.pumps.length; i++) {
                 let pump = sys.pumps.getItemByIndex(i);
                 let spump = state.pumps.getItemById(pump.id);
                 if (pump.isVirtual && pump.type !== 0) {
@@ -4183,7 +4186,7 @@ export class VirtualPumpController extends BoardCommands {
 
     public start() {
         logger.debug(`Starting virtual pump controller.`);
-        for (let i = 1; i <= sys.pumps.length; i++) {
+        for (let i = 0; i < sys.pumps.length; i++) {
             let pump = sys.pumps.getItemByIndex(i);
             let spump = state.pumps.getItemById(pump.id);
             sys.board.virtualPumpControllers.setTargetSpeed();

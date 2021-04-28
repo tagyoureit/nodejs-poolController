@@ -846,15 +846,17 @@ export class NixieFeatureCommands extends FeatureCommands {
             Promise.reject(new InvalidEquipmentIdError('Feature id has not been defined', undefined, 'Feature'));
     }
     public async setFeatureStateAsync(id: number, val: boolean): Promise<ICircuitState> {
-        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
-        if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
-        let feature = sys.features.getItemById(id);
-        let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
-        fstate.isOn = val;
-        sys.board.valves.syncValveStates();
-        sys.board.virtualPumpControllers.start();
-        state.emitEquipmentChanges();
-        return Promise.resolve(fstate.get(true));
+        try {
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
+            if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
+            let feature = sys.features.getItemById(id);
+            let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
+            fstate.isOn = val;
+            sys.board.valves.syncValveStates();
+            sys.board.virtualPumpControllers.start();
+            state.emitEquipmentChanges();
+            return fstate;
+        } catch (err) { return Promise.reject(new Error(`Error setting feature state ${err.message}`)); }
     }
     public async toggleFeatureStateAsync(id: number): Promise<ICircuitState> {
         let feat = state.features.getItemById(id);
