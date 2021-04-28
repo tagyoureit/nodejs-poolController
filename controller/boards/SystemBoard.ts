@@ -4123,8 +4123,8 @@ export class VirtualPumpController extends BoardCommands {
     }
     public setTargetSpeed() {
         for (let i = 1; i <= sys.pumps.length; i++) {
-            let pump = sys.pumps.getItemById(i);
-            let spump = state.pumps.getItemById(i);
+            let pump = sys.pumps.getItemByIndex(i);
+            let spump = state.pumps.getItemById(pump.id);
             let _newSpeed = 0;
             if (pump.isVirtual) {
                 let pumpCircuits = pump.circuits.get();
@@ -4144,8 +4144,8 @@ export class VirtualPumpController extends BoardCommands {
         // reset the values when the app starts; this is in case there is a system failure while the pumps are running
         // turn off all pumps
         for (let i = 1; i <= sys.pumps.length; i++) {
-            let pump = sys.pumps.getItemById(i);
-            let spump = state.pumps.getItemById(i);
+            let pump = sys.pumps.getItemByIndex(i);
+            let spump = state.pumps.getItemById(pump.id);
             if (pump.isVirtual && pump.type !== 0) {
                 spump.targetSpeed = 0;
                 spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
@@ -4160,8 +4160,8 @@ export class VirtualPumpController extends BoardCommands {
             // turn off all pumps
             let bAnyVirtual = false;
             for (let i = 1; i <= sys.pumps.length; i++) {
-                let pump = sys.pumps.getItemById(i);
-                let spump = state.pumps.getItemById(i);
+                let pump = sys.pumps.getItemByIndex(i);
+                let spump = state.pumps.getItemById(pump.id);
                 if (pump.isVirtual && pump.type !== 0) {
                     bAnyVirtual = true;
                     logger.info(`Queueing pump ${i} to return to manual control.`);
@@ -4177,13 +4177,13 @@ export class VirtualPumpController extends BoardCommands {
 
     public start() {
         for (let i = 1; i <= sys.pumps.length; i++) {
-            let pump = sys.pumps.getItemById(i);
-            let spump = state.pumps.getItemById(i);
+            let pump = sys.pumps.getItemByIndex(i);
+            let spump = state.pumps.getItemById(pump.id);
             sys.board.virtualPumpControllers.setTargetSpeed();
             if (pump.isVirtual && pump.isActive && ['vs', 'vf'].includes(sys.board.valueMaps.pumpTypes.getName(pump.type).substring(0, 2))) {
                 if (state.pumps.getItemById(i).virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running')) continue;
                 logger.info(`Starting Virtual Pump Controller: Pump ${pump.id}`);
-                state.pumps.getItemById(i).virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
+                spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
                 setTimeout(sys.board.pumps.run, 100, pump);
             }
             // else {

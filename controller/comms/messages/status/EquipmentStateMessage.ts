@@ -333,45 +333,45 @@ export class EquipmentStateMessage {
     //    // This will let any connected clients know if anything has changed.  If nothing has ...crickets.
     //    state.emitControllerChange();
     //}
-    public static initVirtual() {
-        state.equipment.controllerType = sys.controllerType = ControllerType.Virtual;
-        state.equipment.model = sys.equipment.model = 'Virtual Controller';
-        sys.equipment.maxFeatures = 10;
-        sys.equipment.maxCircuits = 0;
-        sys.equipment.maxSchedules = 0;
-        sys.equipment.maxValves = 0;
-        sys.equipment.maxIntelliBrites = 0;
-        sys.equipment.maxLightGroups = 0;
-        sys.equipment.maxCustomNames = 0;
-        sys.equipment.maxCircuitGroups = 40;
-        // setup pool circuit
-        let pool = sys.circuits.getItemById(6, true);
-        let spool = state.circuits.getItemById(6, true);
-        pool.name = spool.name = 'Pool';
-        pool.type = spool.type = 2;
-        pool.isActive = true;
-        spool.isOn = false;
-        const cbody = sys.bodies.getItemById(1, true, { id: 1, isActive: true, name: "Pool" });
-        const tbody = state.temps.bodies.getItemById(1, true);
-        tbody.heatMode = cbody.heatMode = 0;
-        tbody.name = cbody.name;
-        tbody.circuit = cbody.circuit = 6;
-        tbody.heatStatus = 0;
-        tbody.isOn = false;
-        sys.general.options.clockMode = 12;
-        sys.general.options.clockSource = 'server';
-        state.equipment.maxBodies = sys.equipment.maxBodies;
-        state.mode = 0;
-        state.status = 1;
-        state.temps.units = 0;
-        sys.equipment.setEquipmentIds();
-        state.emitControllerChange();
-        sys.board.virtualPumpControllers.start();
-        sys.board.heaters.initTempSensors();
-        sys.board.heaters.updateHeaterServices();
-        sys.board.processStatusAsync();
+    //public static initVirtual() {
+    //    state.equipment.controllerType = sys.controllerType = ControllerType.Virtual;
+    //    state.equipment.model = sys.equipment.model = 'Virtual Controller';
+    //    sys.equipment.maxFeatures = 10;
+    //    sys.equipment.maxCircuits = 0;
+    //    sys.equipment.maxSchedules = 0;
+    //    sys.equipment.maxValves = 0;
+    //    sys.equipment.maxIntelliBrites = 0;
+    //    sys.equipment.maxLightGroups = 0;
+    //    sys.equipment.maxCustomNames = 0;
+    //    sys.equipment.maxCircuitGroups = 40;
+    //    // setup pool circuit
+    //    let pool = sys.circuits.getItemById(6, true);
+    //    let spool = state.circuits.getItemById(6, true);
+    //    pool.name = spool.name = 'Pool';
+    //    pool.type = spool.type = 2;
+    //    pool.isActive = true;
+    //    spool.isOn = false;
+    //    const cbody = sys.bodies.getItemById(1, true, { id: 1, isActive: true, name: "Pool" });
+    //    const tbody = state.temps.bodies.getItemById(1, true);
+    //    tbody.heatMode = cbody.heatMode = 0;
+    //    tbody.name = cbody.name;
+    //    tbody.circuit = cbody.circuit = 6;
+    //    tbody.heatStatus = 0;
+    //    tbody.isOn = false;
+    //    sys.general.options.clockMode = 12;
+    //    sys.general.options.clockSource = 'server';
+    //    state.equipment.maxBodies = sys.equipment.maxBodies;
+    //    state.mode = 0;
+    //    state.status = 1;
+    //    state.temps.units = 0;
+    //    sys.equipment.setEquipmentIds();
+    //    state.emitControllerChange();
+    //    sys.board.virtualPumpControllers.start();
+    //    sys.board.heaters.initTempSensors();
+    //    sys.board.heaters.updateHeaterServices();
+    //    sys.board.processStatusAsync();
 
-    }
+    //}
     private static initController(msg: Inbound) {
         state.status = 1;
         const model1 = msg.extractPayloadByte(27);
