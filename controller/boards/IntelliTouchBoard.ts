@@ -89,7 +89,8 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         else pnl.modules.removeItemById(1);
 
         if (byte1 !== 14) sys.board.equipmentIds.invalidIds.merge([10, 19]);
-        sys.equipment.model = mt.desc;
+        state.equipment.model = sys.equipment.model = mt.desc;
+        state.equipment.controllerType = 'intellitouch';
         // The code above should be repeated if we ever see a panel with more than one expansion panel.
         sys.equipment.expansions.getItemById(2, true).isActive = false;
         sys.equipment.expansions.getItemById(3, true).isActive = false;

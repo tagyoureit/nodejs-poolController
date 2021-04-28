@@ -383,7 +383,8 @@ export class EasyTouchBoard extends SystemBoard {
         if (!eq.shared) sys.board.equipmentIds.invalidIds.merge([1]);
         if (eq.maxCircuits === 4) sys.board.equipmentIds.invalidIds.merge([7, 8, 9]);
         if (byte1 !== 14) sys.board.equipmentIds.invalidIds.merge([10, 19]);
-        sys.equipment.model = mt.desc;
+        state.equipment.model = sys.equipment.model = mt.desc;
+        state.equipment.controllerType = 'easytouch';
         this.initBodyDefaults();
         this.initHeaterDefaults();
         sys.board.bodies.initFilters();
@@ -1058,7 +1059,7 @@ class TouchCircuitCommands extends CircuitCommands {
         }
     }
     public async setCircuitAsync(data: any): Promise<ICircuit> {
-        return new Promise<ICircuit>((resolve, reject) => {
+        return new Promise<ICircuit>(async (resolve, reject) => {
             // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]
             // set circuit 17 to function 14 and name 209
             // response: [255,0,255][165,33,34,16,1,1][139][1,133]
@@ -1067,7 +1068,9 @@ class TouchCircuitCommands extends CircuitCommands {
             let circuit = sys.circuits.getInterfaceById(id);
             // Alright check to see if we are adding a nixie circuit.
             if (id === -1 || circuit.master !== 0) {
-                return super.setCircuitAsync(data);
+                let circ = await super.setCircuitAsync(data);
+                resolve(circ);
+                return;
             }
 
             let typeByte = parseInt(data.type, 10) || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');

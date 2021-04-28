@@ -1964,7 +1964,7 @@ export class CircuitCommands extends BoardCommands {
     public async setCircuitAsync(data: any): Promise<ICircuit> {
         let id = parseInt(data.id, 10);
         if (id <= 0 || typeof data.id === 'undefined') {
-            // We are adding a new circuit.  If we are not operating as a nixie controller then we need to start this
+            // We are adding a new circuit.  If we are operating as a nixie controller then we need to start this
             // circuit outside the range of circuits that can be defined on the panel.  For any of the non-OCP controllers
             // these are added within the range of the circuits starting with 1.  For all others these are added with an id > 255.
             switch (state.equipment.controllerType) {
