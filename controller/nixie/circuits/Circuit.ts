@@ -128,7 +128,7 @@ export class NixieCircuit extends NixieEquipment {
                 arr.push({ isOn: false, timeout: t });
                 arr.push({ isOn: true, timeout: t });
             }
-            let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, arr);
+            let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, arr, 60000);
             return res;
         } catch (err) { logger.error(`Nixie: Error sending circuit sequence ${this.id}: ${count}`); }
         finally { this._sequencing = false; }
@@ -141,7 +141,7 @@ export class NixieCircuit extends NixieEquipment {
                 cstate.isOn = val;
                 return new InterfaceServerResponse(200, 'Success');
             }
-            if (this._sequencing && val === cstate.isOn) return new InterfaceServerResponse(200, 'Success');
+            if (this._sequencing) return new InterfaceServerResponse(200, 'Success');
             let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, { isOn: val, latch: val ? 10000 : undefined });
             if (res.status.code === 200) cstate.isOn = val;
             return res;

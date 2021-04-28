@@ -994,7 +994,7 @@ export class REMInterfaceServer extends ProtoServer {
                         response.on('end', () => { resolve(); });
                     });
                 }
-                req.setTimeout(timeout, () => { reject(new Error('Request timeout')); });
+                req.setTimeout(timeout, () => { reject(new Error(`Request timeout after ${timeout}ms: ${method} ${url}`)); });
                 req.on('error', (err, req, res) => {
                     logger.error(`Error sending Request: ${opts.method} ${url} ${err.message}`);
                     ret.error = err;
