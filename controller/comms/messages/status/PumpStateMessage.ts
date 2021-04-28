@@ -27,12 +27,11 @@ export class PumpStateMessage {
         // then this is still true since the pumps will respond with what we are looking for.
         if (msg.source < 96) return;
 
-        let pumpId = msg.source - 96 + 1;
-        let pump = state.pumps.getItemById(pumpId, true);
-        let pumpCfg = sys.pumps.getItemById(pumpId);
+        // Boo.  The id should not be mapped like this.  We need to find the pump by address.
+        let pumpCfg = sys.pumps.getPumpByAddress(msg.source, false, { isActive: false });
+        let pumpId = pumpCfg.id;
         let ptype = sys.board.valueMaps.pumpTypes.transform(pumpCfg.type);
-        // let pump2 = state.pumps.getPumpByAddress(msg.source, true);
-        // let pumpCfg2 = sys.pumps.getPumpByAddress(msg.source);
+        let pump = state.pumps.getItemById(pumpId, pumpCfg.isActive === true);
         switch (msg.action) {
             case 7:
                 //[165, 63, 15, 16, 2, 29][11, 47, 32, 0, 0, 0, 0, 0, 0, 32, 0, 0, 2, 0, 59, 59, 0, 241, 56, 121, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 219]
@@ -51,6 +50,7 @@ export class PumpStateMessage {
                 // Byte 14 ticks up every minute while byte 13 ticks up every 59 minutes.
                 pump.time = (msg.extractPayloadByte(13)) * 60 + msg.extractPayloadByte(14);
                 pump.type = pumpCfg.type;
+                console.log(pumpId);
                 break;
         }
         state.emitEquipmentChanges();
@@ -59,10 +59,8 @@ export class PumpStateMessage {
 
     public static processDirectPumpMessages(msg: Inbound) {
 
-        if (msg.payload.length === 2) {
-
+        if (msg.payload.length === 2)
             console.log(`we received an ack/response from pump ${ msg.source }.  Payload: ${ msg.toShortPacket() }`);
-        }
         switch (msg.action) {
             case 1:
             case 9:
@@ -130,13 +128,13 @@ export class PumpStateMessage {
                     // info: {"valid":true,"dir":"in","proto":"pump","pkt":[[][255,0,255][165,0,16,97,4,1][255][2,26]],"ts":"2020-04-19T16:26:25.204-0700"}
                     if (msg.dest >= 96) {
                         // to pump
-                        const pump = sys.pumps.getItemById(msg.dest - 96 + 1);
+                        const pump = sys.pumps.getPumpByAddress(msg.dest);
                         const isRemoteControl = msg.extractPayloadByte(0) === 255;
                         console.log(`Controller setting pump ${ pump.id } control panel to ${ isRemoteControl ? 'remote contol' : 'local control' }`);
                     }
                     else {
                         // response to controller
-                        const pump = sys.pumps.getItemById(msg.source - 96 + 1);
+                        const pump = sys.pumps.getPumpByAddress(msg.source);
                         const isRemoteControl = msg.extractPayloadByte(0) === 255;
                         console.log(`Pump  ${ pump.id } responding to controller control panel to ${ isRemoteControl ? 'remote contol' : 'local control' }`);
                     }
@@ -146,7 +144,6 @@ export class PumpStateMessage {
                 {
                     // run mode; only for intellicom.  Shouldn't see these;
                     console.log(`Seeing pump run mode packet:  ${ msg.toShortPacket() }`);
-
                     break;
                 }
             case 6:
@@ -156,13 +153,13 @@ export class PumpStateMessage {
                     // info: {"valid":true,"dir":"in","proto":"pump","pkt":[[][255,0,255][165,0,16,96,6,1][10][1,38]],"ts":"2020-04-19T17:00:32.419-0700"}
                     if (msg.dest >= 96) {
                         // to pump
-                        const pump = sys.pumps.getItemById(msg.dest - 96 + 1);
+                        const pump = sys.pumps.getPumpByAddress(msg.dest);
                         const powerOn = msg.extractPayloadByte(0) === 10;
                         console.log(`Controller setting pump ${ pump.id } power mode to ${ powerOn ? 'on' : 'off' }`);
                     }
                     else {
                         // response to controller
-                        const pump = sys.pumps.getItemById(msg.source - 96 + 1);
+                        const pump = sys.pumps.getPumpByAddress(msg.source);
                         const powerOn = msg.extractPayloadByte(0) === 10;
                         console.log(`Pump  ${ pump.id } responding to controller power mode to ${ powerOn ? 'on' : 'off' }`);
                     }

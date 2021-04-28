@@ -799,6 +799,7 @@ export class PumpStateCollection extends EqStateCollection<PumpState> {
             let s = this.getItemById(cfg[i].id, true);
             s.type = c.type;
             s.name = c.name;
+            if (typeof c.isActive === 'undefined') c.isActive = true;
             s.isActive = c.isActive;
         }
 
