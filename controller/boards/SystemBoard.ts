@@ -2472,7 +2472,6 @@ export class ChlorinatorCommands extends BoardCommands {
                     else resolve();
                 }
             });
-
             conn.queueSendMessage(out);
         });
     }
@@ -4154,6 +4153,7 @@ export class VirtualPumpController extends BoardCommands {
             let pump = sys.pumps.getItemByIndex(i);
             let spump = state.pumps.getItemById(pump.id);
             if (pump.isVirtual && pump.type !== 0) {
+                logger.info(`Setting ${pump.name} to stopped`);
                 spump.targetSpeed = 0;
                 spump.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
             }

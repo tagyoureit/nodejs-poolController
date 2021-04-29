@@ -13,6 +13,7 @@ import { NixieValveCollection } from './valves/Valve';
 import { NixieHeaterCollection } from './heaters/Heater';
 import { config } from '../../config/Config';
 import { NixieFilterCollection } from './bodies/Filter';
+import { NixieChlorinatorCollection } from './chemistry/Chlorinator';
 
 /************************************************************************
  * Nixie:  Nixie is a control panel that controls devices as a master. It
@@ -53,6 +54,7 @@ export class NixieControlPanel implements INixieControlPanel {
     // other equipment is required this should be sent back through the original controller.
     // Command sequence is <OCP>Board -> SystemBoard -> NixieController whenever the master is not identified as Nixie.
     chemControllers: NixieChemControllerCollection = new NixieChemControllerCollection(this);
+    chlorinators: NixieChlorinatorCollection = new NixieChlorinatorCollection(this);
     circuits: NixieCircuitCollection = new NixieCircuitCollection(this);
     bodies: NixieBodyCollection = new NixieBodyCollection(this);
     filters: NixieFilterCollection = new NixieFilterCollection(this);
@@ -71,6 +73,7 @@ export class NixieControlPanel implements INixieControlPanel {
             await this.circuits.initAsync(equipment.circuits);
             await this.valves.initAsync(equipment.valves);
             await this.heaters.initAsync(equipment.heaters);
+            await this.chlorinators.initAsync(equipment.chlorinators);
             await this.chemControllers.initAsync(equipment.chemControllers);
             logger.info(`Nixie Controller Initialized`)
         }
@@ -109,6 +112,7 @@ export class NixieControlPanel implements INixieControlPanel {
     public async closeAsync() {
         // Close all the associated equipment.
         await this.chemControllers.closeAsync();
+        await this.chlorinators.closeAsync();
         await this.heaters.closeAsync();
         await this.circuits.closeAsync();
         await this.filters.closeAsync();

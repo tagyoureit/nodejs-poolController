@@ -51,7 +51,7 @@ export class EquipmentStateMessage {
         sys.equipment.model = 'Unknown';
     }
     private static initTouch(msg: Inbound) {
-        const model1 = msg.extractPayloadByte(27);
+        let model1 = msg.extractPayloadByte(27);
         let model2 = msg.extractPayloadByte(28);
         switch (model2) {
             case 0:
@@ -61,6 +61,7 @@ export class EquipmentStateMessage {
             case 4:
             case 5:
                 sys.controllerType = ControllerType.IntelliTouch;
+                model1 = msg.extractPayloadByte(28);
                 model2 = msg.extractPayloadByte(9);
                 break;
             case 11:

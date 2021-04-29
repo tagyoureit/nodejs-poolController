@@ -277,8 +277,6 @@ export class NixieBoard extends SystemBoard {
                     sys.circuits.removeItemById(1);
                     state.circuits.removeItemById(1);
                 }
-                // Now we need to add in any valves.
-                logger.info('Initializing valves');
             }
             else {
                 sys.bodies.removeItemById(1);
@@ -313,6 +311,7 @@ export class NixieBoard extends SystemBoard {
         } catch (err) { state.status = 255; logger.error(`Error Initializing Nixie Control Panel ${err.message}`); }
     }
     public initValves() {
+        logger.info(`Initializing Intake/Return valves`);
         let iv = sys.valves.find(elem => elem.isIntake === true);
         let rv = sys.valves.find(elem => elem.isReturn === true);
         if (sys.equipment.shared) {
@@ -442,17 +441,20 @@ export class NixieCircuitCommands extends CircuitCommands {
             // to turn off the other body first.
             //[12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
             //[13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
-            if (newState && (circuit.type === 12 || circuit.type === 13) && sys.equipment.shared === true) {
-                console.log(`Turning off shared body circuit`);
-                // If we are shared we need to turn off the other circuit.
-                let offType = circ.type === 12 ? 13 : 12;
-                let off = sys.circuits.get().filter(elem => elem.type === offType);
-                // Turn the circuits off that are part of the shared system.  We are going back to the board
-                // just in case we got here for a circuit that isn't on the current defined panel.
-                for (let i = 0; i < off.length; i++) {
-                    let coff = off[i];
-                    await sys.board.circuits.setCircuitStateAsync(coff.id, false);
+            if (newState && (circuit.type === 12 || circuit.type === 13)) {
+                if (sys.equipment.shared === true) {
+                    // If we are shared we need to turn off the other circuit.
+                    let offType = circ.type === 12 ? 13 : 12;
+                    let off = sys.circuits.get().filter(elem => elem.type === offType);
+                    // Turn the circuits off that are part of the shared system.  We are going back to the board
+                    // just in case we got here for a circuit that isn't on the current defined panel.
+                    for (let i = 0; i < off.length; i++) {
+                        let coff = off[i];
+                        logger.info(`Turning off shared body ${coff.name} circuit`);
+                        await sys.board.circuits.setCircuitStateAsync(coff.id, false);
+                    }
                 }
+                sys.board.virtualChlorinatorController.start();
             }
             if (id === 6) state.temps.bodies.getItemById(1, true).isOn = val;
             else if (id === 1) state.temps.bodies.getItemById(2, true).isOn = val;
