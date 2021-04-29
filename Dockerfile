@@ -1,7 +1,7 @@
 FROM node:lts-alpine AS build
 RUN apk add --no-cache make gcc g++ python linux-headers udev tzdata
 WORKDIR /app
-COPY defaultConfig.json package*.json ./
+COPY package*.json ./
 RUN npm ci
 COPY . .
 RUN npm run build
