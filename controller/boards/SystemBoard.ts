@@ -23,7 +23,7 @@ import { Message, Outbound, Protocol, Response } from '../comms/messages/Message
 import { utils, Heliotrope, Timestamp } from '../Constants';
 import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType, TempSensorCollection, Filter, Equipment } from '../Equipment';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
-import { BodyTempState, ValveState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState, ScheduleState, FilterState, ChemicalState } from '../State';
+import { BodyTempState, ValveState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState, ScheduleState, FilterState, ChemicalState, CircuitGroupState } from '../State';
 
 export class byteValueMap extends Map<number, any> {
     public transform(byte: number, ext?: number) { return extend(true, { val: byte || 0 }, this.get(byte) || this.get(0)); }
@@ -2016,22 +2016,43 @@ export class CircuitCommands extends BoardCommands {
     }
     public async setCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         let group: CircuitGroup = null;
+        let sgroup: CircuitGroupState = null;
+        let type = 0;
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+        let isAdd = false;
         if (id <= 0) {
-            // We are adding a circuit group.
-            id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
+            // We are adding a circuit group so we need to get the next equipment id.  For circuit groups and light groups, they share ids.
+            let range = sys.board.equipmentIds.circuitGroups;
+            for (let i = range.start; i <= range.end; i++) {
+                if (!sys.lightGroups.find(elem => elem.id === i) && !sys.circuitGroups.find(elem => elem.id === i)) {
+                    id = i;
+                    break;
+                }
+            }
+            type = parseInt(obj.type, 10) || 2;
+            group = sys.circuitGroups.getItemById(id, true);
+            sgroup = state.circuitGroups.getItemById(id, true);
+            isAdd = true;
         }
-        if (typeof id === 'undefined' || id <= 0) return Promise.reject(new InvalidEquipmentIdError(`Max circuit group id exceeded`, id, 'CircuitGroup'));
-        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'CircuitGroup'));
-        group = sys.circuitGroups.getItemById(id, true);
+        else {
+            group = sys.circuitGroups.getItemById(id, false);
+            sgroup = state.circuitGroups.getItemById(id, false);
+            type = group.type;
+        }
+        if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit group ids exceeded: ${id}`, id, 'circuitGroup'));
+        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'circuitGroup'));
         return new Promise<CircuitGroup>((resolve, reject) => {
-            if (typeof obj.name !== 'undefined') group.name = obj.name;
+            if (typeof obj.nameId !== 'undefined') {
+                group.nameId = obj.nameId;
+                group.name = sys.board.valueMaps.circuitNames.transform(obj.nameId).desc;
+            }
+            else if (typeof obj.name !== 'undefined') group.name = obj.name;
             if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
             if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
             if (typeof obj.showInFeatures !== 'undefined') group.showInFeatures = utils.makeBool(obj.showInFeatures);
             group.dontStop = group.eggTimer === 1440;
             group.isActive = true;
-            group.type = 2;
+            // group.type = 2;
             if (typeof obj.circuits !== 'undefined') {
                 for (let i = 0; i < obj.circuits.length; i++) {
                     let c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
@@ -2238,7 +2259,9 @@ export class CircuitCommands extends BoardCommands {
         let arr = [];
         for (let i = 0; i < circuits.length; i++) {
             let circuit = circuits[i];
-            arr.push(sys.board.circuits.setCircuitStateAsync(circuit.circuit, val));
+            // if the circuit group is turned on, we want the desired state of the individual circuits;
+            // if the circuit group is turned off, we want the opposite of the desired state
+            arr.push(sys.board.circuits.setCircuitStateAsync(circuit.circuit, val ? circuit.desiredState : !circuit.desiredState));
         }
         return new Promise<ICircuitGroupState>(async (resolve, reject) => {
             await Promise.all(arr).catch((err) => { reject(err) });
@@ -2250,14 +2273,6 @@ export class CircuitCommands extends BoardCommands {
     public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
         return sys.board.circuits.setCircuitGroupStateAsync(id, val);
     }
-    /*     public sequenceIntelliBrite(operation: string) {
-            state.intellibrite.hasChanged = true;
-            let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
-            if (nop > 0) {
-                state.intellibrite.action = nop;
-                setTimeout(function() { state.intellibrite.action = 0; state.emitEquipmentChanges(); }, 20000); // It takes 20 seconds to sequence.
-            }
-        } */
 }
 export class FeatureCommands extends BoardCommands {
     public async setFeatureAsync(obj: any): Promise<Feature> {

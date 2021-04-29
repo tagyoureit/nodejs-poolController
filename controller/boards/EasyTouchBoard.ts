@@ -1045,7 +1045,7 @@ class TouchBodyCommands extends BodyCommands {
         });
     }
 }
-class TouchCircuitCommands extends CircuitCommands {
+export class TouchCircuitCommands extends CircuitCommands {
     public getLightThemes(type?: number): any[] {
         let themes = sys.board.valueMaps.lightThemes.toArray();
         if (typeof type === 'undefined') return themes;
@@ -1128,7 +1128,8 @@ class TouchCircuitCommands extends CircuitCommands {
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit or Feature id not valid', id, 'Circuit'));
         let c = sys.circuits.getInterfaceById(id);
         if (c.master !== 0) return await super.setCircuitStateAsync(id, val);
-        if (id === 192) return sys.board.circuits.setLightGroupThemeAsync(id - 191, val ? 1 : 0);
+        if (id === 192 || c.type === 3) return await sys.board.circuits.setLightGroupThemeAsync(id - 191, val ? 1 : 0);
+        if (id >= 192) return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
         return new Promise<ICircuitState>((resolve, reject) => {
             let cstate = state.circuits.getInterfaceById(id);
             let out = Outbound.create({
@@ -1151,17 +1152,17 @@ class TouchCircuitCommands extends CircuitCommands {
             conn.queueSendMessage(out);
         });
     }
-    public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
-        let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
-        let gstate = (grp.dataName === 'circuitGroupConfig') ? state.circuitGroups.getItemById(grp.id, grp.isActive !== false) : state.lightGroups.getItemById(grp.id, grp.isActive !== false);
-        return new Promise<ICircuitGroupState>(async (resolve, reject) => {
-            try {
-                await sys.board.circuits.setCircuitStateAsync(id, val);
-                resolve(state.circuitGroups.getInterfaceById(id));
-            }
-            catch (err) { reject(err); }
-        });
-    }
+    // public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
+    //     let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
+    //     let gstate = (grp.dataName === 'circuitGroupConfig') ? state.circuitGroups.getItemById(grp.id, grp.isActive !== false) : state.lightGroups.getItemById(grp.id, grp.isActive !== false);
+    //     return new Promise<ICircuitGroupState>(async (resolve, reject) => {
+    //         try {
+    //             await sys.board.circuits.setCircuitStateAsync(id, val);
+    //             resolve(state.circuitGroups.getInterfaceById(id));
+    //         }
+    //         catch (err) { reject(err); }
+    //     });
+    // }
     public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> { return this.setCircuitGroupStateAsync(id, val); }
     public async toggleCircuitStateAsync(id: number) {
         let cstate = state.circuits.getInterfaceById(id);
@@ -1170,7 +1171,7 @@ class TouchCircuitCommands extends CircuitCommands {
         }
         return this.setCircuitStateAsync(id, !cstate.isOn);
     }
-    private createLightGroupMessages(group: LightGroup) {
+    public createLightGroupMessages(group: LightGroup) {
         let packets: Promise<void>[] = [];
         // intellibrites can come with 8 settings (1 packet) or 10 settings (2 packets)
         if (sys.equipment.maxIntelliBrites === 8) {

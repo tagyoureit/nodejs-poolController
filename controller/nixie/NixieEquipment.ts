@@ -31,7 +31,7 @@ export class NixieEquipment {
                 let rem = server as REMInterfaceServer;
                 result = await rem.putApiService(url, data, timeout);
                 // If the result code is > 200 we have an issue.
-                if (result.status.code > 200) return Promise.reject(new Error(`putDeviceService: ${result.error.message}`));
+                if (result.status.code > 200 || result.status.code === -1) return Promise.reject(new Error(`putDeviceService: ${result.error.message}`));
             }
             return result;
         }

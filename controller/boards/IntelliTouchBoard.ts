@@ -14,12 +14,10 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import * as extend from 'extend';
-import { EventEmitter } from 'events';
-import {byteValueMap, EquipmentIdRange} from './SystemBoard';
+import {byteValueMap} from './SystemBoard';
 import {logger} from '../../logger/Logger';
-import { EasyTouchBoard, TouchConfigQueue, GetTouchConfigCategories } from './EasyTouchBoard';
-import { state, ChlorinatorState } from '../State';
+import { EasyTouchBoard, TouchConfigQueue, GetTouchConfigCategories, TouchCircuitCommands } from './EasyTouchBoard';
+import { state, ICircuitGroupState } from '../State';
 import { PoolSystem, sys, ExpansionPanel, ExpansionModule } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 
@@ -105,6 +103,7 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         })();
         state.emitControllerChange();
     }
+    public circuits: ITTouchCircuitCommands = new ITTouchCircuitCommands(this);
 }
 class ITTouchConfigQueue extends TouchConfigQueue {
     public queueChanges() {
@@ -140,4 +139,17 @@ class ITTouchConfigQueue extends TouchConfigQueue {
         } else state.status = 1;
         state.emitControllerChange();
     }
+}
+class ITTouchCircuitCommands extends TouchCircuitCommands {
+    public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
+        // intellitouch supports groups/macros with id's 41-50 with a macro flag
+        let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
+        return new Promise<ICircuitGroupState>(async (resolve, reject) => {
+            try {
+                await sys.board.circuits.setCircuitStateAsync(id, val);
+                resolve(state.circuitGroups.getInterfaceById(id));
+            }
+            catch (err) { reject(err); }
+        });
+    } 
 }
