@@ -67,9 +67,8 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         if (!eq.shared) sys.board.equipmentIds.invalidIds.merge([1]);
         // Add in all the invalid ids from the base personality board.
         sys.board.equipmentIds.invalidIds.set([16, 17, 18]); // These appear to alway be invalid in IntelliTouch.
-        for (let i = 5; i <= 9; i++) {
+        for (let i = 7; i <= 9; i++) {
             // This will add all the invalid ids between 5 and 9 that are omitted for IntelliTouch models.
-            if (i === 6) continue;
             if (i >= eq.maxCircuits - 1) sys.board.equipmentIds.invalidIds.merge([i]);
         }
         // This code should be repeated if we ever see a panel with more than one expansion panel.
