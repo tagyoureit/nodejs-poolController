@@ -394,7 +394,21 @@ export class EasyTouchBoard extends SystemBoard {
                 logger.error(`Error initializing EasyTouch Filters`);
             }
         })();
+        for (let i = 0; i < sys.circuits.length; i++) {
+            let c = sys.circuits.getItemByIndex(i);
+            if (c.id <= 40) c.master = 0;
+        }
+        for (let i = 0; i < sys.valves.length; i++) {
+            let v = sys.valves.getItemByIndex(i);
+            if (v.id < 50) v.master = 0;
+        }
+        for (let i = 0; i < sys.bodies.length; i++) {
+            let b = sys.bodies.getItemByIndex(i);
+            b.master = 0;
+        }
+
         state.emitControllerChange();
+
     }
     public bodies: TouchBodyCommands = new TouchBodyCommands(this);
     public system: TouchSystemCommands = new TouchSystemCommands(this);

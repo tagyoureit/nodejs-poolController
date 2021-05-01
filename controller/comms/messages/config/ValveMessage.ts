@@ -207,6 +207,7 @@ export class ValveMessage {
             if (valve.isActive) {
                 let svalve = state.valves.getItemById(valve.id, true);
                 svalve.type = valve.type = 0;
+                valve.master = 0;
             }
             ndx++;
             id++;

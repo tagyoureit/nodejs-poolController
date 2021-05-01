@@ -155,6 +155,7 @@ export class CircuitMessage {
             // For some odd reason the circuit type for circuit 6 does not equal pool while circuit 1 does equal spa.
             circuit.type = circuitId - 1 !== 6 ? msg.extractPayloadByte(i) : 12;
             circuit.isActive = true;
+            circuit.master = 0;
         }
         msg.isProcessed = true;
     }

@@ -55,17 +55,21 @@ export class NixieChlorinatorCollection extends NixieEquipmentCollection<NixieCh
     }
 }
 export class NixieChlorinator extends NixieEquipment {
-    public pollingInterval: number = 10000;
+    public pollingInterval: number = 300;
     private _pollTimer: NodeJS.Timeout = null;
     private superChlorinating: boolean = false;
+    private superChlorStart: number = 0;
     private chlorinating: boolean = false;
     public chlor: Chlorinator;
     public bodyOnTime: number;
+    protected _suspendPolling: number = 0;
     constructor(ncp: INixieControlPanel, chlor: Chlorinator) {
         super(ncp);
         this.chlor = chlor;
     }
     public get id(): number { return typeof this.chlor !== 'undefined' ? this.chlor.id : -1; }
+    public get suspendPolling(): boolean { return this._suspendPolling > 0; }
+    public set suspendPolling(val: boolean) { this._suspendPolling = Math.max(0, this._suspendPolling + (val ? 1 : -1));  }
     public async setChlorinatorAsync(data: any) {
         try {
             let chlor = this.chlor;
@@ -104,27 +108,109 @@ export class NixieChlorinator extends NixieEquipment {
         let isOn = sys.board.bodies.isBodyOn(this.chlor.body);
         return isOn;
     }
+    public async pollEquipment() {
+        try {
+            if (this._pollTimer) {
+                clearTimeout(this._pollTimer);
+                this._pollTimer = undefined;
+            }
+            if (!this.suspendPolling) {
+                await this.takeControl();
+                await this.setOutput();
+                await this.getModel();
+            }
+        } catch (err) { logger.error(`Chlorinator ${this.chlor.name} comms failure: ${err.message}`); }
+        finally { this._pollTimer = setTimeout(this.pollEquipment, this.pollingInterval); }
+    }
+    public async takeControl(): Promise<boolean> {
+        try {
+            let cstate = state.chlorinators.getItemById(this.chlor.id, true);
+            // The sequence is as follows.
+            // 0 = Disabled control panel by taking control of it.
+            // 17 = Set the current setpoint
+            // 20 = Request the status
+            // Disable the control panel by sending an action 0 the chlorinator should respond with an action 1.
+            //[16, 2, 80, 0][0][98, 16, 3]
+            let success = await new Promise<boolean>((resolve, reject) => {
+                let out = Outbound.create({
+                    protocol: Protocol.Chlorinator,
+                    dest: this.chlor.id + 79,
+                    action: 0,
+                    payload: [0],
+                    retries: 3, // IntelliCenter tries 4 times to get a response.
+                    response: Response.create({ protocol: Protocol.Chlorinator, action: 1 }),
+                    onComplete: (err) => {
+                        if (err) {
+                            // This flag is cleared in ChlorinatorStateMessage
+                            cstate.status = 128;
+                            resolve(false);
+                        }
+                        else {
+                            // If this is successful the action 1 message will have been
+                            // digested by ChlorinatorStateMessage and the lastComm will have been set clearing the
+                            // communication lost flag.
+                            resolve(true);
+                        }
+                    }
+                });
+                conn.queueSendMessage(out);
+            });
+            return success;
+        } catch (err) { logger.error(`Communication error with Chlorinator ${this.chlor.name} : ${err.message}`); }
+    }
     public async setOutput() {
         try {
+            // A couple of things need to be in place before setting the output.
+            // 1. The chlorinator will have to have responded to the takeControl message.
+            // 2. If the body is not on then we need to send it a 0 output.  This is just in case the
+            //    chlorinator is not wired into the filter relay.  The current output should be 0 if no body is on.
+            // 3. If we are superchlorinating and the remaing superChlor time is > 0 then we need to keep it at 100%.
+            // 4. If the chlorinator disabled flag is set then we need to make sure the setpoint is 0.
             let cstate = state.chlorinators.getItemById(this.chlor.id, true);
             let body = state.temps.bodies.getBodyIsOn();
             let setpoint = 0;
             if (typeof body !== 'undefined') {
                 setpoint = (body.id === 1) ? this.chlor.spaSetpoint : this.chlor.poolSetpoint;
                 if (this.chlor.superChlor) setpoint = 100;
+                if (this.chlor.disabled) setpoint = 0; // Our target should be 0 because we have other things going on.  For instance,
+                                                       // we may be dosing acid which will cause the disabled flag to be true.
             }
-            // Tell the chlorinator that we are to use the current output.             
-            await new Promise<void>((resolve, reject) => {
+            if (cstate.status === 128) setpoint = 0; // If we haven't been able to get a response from the clorinator tell is to turn itself off.
+            // Perhaps we will be luckier on the next poll cycle.
+            // Tell the chlorinator that we are to use the current output.
+            //[16, 2, 80, 17][0][115, 16, 3]
+            cstate.targetOutput = setpoint;
+            let success = await new Promise<boolean>((resolve, reject) => {
                 let out = Outbound.create({
                     protocol: Protocol.Chlorinator,
                     dest: this.chlor.id,
                     action: 17,
                     payload: [setpoint],
-                    retries: 3,
+                    retries: 7, // IntelliCenter tries 8 times to make this happen.
                     response: Response.create({ protocol: Protocol.Chlorinator, action: 18 }),
                     onComplete: (err) => {
-                        if (err) reject(err);
-                        else resolve();
+                        if (err) {
+                            this.chlorinating = false;
+                            cstate.currentOutput = 0;
+                            cstate.status = 128;
+                            resolve(false);
+                        }
+                        else {
+                            // The action:17 message originated from us so we will not see it in the
+                            // ChlorinatorStateMessage module.
+                            cstate.currentOutput = setpoint;
+                            this.chlorinating = true;
+                            if (!this.superChlorinating && cstate.superChlor) {
+                                cstate.superChlorRemaining = cstate.superChlorHours * 3600;
+                                this.superChlorStart = Math.floor(new Date().getTime() / 1000) * 1000;
+                            }
+                            else if (cstate.superChlor) {
+                                cstate.superChlorRemaining = cstate.superChlorHours * 3600 - ((Math.floor(new Date().getTime() / 1000) * 1000) - this.superChlorStart);
+                            }
+                            else if (!cstate.superChlor)
+                                cstate.superChlorRemaining = 0;
+                            resolve(true);
+                        }
                     }
                 });
                 conn.queueSendMessage(out);
@@ -133,52 +219,35 @@ export class NixieChlorinator extends NixieEquipment {
         } catch (err) { logger.error(`Communication error with Chlorinator ${this.chlor.name} : ${err.message}`); }
 
     }
-    public async takeControl() {
+    public async getModel() {
         try {
+            // We only need to ask for this if we can communicate with the chlorinator.  IntelliCenter
+            // asks for this anyway but it really is gratuitous.  If the setOutput and takeControl fail
+            // then this will too.
             let cstate = state.chlorinators.getItemById(this.chlor.id, true);
-            // The sequence is as follows.
-            // 0 = Disabled control panel
-            // 17 = Set the current setpoint
-            // 20 = Request the status
-            // Disable the control panel by sending an action 0 the chlorinator should respond with an action 1.
-            await new Promise<void>((resolve, reject) => {
-                let out = Outbound.create({
-                    protocol: Protocol.Chlorinator,
-                    dest: this.chlor.id,
-                    action: 0,
-                    payload: [0],
-                    retries: 3,
-                    response: Response.create({ protocol: Protocol.Chlorinator, action: 1 }),
-                    onComplete: (err) => {
-                        if (err) reject(err);
-                        else resolve();
-                    }
+            if (cstate.status !== 128) {
+                let body = state.temps.bodies.getBodyIsOn();
+                // Ask the chlorinator for its model.
+                //[16, 2, 80, 20][0][118, 16, 3]
+                let success = await new Promise<boolean>((resolve, reject) => {
+                    let out = Outbound.create({
+                        protocol: Protocol.Chlorinator,
+                        dest: this.chlor.id + 79,
+                        action: 20,
+                        payload: [0],
+                        retries: 3, // IntelliCenter tries 4 times to get a response.
+                        response: Response.create({ protocol: Protocol.Chlorinator, action: 3 }),
+                        onComplete: (err) => {
+                            if (err) resolve(false);
+                            else resolve(true);
+                        }
+                    });
+                    conn.queueSendMessage(out);
                 });
-                conn.queueSendMessage(out);
-            });
-            let body = state.temps.bodies.getBodyIsOn();
-            let setpoint = 0;
-            if (typeof body !== 'undefined') {
-                setpoint = (body.id === 1) ? this.chlor.spaSetpoint : this.chlor.poolSetpoint;
-                if (this.chlor.superChlor) setpoint = 100;
             }
-            // Send a             
-            await new Promise<void>((resolve, reject) => {
-                let out = Outbound.create({
-                    protocol: Protocol.Chlorinator,
-                    dest: this.chlor.id,
-                    action: 0,
-                    payload: [0],
-                    retries: 3,
-                    response: Response.create({ protocol: Protocol.Chlorinator, action: 1 }),
-                    onComplete: (err) => {
-                        if (err) reject(err);
-                        else resolve();
-                    }
-                });
-                conn.queueSendMessage(out);
-            });
 
         } catch (err) { logger.error(`Communication error with Chlorinator ${this.chlor.name} : ${err.message}`); }
+
     }
+
 }

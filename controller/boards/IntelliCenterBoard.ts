@@ -323,6 +323,23 @@ export class IntelliCenterBoard extends SystemBoard {
             }
         })();
         this.modulesAcquired = true;
+        sys.equipment.master = 0;
+        sys.general.master = 0;
+        sys.general.location.master = 0;
+        sys.general.owner.master = 0;
+        sys.general.options.master = 0;
+        for (let i = 0; i < sys.circuits.length; i++) {
+            let c = sys.circuits.getItemByIndex(i);
+            if(c.id <= 40) c.master = 0;
+        }
+        for (let i = 0; i < sys.valves.length; i++) {
+            let v = sys.valves.getItemByIndex(i);
+            if (v.id < 50) v.master = 0;
+        }
+        for (let i = 0; i < sys.bodies.length; i++) {
+            let b = sys.bodies.getItemByIndex(i);
+            b.master = 0;
+        }
         ncp.initAsync(sys);
         this.checkConfiguration();
     }
