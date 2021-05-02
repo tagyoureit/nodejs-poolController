@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { O_DSYNC } from 'constants';
 import { IntelliCenterBoard } from 'controller/boards/IntelliCenterBoard';
 import { EasyTouchBoard } from 'controller/boards/EasyTouchBoard';
 
@@ -381,6 +380,7 @@ export class EquipmentStateMessage {
         // contains two model bytes.  Right now the ones witness in the wild include 23 = fw1.023, 40 = fw1.040, 47 = fw1.047.
         if (model2 === 0 && (model1 === 23 || model1 >= 40)) {
             state.equipment.controllerType = 'intellicenter';
+            sys.board.modulesAcquired = false;
             sys.controllerType = ControllerType.IntelliCenter;
             logger.info(`Found Controller Board ${state.equipment.model || 'IntelliCenter'}, awaiting installed modules.`);
             EquipmentStateMessage.initIntelliCenter(msg);
@@ -395,6 +395,11 @@ export class EquipmentStateMessage {
     public static process(msg: Inbound) {
         Message.headerSubByte = msg.header[1];
         //console.log(process.memoryUsage());
+        if (msg.action === 2 && state.isInitialized && sys.controllerType === ControllerType.Nixie) {
+            // Start over because we didn't have communication before but we now do.
+            sys.controllerType = ControllerType.Unknown;
+            state.status = 0;
+        }
         if (!state.isInitialized) {
             msg.isProcessed = true;
             if (msg.action === 2) EquipmentStateMessage.initController(msg);

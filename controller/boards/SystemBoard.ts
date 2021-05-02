@@ -4161,6 +4161,107 @@ export class VirtualPumpController extends BoardCommands {
             }
         }
     }
+    public setTargetSpeedProposed() {
+        //[1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true }],
+        //[2, { name: 'ds', desc: 'Two Speed', maxCircuits: 8, hasAddress: false, hasBody: true }],
+        //[3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
+        //[4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
+        //[5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
+        //[100, { name: 'sf', desc: 'SuperFlo VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1 }]
+        for (let i = 0; i < sys.pumps.length; i++) {
+            let pump = sys.pumps.getItemByIndex(i);
+            let spump = state.pumps.getItemById(pump.id);
+            let pt = sys.board.valueMaps.pumpTypes.get(pump.type);
+            let _newSpeed = 0;
+            if (pump.isVirtual) {
+                let pumpCircuits = pump.circuits.get();
+                let _units;
+                if (pt.maxCircuits === 0) {
+                    // Turn on ss pumps.
+                    if (pt.hasBody) _newSpeed = sys.board.bodies.isBodyOn(pump.body) ? 1 : 0;
+                    // When run is called flip the relay when this gets pushed to nixie.
+                }
+                else if (pt.name === 'ds') {
+                    // A dual speed operates the low speed setting based on whether the body is on.  The high
+                    // speed settings are set based upon the attached high speed circuits.  This new speed will be 0=0ff, 1=Low Speed, 2=High Speed.  Ultimately
+                    // we will need to engage the proper relays but the relays tab has a high speed and low speed relay.  The low speed relay will always
+                    // be engaged when the high speed relay is engaged.
+                    if (sys.board.bodies.isBodyOn(pump.body)) _newSpeed = 1;
+                    for (let i = 0; i < pumpCircuits.length; i++) {
+                        let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
+                        if (circ.isOn) _newSpeed = 2;
+                    }
+                    // When run is called flip the appropriate relay 1 or 2.  0 signifies off if this isn't attached to the filter relay.
+                }
+                else if (pt.maxCircuits > 0 && pt.maxRelays > 0) {
+                    // Turn on sf pumps.  The new speed will be the relays associated with the pump.  I believe when this comes out in the final
+                    // wash it should engage all the relays for all speeds associated with the pump.  The pump logic will determine which program is
+                    // the one to engage.
+                    for (let i = 0; i < pumpCircuits.length; i++) {
+                        let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
+                        if (circ.isOn) _newSpeed = Math.max(_newSpeed, pumpCircuits[i].relay);
+                    }
+                    // When run is called flip the appropriate relay for any relay controlled speed pump.  However we shouldn't be doing it this way we should be
+                    // flipping all the applicable relays for pumps like this.  There is logic on the pump to determine which program should be active.
+                }
+                else if (pt.name === 'vsf') {
+                    // VSF pumps present a problem.  In fact they do not currently operate properly on Touch panels.  On touch these need to either be all in RPM or GPM
+                    // if there is a mix in the circuit array then they will not work.  In IntelliCenter if there is an RPM setting in the mix it will use RPM by converting
+                    // the GPM to RPM but if there is none then it will use GPM.
+                    let maxRPM = 0;
+                    let maxGPM = 0;
+                    let flows = 0;
+                    let speeds = 0;
+                    let toRPM = (flowRate: number, minSpeed: number = 450, maxSpeed: number = 3450) => {
+                        let eff = .03317 * maxSpeed;
+                        let rpm = Math.min((flowRate * maxSpeed) / eff, maxSpeed);
+                        return rpm > 0 ? Math.max(rpm, minSpeed) : 0;
+                    };
+                    let toGPM = (speed: number, maxSpeed: number = 3450, minFlow: number = 15, maxFlow: number = 140) => {
+                        let eff = .03317 * maxSpeed;
+                        let gpm = Math.min((eff * speed) / maxSpeed, maxFlow);
+                        return gpm > 0 ? Math.max(gpm, minFlow) : 0;
+                    }
+                    for (let i = 0; i < pumpCircuits.length; i++) {
+                        let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
+                        let pc = pumpCircuits[i];
+                        if (circ.isOn) {
+                            if (pc.units > 0) {
+                                maxGPM = Math.max(maxGPM, pc.flow);
+                                // Calculate an RPM from this flow.
+                                maxRPM = Math.max(maxGPM, toRPM(pc.flow, pt.minSpeed, pt.maxSpeed));
+                                flows++;
+                            }
+                            else {
+                                maxRPM = Math.max(maxRPM, pc.speed);
+                                maxGPM = Math.max(maxGPM, toGPM(pc.speed, pt.maxSpeed, pt.minFlow, pt.maxFlow));
+                                speeds++;
+                            }
+                        }
+                    }
+                    _newSpeed = speeds > 0 || flows === 0 ? maxRPM : maxGPM;
+                    // Send the flow message if it is flow and the rpm message if it is rpm.
+                }
+                else if (pt.name === 'vf') {
+                    for (let i = 0; i < pumpCircuits.length; i++) {
+                        let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
+                        let pc = pumpCircuits[i];
+                        if (circ.isOn) _newSpeed = Math.max(_newSpeed, pc.flow);
+                    }
+                    // This is just like the vs pumps.
+                }
+                else { // All variable speed pumps.
+                    for (let i = 0; i < pumpCircuits.length; i++) {
+                        let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
+                        let pc = pumpCircuits[i];
+                        if (circ.isOn) _newSpeed = Math.max(_newSpeed, pc.speed);
+                    }
+                }
+                if (spump.targetSpeed !== _newSpeed) logger.debug(`New speed calculated for pump ${pump.name}: ${_newSpeed}`);
+                spump.targetSpeed = _newSpeed;
+            }
+        }
+    }
     public async softStop() {
         // reset the values when the app starts; this is in case there is a system failure while the pumps are running
         // turn off all pumps
