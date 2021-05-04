@@ -158,13 +158,15 @@ export class EasyTouchBoard extends SystemBoard {
             [101, { name: 'feature8', desc: 'Feature 8' }]
         ]);
         // We need this because there is a no-pump thing in *Touch.
+        // RKS: 05-04-21 The no-pump item was removed as this was only required for -webClient.  deletePumpAsync should remove the pump from operation.
         this.valueMaps.pumpTypes = new byteValueMap([
-            [0, { name: 'none', desc: 'No pump', maxCircuits: 0, hasAddress: false, hasBody: false }],
             [1, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
             [64, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
             [65, { name: 'ds', desc: 'Two-Speed', maxCircuits: 40, hasAddress: false, hasBody: true }],
             [128, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true }],
-            [169, { name: 'vssvrs', desc: 'IntelliFlo VS+SVRS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true }]
+            [169, { name: 'vssvrs', desc: 'IntelliFlo VS+SVRS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true }],
+            [257, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true, equipmentMaster: 1 }],
+            [256, { name: 'sf', desc: 'SuperFlo VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1 }]
         ]);
         this.valueMaps.heaterTypes = new byteValueMap([
             [0, { name: 'none', desc: 'No Heater', hasAddress: false }],
@@ -1667,6 +1669,8 @@ class TouchPumpCommands extends PumpCommands {
             // We are adding a new pump
             ntype = parseInt(data.type, 10);
             type = sys.board.valueMaps.pumpTypes.transform(ntype);
+            // If this is one of the pumps that are not supported by touch send it to system board.
+            if (type.equipmentMaster === 1) return super.setPumpAsync(data);
             if (typeof data.type === 'undefined' || isNaN(ntype) || typeof type.name === 'undefined') return Promise.reject(new InvalidEquipmentDataError('You must supply a pump type when creating a new pump', 'Pump', data));
             if (type.name === 'ds') {
                 id = 9;

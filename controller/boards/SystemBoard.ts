@@ -1399,16 +1399,8 @@ export class PumpCommands extends BoardCommands {
                         c.relay = relay;
                 }
             }
-            //if (typeof type.maxRelays !== 'undefined' && type.maxRelays > 0 && typeof data.relays !== 'undefined') {
-            //    // This pump supports relays such as the SuperFlo VS.
-            //    for (let i = 0; i < data.relays.length && i < type.maxRelatys; i++) {
-            //        let r = data.relays[i];
-
-            //    }
-
-            //}
             data.id = id;
-            pump.set(data); // Sets all the data back to the pump.
+            pump.set(data); // Sets all the data back to the pump.  This also sets the relays should it exist on the data.
             spump.name = pump.name;
             sys.pumps.sortById();
             state.pumps.sortById();
