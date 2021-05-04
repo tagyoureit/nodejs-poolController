@@ -104,8 +104,9 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
             case 'sf':
                 return new NixiePumpSF(this.controlPanel, pump);
             case 'vs':
-            default:
                 return new NixiePumpVS(this.controlPanel, pump);
+            default:
+                throw new EquipmentNotFoundError(`NCP: Cannot create pump ${pump.name}.`,type);
         }
     }
     public syncPumpStates() {
@@ -131,8 +132,7 @@ export class NixiePump extends NixieEquipment {
     _targetSpeed will hold values as follows:
     vs/vsf/vf: rpm/gpm;
     ss: 0=off, 1=on;
-    ds: 0=off, 1=on, 2=high speed;
-    sf: bit shift 1-4 = values 1/2/4/8 for relays 1/2/3/4
+    ds/sf: bit shift 1-4 = values 1/2/4/8 for relays 1/2/3/4
     */
     private _lastState;
     constructor(ncp: INixieControlPanel, pump: Pump) {
@@ -225,23 +225,6 @@ export class NixiePumpSS extends NixiePump {
 }
 export class NixiePumpDS extends NixiePumpSS {
     public setTargetSpeed() {
-        let _newSpeed = 0;
-        let pumpCircuits = this.pump.circuits.get();
-        // A dual speed operates the low speed setting based on whether the body is on.  The high
-        // speed settings are set based upon the attached high speed circuits.  This new speed will be 0=0ff, 1=Low Speed, 2=High Speed.  Ultimately
-        // we will need to engage the proper relays but the relays tab has a high speed and low speed relay.  The low speed relay will always
-        // be engaged when the high speed relay is engaged.
-        if (sys.board.bodies.isBodyOn(this.pump.body)) _newSpeed = 1;
-        for (let i = 0; i < pumpCircuits.length; i++) {
-            let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
-            if (circ.isOn) _newSpeed = 2;
-        }
-        if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed >=2  ? 'high speed' : _newSpeed >=1 ? 'low speed' : 'off'}.`);
-        this._targetSpeed = _newSpeed;
-    }
-}
-export class NixiePumpSF extends NixiePumpSS {
-    public setTargetSpeed() {
         // Turn on sf pumps.  The new speed will be the relays associated with the pump.  I believe when this comes out in the final
         // wash it should engage all the relays for all speeds associated with the pump.  The pump logic will determine which program is
         // the one to engage.
@@ -252,8 +235,18 @@ export class NixiePumpSF extends NixiePumpSS {
             // relay speeds are bit-shifted 'or' based on 1,2,4,8
             if (circ.isOn) _newSpeed |= (1 << pumpCircuits[i].relay - 1);
         }
-        if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} relays to Relay 1: ${_newSpeed & 1 ? 'on' : 'off'}, Relay 2: ${_newSpeed & 2 ? 'on' : 'off'}, Relay 3: ${_newSpeed & 4 ? 'on' : 'off'}, and Relay 4: ${_newSpeed & 8 ? 'on' : 'off'}.`);
+        this.logSpeed(_newSpeed);
         this._targetSpeed = _newSpeed;
+    }
+    public logSpeed(_newSpeed: number){
+        if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} relays to Relay 1: ${_newSpeed & 1 ? 'on' : 'off'}, Relay 2: ${_newSpeed & 2 ? 'on' : 'off'}.`);
+    }
+}
+export class NixiePumpSF extends NixiePumpSS {
+    // effectively operates the same way as a DS pump since we removed the body association on DS.
+    // only logger msg is different
+    public logSpeed(_newSpeed: number){
+        if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} relays to Relay 1: ${_newSpeed & 1 ? 'on' : 'off'}, Relay 2: ${_newSpeed & 2 ? 'on' : 'off'}, Relay 3: ${_newSpeed & 4 ? 'on' : 'off'}, and Relay 4: ${_newSpeed & 8 ? 'on' : 'off'}.`);
     }
 }
 export class NixiePumpRS485 extends NixiePump {
