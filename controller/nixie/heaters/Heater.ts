@@ -31,7 +31,7 @@ export class NixieHeaterCollection extends NixieEquipmentCollection<NixieHeater>
             }
             await h.setHeaterStateAsync(hstate, val);
         }
-        catch (err) { return logger.reject(`NCP: setHeaterStateAsync ${hstate.id}-${hstate.name}: ${err.message}`); }
+        catch (err) { return logger.error(`NCP: setHeaterStateAsync ${hstate.id}-${hstate.name}: ${err.message}`); }
     }
     public async setHeaterAsync(heater: Heater, data: any) {
         // By the time we get here we know that we are in control and this is a Nixie heater.
@@ -118,7 +118,7 @@ export class NixieHeater extends NixieEquipment {
             }
 
 
-        } catch (err) { return logger.reject(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
+        } catch (err) { return logger.error(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
     }
     public async setHeaterAsync(data: any) {
         try {

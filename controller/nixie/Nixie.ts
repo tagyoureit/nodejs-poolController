@@ -14,6 +14,7 @@ import { NixieHeaterCollection } from './heaters/Heater';
 import { config } from '../../config/Config';
 import { NixieFilterCollection } from './bodies/Filter';
 import { NixieChlorinatorCollection } from './chemistry/Chlorinator';
+import { NixiePump, NixiePumpCollection } from './pumps/Pump';
 
 /************************************************************************
  * Nixie:  Nixie is a control panel that controls devices as a master. It
@@ -60,6 +61,7 @@ export class NixieControlPanel implements INixieControlPanel {
     filters: NixieFilterCollection = new NixieFilterCollection(this);
     valves: NixieValveCollection = new NixieValveCollection(this);
     heaters: NixieHeaterCollection = new NixieHeaterCollection(this);
+    pumps: NixiePumpCollection = new NixiePumpCollection(this);
 
     public async initAsync(equipment: PoolSystem) {
         try {
@@ -75,6 +77,7 @@ export class NixieControlPanel implements INixieControlPanel {
             await this.heaters.initAsync(equipment.heaters);
             await this.chlorinators.initAsync(equipment.chlorinators);
             await this.chemControllers.initAsync(equipment.chemControllers);
+            await this.pumps.initAsync(equipment.pumps);
             logger.info(`Nixie Controller Initialized`)
         }
         catch (err) { return Promise.reject(err); }
@@ -111,6 +114,7 @@ export class NixieControlPanel implements INixieControlPanel {
     }
     public async closeAsync() {
         // Close all the associated equipment.
+        await this.pumps.closeAsync();
         await this.chemControllers.closeAsync();
         await this.chlorinators.closeAsync();
         await this.heaters.closeAsync();

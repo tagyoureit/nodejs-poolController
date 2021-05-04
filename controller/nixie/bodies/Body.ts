@@ -77,7 +77,7 @@ export class NixieBody extends NixieEquipment {
                 logger.info(`Nixie: Set Body ${bstate.id}-${bstate.name} to ${isOn}`);
             }
             bstate.isOn = isOn;
-        } catch (err) { return logger.reject(`Nixie Error setting body state ${bstate.id}-${bstate.name}: ${err.message}`); }
+        } catch (err) { logger.error(`Nixie Error setting body state ${bstate.id}-${bstate.name}: ${err.message}`); }
     }
 
     public async pollEquipmentAsync() {

@@ -460,6 +460,7 @@ export class Utils {
         return seconds;
     }
     public isNullOrEmpty(val: any) {  return (typeof val === 'string') ? val === null || val === '' : typeof val === 'undefined' || val === null; }
+    public sleep = (ms:number) => new Promise(resolve => setTimeout(resolve, ms));
 }
 
 export const utils = new Utils();

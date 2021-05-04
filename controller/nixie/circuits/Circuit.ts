@@ -8,7 +8,6 @@ import { CircuitState, state, ICircuitState, } from "../../State";
 import { setTimeout, clearTimeout } from 'timers';
 import { NixieControlPanel } from '../Nixie';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
-import { log } from 'node:util';
 
 export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircuit> {
     public pollingInterval: number = 2000;
@@ -30,7 +29,7 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
             if (typeof c === 'undefined') return Promise.reject(new Error(`NCP: Circuit ${id} could not be found to send sequence ${count}.`));
             await c.sendOnOffSequenceAsync(count);
 
-        } catch (err) { return logger.reject(`NCP: sendOnOffSequence: ${err.message}`); }
+        } catch (err) { return logger.error(`NCP: sendOnOffSequence: ${err.message}`); }
     }
     public async setCircuitStateAsync(cstate: ICircuitState, val: boolean) {
         try {
@@ -38,7 +37,7 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
             if (typeof c === 'undefined') return Promise.reject(new Error(`NCP: Circuit ${cstate.id}-${cstate.name} could not be found to set the state to ${val}.`));
             await c.setCircuitStateAsync(cstate, val);
         }
-        catch (err) { return logger.reject(`NCP: setCircuitStateAsync ${cstate.id}-${cstate.name}: ${err.message}`); }
+        catch (err) { return logger.error(`NCP: setCircuitStateAsync ${cstate.id}-${cstate.name}: ${err.message}`); }
     }
     public async setCircuitAsync(circuit: Circuit, data: any) {
         // By the time we get here we know that we are in control and this is a REMChem.

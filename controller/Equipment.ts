@@ -1257,6 +1257,10 @@ export class Pump extends EqItem {
     public set backgroundCircuit(val: number) { this.setDataVal('backgroundCircuit', val); }
     public get isVirtual() { return this.data.isVirtual; }
     public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
+    public get connectionId(): string { return this.data.connectionId; }
+    public set connectionId(val: string) { this.setDataVal('connectionId', val); }
+    public get deviceBinding(): string { return this.data.deviceBinding; }
+    public set deviceBinding(val: string) { this.setDataVal('deviceBinding', val); }
     public get defaultUnits() {
         if (sys.board.valueMaps.pumpTypes.getName(this.type) === 'vf')
             return sys.board.valueMaps.pumpUnits.getValue('gpm');
@@ -1270,11 +1274,7 @@ export class Pump extends EqItem {
     public get model(): number { return this.data.model; }
     public set model(val: number) { this.setDataVal('model', val); }
     public get circuits(): PumpCircuitCollection { return new PumpCircuitCollection(this.data, "circuits"); }
-    public get relays(): PumpCircuitCollection { return new PumpCircuitCollection(this.data, "relays"); }
-    /*     public setPump(obj?: any) { sys.board.pumps.setPump(this, obj); }
-        public setPumpCircuit(pumpCircuit: any) {
-            return sys.board.pumps.setPumpCircuit(this, pumpCircuit);
-        } */
+    public get relays(): PumpRelayCollection { return new PumpRelayCollection(this.data, "relays"); }
     public deletePumpCircuit(pumpCircuitId: number) {
         return sys.board.pumps.deletePumpCircuit(this, pumpCircuitId);
     }

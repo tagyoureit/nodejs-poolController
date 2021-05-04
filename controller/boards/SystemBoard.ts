@@ -57,7 +57,7 @@ export class byteValueMap extends Map<number, any> {
         return typeof v === 'undefined' ? def : v.val;
     }
     public findItem(val: string | number | { val: any, name: string }) {
-        if (typeof val === null || typeof val === 'undefined') return;
+        if (val === null || typeof val === 'undefined') return;
         else if (typeof val === 'number') return this.transform(val);
         else if (typeof val === 'string') {
             let v = parseInt(val, 10);
@@ -1166,7 +1166,7 @@ export class BodyCommands extends BoardCommands {
                 sys.filters.removeItemById(2);
                 state.filters.removeItemById(2);
             }
-        } catch (err) { logger.reject(`Error initializing filters`); }
+        } catch (err) { logger.error(`Error initializing filters`); }
     }
     public async setBodyAsync(obj: any): Promise<Body> {
         return new Promise<Body>(function (resolve, reject) {
@@ -1368,7 +1368,7 @@ export class PumpCommands extends BoardCommands {
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump'));
             let pump = sys.pumps.getItemById(id, data.id <= 0);
             pump.master = 1;
-            pump.isVirtual = true;
+            if (typeof data.isVirtual !== 'undefined') pump.isVirtual = data.isVirtual;
             pump.isActive = true;
             let spump = state.pumps.getItemById(id, data.id <= 0);
             if (typeof data.type !== 'undefined' && data.type !== pump.type) {
@@ -1377,7 +1377,7 @@ export class PumpCommands extends BoardCommands {
                 spump = state.pumps.getItemById(id, true);
             }
             let type = sys.board.valueMaps.pumpTypes.transform(pump.type);
-            data.name = data.name || pump.name || type.desc;
+            pump.name = data.name || pump.name || type.desc;
             if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
                 for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
                     let c = data.circuits[i - 1];
@@ -1410,27 +1410,35 @@ export class PumpCommands extends BoardCommands {
             data.id = id;
             pump.set(data); // Sets all the data back to the pump.
             spump.name = pump.name;
+            spump.address = pump.address; // state will default to id+95 if not set
             sys.pumps.sortById();
             state.pumps.sortById();
             spump.emitEquipmentChange();
-            sys.board.virtualPumpControllers.start();
-            return new Promise<Pump>((resolve, reject) => { resolve(pump); });
+            if (pump.isVirtual) sys.board.virtualPumpControllers.start();
+            else await ncp.pumps.initPumpAsync(pump);
+            return Promise.resolve(pump);
         }
         else
             return Promise.reject(new InvalidEquipmentIdError('No pump information provided', undefined, 'Pump'));
     }
-    public deletePumpAsync(data: any): Promise<Pump> {
+    public async deletePumpAsync(data: any): Promise<Pump> {
         if (typeof data.id !== 'undefined') {
-            let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-            if (id <= 0) id = sys.pumps.length + 1;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump'));
-            let pump = sys.pumps.getItemById(id, false);
-            let spump = state.pumps.getItemById(id, false);
-            spump.isActive = pump.isActive = false;
-            sys.pumps.removeItemById(id);
-            state.pumps.removeItemById(id);
-            spump.emitEquipmentChange();
-            return new Promise<Pump>((resolve, reject) => { resolve(pump); });
+            try {
+                let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+                if (id <= 0) id = sys.pumps.length + 1;
+                if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump'));
+                let pump = sys.pumps.getItemById(id, false);
+                let spump = state.pumps.getItemById(id, false);
+                if (pump.master === 1) await ncp.pumps.deletePumpAsync(pump.id);
+                spump.isActive = pump.isActive = false;
+                sys.pumps.removeItemById(id);
+                state.pumps.removeItemById(id);
+                spump.emitEquipmentChange();
+                return Promise.resolve(pump);
+            }
+            catch (err){
+                return Promise.reject(err);
+            }
         }
         else
             return Promise.reject(new InvalidEquipmentIdError('No pump information provided', undefined, 'Pump'));
@@ -1890,6 +1898,7 @@ export class CircuitCommands extends BoardCommands {
         catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
         finally {
             sys.board.virtualPumpControllers.start();
+            ncp.pumps.syncPumpStates();
             sys.board.suspendStatus(false);
             this.board.processStatusAsync();
             state.emitEquipmentChanges();
@@ -2328,6 +2337,7 @@ export class FeatureCommands extends BoardCommands {
             fstate.isOn = val;
             sys.board.valves.syncValveStates();
             sys.board.virtualPumpControllers.start();
+            ncp.pumps.syncPumpStates();
             state.emitEquipmentChanges();
             return fstate;
         } catch (err) { return Promise.reject(new Error(`Error setting feature state ${err.message}`)); }
@@ -4300,6 +4310,7 @@ export class VirtualPumpController extends BoardCommands {
 
     public start() {
         logger.debug(`Starting virtual pump controller.`);
+        if (sys.pumps.length === 0) return Promise.resolve().then(async()=>{await this.stopAsync();})
         for (let i = 0; i < sys.pumps.length; i++) {
             let pump = sys.pumps.getItemByIndex(i);
             let spump = state.pumps.getItemById(pump.id);

@@ -16,7 +16,7 @@ export class NixieFilterCollection extends NixieEquipmentCollection<NixieFilter>
             if (typeof f === 'undefined') return Promise.reject(new Error(`NCP: Filter ${fstate.id}-${fstate.name} could not be found to set the state to ${val}.`));
             await f.setFilterStateAsync(fstate, val);
         }
-        catch (err) { return logger.reject(`NCP: setCircuitFilterAsync ${fstate.id}-${fstate.name}: ${err.message}`); }
+        catch (err) { return logger.error(`NCP: setCircuitFilterAsync ${fstate.id}-${fstate.name}: ${err.message}`); }
     }
 
     public async setFilterAsync(filter: Filter, data: any) {

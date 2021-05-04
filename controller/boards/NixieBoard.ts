@@ -363,6 +363,14 @@ export class NixieBoard extends SystemBoard {
                 let heater = heaters[i];
                 let h = await ncp.heaters.initHeaterAsync(heater);
             }
+            // If we have relay based pumps, init them here... ss, ds, superflo
+            let pumps = sys.heaters.toArray().filter((val) => { return val.controller === 1 });
+            for (let i = 0; i < pumps.length; i++) {
+                let pump = pumps[i];
+                if (pump.type === 65){ // how are we defining ss and superflo?
+                    await ncp.pumps.initPumpAsync(pump);
+                }
+            }
         } catch (err) { logger.error(`Error verifying setup`); }
     }
     public equipmentMaster = 1;
@@ -388,7 +396,7 @@ export class NixieBoard extends SystemBoard {
             await this.initNixieBoard();
             state.emitControllerChange();
             return sys.equipment;
-        } catch (err) { logger.reject(`Error setting Nixie controller type.`); }
+        } catch (err) { logger.error(`Error setting Nixie controller type.`); }
     }
 }
 export class NixieBodyCommands extends BodyCommands {
@@ -419,7 +427,7 @@ export class NixieSystemCommands extends SystemCommands {
         try {
             // First things first.
 
-        } catch (err) { return logger.reject(`Error setting Nixie Model: ${err.message}`); }
+        } catch (err) { return logger.error(`Error setting Nixie Model: ${err.message}`); }
     }
 }
 export class NixieCircuitCommands extends CircuitCommands {
@@ -466,6 +474,7 @@ export class NixieCircuitCommands extends CircuitCommands {
         finally {
             state.emitEquipmentChanges();
             sys.board.virtualPumpControllers.start();
+            ncp.pumps.syncPumpStates();
             sys.board.suspendStatus(false);
             this.board.processStatusAsync();
         }
@@ -857,6 +866,7 @@ export class NixieFeatureCommands extends FeatureCommands {
             fstate.isOn = val;
             sys.board.valves.syncValveStates();
             sys.board.virtualPumpControllers.start();
+            ncp.pumps.syncPumpStates();
             state.emitEquipmentChanges();
             return fstate;
         } catch (err) { return Promise.reject(new Error(`Error setting feature state ${err.message}`)); }
