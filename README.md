@@ -64,8 +64,8 @@ If you don't know anything about NodeJS, these directions might be helpful.
 For a very thorough walk-through, see [this](https://www.troublefreepool.com/threads/pentair-intellicenter-pool-control-dashboard-instructional-guide.218514/) great thread on Trouble Free Pool.  Thanks @MyAZPool.
 
 ### Docker instructions
-@wurmr created Docker [Dockerfile](https://hub.docker.com/r/wurmr/nodejs-pool-controller) and [pre-built containers](https://github.com/wurmr/nodejs-poolController-docker).
-And @andylippitt contributed docker, docker-compose and kubernetes/helm support via included config files.
+
+See the [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/Docker). Thanks @wurmr @andylippitt @emes.
 
 ### Automate startup of app
 See the [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/Automatically-start-at-boot---PM2-&-Systemd).

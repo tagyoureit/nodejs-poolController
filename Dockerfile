@@ -1,19 +1,16 @@
-FROM node:12-alpine AS build
+FROM node:lts-alpine AS build
 RUN apk add --no-cache make gcc g++ python linux-headers udev tzdata
 WORKDIR /app
-COPY defaultConfig.json package.json ./
-RUN npm install
+COPY package*.json ./
+RUN npm ci
 COPY . .
-RUN npm run build && npm prune --production
+RUN npm run build
+RUN npm ci --production
 
-FROM node:12-alpine as prod
+FROM node:lts-alpine as prod
 RUN mkdir /app && chown node:node /app
 WORKDIR /app
-COPY --chown=node:node --from=build /app/node_modules ./node_modules
-COPY --chown=node:node --from=build /app/defaultConfig.json /app/package.json ./
-COPY --chown=node:node --from=build /app/dist ./dist
-COPY --chown=node:node --from=build /app/logger ./logger
-COPY --chown=node:node --from=build /app/web ./web
+COPY --chown=node:node --from=build /app .
 USER node
 ENV NODE_ENV=production
 ENTRYPOINT ["node", "dist/app.js"]
