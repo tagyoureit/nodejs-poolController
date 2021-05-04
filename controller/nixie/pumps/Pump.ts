@@ -259,9 +259,10 @@ export class NixiePumpSF extends NixiePumpSS {
 export class NixiePumpRS485 extends NixiePump {
     public async setPumpStateAsync(pstate: PumpState) {
         try {
-            if (this._targetSpeed > 0) await this.setDriveStateAsync(pstate);
-            if (this._targetSpeed <= 130) await this.setPumpGPMAsync(pstate);
-            else await this.setPumpRPMAsync(pstate);
+            let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
+            await this.setDriveStateAsync(pstate);
+            if (this._targetSpeed >= pt.minFlow && this._targetSpeed <= pt.maxFlow) await this.setPumpGPMAsync(pstate);
+            else if (this._targetSpeed >= pt.minSpeed && this._targetSpeed <= pt.maxSpeed) await this.setPumpRPMAsync(pstate);
             await utils.sleep(2000);
             await this.requestPumpStatus(pstate);
             await this.setPumpToRemoteControl(pstate);
@@ -272,13 +273,13 @@ export class NixiePumpRS485 extends NixiePump {
             return Promise.reject(err);
         }
     };
-    protected async setDriveStateAsync(pstate: PumpState) {
+    protected async setDriveStateAsync(pstate: PumpState, running: boolean = true) {
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
                 protocol: Protocol.Pump,
                 dest: this.pump.address,
                 action: 6,
-                payload: this._targetSpeed > 0 ? [10] : [4],
+                payload: running && this._targetSpeed > 0 ? [10] : [4],
                 retries: 1,
                 response: true,
                 onComplete: (err, msg: Outbound) => {
@@ -312,13 +313,13 @@ export class NixiePumpRS485 extends NixiePump {
             conn.queueSendMessage(out);
         })
     };
-    protected setPumpToRemoteControl(spump: PumpState) {
+    protected setPumpToRemoteControl(spump: PumpState, running: boolean = true) {
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
                 protocol: Protocol.Pump,
                 dest: this.pump.address,
                 action: 4,
-                payload: this._pollTimer === null ? 0 : 255, // if timer is killed return control to panel
+                payload: running ? [255] : [0], // when stopAsync is called, pass false to return control to pump panel
                 // payload: spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running') ? [255] : [0],
                 retries: 1,
                 response: true,
@@ -340,7 +341,7 @@ export class NixiePumpRS485 extends NixiePump {
                 dest: this.pump.address,
                 action: 5,
                 payload: [],
-                retries: 1,
+                retries: 2,
                 repsonse: true,
                 onComplete: (err, msg: Outbound) => {
                     if (err) {
@@ -402,10 +403,10 @@ export class NixiePumpRS485 extends NixiePump {
             this._pollTimer = null;
             let pstate = state.pumps.getItemById(this.pump.id);
             this._targetSpeed = 0;
-            try { await this.setDriveStateAsync(pstate); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
+            try { await this.setDriveStateAsync(pstate, false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
             try { await this.setPumpManual(pstate); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
-            try { await this.setDriveStateAsync(pstate); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
-            try { await this.setPumpToRemoteControl(pstate); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
+            try { await this.setDriveStateAsync(pstate, false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
+            try { await this.setPumpToRemoteControl(pstate, false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
         }
         catch (err) { logger.error(`Nixie Pump closeAsync: ${err.message}`); return Promise.reject(err); }
     }

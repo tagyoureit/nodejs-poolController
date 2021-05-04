@@ -569,8 +569,10 @@ export class SsdpServer extends ProtoServer {
     }
     public async stopAsync() {
         try {
-            this.server.stop();
-            logger.info(`Stopped SSDP server: ${this.name}`);
+            if (typeof this.server !== 'undefined') {
+                this.server.stop();
+                logger.info(`Stopped SSDP server: ${this.name}`);
+            }
         } catch (err) { logger.error(`Error stopping SSDP server ${err.message}`); }
     }
 }
