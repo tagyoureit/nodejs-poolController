@@ -242,7 +242,7 @@ export class NixiePumpDS extends NixiePumpSS {
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} relays to Relay 1: ${_newSpeed & 1 ? 'on' : 'off'}, Relay 2: ${_newSpeed & 2 ? 'on' : 'off'}.`);
     }
 }
-export class NixiePumpSF extends NixiePumpSS {
+export class NixiePumpSF extends NixiePumpDS {
     // effectively operates the same way as a DS pump since we removed the body association on DS.
     // only logger msg is different
     public logSpeed(_newSpeed: number){
