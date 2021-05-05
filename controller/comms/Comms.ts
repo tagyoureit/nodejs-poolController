@@ -22,13 +22,13 @@ import { logger } from '../../logger/Logger';
 import * as net from 'net';
 import { setTimeout, setInterval } from 'timers';
 import { Message, Outbound, Inbound, Response } from './messages/Messages';
-import { OutboundMessageError } from '../Errors';
+import { MessageError, OutboundMessageError } from '../Errors';
 const extend = require("extend");
 export class Connection {
     constructor() {
         this.emitter = new EventEmitter();
     }
-    public isOpen: boolean=false;
+    public isOpen: boolean = false;
     private _cfg: any;
     private _port: any;
     public mockPort: boolean = false;
@@ -39,7 +39,7 @@ export class Connection {
         if (conn.connTimer !== null) clearTimeout(conn.connTimer);
         if (!conn._cfg.mockPort && conn._cfg.inactivityRetry > 0) conn.connTimer = setTimeout(() => conn.openAsync(), conn._cfg.inactivityRetry * 1000);
     }
-    public isRTS: boolean=true;
+    public isRTS: boolean = true;
     public emitter: EventEmitter;
     public get enabled(): boolean { return typeof this._cfg !== 'undefined' && this._cfg.enabled; }
     public async openAsync(): Promise<boolean> {
@@ -70,7 +70,7 @@ export class Connection {
                 this.isOpen = false;
                 this.resetConnTimer();
                 logger.info(`The end event was fired`);
-            }); 
+            });
             //nc.on('drain', () => { logger.info(`The drain event was fired.`); });
             //nc.on('lookup', (o) => { logger.info(`The lookup event was fired ${o}`); });
             // Occurs when there is no activity.  This should not reset the connection, the previous implementation did so and
@@ -161,7 +161,7 @@ export class Connection {
                 else
                     conn._port.destroy();
             }
-            if(typeof conn.buffer !== 'undefined') conn.buffer.close();
+            if (typeof conn.buffer !== 'undefined') conn.buffer.close();
         } catch (err) { logger.error(`Error closing comms connection: ${err.message}`); }
     }
     public drain(cb: Function) {
@@ -222,7 +222,7 @@ export class Connection {
         if (JSON.stringify(c) !== JSON.stringify(this._cfg)) {
             this.closeAsync();
             this._cfg = c;
-            if(this._cfg.enabled) this.openAsync();
+            if (this._cfg.enabled) this.openAsync();
         }
     }
     public queueSendMessage(msg: Outbound) { conn.emitter.emit('messagewrite', msg); }
@@ -242,16 +242,17 @@ export class SendRecieveBuffer {
         this._outBuffer = [];
         this.procTimer = null;//setInterval(this.processPackets, 175);
     }
-    public counter: Counter=new Counter();
+    public counter: Counter = new Counter();
     private procTimer: NodeJS.Timeout;
-    private _processing: boolean=false;
-    private _inBytes: number[]=[];
-    private _inBuffer: number[]=[];
-    private _outBuffer: Outbound[]=[];
+    private _processing: boolean = false;
+    private _inBytes: number[] = [];
+    private _inBuffer: number[] = [];
+    private _outBuffer: Outbound[] = [];
     private _waitingPacket: Outbound;
     private _msg: Inbound;
     public pushIn(pkt) {
-        conn.buffer._inBuffer.push.apply(conn.buffer._inBuffer, pkt.toJSON().data); setTimeout(() => { this.processPackets(); }, 0); }
+        conn.buffer._inBuffer.push.apply(conn.buffer._inBuffer, pkt.toJSON().data); setTimeout(() => { this.processPackets(); }, 0);
+    }
     public pushOut(msg) { conn.buffer._outBuffer.push(msg); setTimeout(() => { this.processPackets(); }, 0); }
     public clear() { conn.buffer._inBuffer.length = 0; conn.buffer._outBuffer.length = 0; }
     public close() { clearTimeout(conn.buffer.procTimer); conn.buffer.clear(); this._msg = undefined; }
@@ -295,14 +296,24 @@ export class SendRecieveBuffer {
         return false;
     }
     protected processOutbound() {
-        if (conn.isOpen && conn.isRTS) {
-            if (!conn.buffer.processWaitPacket() && conn.buffer._outBuffer.length > 0) {
+        if (!conn.buffer.processWaitPacket() && conn.buffer._outBuffer.length > 0) {
+            var msg: Outbound = conn.buffer._outBuffer.shift();
+            if (typeof msg === 'undefined' || !msg) return;
+            if (conn.isOpen && conn.isRTS) {
                 // If the serial port is busy we don't want to process any outbound.  However, this used to
                 // not process the outbound even when the incoming bytes didn't mean anything.  Now we only delay
                 // the outbound when we actually have a message signatures to process.
-                var msg: Outbound = conn.buffer._outBuffer.shift();
-                if (typeof msg === 'undefined' || !msg) return;
                 conn.buffer.writeMessage(msg);
+            }
+            else {
+                // port is closed, reject message
+                msg.failed = true;
+                logger.warn(`Comms port is not open.  Message aborted: ${msg.toShortPacket()}`);
+                // This is a hard fail.  We don't have any more tries left and the message didn't
+                // make it onto the wire.
+                let error = new OutboundMessageError(msg, `Comms port is not open.  Message aborted: ${msg.toShortPacket()}`);
+                if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
+                conn.buffer._waitingPacket = null;
             }
         }
         // RG: added the last `|| typeof msg !== 'undef'` because virtual chem controller only sends a single packet
@@ -337,8 +348,8 @@ export class SendRecieveBuffer {
                 // we have an RTS semaphore and a waiting response might make it go here.
                 msg.failed = true;
                 conn.buffer._waitingPacket = null;
-                logger.warn(`Message aborted after ${ msg.tries } attempt(s): ${ msg.toShortPacket() }`);
-                let err = new OutboundMessageError(msg, `Message aborted after ${ msg.tries } attempt(s): ${ msg.toShortPacket() }`);
+                logger.warn(`Message aborted after ${msg.tries} attempt(s): ${msg.toShortPacket()}`);
+                let err = new OutboundMessageError(msg, `Message aborted after ${msg.tries} attempt(s): ${msg.toShortPacket()}`);
                 if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
                 if (msg.requiresResponse) {
                     if (msg.response instanceof Response && typeof (msg.response.callback) === 'function') {
@@ -359,7 +370,7 @@ export class SendRecieveBuffer {
             conn.buffer.counter.bytesSent += bytes.length;
             msg.timestamp = new Date();
             logger.packet(msg);
-            conn.write(Buffer.from(bytes), function(err) {
+            conn.write(Buffer.from(bytes), function (err) {
                 msg.tries++;
                 conn.isRTS = true;
                 if (err) {
@@ -368,16 +379,16 @@ export class SendRecieveBuffer {
                     if (msg.remainingTries > 0) conn.buffer._waitingPacket = msg;
                     else {
                         msg.failed = true;
-                        logger.warn(`Message aborted after ${ msg.tries } attempt(s): ${ bytes }: ${ err }`);
+                        logger.warn(`Message aborted after ${msg.tries} attempt(s): ${bytes}: ${err}`);
                         // This is a hard fail.  We don't have any more tries left and the message didn't
                         // make it onto the wire.
-                        let error = new OutboundMessageError(msg, `Message aborted after ${ msg.tries } attempt(s): ${ err }`);
+                        let error = new OutboundMessageError(msg, `Message aborted after ${msg.tries} attempt(s): ${err}`);
                         if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
                         conn.buffer._waitingPacket = null;
                     }
                 }
                 else {
-                    logger.verbose(`Wrote packet [${ bytes }].  Retries remaining: ${ msg.remainingTries }`);
+                    logger.verbose(`Wrote packet [${bytes}].  Retries remaining: ${msg.remainingTries}`);
                     // We have all the success we are going to get so if the call succeeded then
                     // don't set the waiting packet when we aren't actually waiting for a response.
                     if (!msg.requiresResponse) {
@@ -394,7 +405,6 @@ export class SendRecieveBuffer {
     }
     private clearResponses(msgIn: Inbound) {
         if (conn.buffer._outBuffer.length === 0 && typeof (conn.buffer._waitingPacket) !== 'object' && conn.buffer._waitingPacket) return;
-
         var callback;
         let msgOut = conn.buffer._waitingPacket;
         if (typeof (conn.buffer._waitingPacket) !== 'undefined' && conn.buffer._waitingPacket) {
