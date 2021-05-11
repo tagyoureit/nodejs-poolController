@@ -1563,6 +1563,34 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             conn.queueSendMessage(out);
         });
     }
+    public async deleteChlorAsync(obj: any): Promise<ChlorinatorState> {
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id)) obj.id = 1;
+        return new Promise<ChlorinatorState>((resolve, reject) => {
+            let out = Outbound.create({
+                dest: 16,
+                action: 153,
+                payload: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                retries: 3,
+                response: true,
+                onComplete: (err) => {
+                    if (err) {
+                        logger.error(`Error deleting chlorinator: ${err.message}`);
+                        reject(err);
+                    }
+                    else {
+                        let cstate = state.chlorinators.getItemById(id);
+                        let chlor = sys.chlorinators.getItemById(id);
+                        chlor.isActive = cstate.isActive = false;
+                        sys.chlorinators.removeItemById(id);
+                        state.chlorinators.removeItemById(id);
+                        resolve(cstate);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+        });
+    }
 
     /*
     public setChlorAsync(obj: any): Promise<ChlorinatorState> {
