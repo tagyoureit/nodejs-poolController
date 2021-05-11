@@ -697,7 +697,7 @@ export class SystemBoard {
     public async stopAsync() {
         // turn off chlor
         console.log(`Stopping sys`);
-        sys.board.virtualChlorinatorController.stop();
+        //sys.board.virtualChlorinatorController.stop();
         if (sys.controllerType === ControllerType.Virtual) this.turnOffAllCircuits();
         sys.board.virtualChemControllers.stop();
         this.killStatusCheck();
@@ -734,7 +734,7 @@ export class SystemBoard {
 
     public schedules: ScheduleCommands = new ScheduleCommands(this);
     public equipmentIds: EquipmentIds = new EquipmentIds();
-    public virtualChlorinatorController = new VirtualChlorinatorController(this);
+    //public virtualChlorinatorController = new VirtualChlorinatorController(this);
     public virtualPumpControllers = new VirtualPumpController(this);
     public virtualChemControllers = new VirtualChemController(this);
 
@@ -2384,45 +2384,50 @@ export class FeatureCommands extends BoardCommands {
     }
 }
 export class ChlorinatorCommands extends BoardCommands {
-    public setChlorAsync(obj: any): Promise<ChlorinatorState> {
+    public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id) || id <= 0) obj.id = 1;
-        // Merge all the information.
-        let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
-        // Verify the data.
-        if (typeof chlor.body === 'undefined') chlor.body = obj.body || 32;
-        let body = sys.board.bodies.mapBodyAssociation(chlor.body);
-        if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${chlor.body}`, 'chlorinator', chlor.body));
-        if (chlor.poolSetpoint > 100 || chlor.poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
-        if (chlor.spaSetpoint > 100 || chlor.spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
-        // if (typeof body === 'undefined') throw new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${chlor.body}`, 'chlorinator', chlor.body);
-        // if (chlor.poolSetpoint > 100 || chlor.poolSetpoint < 0) throw new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint);
-        // if (chlor.spaSetpoint > 100 || chlor.spaSetpoint < 0) throw new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint);
-        let schlor = state.chlorinators.getItemById(id, true);
+        if (isNaN(id) || id <= 0) id = 1;
         let cchlor = sys.chlorinators.getItemById(id, true);
-        cchlor.master = 1;
-        cchlor.isActive = true;
-        if (typeof obj.ignoreSaltReading !== 'undefined') chlor.ignoreSaltReading = utils.makeBool(obj.ignoreSaltReading);
-        obj.id = id;
-        for (let prop in chlor) {
-            if (prop in schlor) schlor[prop] = chlor[prop];
-            if (prop in cchlor) cchlor[prop] = chlor[prop];
-        }
+        await ncp.chlorinators.setChlorinatorAsync(cchlor, obj);
+        let schlor = state.chlorinators.getItemById(cchlor.id, true);
         state.emitEquipmentChanges();
-        return Promise.resolve(chlor);
+        //// Merge all the information.
+        //let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
+        //// Verify the data.
+        //if (typeof chlor.body === 'undefined') chlor.body = obj.body || 32;
+        //let body = sys.board.bodies.mapBodyAssociation(chlor.body);
+        //if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${chlor.body}`, 'chlorinator', chlor.body));
+        //if (chlor.poolSetpoint > 100 || chlor.poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
+        //if (chlor.spaSetpoint > 100 || chlor.spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
+        //// if (typeof body === 'undefined') throw new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${chlor.body}`, 'chlorinator', chlor.body);
+        //// if (chlor.poolSetpoint > 100 || chlor.poolSetpoint < 0) throw new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint);
+        //// if (chlor.spaSetpoint > 100 || chlor.spaSetpoint < 0) throw new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint);
+        //let schlor = state.chlorinators.getItemById(id, true);
+        //let cchlor = sys.chlorinators.getItemById(id, true);
+        //cchlor.master = 1;
+        //cchlor.isActive = true;
+        //if (typeof obj.ignoreSaltReading !== 'undefined') chlor.ignoreSaltReading = utils.makeBool(obj.ignoreSaltReading);
+        //obj.id = id;
+        //for (let prop in chlor) {
+        //    if (prop in schlor) schlor[prop] = chlor[prop];
+        //    if (prop in cchlor) cchlor[prop] = chlor[prop];
+        //}
+        //state.emitEquipmentChanges();
+        //ncp.chlorinators.setChlorinatorAsync(chlor, obj);
+        return Promise.resolve(schlor);
     }
-    public deleteChlorAsync(obj: any): Promise<ChlorinatorState> {
+    public async deleteChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);
         if (isNaN(id)) obj.id = 1;
         let chlor = state.chlorinators.getItemById(id);
         chlor.isActive = false;
+        await ncp.chlorinators.deleteChlorinatorAsync(id);
         state.chlorinators.removeItemById(id);
         sys.chlorinators.removeItemById(id);
         chlor.emitEquipmentChange();
         state.emitEquipmentChanges();
         return Promise.resolve(chlor);
     }
-
     public setChlorProps(chlor: Chlorinator, obj?: any) {
         if (typeof obj !== 'undefined') {
             for (var prop in obj) {
@@ -2431,67 +2436,67 @@ export class ChlorinatorCommands extends BoardCommands {
         }
     }
     // Chlorinator direct control methods
-    public requestName(cstate: ChlorinatorState) {
-        let out = Outbound.create({
-            protocol: Protocol.Chlorinator,
-            dest: cstate.id,
-            action: 20,
-            payload: [2],
-            retries: 1
-        });
-        conn.queueSendMessage(out);
-    }
+    //public requestName(cstate: ChlorinatorState) {
+    //    let out = Outbound.create({
+    //        protocol: Protocol.Chlorinator,
+    //        dest: cstate.id,
+    //        action: 20,
+    //        payload: [2],
+    //        retries: 1
+    //    });
+    //    conn.queueSendMessage(out);
+    //}
 
-    public run(chlor: Chlorinator, cstate: ChlorinatorState) {
-        if (cstate.virtualControllerStatus !== sys.board.valueMaps.virtualControllerStatus.getValue('running')) return;
-        if (cstate.lastComm + (30 * 1000) < new Date().getTime()) {
-            // We have not talked to the chlorinator in 30 seconds so we have lost communication.
-            cstate.status = 128;
-            cstate.currentOutput = 0;
-            state.emitEquipmentChanges();
-        }
-        setTimeout(sys.board.chlorinator.setDesiredOutput, 100, cstate);
-        if (typeof (chlor.name) === 'undefined') setTimeout(sys.board.chlorinator.requestName, 1000, cstate);
-        setTimeout(sys.board.chlorinator.run, 4000, chlor, cstate);
-    }
+    //public run(chlor: Chlorinator, cstate: ChlorinatorState) {
+    //    if (cstate.virtualControllerStatus !== sys.board.valueMaps.virtualControllerStatus.getValue('running')) return;
+    //    if (cstate.lastComm + (30 * 1000) < new Date().getTime()) {
+    //         We have not talked to the chlorinator in 30 seconds so we have lost communication.
+    //        cstate.status = 128;
+    //        cstate.currentOutput = 0;
+    //        state.emitEquipmentChanges();
+    //    }
+    //    setTimeout(sys.board.chlorinator.setDesiredOutput, 100, cstate);
+    //    if (typeof (chlor.name) === 'undefined') setTimeout(sys.board.chlorinator.requestName, 1000, cstate);
+    //    setTimeout(sys.board.chlorinator.run, 4000, chlor, cstate);
+    //}
 
-    public setDesiredOutput(cstate: ChlorinatorState) {
-        let out = Outbound.create({
-            protocol: Protocol.Chlorinator,
-            dest: cstate.id,
-            action: 17,
-            payload: [cstate.setPointForCurrentBody],
-            retries: 2,
-            response: true,
-            onComplete: (err) => {
-                if (err) {
-                    logger.warn(`error with chlorinator: ${err.message}`);
-                }
-                else {
-                    cstate.currentOutput = cstate.setPointForCurrentBody;
-                }
-            }
-        });
-        conn.queueSendMessage(out);
-    }
+    //public setDesiredOutput(cstate: ChlorinatorState) {
+    //    let out = Outbound.create({
+    //        protocol: Protocol.Chlorinator,
+    //        dest: cstate.id,
+    //        action: 17,
+    //        payload: [cstate.setPointForCurrentBody],
+    //        retries: 2,
+    //        response: true,
+    //        onComplete: (err) => {
+    //            if (err) {
+    //                logger.warn(`error with chlorinator: ${err.message}`);
+    //            }
+    //            else {
+    //                cstate.currentOutput = cstate.setPointForCurrentBody;
+    //            }
+    //        }
+    //    });
+    //    conn.queueSendMessage(out);
+    //}
 
-    public ping(cstate: ChlorinatorState) {
-        return new Promise<void>((resolve, reject) => {
-            let out = Outbound.create({
-                protocol: Protocol.Chlorinator,
-                dest: cstate.id,
-                action: 0,
-                payload: [0],
-                retries: 3,
-                response: true,
-                onComplete: (err) => {
-                    if (err) reject(err);
-                    else resolve();
-                }
-            });
-            conn.queueSendMessage(out);
-        });
-    }
+    //public ping(cstate: ChlorinatorState) {
+    //    return new Promise<void>((resolve, reject) => {
+    //        let out = Outbound.create({
+    //            protocol: Protocol.Chlorinator,
+    //            dest: cstate.id,
+    //            action: 0,
+    //            payload: [0],
+    //            retries: 3,
+    //            response: true,
+    //            onComplete: (err) => {
+    //                if (err) reject(err);
+    //                else resolve();
+    //            }
+    //        });
+    //        conn.queueSendMessage(out);
+    //    });
+    //}
 }
 export class ScheduleCommands extends BoardCommands {
     public transformDays(val: any): number {
@@ -2905,7 +2910,7 @@ export class HeaterCommands extends BoardCommands {
                 let cfgBody: Body = sys.bodies.getItemById(body.id);
                 let isHeating = false;
                 if (body.isOn) {
-                    if (typeof body.temp === 'undefined') logger.warn(`The body temperature for ${body.name} cannot be determined. Heater status for this body cannot be calculated.`);
+                    if (typeof body.temp === 'undefined' && heaters.length > 0) logger.warn(`The body temperature for ${body.name} cannot be determined. Heater status for this body cannot be calculated.`);
                     for (let j = 0; j < heaters.length; j++) {
                         let heater: Heater = heaters[j];
                         if (heater.isActive === false) continue;
@@ -4035,61 +4040,61 @@ export class ChemControllerCommands extends BoardCommands {
         }
     }
 }
-export class VirtualChlorinatorController extends BoardCommands {
-    // this method will check to see if we have any virtual chlors we are responsible for
-    // if we have any, we will see if the timer is already running or if it needs to be started
-    public start() {
-        let chlor = sys.chlorinators.getItemById(1);
-        let schlor = state.chlorinators.getItemById(1);
-        if (chlor.isActive && chlor.isVirtual) {
-            if (schlor.virtualControllerStatus !== sys.board.valueMaps.virtualControllerStatus.getValue('running')) {
-                schlor.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
-                if (typeof (chlor.name) === 'undefined') sys.board.chlorinator.requestName(schlor);
-                sys.board.chlorinator.run(chlor, schlor);
-            }
-        }
-    }
+//export class VirtualChlorinatorController extends BoardCommands {
+//    // this method will check to see if we have any virtual chlors we are responsible for
+//    // if we have any, we will see if the timer is already running or if it needs to be started
+//    public start() {
+//        let chlor = sys.chlorinators.getItemById(1);
+//        let schlor = state.chlorinators.getItemById(1);
+//        if (chlor.isActive && chlor.isVirtual) {
+//            if (schlor.virtualControllerStatus !== sys.board.valueMaps.virtualControllerStatus.getValue('running')) {
+//                schlor.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('running');
+//                if (typeof (chlor.name) === 'undefined') sys.board.chlorinator.requestName(schlor);
+//                sys.board.chlorinator.run(chlor, schlor);
+//            }
+//        }
+//    }
 
-    public stop() {
-        let schlor = state.chlorinators.find(elem => elem.id === 1);
-        if (typeof schlor !== 'undefined') {
-            schlor.currentOutput = 0; // alias for off
-            schlor.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
-        }
-    }
+//    public stop() {
+//        let schlor = state.chlorinators.find(elem => elem.id === 1);
+//        if (typeof schlor !== 'undefined') {
+//            schlor.currentOutput = 0; // alias for off
+//            schlor.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.getValue('stopped');
+//        }
+//    }
 
-    public async search() {
-        try {
-            let chlor = sys.chlorinators.getItemById(1, false);
-            if (chlor.isActive && (typeof chlor.isVirtual === 'undefined' || !chlor.isVirtual)) return; // don't run if we already see chlorinator comms
-            if (chlor.isVirtual) return this.start(); // we already have an active virtual chlorinator controller
-            let cstate = state.chlorinators.getItemById(1, false);
-            await sys.board.chlorinator.ping(cstate);
-            logger.info(`Found Chlorinator at address 80; id: 1.`);
-            chlor = sys.chlorinators.getItemById(1, true);
-            cstate = state.chlorinators.getItemById(1, true);
-            chlor.isActive = true;
-            chlor.isVirtual = true;
-            cstate.body = chlor.body = 0;
-            chlor.poolSetpoint = 0;
-            chlor.superChlor = false;
-            chlor.superChlorHours = 0;
-            chlor.address = 80;
-            cstate.status = 0;
-            cstate.poolSetpoint = chlor.poolSetpoint;
-            // schlor.type = chlor.type;
-            cstate.superChlor = chlor.superChlor;
-            cstate.superChlorHours = chlor.superChlorHours;
-            sys.board.chlorinator.requestName(cstate);
-            sys.board.virtualChlorinatorController.start();
-        }
-        catch (err) {
-            logger.warn(`No Chlorinator Found`);
-            sys.chlorinators.removeItemById(1);
-            state.chlorinators.removeItemById(1);
-        }
-    }
-}
+//    public async search() {
+//        try {
+//            let chlor = sys.chlorinators.getItemById(1, false);
+//            if (chlor.isActive && (typeof chlor.isVirtual === 'undefined' || !chlor.isVirtual)) return; // don't run if we already see chlorinator comms
+//            if (chlor.isVirtual) return this.start(); // we already have an active virtual chlorinator controller
+//            let cstate = state.chlorinators.getItemById(1, false);
+//            await sys.board.chlorinator.ping(cstate);
+//            logger.info(`Found Chlorinator at address 80; id: 1.`);
+//            chlor = sys.chlorinators.getItemById(1, true);
+//            cstate = state.chlorinators.getItemById(1, true);
+//            chlor.isActive = true;
+//            chlor.isVirtual = true;
+//            cstate.body = chlor.body = 0;
+//            chlor.poolSetpoint = 0;
+//            chlor.superChlor = false;
+//            chlor.superChlorHours = 0;
+//            chlor.address = 80;
+//            cstate.status = 0;
+//            cstate.poolSetpoint = chlor.poolSetpoint;
+//            // schlor.type = chlor.type;
+//            cstate.superChlor = chlor.superChlor;
+//            cstate.superChlorHours = chlor.superChlorHours;
+//            sys.board.chlorinator.requestName(cstate);
+//            sys.board.virtualChlorinatorController.start();
+//        }
+//        catch (err) {
+//            logger.warn(`No Chlorinator Found`);
+//            sys.chlorinators.removeItemById(1);
+//            state.chlorinators.removeItemById(1);
+//        }
+//    }
+//}
 export class VirtualPumpController extends BoardCommands {
     public search() {
         for (let i = 1; i <= sys.equipment.maxPumps; i++) {

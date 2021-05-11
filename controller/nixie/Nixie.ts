@@ -65,6 +65,7 @@ export class NixieControlPanel implements INixieControlPanel {
 
     public async initAsync(equipment: PoolSystem) {
         try {
+
             // We need to tell Nixie what her place is.  If there is an existing OCP she needs to be a partner.  However, if
             // she is the only master then she needs to step up and take command.  The way we will signify this is
             // by using settings in config.json.

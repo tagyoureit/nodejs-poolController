@@ -1542,6 +1542,8 @@ export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorSta
 export class ChlorinatorState extends EqState {
     public initData() {
         if (typeof this.data.disabled === 'undefined') this.data.disabled = false;
+        // This has been deprecated because Nixie is now in control of all "virtual" chlorinators.
+        if (typeof this.data.virtualControllerStatus !== 'undefined') delete this.data.virtualControllerStatus;
     }
     public dataName: string = 'chlorinator';
     // The lastComm property has a fundamental flaw.  Although, the structure is
@@ -1577,16 +1579,16 @@ export class ChlorinatorState extends EqState {
             this.hasChanged = true;
         }
     }
-    public get virtualControllerStatus(): number {
-        return typeof (this.data.virtualControllerStatus) !== 'undefined' ? this.data.virtualControllerStatus.val : -1;
-    }
-    public set virtualControllerStatus(val: number) {
-        if (this.virtualControllerStatus !== val) {
-            this.data.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.transform(val);
-            this.hasChanged = true;
+    //public get virtualControllerStatus(): number {
+    //    return typeof (this.data.virtualControllerStatus) !== 'undefined' ? this.data.virtualControllerStatus.val : -1;
+    //}
+    //public set virtualControllerStatus(val: number) {
+    //    if (this.virtualControllerStatus !== val) {
+    //        this.data.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.transform(val);
+    //        this.hasChanged = true;
 
-        }
-    }
+    //    }
+    //}
     public get type(): number { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : -1; }
     public set type(val: number) {
         if (this.type !== val) {

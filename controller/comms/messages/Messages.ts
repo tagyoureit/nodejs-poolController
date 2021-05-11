@@ -797,6 +797,7 @@ export class Outbound extends Message {
         let out = new Outbound(obj.protocol || Protocol.Broadcast,
             obj.source || sys.board.commandSourceAddress || Message.pluginAddress, obj.dest || sys.board.commandDestAddress || 16, obj.action || 0, obj.payload || [], obj.retries || 0, obj.response || false);
         out.onComplete = obj.onComplete;
+        out.onAbort = obj.onAbort;
         out.onResponseProcessed = obj.onResponseProcessed;
         out.timeout = obj.timeout;
         return out;
@@ -812,6 +813,7 @@ export class Outbound extends Message {
     public response: ((msgIn: Inbound, msgOut: Outbound) => boolean) | Response | boolean;
     public failed: boolean = false;
     public onComplete: (error: Error, msg: Inbound) => void;
+    public onAbort: () => void;
     public onResponseProcessed: () => void;
     // Properties
     public get sub() { return super.sub; }

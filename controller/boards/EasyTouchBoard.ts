@@ -1157,7 +1157,7 @@ export class TouchCircuitCommands extends CircuitCommands {
                     if (err) reject(err);
                     else {
                         cstate.isOn = val ? true : false;
-                        if (id === 6) { sys.board.virtualChlorinatorController.start(); }
+                        //if (id === 6) { sys.board.virtualChlorinatorController.start(); }
                         sys.board.virtualPumpControllers.start();
                         // sys.board.virtualPumpControllers.setTargetSpeed();
                         state.emitEquipmentChanges();
@@ -1477,18 +1477,15 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         let chlor = sys.chlorinators.getItemById(id);
         if (id < 0 || isNaN(id)) {
             isAdd = true;
-            isVirtual = utils.makeBool(obj.isVirtual);
+            chlor.master = utils.makeBool(obj.isVirtual) ? 0 : 1;
             // Calculate an id for the chlorinator.  The messed up part is that if a chlorinator is not attached to the OCP, its address
             // cannot be set by the MUX.  This will have to wait.
             id = 1;
         }
-        else {
-            isVirtual = utils.makeBool(chlor.isVirtual);
-        }
-
         //let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
         // If this is a virtual chlorinator then go to the base class and handle it from there.
-        if (isVirtual) return super.setChlorAsync(obj);
+        // RKS: I am not even sure this can be done with Touch as the master on the RS485 bus.
+        if (chlor.master === 1 || isVirtual) return super.setChlorAsync(obj);
         let name = obj.name || 'IntelliChlor' + id;
         let poolSetpoint = parseInt(obj.poolSetpoint, 10);
         let spaSetpoint = parseInt(obj.spaSetpoint, 10);

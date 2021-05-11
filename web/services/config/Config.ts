@@ -594,7 +594,7 @@ export class ConfigRoute {
         app.get('/config/chlorinators/search', async (req, res, next) => {
             // Change the options for the pool.
             try {
-                await sys.board.virtualChlorinatorController.search();
+                //await sys.board.virtualChlorinatorController.search();
                 return res.status(200).send(sys.chlorinators.getItemById(1).get());
             }
             catch (err) {

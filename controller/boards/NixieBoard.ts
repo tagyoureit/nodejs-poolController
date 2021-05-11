@@ -304,8 +304,9 @@ export class NixieBoard extends SystemBoard {
             await this.verifySetup();
             await ncp.initAsync(sys);
             sys.board.heaters.updateHeaterServices();
-            state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
             state.cleanupState();
+            logger.info(`${sys.equipment.model} control board initialized`);
+            state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
             // At this point we should have the start of a board so lets check to see if we are ready or if we are stuck initializing.
             setTimeout(() => this.processStatusAsync(), 5000);
         } catch (err) { state.status = 255; logger.error(`Error Initializing Nixie Control Panel ${err.message}`); }
@@ -462,7 +463,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                         await sys.board.circuits.setCircuitStateAsync(coff.id, false);
                     }
                 }
-                sys.board.virtualChlorinatorController.start();
+                //sys.board.virtualChlorinatorController.start();
             }
             if (id === 6) state.temps.bodies.getItemById(1, true).isOn = val;
             else if (id === 1) state.temps.bodies.getItemById(2, true).isOn = val;

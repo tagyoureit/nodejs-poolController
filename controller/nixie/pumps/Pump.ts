@@ -202,24 +202,40 @@ export class NixiePumpSS extends NixiePump {
 
     public async setPumpStateAsync(pstate: PumpState) {
         let relays: PumpRelay[] = this.pump.relays.get();
+        let relayState = 0;
         for (let i = 0; i < relays.length; i++) {
             let pr = relays[i];
             if (typeof pr.id === 'undefined') pr.id = i + 1; // remove when id is added to dP relays upon save.
             let isOn = this._targetSpeed >> pr.id - 1 & 1;
             if (utils.isNullOrEmpty(pr.connectionId) || utils.isNullOrEmpty(pr.deviceBinding)) {
-                pstate.status = this._targetSpeed;
-                return new InterfaceServerResponse(200, 'Ok');
+                // If they haven't set a program for the relay bugger out.
+                if (isOn) relayState |= (1 << pr.id - 1);
             }
-            try {
-                let res = await NixieEquipment.putDeviceService(pr.connectionId, `/state/device/${pr.deviceBinding}`, { isOn, latch: isOn ? 5000 : undefined });
-                if (res.status.code === 200) pstate.status = this._targetSpeed;
-                else pstate.status = 16;
-            }
-            catch (err) {
-                logger.error(`NCP: Error setting pump ${this.pump.name} relay ${pr.id} to ${isOn ? 'on' : 'off'}.  Error ${err.message}}`);
-                pstate.status = 16;
+            else {
+                try {
+                    let res = await NixieEquipment.putDeviceService(pr.connectionId, `/state/device/${pr.deviceBinding}`, { isOn, latch: isOn ? 5000 : undefined });
+                    if (res.status.code === 200) {
+                        if (isOn) relayState |= (1 << pr.id - 1);
+                    }
+                    else pstate.status = 16;
+                }
+                catch (err) {
+                    logger.error(`NCP: Error setting pump ${this.pump.name} relay ${pr.id} to ${isOn ? 'on' : 'off'}.  Error ${err.message}}`);
+                    pstate.status = 16;
+                }
             }
         }
+        if (pstate.targetSpeed === 0) {
+            pstate.status = 0;
+            pstate.driveState = 0; // We need to set this if it is a priming cycle but it might not matter for our relay based pumps.
+            pstate.command = 0;
+        }
+        else if (relayState === pstate.targetSpeed) {
+            pstate.status = 1;
+            pstate.driveState = 2;
+            pstate.command = 4;
+        }
+        pstate.relay = relayState;
         return new InterfaceServerResponse(200, 'Success');
     }
 }

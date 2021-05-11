@@ -274,11 +274,11 @@ export class PoolSystem implements IPoolSystem {
 
             // if the app crashes while the pumps are running we need to reset the 'virtualControllerStatus' to stopped so it can start again
             sys.board.virtualPumpControllers.softStop();
-            sys.board.virtualChlorinatorController.stop();
+            //sys.board.virtualChlorinatorController.stop();
             sys.board.virtualChemControllers.stop();
             // try to start any virtual controllers that are present irregardless of overall controller virtual status
             sys.board.virtualPumpControllers.start();
-            sys.board.virtualChlorinatorController.start();
+            //sys.board.virtualChlorinatorController.start();
             sys.board.virtualChemControllers.start();
             sys.board.heaters.initTempSensors();
             sys.board.heaters.updateHeaterServices();
@@ -616,6 +616,7 @@ class EqItemCollection<T> implements IEqItemCollection {
         });
     }
     public sort(fn: (a, b) => number) { this.data.sort(fn); }
+    public count(fn: () => boolean): number { return this.data.filter(fn).length; }
     public getNextEquipmentId(range: EquipmentIdRange, exclude?:number[]): number {
         for (let i = range.start; i <= range.end; i++) {
             let eq = this.data.find(elem => elem.id === i);
@@ -1358,6 +1359,7 @@ export class Chlorinator extends EqItem {
     public initData() {
         if (typeof this.data.disabled === 'undefined') this.data.disabled = false;
         if (typeof this.data.ignoreSaltReading === 'undefined') this.data.ignoreSaltReading = false;
+        if (typeof this.data.isVirtual !== 'undefined') delete this.data.isVirtual;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
@@ -1379,8 +1381,8 @@ export class Chlorinator extends EqItem {
     public set superChlor(val: boolean) { this.setDataVal('superChlor', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get isVirtual() { return this.data.isVirtual; }
-    public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
+    //public get isVirtual() { return this.data.isVirtual; }
+    //public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
     public get disabled(): boolean { return this.data.disabled; }
     public set disabled(val: boolean) { this.setDataVal('disabled', val); }
     public get ignoreSaltReading() { return this.data.ignoreSaltReading; }
