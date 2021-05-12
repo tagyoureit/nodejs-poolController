@@ -460,11 +460,13 @@ export class SendRecieveBuffer {
         conn.buffer.counter.collisions += msg.collisions;
         if (msg.isValid) {
             conn.buffer.counter.success++;
+            conn.buffer.counter.updatefailureRate();
             msg.process();
             conn.buffer.clearResponses(msg);
         }
         else {
             conn.buffer.counter.failed++;
+            conn.buffer.counter.updatefailureRate();
             console.log('RS485 Stats:' + JSON.stringify(conn.buffer.counter));
             ndx = this.rewindFailedMessage(msg, ndx);
         }
@@ -516,11 +518,16 @@ export class Counter {
         this.failed = 0;
         this.bytesSent = 0;
         this.collisions = 0;
+        this.failureRate = '0.00%';
     }
     public bytesReceived: number;
     public success: number;
     public failed: number;
     public bytesSent: number;
     public collisions: number;
+    public failureRate: string;
+    public updatefailureRate():void {
+        conn.buffer.counter.failureRate = `${(conn.buffer.counter.failed / (conn.buffer.counter.failed + conn.buffer.counter.success) * 100).toFixed(2)}%`;
+    }
 }
 export var conn: Connection = new Connection();
