@@ -248,7 +248,7 @@ export class PoolSystem implements IPoolSystem {
                 break;
         }
     }
-    public searchForAdditionalDevices() {
+   /*  public searchForAdditionalDevices() {
         if (this.controllerType === ControllerType.Unknown || typeof this.controllerType === 'undefined' && !conn.mockPort) {
             //logger.info("Searching chlorinators, pumps and chem controllers");
             //EquipmentStateMessage.initVirtual();
@@ -284,7 +284,7 @@ export class PoolSystem implements IPoolSystem {
             sys.board.heaters.updateHeaterServices();
             state.cleanupState();
         }
-    }
+    } */
     public board: SystemBoard = new SystemBoard(this);
     public ncp: NixieControlPanel = new NixieControlPanel();
     public processVersionChanges(ver: ConfigVersion) { this.board.requestConfiguration(ver); }

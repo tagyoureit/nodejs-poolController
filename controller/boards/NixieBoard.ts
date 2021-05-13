@@ -474,7 +474,7 @@ export class NixieCircuitCommands extends CircuitCommands {
         catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
         finally {
             state.emitEquipmentChanges();
-            sys.board.virtualPumpControllers.start();
+            // sys.board.virtualPumpControllers.start();
             ncp.pumps.syncPumpStates();
             sys.board.suspendStatus(false);
             this.board.processStatusAsync();
@@ -866,7 +866,7 @@ export class NixieFeatureCommands extends FeatureCommands {
             let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
             fstate.isOn = val;
             sys.board.valves.syncValveStates();
-            sys.board.virtualPumpControllers.start();
+            // sys.board.virtualPumpControllers.start();
             ncp.pumps.syncPumpStates();
             state.emitEquipmentChanges();
             return fstate;

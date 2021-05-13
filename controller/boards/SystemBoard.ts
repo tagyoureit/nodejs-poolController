@@ -1406,8 +1406,8 @@ export class PumpCommands extends BoardCommands {
             sys.pumps.sortById();
             state.pumps.sortById();
             spump.emitEquipmentChange();
-            if (pump.isVirtual) sys.board.virtualPumpControllers.start();
-            else await ncp.pumps.initPumpAsync(pump);
+            // if (pump.isVirtual) sys.board.virtualPumpControllers.start();
+            if (pump.isVirtual || pump.master === 1) await ncp.pumps.initPumpAsync(pump);
             return Promise.resolve(pump);
         }
         else
@@ -1421,7 +1421,7 @@ export class PumpCommands extends BoardCommands {
                 if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump'));
                 let pump = sys.pumps.getItemById(id, false);
                 let spump = state.pumps.getItemById(id, false);
-                if (pump.master === 1) await ncp.pumps.deletePumpAsync(pump.id);
+                if (pump.isVirtual || pump.master === 1) await ncp.pumps.deletePumpAsync(pump.id);
                 spump.isActive = pump.isActive = false;
                 sys.pumps.removeItemById(id);
                 state.pumps.removeItemById(id);
@@ -1450,8 +1450,9 @@ export class PumpCommands extends BoardCommands {
             sys.pumps.removeItemById(_id);
             let pump = sys.pumps.getItemById(_id, true);
             if (_isVirtual) {
-                pump.isActive = true;
-                pump.isVirtual = true;
+                // pump.isActive = true;
+                // pump.isVirtual = true;
+                pump.master = 1;
             }
             state.pumps.removeItemById(pump.id);
             pump.type = pumpType;
@@ -1889,7 +1890,7 @@ export class CircuitCommands extends BoardCommands {
         }
         catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
         finally {
-            sys.board.virtualPumpControllers.start();
+            // sys.board.virtualPumpControllers.start();
             ncp.pumps.syncPumpStates();
             sys.board.suspendStatus(false);
             this.board.processStatusAsync();
@@ -2328,7 +2329,7 @@ export class FeatureCommands extends BoardCommands {
             let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
             fstate.isOn = val;
             sys.board.valves.syncValveStates();
-            sys.board.virtualPumpControllers.start();
+            // sys.board.virtualPumpControllers.start();
             ncp.pumps.syncPumpStates();
             state.emitEquipmentChanges();
             return fstate;
@@ -3781,7 +3782,7 @@ export class ChemControllerCommands extends BoardCommands {
                     protocol: Protocol.IntelliChem,
                     onComplete: (err, msg) => {
                         if (err) {
-                            if (typeof data.isVirtual !== 'undefined' && !data.isVirtual) chem.isVirtual = true;  // if we set virtual, but it failed, set it back
+                            if (typeof data.s !== 'undefined' && !data.isVirtual) chem.isVirtual = true;  // if we set virtual, but it failed, set it back
                             _reject(err);
                         }
                         else {

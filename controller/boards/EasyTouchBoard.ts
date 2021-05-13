@@ -1159,7 +1159,7 @@ export class TouchCircuitCommands extends CircuitCommands {
                     else {
                         cstate.isOn = val ? true : false;
                         //if (id === 6) { sys.board.virtualChlorinatorController.start(); }
-                        sys.board.virtualPumpControllers.start();
+                        // sys.board.virtualPumpControllers.start();
                         // sys.board.virtualPumpControllers.setTargetSpeed();
                         state.emitEquipmentChanges();
                         resolve(cstate);
