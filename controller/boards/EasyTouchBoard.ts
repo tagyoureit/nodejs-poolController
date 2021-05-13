@@ -1930,14 +1930,14 @@ class TouchPumpCommands extends PumpCommands {
         });
         return [setPumpConfig, pumpConfigRequest];
     }
-    /*     public setType(pump: Pump, pumpType: number) {
-            pump.type = pumpType;
-            // pump.circuits.clear(); // reset circuits
-            this.setPump(pump);
-            let spump = state.pumps.getItemById(pump.id, true);
-            spump.type = pump.type;
-            spump.status = 0;
-        } */
+    public setType(pump: Pump, pumpType: number) {
+        pump.type = pumpType;
+        // pump.circuits.clear(); // reset circuits
+        this.setPump(pump);
+        let spump = state.pumps.getItemById(pump.id, true);
+        spump.type = pump.type;
+        spump.status = 0;
+    }
 }
 class TouchHeaterCommands extends HeaterCommands {
     public getInstalledHeaterTypes(body?: number): any {

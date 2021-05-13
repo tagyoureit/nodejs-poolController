@@ -160,6 +160,7 @@ export class NixieValve extends NixieEquipment {
             this._pollTimer = null;
             let vstate = state.valves.getItemById(this.valve.id);
             this.setValveStateAsync(vstate, false);
+            vstate.emitEquipmentChange();
         }
         catch (err) { logger.error(`Nixie Valve closeAsync: ${err.message}`); return Promise.reject(err); }
     }

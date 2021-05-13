@@ -699,10 +699,10 @@ export class SystemBoard {
         console.log(`Stopping sys`);
         //sys.board.virtualChlorinatorController.stop();
         if (sys.controllerType === ControllerType.Virtual) this.turnOffAllCircuits();
-        sys.board.virtualChemControllers.stop();
+        // sys.board.virtualChemControllers.stop();
         this.killStatusCheck();
         await ncp.closeAsync();
-        return sys.board.virtualPumpControllers.stopAsync()
+        // return sys.board.virtualPumpControllers.stopAsync()
     }
     public async turnOffAllCircuits() {
         // turn off all circuits/features
@@ -718,7 +718,7 @@ export class SystemBoard {
         for (let i = 0; i < state.temps.bodies.length; i++) {
             state.temps.bodies.getItemByIndex(i).isOn = false;
         }
-        sys.board.virtualPumpControllers.setTargetSpeed();
+        // sys.board.virtualPumpControllers.setTargetSpeed();
         state.emitEquipmentChanges();
     }
     public system: SystemCommands = new SystemCommands(this);
@@ -735,8 +735,8 @@ export class SystemBoard {
     public schedules: ScheduleCommands = new ScheduleCommands(this);
     public equipmentIds: EquipmentIds = new EquipmentIds();
     //public virtualChlorinatorController = new VirtualChlorinatorController(this);
-    public virtualPumpControllers = new VirtualPumpController(this);
-    public virtualChemControllers = new VirtualChemController(this);
+    // public virtualPumpControllers = new VirtualPumpController(this);
+    // public virtualChemControllers = new VirtualChemController(this);
 
     // We need this here so that we don't inadvertently start processing 2 messages before we get to a 204 in IntelliCenter.  This message tells
     // us all of the installed modules on the panel and the status is worthless until we know the equipment on the board.  For *Touch this is always true but the
@@ -1342,10 +1342,10 @@ export class BodyCommands extends BoardCommands {
         return false;
     }
 }
-export interface CallbackStack {
+/* export interface CallbackStack {
     fn: () => void,
     timeout: number;
-}
+} */
 export class PumpCommands extends BoardCommands {
     public getPumpTypes() { return this.board.valueMaps.pumpTypes.toArray(); }
     public getCircuitUnits(pump?: Pump) {
@@ -1362,66 +1362,31 @@ export class PumpCommands extends BoardCommands {
         }
     }
     public async setPumpAsync(data: any): Promise<Pump> {
-        if (typeof data.id !== 'undefined') {
+        try{
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
             if (id <= 0) id = sys.pumps.filter(elem => elem.master === 1).getMaxId(false, 49) + 1;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump'));
-            let pump = sys.pumps.getItemById(id, data.id <= 0);
-            pump.master = 1;
-            if (typeof data.isVirtual !== 'undefined') pump.isVirtual = data.isVirtual;
-            pump.isActive = true;
-            let spump = state.pumps.getItemById(id, data.id <= 0);
-            if (typeof data.type !== 'undefined' && data.type !== pump.type) {
-                sys.board.pumps.setType(pump, data.type);
-                pump = sys.pumps.getItemById(id, true);
-                spump = state.pumps.getItemById(id, true);
-            }
-            let type = sys.board.valueMaps.pumpTypes.transform(pump.type);
-            pump.name = data.name || pump.name || type.desc;
-            if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
-                for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
-                    let c = data.circuits[i - 1];
-                    let speed = parseInt(c.speed, 10);
-                    let relay = parseInt(c.relay, 10);
-                    let flow = parseInt(c.flow, 10);
-                    if (isNaN(speed)) speed = type.minSpeed;
-                    if (isNaN(flow)) flow = type.minFlow;
-                    if (isNaN(relay)) relay = 1;
-
-                    c.units = parseInt(c.units, 10) || type.name === 'vf' ? sys.board.valueMaps.pumpUnits.getValue('gpm') : sys.board.valueMaps.pumpUnits.getValue('rpm');
-                    if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
-                        c.speed = speed;
-                    }
-                    else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
-                        c.flow = flow;
-                    }
-                    else if (type.maxRelays > 0)
-                        c.relay = relay;
-                }
-            }
             data.id = id;
-            pump.set(data); // Sets all the data back to the pump.  This also sets the relays should it exist on the data.
-            spump.name = pump.name;
-            spump.address = pump.address; // state will default to id+95 if not set
-            sys.pumps.sortById();
-            state.pumps.sortById();
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump'));
+            let pump = sys.pumps.getItemById(id, true);
+            await ncp.pumps.setPumpAsync(pump, data);
+            let spump = state.pumps.getItemById(id, true);
+            spump.emitData('pumpExt', spump.getExtended());
             spump.emitEquipmentChange();
-            // if (pump.isVirtual) sys.board.virtualPumpControllers.start();
-            if (pump.isVirtual || pump.master === 1) await ncp.pumps.initPumpAsync(pump);
-            return Promise.resolve(pump);
+            return Promise.resolve(pump); 
         }
-        else
-            return Promise.reject(new InvalidEquipmentIdError('No pump information provided', undefined, 'Pump'));
+        catch (err){
+            logger.error(`Error setting pump: ${err}`);
+            return Promise.reject(err);
+        }
     }
     public async deletePumpAsync(data: any): Promise<Pump> {
         if (typeof data.id !== 'undefined') {
             try {
                 let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-                if (id <= 0) id = sys.pumps.length + 1;
-                if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump'));
+                if (isNaN(id) || id <= 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump'));
                 let pump = sys.pumps.getItemById(id, false);
                 let spump = state.pumps.getItemById(id, false);
-                if (pump.isVirtual || pump.master === 1) await ncp.pumps.deletePumpAsync(pump.id);
+                await ncp.pumps.deletePumpAsync(pump.id);
                 spump.isActive = pump.isActive = false;
                 sys.pumps.removeItemById(id);
                 state.pumps.removeItemById(id);
@@ -1441,7 +1406,7 @@ export class PumpCommands extends BoardCommands {
         spump.emitData('pumpExt', spump.getExtended());
     }
 
-    public setType(pump: Pump, pumpType: number) {
+     public setType(pump: Pump, pumpType: number) {
         // if we are changing pump types, need to clear out circuits
         // and props that aren't for this pump type
         let _id = pump.id;
@@ -1474,7 +1439,7 @@ export class PumpCommands extends BoardCommands {
             spump.status = 0;
             spump.emitData('pumpExt', spump.getExtended());
         }
-    }
+    } 
     public availableCircuits() {
         let _availCircuits = [];
         for (let i = 0; i < sys.circuits.length; i++) {
@@ -1504,7 +1469,7 @@ export class PumpCommands extends BoardCommands {
         return _availCircuits;
     }
 
-    public run(pump: Pump) {
+    /* public run(pump: Pump) {
         let spump = state.pumps.getItemById(pump.id);
         if (typeof spump.targetSpeed === 'undefined') sys.board.virtualPumpControllers.setTargetSpeed();
         if (spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('stopped')) {
@@ -1696,7 +1661,7 @@ export class PumpCommands extends BoardCommands {
             }
         });
         conn.queueSendMessage(out);
-    }
+    } */
 }
 export class CircuitCommands extends BoardCommands {
     public async syncCircuitRelayStates() {
@@ -2386,12 +2351,19 @@ export class FeatureCommands extends BoardCommands {
 }
 export class ChlorinatorCommands extends BoardCommands {
     public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
-        let id = parseInt(obj.id, 10);
-        if (isNaN(id) || id <= 0) id = 1;
-        let cchlor = sys.chlorinators.getItemById(id, true);
-        await ncp.chlorinators.setChlorinatorAsync(cchlor, obj);
-        let schlor = state.chlorinators.getItemById(cchlor.id, true);
-        state.emitEquipmentChanges();
+        try {
+            let id = parseInt(obj.id, 10);
+            if (isNaN(id) || id <= 0) id = 1;
+            let cchlor = sys.chlorinators.getItemById(id, true);
+            await ncp.chlorinators.setChlorinatorAsync(cchlor, obj);
+            let schlor = state.chlorinators.getItemById(cchlor.id, true);
+            state.emitEquipmentChanges();
+            return Promise.resolve(schlor);
+        }
+        catch (err){
+            logger.error(`Error setting chlorinator: ${err}`)
+            return Promise.reject(err);
+        }
         //// Merge all the information.
         //let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
         //// Verify the data.
@@ -2415,19 +2387,25 @@ export class ChlorinatorCommands extends BoardCommands {
         //}
         //state.emitEquipmentChanges();
         //ncp.chlorinators.setChlorinatorAsync(chlor, obj);
-        return Promise.resolve(schlor);
+
     }
     public async deleteChlorAsync(obj: any): Promise<ChlorinatorState> {
-        let id = parseInt(obj.id, 10);
-        if (isNaN(id)) obj.id = 1;
-        let chlor = state.chlorinators.getItemById(id);
-        chlor.isActive = false;
-        await ncp.chlorinators.deleteChlorinatorAsync(id);
-        state.chlorinators.removeItemById(id);
-        sys.chlorinators.removeItemById(id);
-        chlor.emitEquipmentChange();
-        state.emitEquipmentChanges();
-        return Promise.resolve(chlor);
+        try {
+            let id = parseInt(obj.id, 10);
+            if (isNaN(id)) obj.id = 1;
+            let chlor = state.chlorinators.getItemById(id);
+            chlor.isActive = false;
+            await ncp.chlorinators.deleteChlorinatorAsync(id);
+            state.chlorinators.removeItemById(id);
+            sys.chlorinators.removeItemById(id);
+            chlor.emitEquipmentChange();
+            state.emitEquipmentChanges();
+            return Promise.resolve(chlor);
+        }
+        catch (err){
+            logger.error(`Error deleting chlorinator: ${err}`)
+            return Promise.reject(err);
+        }
     }
     public setChlorProps(chlor: Chlorinator, obj?: any) {
         if (typeof obj !== 'undefined') {
@@ -3132,8 +3110,8 @@ export class ChemControllerCommands extends BoardCommands {
             let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
             if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemController'));
             let chem = sys.chemControllers.getItemById(id);
-            if (chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem') && !chem.isVirtual)
-                sys.board.virtualChemControllers.stop();
+            // if (chem.type === sys.board.valueMaps.chemControllerTypes.getValue('intellichem') && !chem.isVirtual)
+            //     sys.board.virtualChemControllers.stop();
             let schem = state.chemControllers.getItemById(id);
             schem.isActive = chem.isActive = false;
             await ncp.chemControllers.removeById(id);
@@ -3986,7 +3964,7 @@ export class ChemControllerCommands extends BoardCommands {
                     sys.chemControllers.getItemById(chem.id).isActive = false;
                     sys.chemControllers.removeItemById(chem.id);
                     state.chemControllers.removeItemById(chem.id);
-                    setTimeout(sys.board.virtualChemControllers.start, 5000);
+                    // setTimeout(sys.board.virtualChemControllers.start, 5000);
                     state.emitEquipmentChanges(); // emit destroyed chlor if we fail
                     // reject(`No chemController found at address ${chem.address}: ${err.message}`);
                 }
@@ -4096,8 +4074,8 @@ export class ChemControllerCommands extends BoardCommands {
 //        }
 //    }
 //}
-export class VirtualPumpController extends BoardCommands {
-    public search() {
+/*export class VirtualPumpController extends BoardCommands {
+     public search() {
         for (let i = 1; i <= sys.equipment.maxPumps; i++) {
             let pump = sys.pumps.getItemById(i);
             if (pump.isActive) continue;
@@ -4168,8 +4146,8 @@ export class VirtualPumpController extends BoardCommands {
                 spump.targetSpeed = _newSpeed;
             }
         }
-    }
-    public setTargetSpeedProposed() {
+    } */
+    /* public setTargetSpeedProposed() {
         //[1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true }],
         //[2, { name: 'ds', desc: 'Two Speed', maxCircuits: 8, hasAddress: false, hasBody: true }],
         //[3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
@@ -4326,8 +4304,8 @@ export class VirtualPumpController extends BoardCommands {
             //     }
             // }
         }
-    }
-}
+    } 
+}*/
 export class VirtualChemController extends BoardCommands {
     public async search() {
         // TODO: If we are searching for multiple chem controllers this should be a promise.all array

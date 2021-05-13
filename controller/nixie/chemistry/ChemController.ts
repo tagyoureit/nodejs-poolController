@@ -590,6 +590,7 @@ export class NixieChemController extends NixieEquipment {
             await this.orp.cancelDosing(schem.orp);
             await this.ph.closeAsync();
             await this.orp.closeAsync();
+            schem.emitEquipmentChange();
         }
         catch (err) { logger.error(`ChemController closeAsync: ${err.message}`); return Promise.reject(err); }
     }

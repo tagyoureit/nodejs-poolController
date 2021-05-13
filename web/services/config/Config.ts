@@ -750,7 +750,7 @@ export class ConfigRoute {
             let grp = sys.circuitGroups.getItemById(parseInt(req.params.id, 10));
             return res.status(200).send(grp.getExtended());
         });
-        app.get('/config/chemController/search', async (req, res, next) => {
+/*         app.get('/config/chemController/search', async (req, res, next) => {
             // Change the options for the pool.
             try {
                 let result = await sys.board.virtualChemControllers.search();
@@ -759,7 +759,7 @@ export class ConfigRoute {
             catch (err) {
                 next(err);
             }
-        });
+        }); */
         app.put('/config/chemController', async (req, res, next) => {
             try {
                 let chem = await sys.board.chemControllers.setChemControllerAsync(req.body);

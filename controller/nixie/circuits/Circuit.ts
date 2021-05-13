@@ -171,6 +171,7 @@ export class NixieCircuit extends NixieEquipment {
         try {
             let cstate = state.circuits.getItemById(this.circuit.id);
             await this.setCircuitStateAsync(cstate, false);
+            cstate.emitEquipmentChange();
         }
         catch (err) { logger.error(`Nixie Circuit closeAsync: ${err.message}`); return Promise.reject(err); }
     }

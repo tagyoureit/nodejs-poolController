@@ -161,6 +161,7 @@ export class NixieHeater extends NixieEquipment {
             this._pollTimer = null;
             let hstate = state.heaters.getItemById(this.heater.id);
             await this.setHeaterStateAsync(hstate, false);
+            hstate.emitEquipmentChange();
         }
         catch (err) { logger.error(`Nixie Heater closeAsync: ${err.message}`); return Promise.reject(err); }
     }

@@ -38,13 +38,23 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
             let c: NixiePump = this.find(elem => elem.id === pump.id) as NixiePump;
             if (typeof c === 'undefined') {
                 pump.master = 1;
-                c = new NixiePump(this.controlPanel, pump);
+                if (typeof data.type !== 'undefined') pump.type = data.type; // needed for init of correct type
+                if (typeof pump.type === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Invalid pump type for ${pump.name}`, data.id, 'Pump'));
+                c = this.pumpFactory(pump);
+                // c = new NixiePump(this.controlPanel, pump);
                 this.push(c);
-                await c.setPumpAsync(data);
                 logger.info(`A pump was not found for id #${pump.id} creating pump`);
+                return await c.setPumpAsync(data);
             }
             else {
-                await c.setPumpAsync(data);
+                if (typeof data.type !== 'undefined' && c.pump.type !== data.type) {
+                    // pump exists, changing type
+                    await c.closeAsync();
+                    pump.type = data.type; // needed for init of correct type
+                    if (typeof pump.type === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Invalid pump type for ${pump.name}`, data.id, 'Pump'));
+                    c = this.pumpFactory(pump);
+                }
+                return await c.setPumpAsync(data);
             }
         }
         catch (err) { logger.error(`setPumpAsync: ${err.message}`); return Promise.reject(err); }
@@ -72,7 +82,6 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
                     this.splice(i, 1);
                 } catch (err) { logger.error(`Error stopping Nixie Pump ${err}`); }
             }
-
         } catch (err) { } // Don't bail if we have an errror.
     }
 
@@ -82,8 +91,10 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
             if (pump.master === 1) {
                 // if pump exists, close it so we can re-init 
                 // (EG if pump type changes, we need to setup a new instance of the pump)
-                if (typeof c !== 'undefined') await c.closeAsync();
-                c = this.pumpFactory(pump);
+                if (typeof c !== 'undefined' && c.pump.type !== pump.type) {
+                    await c.closeAsync();
+                    c = this.pumpFactory(pump);
+                }
                 logger.info(`Initializing Nixie Pump ${c.id}-${pump.name}`);
                 this.push(c);
             }
@@ -106,7 +117,7 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
             case 'vs':
                 return new NixiePumpVS(this.controlPanel, pump);
             default:
-                throw new EquipmentNotFoundError(`NCP: Cannot create pump ${pump.name}.`,type);
+                throw new EquipmentNotFoundError(`NCP: Cannot create pump ${pump.name}.`, type);
         }
     }
     public syncPumpStates() {
@@ -134,7 +145,6 @@ export class NixiePump extends NixieEquipment {
     ss: 0=off, 1=on;
     ds/sf: bit shift 1-4 = values 1/2/4/8 for relays 1/2/3/4
     */
-    private _lastState;
     constructor(ncp: INixieControlPanel, pump: Pump) {
         super(ncp);
         this.pump = pump;
@@ -150,7 +160,45 @@ export class NixiePump extends NixieEquipment {
     }
     public async setPumpAsync(data: any): Promise<InterfaceServerResponse> {
         try {
-            let pump = this.pump;
+
+            this.pump.master = 1;
+            // if (typeof data.isVirtual !== 'undefined') this.pump.isVirtual = data.isVirtual;
+            this.pump.isActive = true;
+            // if (typeof data.type !== 'undefined' && data.type !== this.pump.type) {
+            //     sys.board.pumps.setType(this.pump, data.type);
+            //     this.pump = sys.pumps.getItemById(id, true);
+            //     spump = state.pumps.getItemById(id, true);
+            // }
+            let type = sys.board.valueMaps.pumpTypes.transform(this.pump.type);
+            this.pump.name = data.name || this.pump.name || type.desc;
+            if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
+                for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
+                    let c = data.circuits[i - 1];
+                    let speed = parseInt(c.speed, 10);
+                    let relay = parseInt(c.relay, 10);
+                    let flow = parseInt(c.flow, 10);
+                    if (isNaN(speed)) speed = type.minSpeed;
+                    if (isNaN(flow)) flow = type.minFlow;
+                    if (isNaN(relay)) relay = 1;
+                    c.units = parseInt(c.units, 10) || type.name === 'vf' ? sys.board.valueMaps.pumpUnits.getValue('gpm') : sys.board.valueMaps.pumpUnits.getValue('rpm');
+                    if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
+                        c.speed = speed;
+                    }
+                    else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
+                        c.flow = flow;
+                    }
+                    else if (type.maxRelays > 0)
+                        c.relay = relay;
+                }
+            }
+            this.pump.set(data); // Sets all the data back to the pump.  This also sets the relays should it exist on the data.
+            let spump = state.pumps.getItemById(this.pump.id, true);
+            spump.name = this.pump.name;
+            spump.address = this.pump.address;
+            spump.type = this.pump.type;
+            sys.pumps.sortById();
+            state.pumps.sortById();
+            return Promise.resolve(new InterfaceServerResponse(200, 'Ok'));
         }
         catch (err) { logger.error(`Nixie setPumpAsync: ${err.message}`); return Promise.reject(err); }
     }
@@ -164,7 +212,8 @@ export class NixiePump extends NixieEquipment {
             await this.setPumpStateAsync(pstate);
         }
         catch (err) { logger.error(`Nixie Error running pump sequence - ${err}`); }
-        finally { this._pollTimer = setTimeout(async () => await this.pollEquipmentAsync(), this.pollingInterval || 2000); }
+        finally { 
+            this._pollTimer = setTimeout(async () => await this.pollEquipmentAsync(), this.pollingInterval || 2000); }
     }
     private async checkHardwareStatusAsync(connectionId: string, deviceBinding: string) {
         try {
@@ -184,6 +233,7 @@ export class NixiePump extends NixieEquipment {
             this._targetSpeed = 0;
             let pstate = state.pumps.getItemById(this.pump.id);
             await this.setPumpStateAsync(pstate);
+            pstate.emitEquipmentChange();
         }
         catch (err) { logger.error(`Nixie Pump closeAsync: ${err.message}`); return Promise.reject(err); }
     }
@@ -197,6 +247,7 @@ export class NixiePumpSS extends NixiePump {
         let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
         if (pt.hasBody) _newSpeed = sys.board.bodies.isBodyOn(this.pump.body) ? 1 : 0;
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed > 0 ? 'on' : 'off'}.`);
+        if (isNaN(_newSpeed)) _newSpeed = 0;
         this._targetSpeed = _newSpeed;
     }
 
@@ -251,17 +302,18 @@ export class NixiePumpDS extends NixiePumpSS {
             // relay speeds are bit-shifted 'or' based on 1,2,4,8
             if (circ.isOn) _newSpeed |= (1 << pumpCircuits[i].relay - 1);
         }
+        if (isNaN(_newSpeed)) _newSpeed = 0;
         this.logSpeed(_newSpeed);
         this._targetSpeed = _newSpeed;
     }
-    public logSpeed(_newSpeed: number){
+    public logSpeed(_newSpeed: number) {
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} relays to Relay 1: ${_newSpeed & 1 ? 'on' : 'off'}, Relay 2: ${_newSpeed & 2 ? 'on' : 'off'}.`);
     }
 }
 export class NixiePumpSF extends NixiePumpDS {
     // effectively operates the same way as a DS pump since we removed the body association on DS.
     // only logger msg is different
-    public logSpeed(_newSpeed: number){
+    public logSpeed(_newSpeed: number) {
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} relays to Relay 1: ${_newSpeed & 1 ? 'on' : 'off'}, Relay 2: ${_newSpeed & 2 ? 'on' : 'off'}, Relay 3: ${_newSpeed & 4 ? 'on' : 'off'}, and Relay 4: ${_newSpeed & 8 ? 'on' : 'off'}.`);
     }
 }
@@ -416,6 +468,7 @@ export class NixiePumpRS485 extends NixiePump {
             try { await this.setPumpManual(pstate); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
             try { await this.setDriveStateAsync(pstate, false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
             try { await this.setPumpToRemoteControl(pstate, false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
+            pstate.emitEquipmentChange();
         }
         catch (err) { logger.error(`Nixie Pump closeAsync: ${err.message}`); return Promise.reject(err); }
     }
@@ -429,6 +482,7 @@ export class NixiePumpVS extends NixiePumpRS485 {
             let pc = pumpCircuits[i];
             if (circ.isOn) _newSpeed = Math.max(_newSpeed, pc.speed);
         }
+        if (isNaN(_newSpeed)) _newSpeed = 0;
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed} RPM.`);
         this._targetSpeed = _newSpeed;
     }
@@ -442,6 +496,7 @@ export class NixiePumpVF extends NixiePumpRS485 {
             let pc = pumpCircuits[i];
             if (circ.isOn) _newSpeed = Math.max(_newSpeed, pc.flow);
         }
+        if (isNaN(_newSpeed)) _newSpeed = 0;
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed} GPM.`);
         this._targetSpeed = _newSpeed;
     }
@@ -486,6 +541,7 @@ export class NixiePumpVSF extends NixiePumpRS485 {
             }
         }
         _newSpeed = speeds > 0 || flows === 0 ? maxRPM : maxGPM;
+        if (isNaN(_newSpeed)) _newSpeed = 0;
         // Send the flow message if it is flow and the rpm message if it is rpm.
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed} ${flows > 0 ? 'GPM' : 'RPM'}.`);
         this._targetSpeed = _newSpeed;

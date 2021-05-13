@@ -124,6 +124,7 @@ export class NixieFilter extends NixieEquipment {
             let fstate = state.filters.getItemById(this.filter.id);
             logger.info(`Closing filter ${fstate.name}`)
             await this.setFilterStateAsync(fstate, false);
+            fstate.emitEquipmentChange();
         }
         catch (err) { logger.error(`Nixie Filter closeAsync: ${err.message}`); return Promise.reject(err); }
     }

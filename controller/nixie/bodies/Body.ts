@@ -106,6 +106,7 @@ export class NixieBody extends NixieEquipment {
             this._pollTimer = null;
             let bstate = state.temps.bodies.getItemById(this.body.id);
             await this.setBodyStateAsync(bstate, false);
+            bstate.emitEquipmentChange();
         }
         catch (err) { logger.error(`Nixie Body closeAsync: ${err.message}`); return Promise.reject(err); }
     }
