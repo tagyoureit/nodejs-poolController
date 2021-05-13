@@ -77,6 +77,7 @@ export class Message {
     public get id(): number { return this._id; }
     public set id(val: number) { this._id = val; }
     public isValid: boolean = true;
+    public scope: string;
     // Properties
     public get isComplete(): boolean { return this._complete; }
     public get sub(): number { return this.header.length > 1 ? this.header[1] : -1; }
@@ -761,7 +762,7 @@ export class Inbound extends Message {
     }
 }
 export class Outbound extends Message {
-    constructor(proto: Protocol, source: number, dest: number, action: number, payload: number[], retries?: number, response?: Response | boolean | Function) {
+    constructor(proto: Protocol, source: number, dest: number, action: number, payload: number[], retries?: number, response?: Response | boolean | Function, scope?: string) {
         super();
         this.id = Message.nextMessageId;
         this.protocol = proto;
@@ -785,6 +786,7 @@ export class Outbound extends Message {
             this.header.push.apply(this.header, [165, 0, 15, Message.pluginAddress, 0, 0]);
             this.term.push.apply(this.term, [0, 0]);
         }
+        this.scope = scope;
         this.source = source;
         this.dest = dest;
         this.action = action;
@@ -795,7 +797,7 @@ export class Outbound extends Message {
     // Factory
     public static create(obj?: any) {
         let out = new Outbound(obj.protocol || Protocol.Broadcast,
-            obj.source || sys.board.commandSourceAddress || Message.pluginAddress, obj.dest || sys.board.commandDestAddress || 16, obj.action || 0, obj.payload || [], obj.retries || 0, obj.response || false);
+            obj.source || sys.board.commandSourceAddress || Message.pluginAddress, obj.dest || sys.board.commandDestAddress || 16, obj.action || 0, obj.payload || [], obj.retries || 0, obj.response || false, obj.scope || undefined);
         out.onComplete = obj.onComplete;
         out.onAbort = obj.onAbort;
         out.onResponseProcessed = obj.onResponseProcessed;

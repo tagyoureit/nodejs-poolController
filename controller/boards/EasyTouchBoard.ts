@@ -1153,6 +1153,7 @@ export class TouchCircuitCommands extends CircuitCommands {
                 payload: [id, val ? 1 : 0],
                 retries: 3,
                 response: true,
+                scope: `circuitState${id}`,
                 onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
@@ -1183,9 +1184,9 @@ export class TouchCircuitCommands extends CircuitCommands {
     public async toggleCircuitStateAsync(id: number) {
         let cstate = state.circuits.getInterfaceById(id);
         if (cstate instanceof LightGroupState) {
-            return this.setLightGroupThemeAsync(id, sys.board.valueMaps.lightThemes.getValue(cstate.isOn ? 'off' : 'on'));
+            return await this.setLightGroupThemeAsync(id, sys.board.valueMaps.lightThemes.getValue(cstate.isOn ? 'off' : 'on'));
         }
-        return this.setCircuitStateAsync(id, !cstate.isOn);
+        return await this.setCircuitStateAsync(id, !cstate.isOn);
     }
     public createLightGroupMessages(group: LightGroup) {
         let packets: Promise<void>[] = [];
@@ -1343,6 +1344,7 @@ export class TouchCircuitCommands extends CircuitCommands {
                 payload: [theme, 0],
                 retries: 3,
                 response: true,
+                scope: `lightGroupTheme${id}`,
                 onComplete: async (err, msg) => {
                     if (err) reject(err);
                     else {

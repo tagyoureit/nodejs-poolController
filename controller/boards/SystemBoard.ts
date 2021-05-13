@@ -1896,9 +1896,9 @@ export class CircuitCommands extends BoardCommands {
             state.emitEquipmentChanges();
         }
     }
-    public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
+    public async toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
-        return this.setCircuitStateAsync(id, !(circ.isOn || false));
+        return await this.setCircuitStateAsync(id, !(circ.isOn || false));
     }
     public async setLightThemeAsync(id: number, theme: number) {
         let cstate = state.circuits.getItemById(id);

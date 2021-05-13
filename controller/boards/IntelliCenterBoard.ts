@@ -2063,6 +2063,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                         resolve(circ);
                     }
                 };
+                out.scope = `circuitState${id}`;
                 out.retries = 5;
                 out.response = IntelliCenterBoard.getAckResponse(168);
                 conn.queueSendMessage(out);
@@ -2145,6 +2146,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         catch (err) { return Promise.reject(err); }
     }
     public createLightGroupMessages(group: ICircuitGroup): { msg0?: Outbound, msg1?: Outbound, msg2?: Outbound } {
+        // Todo: add scope to outgoing messages
         let msgs: { msg0?: Outbound, msg1?: Outbound, msg2?: Outbound } = {};
         // Create the first message.
         //[255, 0, 255][165, 63, 15, 16, 168, 40][6, 0, 0, 1, 41, 0, 4, 6, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 4, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0][16, 20]

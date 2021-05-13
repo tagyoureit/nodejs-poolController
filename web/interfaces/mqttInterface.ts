@@ -28,7 +28,6 @@ import { state as stateAlias } from "../../controller/State";
 import { webApp as webAppAlias } from '../Server';
 import { utils } from "../../controller/Constants";
 import { ServiceParameterError } from '../../controller/Errors';
-import { publicDecrypt } from 'crypto';
 
 export class MqttInterfaceBindings extends BaseInterfaceBindings {
     constructor(cfg) {
@@ -55,13 +54,12 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             password: baseOpts.password,
             url
         }
-        //this.client = new Client(net.Socket,opts);
         this.client = connect(url, opts);
 
-        this.client.on('connect', async () => {
+        this.client.on('connect', () => {
             try {
                 logger.info(`MQTT connected to ${url}`);
-                await this.subscribe();
+                this.subscribe();
             } catch (err) { logger.error(err); }
         });
 
@@ -69,12 +67,9 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
     public async stopAsync() {
         try {
             if (typeof this.client !== 'undefined') {
-                await this.unsubscribe();
-                await new Promise<void>((resolve, reject) => {
-                    this.client.end(true, { reasonCode: 0, reasonString: `Shutting down MQTT Client` }, () => {
-                        logger.info(`Successfully shut down MQTT Client`);
-                        resolve();
-                    });
+                this.unsubscribe();
+                this.client.end(true, { reasonCode: 0, reasonString: `Shutting down MQTT Client` }, () => {
+                    logger.info(`Successfully shut down MQTT Client`);
                 });
             }
         } catch (err) { logger.error(`Error stopping MQTT Client: ${err.message}`); }
@@ -84,22 +79,19 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             while (this.topics.length > 0) {
                 let topic = this.topics.pop();
                 if (typeof topic !== 'undefined') {
-                    await new Promise<void>((resolve, reject) => {
-                        this.client.unsubscribe(topic, (err, packet) => {
-                            if (err) reject(new Error(`Error unsubscribing from MQTT topic ${topic}`));
-                            else {
-                                logger.debug(`Unsubscribed from MQTT topic ${topic}`);
-                                resolve();
-                            }
-                        });
+                    this.client.unsubscribe(topic, (err, packet) => {
+                        if (err) logger.error(`Error unsubscribing from MQTT topic ${topic}`);
+                        else {
+                            logger.debug(`Unsubscribed from MQTT topic ${topic}`);
+                        }
                     });
                 }
-            } 
+            }
         } catch (err) { logger.error(`Error unsubcribing to MQTT topic: ${err.message}`); }
     }
-    private async subscribe() {
+    private subscribe() {
         try {
-            if (this.topics.length > 0) await this.unsubscribe();
+            if (this.topics.length > 0) this.unsubscribe();
             let root = this.rootTopic();
             this.topics.push(`${root}/state/+/setState`,
                 `${root}/state/+/setstate`,
@@ -119,21 +111,21 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                 `${root}/state/chlorinator`);
             for (let i = 0; i < this.topics.length; i++) {
                 let topic = this.topics[i];
-                await new Promise<void>((resolve, reject) => {
-                    this.client.subscribe(topic, (err, granted) => {
-                        if (!err) {
-                            logger.debug(`MQTT subscribed to ${JSON.stringify(granted)}`);
-                            resolve();
-                        }
-                        else {
-                            logger.error(`MQTT Subscribe: ${err}`);
-                            reject(err);
-                        }
-                    });
+                // await new Promise<void>((resolve, reject) => {
+                this.client.subscribe(topic, (err, granted) => {
+                    if (!err) {
+                        logger.debug(`MQTT subscribed to ${JSON.stringify(granted)}`);
+                        // resolve();
+                    }
+                    else {
+                        logger.error(`MQTT Subscribe: ${err}`);
+                        // reject(err);
+                    }
                 });
+                // });
 
             }
-            this.client.on('message', this.messageHandler)
+            this.client.on('message', async (topic, msg) => { try { await this.messageHandler(topic, msg) } catch (err) { logger.error(`Error processing MQTT request ${err}.`) }; })
             this.subscribed = true;
         } catch (err) { logger.error(`Error subcribing to MQTT topics`); }
     }
@@ -283,156 +275,161 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         }
     }
     private messageHandler = async (topic, message) => {
-        let msg = message.toString();
-        if (msg[0] === '{') msg = JSON.parse(msg);
-        const topics = topic.split('/');
-        logger.debug(`MQTT: Inbound ${topic}: ${message.toString()}`);
-        if (topic.startsWith(this.rootTopic() + '/') && typeof msg === 'object') {
-            // RKS: Not sure why there is no processing of state vs config here.  Right now the topics are unique
-            // between them so it doesn't matter but it will become an issue.
-            switch (topics[topics.length - 1].toLowerCase()) {
-                case 'setstate': {
-                    let id = parseInt(msg.id, 10);
-                    if (typeof id !== 'undefined' && isNaN(id)) {
-                        logger.error(`Inbound MQTT ${topics} has an invalid id (${id}) in the message (${msg}).`)
-                    };
-                    let isOn = utils.makeBool(msg.isOn);
-                    switch (topics[topics.length - 2].toLowerCase()) {
-                        case 'circuits':
-                        case 'circuit': {
-                            try {
-                                if (msg.isOn !== 'undefined') await sys.board.circuits.setCircuitStateAsync(id, isOn);
-                            }
-                            catch (err) { logger.error(err); }
-                            break;
-                        }
-                        case 'features':
-                        case 'feature': {
-                            try {
-                                if (msg.isOn !== 'undefined') await sys.board.features.setFeatureStateAsync(id, isOn);
-                            }
-                            catch (err) { logger.error(err); }
-                            break;
-                        }
-                        case 'lightgroups':
-                        case 'lightgroup': {
-                            try {
-                                await sys.board.circuits.setLightGroupStateAsync(id, isOn);
-                            }
-                            catch (err) { logger.error(err); }
-                            break;
-                        }
-                        case 'circuitgroups':
-                        case 'circuitgroup': {
-                            try {
-                                await sys.board.circuits.setCircuitGroupStateAsync(id, isOn);
-                            }
-                            catch (err) { logger.error(err); }
-                            break;
-                        }
-                        default:
-                            logger.warn(`MQTT: Inbound topic ${topics[topics.length - 1]} not matched to event ${topics[topics.length - 2].toLowerCase()}. Message ${msg} `)
-                    }
-                    break;
-                }
-                case 'togglestate':
-                    {
+        try {
+            let msg = message.toString();
+            if (msg[0] === '{') msg = JSON.parse(msg);
+            const topics = topic.split('/');
+            logger.debug(`MQTT: Inbound ${topic}: ${message.toString()}`);
+            if (topic.startsWith(this.rootTopic() + '/') && typeof msg === 'object') {
+                // RKS: Not sure why there is no processing of state vs config here.  Right now the topics are unique
+                // between them so it doesn't matter but it will become an issue.
+                switch (topics[topics.length - 1].toLowerCase()) {
+                    case 'setstate': {
                         let id = parseInt(msg.id, 10);
                         if (typeof id !== 'undefined' && isNaN(id)) {
                             logger.error(`Inbound MQTT ${topics} has an invalid id (${id}) in the message (${msg}).`)
                         };
+                        let isOn = utils.makeBool(msg.isOn);
                         switch (topics[topics.length - 2].toLowerCase()) {
                             case 'circuits':
-                            case 'circuit':
+                            case 'circuit': {
                                 try {
-                                    await sys.board.circuits.toggleCircuitStateAsync(id);
+                                    if (msg.isOn !== 'undefined') await sys.board.circuits.setCircuitStateAsync(id, isOn);
                                 }
                                 catch (err) { logger.error(err); }
                                 break;
+                            }
                             case 'features':
-                            case 'feature':
+                            case 'feature': {
                                 try {
-                                    await sys.board.features.toggleFeatureStateAsync(id);
+                                    if (msg.isOn !== 'undefined') await sys.board.features.setFeatureStateAsync(id, isOn);
                                 }
                                 catch (err) { logger.error(err); }
                                 break;
+                            }
+                            case 'lightgroups':
+                            case 'lightgroup': {
+                                try {
+                                    await sys.board.circuits.setLightGroupStateAsync(id, isOn);
+                                }
+                                catch (err) { logger.error(err); }
+                                break;
+                            }
+                            case 'circuitgroups':
+                            case 'circuitgroup': {
+                                try {
+                                    await sys.board.circuits.setCircuitGroupStateAsync(id, isOn);
+                                }
+                                catch (err) { logger.error(err); }
+                                break;
+                            }
                             default:
                                 logger.warn(`MQTT: Inbound topic ${topics[topics.length - 1]} not matched to event ${topics[topics.length - 2].toLowerCase()}. Message ${msg} `)
                         }
                         break;
                     }
-                case 'setpoint':
-                    try {
-                        let body = sys.bodies.findByObject(msg);
-                        if (topics[topics.length - 2].toLowerCase() === 'body') {
-                            if (typeof body === 'undefined') {
-                                logger.error(new ServiceParameterError(`Cannot set body setPoint.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', msg.id));
+                    case 'togglestate':
+                        {
+                            let id = parseInt(msg.id, 10);
+                            if (typeof id !== 'undefined' && isNaN(id)) {
+                                logger.error(`Inbound MQTT ${topics} has an invalid id (${id}) in the message (${msg}).`)
+                            };
+                            switch (topics[topics.length - 2].toLowerCase()) {
+                                case 'circuits':
+                                case 'circuit':
+                                    try {
+                                        await sys.board.circuits.toggleCircuitStateAsync(id);
+                                    }
+                                    catch (err) { logger.error(err); }
+                                    break;
+                                case 'features':
+                                case 'feature':
+                                    try {
+                                        await sys.board.features.toggleFeatureStateAsync(id);
+                                    }
+                                    catch (err) { logger.error(err); }
+                                    break;
+                                default:
+                                    logger.warn(`MQTT: Inbound topic ${topics[topics.length - 1]} not matched to event ${topics[topics.length - 2].toLowerCase()}. Message ${msg} `)
+                            }
+                            break;
+                        }
+                    case 'setpoint':
+                        try {
+                            let body = sys.bodies.findByObject(msg);
+                            if (topics[topics.length - 2].toLowerCase() === 'body') {
+                                if (typeof body === 'undefined') {
+                                    logger.error(new ServiceParameterError(`Cannot set body setPoint.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', msg.id));
+                                    return;
+                                }
+                                let tbody = await sys.board.bodies.setHeatSetpointAsync(body, parseInt(msg.setPoint, 10));
+                            }
+                        }
+                        catch (err) { logger.error(err); }
+                        break;
+                    case 'heatmode':
+                        try {
+                            if (topics[topics.length - 2].toLowerCase() !== 'body') return;
+                            // Map the mode that was passed in.  This should accept the text based name or the ordinal id value.
+                            let mode = parseInt(msg.mode, 10);
+                            let val;
+                            if (isNaN(mode)) mode = parseInt(msg.heatMode, 10);
+                            if (!isNaN(mode)) val = sys.board.valueMaps.heatModes.transform(mode);
+                            else val = sys.board.valueMaps.heatModes.transformByName(msg.mode || msg.heatMode);
+                            if (typeof val.val === 'undefined') {
+                                logger.error(new ServiceParameterError(`Invalid value for heatMode: ${msg.mode}`, 'body', 'heatMode', mode));
                                 return;
                             }
-                            let tbody = await sys.board.bodies.setHeatSetpointAsync(body, parseInt(msg.setPoint, 10));
+                            mode = val.val;
+                            let body = sys.bodies.findByObject(msg);
+                            if (typeof body === 'undefined') {
+                                logger.error(new ServiceParameterError(`Cannot set body heatMode.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', msg.id));
+                                return;
+                            }
+                            let tbody = await sys.board.bodies.setHeatModeAsync(body, mode);
                         }
-                    }
-                    catch (err) { logger.error(err); }
-                    break;
-                case 'heatmode':
-                    try {
-                        if (topics[topics.length - 2].toLowerCase() !== 'body') return;
-                        // Map the mode that was passed in.  This should accept the text based name or the ordinal id value.
-                        let mode = parseInt(msg.mode, 10);
-                        let val;
-                        if (isNaN(mode)) mode = parseInt(msg.heatMode, 10);
-                        if (!isNaN(mode)) val = sys.board.valueMaps.heatModes.transform(mode);
-                        else val = sys.board.valueMaps.heatModes.transformByName(msg.mode || msg.heatMode);
-                        if (typeof val.val === 'undefined') {
-                            logger.error(new ServiceParameterError(`Invalid value for heatMode: ${msg.mode}`, 'body', 'heatMode', mode));
-                            return;
+                        catch (err) { logger.error(err); }
+                        break;
+                    case 'chlorinator':
+                        try {
+                            let schlor = await sys.board.chlorinator.setChlorAsync(msg);
                         }
-                        mode = val.val;
-                        let body = sys.bodies.findByObject(msg);
-                        if (typeof body === 'undefined') {
-                            logger.error(new ServiceParameterError(`Cannot set body heatMode.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', msg.id));
-                            return;
+                        catch (err) { logger.error(err); }
+                        break;
+                    case 'chemcontroller':
+                        try {
+                            await sys.board.chemControllers.setChemControllerAsync(msg);
                         }
-                        let tbody = await sys.board.bodies.setHeatModeAsync(body, mode);
-                    }
-                    catch (err) { logger.error(err); }
-                    break;
-                case 'chlorinator':
-                    try {
-                        let schlor = await sys.board.chlorinator.setChlorAsync(msg);
-                    }
-                    catch (err) { logger.error(err); }
-                    break;
-                case 'chemcontroller':
-                    try {
-                        await sys.board.chemControllers.setChemControllerAsync(msg);
-                    }
-                    catch (err) { logger.error(err); }
-                    break;
-                case 'settheme':
-                    try {
-                        let theme = await state.circuits.setLightThemeAsync(parseInt(msg.id, 10), parseInt(msg.theme, 10));
-                    }
-                    catch (err) { logger.error(err); }
-                    break;
-                case 'temp':
-                case 'temps':
-                    try {
-                        await sys.board.system.setTempsAsync(msg);
-                    }
-                    catch (err) { logger.error(err); }
-                    break;
-                case 'tempsensor':
-                case 'tempsensors':
-                    try {
-                        await sys.board.system.setTempSensorsAsync(msg);
-                    }
-                    catch (err) { logger.error(err); }
-                    break;
-                default:
-                    logger.silly(`MQTT: Inbound MQTT topic not matched: ${topic}: ${message.toString()}`)
-                    break;
+                        catch (err) { logger.error(err); }
+                        break;
+                    case 'settheme':
+                        try {
+                            let theme = await state.circuits.setLightThemeAsync(parseInt(msg.id, 10), parseInt(msg.theme, 10));
+                        }
+                        catch (err) { logger.error(err); }
+                        break;
+                    case 'temp':
+                    case 'temps':
+                        try {
+                            await sys.board.system.setTempsAsync(msg);
+                        }
+                        catch (err) { logger.error(err); }
+                        break;
+                    case 'tempsensor':
+                    case 'tempsensors':
+                        try {
+                            await sys.board.system.setTempSensorsAsync(msg);
+                        }
+                        catch (err) { logger.error(err); }
+                        break;
+                    default:
+                        logger.silly(`MQTT: Inbound MQTT topic not matched: ${topic}: ${message.toString()}`)
+                        break;
+                }
             }
+        }
+        catch (err) {
+            logger.error(`Error processing MQTT request ${topic}: ${err}.  ${message}`)
         }
     }
 }

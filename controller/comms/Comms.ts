@@ -437,12 +437,12 @@ export class SendRecieveBuffer {
             if (typeof out === 'undefined') continue;
             let resp = out.response;
             if (out.requiresResponse) {
-                if (resp instanceof Response && resp.isResponse(msgIn, out)) {
+                if (resp instanceof Response && resp.isResponse(msgIn, out) && (typeof out.scope === 'undefined' || out.scope === msgOut.scope)) {
                     resp.message = msgIn;
                     if (typeof (resp.callback) === 'function' && resp.callback) callback = resp.callback;
                     conn.buffer._outBuffer.splice(i, 1);
                 }
-                else if (typeof resp === 'function' && resp(msgIn, out)) {
+                else if (typeof resp === 'function' && resp(msgIn, out) && (typeof out.scope === 'undefined' || out.scope === msgOut.scope)) {
                     if (typeof out.onResponseProcessed !== 'undefined') callback = out.onResponseProcessed;
                     conn.buffer._outBuffer.splice(i, 1);
                 }
