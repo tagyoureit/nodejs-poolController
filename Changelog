@@ -1,5 +1,11 @@
 # Changelog
 
+## 7.1.0
+1. Moved virtual chlorinator code and control to Nixie
+2. Moved virtual pump code and control to Nixie; Nixie supports SS, DS, SuperFlo, VS, VF, VSF
+3. MQTT changes
+4. Outbound processing for packets now has a scope.  Previously if an outbound packet would receive a response we would clear all of the similar packets off the queue.  EG if a user requests circuit 2 and 3 to be turned on, we would clear out the outbound message for 3.  Now the code is more selective about what "scope" is considered for a successful response.
+
 ## 7.0.0
 1. Upgrades to setup/sync between njsPC and REM
 2. Significant steps to njsPC (Nixie) acting as a standalone pool controller (virtual controller heaters, move virtual controller code, etc.)
