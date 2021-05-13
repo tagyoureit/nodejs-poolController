@@ -127,7 +127,7 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
             setTimeout(async () => {
                 let pump = this[i] as NixiePump;
                 try {
-                    await pump.pollEquipmentAsync();
+                    if (!pump.closing) await pump.pollEquipmentAsync();
                 } catch (err) { }
             }, 100);
 
@@ -139,6 +139,11 @@ export class NixiePump extends NixieEquipment {
     protected _pollTimer: NodeJS.Timeout = null;
     public pump: Pump;
     protected _targetSpeed: number;
+    protected _suspendPolling = 0;
+    public get suspendPolling(): boolean { return this._suspendPolling > 0; }
+    public set suspendPolling(val: boolean) { this._suspendPolling = Math.max(0, this._suspendPolling + (val ? 1 : -1)); }
+    public closing = false;
+
     /*
     _targetSpeed will hold values as follows:
     vs/vsf/vf: rpm/gpm;
@@ -204,6 +209,7 @@ export class NixiePump extends NixieEquipment {
     }
     public async pollEquipmentAsync() {
         try {
+            if (this.suspendPolling || this.closing) return;
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
             // let success = false;
@@ -212,8 +218,7 @@ export class NixiePump extends NixieEquipment {
             await this.setPumpStateAsync(pstate);
         }
         catch (err) { logger.error(`Nixie Error running pump sequence - ${err}`); }
-        finally { 
-            this._pollTimer = setTimeout(async () => await this.pollEquipmentAsync(), this.pollingInterval || 2000); }
+        finally { if (!this.closing) this._pollTimer = setTimeout(async () => await this.pollEquipmentAsync(), this.pollingInterval || 2000); }
     }
     private async checkHardwareStatusAsync(connectionId: string, deviceBinding: string) {
         try {
@@ -233,6 +238,9 @@ export class NixiePump extends NixieEquipment {
             this._targetSpeed = 0;
             let pstate = state.pumps.getItemById(this.pump.id);
             await this.setPumpStateAsync(pstate);
+            // This will make sure the timer is dead and we are completely closed.
+            this.closing = true;
+            if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             pstate.emitEquipmentChange();
         }
         catch (err) { logger.error(`Nixie Pump closeAsync: ${err.message}`); return Promise.reject(err); }
@@ -319,20 +327,29 @@ export class NixiePumpSF extends NixiePumpDS {
 }
 export class NixiePumpRS485 extends NixiePump {
     public async setPumpStateAsync(pstate: PumpState) {
+        // Don't poll while we are seting the state.
+        this.suspendPolling = true;
         try {
             let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
-            await this.setDriveStateAsync(pstate);
-            if (this._targetSpeed >= pt.minFlow && this._targetSpeed <= pt.maxFlow) await this.setPumpGPMAsync(pstate);
-            else if (this._targetSpeed >= pt.minSpeed && this._targetSpeed <= pt.maxSpeed) await this.setPumpRPMAsync(pstate);
-            await utils.sleep(2000);
-            await this.requestPumpStatus(pstate);
-            await this.setPumpToRemoteControl(pstate);
+            // Since these process are async the closing flag can be set
+            // between calls.  We need to check it in between each call.
+            if (!this.closing) await this.setDriveStateAsync(pstate);
+            if (!this.closing) {
+                if (this._targetSpeed >= pt.minFlow && this._targetSpeed <= pt.maxFlow) await this.setPumpGPMAsync(pstate);
+                else if (this._targetSpeed >= pt.minSpeed && this._targetSpeed <= pt.maxSpeed) await this.setPumpRPMAsync(pstate);
+            }
+           
+            if(!this.closing) await utils.sleep(2000);
+            if(!this.closing) await this.requestPumpStatus(pstate);
+            if(!this.closing) await this.setPumpToRemoteControl(pstate);
             return new InterfaceServerResponse(200, 'Success');
         }
         catch (err) {
             logger.error(`Error running pump sequence for ${this.pump.name}: ${err.message}`);
             return Promise.reject(err);
         }
+        finally { this.suspendPolling = false; }
+    
     };
     protected async setDriveStateAsync(pstate: PumpState, running: boolean = true) {
         return new Promise<void>((resolve, reject) => {
@@ -459,6 +476,7 @@ export class NixiePumpRS485 extends NixiePump {
     };
     public async closeAsync() {
         try {
+            this.suspendPolling = true;
             logger.info(`Nixie Pump closing ${this.pump.name}.`)
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
@@ -468,9 +486,15 @@ export class NixiePumpRS485 extends NixiePump {
             try { await this.setPumpManual(pstate); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
             try { await this.setDriveStateAsync(pstate, false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
             try { await this.setPumpToRemoteControl(pstate, false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
+            this.closing = true;
+            // Make sure the polling timer is dead after we have closted this all off.  That way we do not
+            // have another process that revives it from the dead.
+            if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
+            this._pollTimer = null;
             pstate.emitEquipmentChange();
         }
         catch (err) { logger.error(`Nixie Pump closeAsync: ${err.message}`); return Promise.reject(err); }
+        finally { this.suspendPolling = false; }
     }
 }
 export class NixiePumpVS extends NixiePumpRS485 {
