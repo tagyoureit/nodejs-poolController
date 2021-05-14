@@ -1258,6 +1258,15 @@ export class BodyCommands extends BoardCommands {
         sys.board.heaters.syncHeaterStates();
         return Promise.resolve(bstate);
     }
+    public async setCoolSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
+        let bdy = sys.bodies.getItemById(body.id);
+        let bstate = state.temps.bodies.getItemById(body.id);
+        bdy.coolSetpoint = bstate.setPoint = setPoint;
+        state.emitEquipmentChanges();
+        sys.board.heaters.syncHeaterStates();
+        return Promise.resolve(bstate);
+    }
+
     public getHeatModes(bodyId: number) {
         let heatModes = [];
         // RKS: 09-26-20 This will need to be overloaded in IntelliCenterBoard when the other heater types are identified. (e.g. ultratemp, hybrid, maxetherm, and mastertemp)
@@ -2660,6 +2669,7 @@ export class HeaterCommands extends BoardCommands {
                 if (inst[type.name] === 'undefined') inst[type.name] = 0;
                 inst[type.name] = inst[type.name] + 1;
                 inst.total++;
+                if (type.hasCoolSetpoint) inst['hasCoolSetpoint'] = true;
             }
         }
         return inst;
@@ -2942,6 +2952,9 @@ export class HeaterCommands extends BoardCommands {
                                             }
                                             //else if (heater.coolingEnabled && state.time.isNight)
                                         }
+                                        break;
+                                    case 'ultratemp':
+
                                         break;
                                     case 'gas':
                                         if (mode === 'heater') {

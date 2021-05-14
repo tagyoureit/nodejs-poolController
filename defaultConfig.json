@@ -219,6 +219,15 @@
         "excludeSource": [],
         "excludeDest": []
       },
+      "heater": {
+        "enabled": true,
+        "includeActions": [],
+        "excludeActions": [],
+        "includeSource": [],
+        "includeDest": [],
+        "excludeSource": [],
+        "excludeDest": []
+      },
       "unidentified": {
         "enabled": true,
         "includeSource": [],

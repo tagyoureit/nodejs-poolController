@@ -54,6 +54,7 @@ export class PumpMessage {
                 pump.isActive = true;
                 PumpMessage.processVSF_IT(msg);
                 break;
+            case 255: // vs 3050 on old panels.
             case 128: // vs
             case 134: // vs Ultra Efficiency
                 pump.type = 128;

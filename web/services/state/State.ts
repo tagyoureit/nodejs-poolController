@@ -175,10 +175,17 @@ export class StateRoute {
         });
         app.put('/state/body/setPoint', async (req, res, next) => {
             // RKS: 06-24-20 -- Changed this so that users can send in the body id, circuit id, or the name.
+            // RKS: 05-14-21 -- Added cooling setpoints for the body.
             try {
                 let body = sys.bodies.findByObject(req.body);
                 if (typeof body === 'undefined') return next(new ServiceParameterError(`Cannot set body setPoint.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', req.body.id));
-                let tbody = await sys.board.bodies.setHeatSetpointAsync(body, parseInt(req.body.setPoint, 10));
+                if (typeof req.body.coolSetpoint !== 'undefined' && !isNaN(parseInt(req.body.coolSetpoint, 10)))
+                    await sys.board.bodies.setCoolSetpointAsync(body, parseInt(req.body.coolSetpoint, 10));
+                if (typeof req.body.heatSetpoint !== 'undefined' && !isNaN(parseInt(req.body.heatSetpoint, 10)))
+                    await sys.board.bodies.setHeatSetpointAsync(body, parseInt(req.body.heatSetpoint, 10));
+                else if (typeof req.body.setPoint !== 'undefined' && !isNaN(parseInt(req.body.setPoint, 10)))
+                    await sys.board.bodies.setHeatSetpointAsync(body, parseInt(req.body.heatSetpoint, 10));
+                let tbody = state.temps.bodies.getItemById(body.id);
                 return res.status(200).send(tbody.get(true));
             } catch (err) { next(err); }
         });

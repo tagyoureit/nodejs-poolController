@@ -19,6 +19,7 @@ import { PumpMessage } from "./config/PumpMessage";
 import { VersionMessage } from "./status/VersionMessage";
 import { PumpStateMessage } from "./status/PumpStateMessage";
 import { EquipmentStateMessage } from "./status/EquipmentStateMessage";
+import { HeaterStateMessage } from "./status/HeaterStateMessage";
 import { ChlorinatorStateMessage } from "./status/ChlorinatorStateMessage";
 import { ChlorinatorMessage } from "./config/ChlorinatorMessage";
 import { ExternalMessage } from "./config/ExternalMessage";
@@ -51,6 +52,7 @@ export enum Protocol {
     Chlorinator = 'chlorinator',
     IntelliChem = 'intellichem',
     IntelliValve = 'intellivalve',
+    Heater = 'heater',
     Unidentified = 'unidentified'
 }
 export class Message {
@@ -351,6 +353,7 @@ export class Inbound extends Message {
             case Protocol.IntelliChem:
             case Protocol.IntelliValve:
             case Protocol.Broadcast:
+            case Protocol.Heater:
             case Protocol.Unidentified:
                 ndx = this.pushBytes(this.preamble, bytes, ndx, 3);
                 ndx = this.pushBytes(this.header, bytes, ndx, 6);
@@ -365,6 +368,8 @@ export class Inbound extends Message {
 
                 if (this.source >= 96 && this.source <= 111) this.protocol = Protocol.Pump;
                 else if (this.dest >= 96 && this.dest <= 111) this.protocol = Protocol.Pump;
+                else if (this.source >= 112 && this.source <= 127) this.protocol = Protocol.Heater;
+                else if (this.dest >= 112 && this.dest <= 127) this.protocol = Protocol.Heater;
                 else if (this.dest >= 144 && this.dest <= 158) this.protocol = Protocol.IntelliChem;
                 else if (this.source >= 144 && this.source <= 158) this.protocol = Protocol.IntelliChem;
                 else if (this.source == 12 || this.dest == 12) this.protocol = Protocol.IntelliValve;
@@ -423,6 +428,7 @@ export class Inbound extends Message {
             case Protocol.Pump:
             case Protocol.IntelliChem:
             case Protocol.IntelliValve:
+            case Protocol.Heater:
             case Protocol.Unidentified:
                 if (this.datalen - this.payload.length <= 0) return ndx; // We don't need any more payload.
                 ndx = this.pushBytes(this.payload, bytes, ndx, this.datalen - this.payload.length);
@@ -450,6 +456,7 @@ export class Inbound extends Message {
             case Protocol.Pump:
             case Protocol.IntelliValve:
             case Protocol.IntelliChem:
+            case Protocol.Heater:
             case Protocol.Unidentified:
                 // If we don't have enough bytes to make the terminator then continue on and
                 // hope we get them on the next go around.
@@ -751,6 +758,9 @@ export class Inbound extends Message {
                     PumpStateMessage.process(this);
                 else
                     this.processBroadcast();
+                break;
+            case Protocol.Heater:
+                HeaterStateMessage.process(this);
                 break;
             case Protocol.Chlorinator:
                 ChlorinatorStateMessage.process(this);

@@ -3030,6 +3030,58 @@ class IntelliCenterBodyCommands extends BodyCommands {
             conn.queueSendMessage(out);
         });
     }
+    public async setCoolSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
+        let byte2 = 18;
+        let body1 = sys.bodies.getItemById(1);
+        let body2 = sys.bodies.getItemById(2);
+        let body3 = sys.bodies.getItemById(3);
+        let body4 = sys.bodies.getItemById(4);
+
+        let temp1 = sys.bodies.getItemById(1).setPoint || 100;
+        let temp2 = sys.bodies.getItemById(2).setPoint || 100;
+        let temp3 = sys.bodies.getItemById(3).setPoint || 100;
+        let temp4 = sys.bodies.getItemById(4).setPoint || 100;
+        switch (body.id) {
+            case 1:
+                byte2 = 18;
+                temp1 = setPoint;
+                break;
+            case 2:
+                byte2 = 20;
+                temp2 = setPoint;
+                break;
+            case 3:
+                byte2 = 19;
+                temp3 = setPoint;
+                break;
+            case 4:
+                byte2 = 21;
+                temp4 = setPoint;
+                break;
+        }
+        //                                                             6                             15       17 18        21   22       24 25 
+        //[255, 0, 255][165, 63, 15, 16, 168, 41][0, 0, 18, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176,  89, 27, 110, 3, 0, 0, 89, 100, 98, 100, 0, 0, 0, 0, 15, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0][5, 243]
+        //[255, 0, 255][165, 63, 15, 16, 168, 41][0, 0, 18, 1, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 176, 235, 27, 167, 1, 0, 0, 89,  81, 98, 103, 5, 0, 0, 0, 15, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0][6, 48]
+        let out = Outbound.create({
+            action: 168,
+            response: IntelliCenterBoard.getAckResponse(168),
+            retries: 5,
+            payload: [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0,
+                temp1, temp3, temp2, temp4, body1.heatMode || 0, body2.heatMode || 0, body3.heatMode || 0, body4.heatMode || 0, 15,
+                sys.general.options.pumpDelay ? 1 : 0, sys.general.options.cooldownDelay ? 1 : 0, 0, 100, 0, 0, 0, 0, sys.general.options.manualPriority ? 1 : 0, sys.general.options.manualHeat ? 1 : 0]
+        });
+        return new Promise<BodyTempState>((resolve, reject) => {
+            out.onComplete = (err, msg) => {
+                if (err) reject(err);
+                else {
+                    let bstate = state.temps.bodies.getItemById(body.id);
+                    body.setPoint = bstate.setPoint = setPoint;
+                    resolve(bstate);
+                }
+            };
+            conn.queueSendMessage(out);
+        });
+    }
 }
 class IntelliCenterScheduleCommands extends ScheduleCommands {
     public async setScheduleAsync(data: any): Promise<Schedule> {
@@ -3368,6 +3420,8 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         let solarInstalled = htypes.solar > 0;
         let heatPumpInstalled = htypes.heatpump > 0;
         let gasHeaterInstalled = htypes.gas > 0;
+        let ultratempInstalled = htypes.ultratemp > 0;
+
         // RKS: 09-26-20 This is a hack to maintain backward compatability with fw versions 1.04 and below.
         if (parseFloat(sys.equipment.controllerFirmware) > 1.04) {
             sys.board.valueMaps.heatSources = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);

@@ -1012,6 +1012,56 @@ class TouchBodyCommands extends BodyCommands {
             conn.queueSendMessage(out);
         });
     }
+    public async setSetpoints(body: Body, obj: any): Promise<BodyTempState> {
+        return new Promise<BodyTempState>((resolve, reject) => {
+            let setPoint = typeof obj.setPoint !== 'undefined' ? parseInt(obj.setPoint, 10) : parseInt(obj.heatSetpoint, 10);
+            if (isNaN(setPoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid ${body.name} setpoint ${obj.setPoint || obj.heatSetpoint}`, 'body', obj));
+            // [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
+            // 165,33,16,34,136,4,89,99,7,0,2,71  Request
+            // 165,33,34,16,1,1,136,1,130  Controller Response
+            const tempUnits = state.temps.units;
+            switch (tempUnits) {
+                case 0: // fahrenheit
+                    if (setPoint < 40 || setPoint > 104) {
+                        logger.warn(`Setpoint of ${setPoint} is outside acceptable range.`);
+                        return;
+                    }
+                    break;
+                case 1: // celsius
+                    if (setPoint < 4 || setPoint > 40) {
+                        logger.warn(
+                            `Setpoint of ${setPoint} is outside of acceptable range.`
+                        );
+                        return;
+                    }
+                    break;
+            }
+            const body1 = sys.bodies.getItemById(1);
+            const body2 = sys.bodies.getItemById(2);
+            let temp1 = body1.setPoint || 100;
+            let temp2 = body2.setPoint || 100;
+            body.id === 1 ? temp1 = setPoint : temp2 = setPoint;
+            const mode1 = body1.heatMode;
+            const mode2 = body2.heatMode;
+            const out = Outbound.create({
+                dest: 16,
+                action: 136,
+                payload: [temp1, temp2, mode2 << 2 | mode1, 0],
+                retries: 3,
+                response: true,
+                onComplete: (err, msg) => {
+                    if (err) reject(err);
+                    body.setPoint = setPoint;
+                    let bstate = state.temps.bodies.getItemById(body.id);
+                    bstate.setPoint = setPoint;
+                    state.temps.emitEquipmentChange();
+                    resolve(bstate);
+                }
+
+            });
+            conn.queueSendMessage(out);
+        });
+    }
     public async setHeatSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
         return new Promise<BodyTempState>((resolve, reject) => {
             // [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]

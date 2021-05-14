@@ -985,6 +985,10 @@ export class Body extends EqItem {
     public set setPoint(val: number) { this.setDataVal('setPoint', val); }
     public get heatMode(): number { return this.data.heatMode; }
     public set heatMode(val: number) { this.setDataVal('heatMode', val); }
+    public get heatSetpoint(): number { return this.data.setPoint; }
+    public set heatSetpoint(val: number) { this.setDataVal('setPoint', val); }
+    public get coolSetpoint(): number { return this.data.coolSetpoint; }
+    public set coolSetpoint(val: number) { this.setDataVal('coolSetpoint', val); }
     public getHeatModes() { return sys.board.bodies.getHeatModes(this.id); }
     //public async setHeatModeAsync(mode: number) { return sys.board.bodies.setHeatModeAsync(this, mode); }
     //public setHeatSetpoint(setPoint: number) { sys.board.bodies.setHeatSetpointAsync(this, setPoint); }
@@ -1423,6 +1427,12 @@ export class Valve extends EqItem {
 export class HeaterCollection extends EqItemCollection<Heater> {
     constructor(data: any, name?: string) { super(data, name || "heaters"); }
     public createItem(data: any): Heater { return new Heater(data); }
+    public getItemByAddress(address: number, add?: boolean, data?: any): Heater {
+        let itm = this.find(elem => elem.address === address && typeof elem.address !== 'undefined');
+        if (typeof itm !== 'undefined') return itm;
+        if (typeof add !== 'undefined' && add) return this.add(data || { id: this.data.length + 1, address: address });
+        return this.createItem(data || { id: this.data.length + 1, address: address });
+    }
 }
 export class Heater extends EqItem {
     public dataName = 'heaterConfig';

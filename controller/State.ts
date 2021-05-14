@@ -1217,6 +1217,10 @@ export class BodyTempState extends EqState {
     }
     public get setPoint(): number { return this.data.setPoint; }
     public set setPoint(val: number) { this.setDataVal('setPoint', val); }
+    public get heatSetpoint(): number { return this.data.setPoint; }
+    public set heatSetpoint(val: number) { this.setDataVal('setPoint', val); }
+    public get coolSetpoint(): number { return this.data.coolSetpoint; }
+    public set coolSetpoint(val: number) { this.setDataVal('coolSetpoint', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public emitData(name: string, data: any) { webApp.emitToClients('body', this.data); }
