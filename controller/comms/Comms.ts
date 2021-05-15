@@ -305,7 +305,7 @@ export class SendRecieveBuffer {
                 // the outbound when we actually have a message signatures to process.
                 conn.buffer.writeMessage(msg);
             }
-            else {
+            else if (!conn.isOpen) {
                 // port is closed, reject message
                 msg.failed = true;
                 logger.warn(`Comms port is not open.  Message aborted: ${msg.toShortPacket()}`);
