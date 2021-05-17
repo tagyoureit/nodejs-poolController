@@ -990,8 +990,6 @@ export class Body extends EqItem {
     public get coolSetpoint(): number { return this.data.coolSetpoint; }
     public set coolSetpoint(val: number) { this.setDataVal('coolSetpoint', val); }
     public getHeatModes() { return sys.board.bodies.getHeatModes(this.id); }
-    //public async setHeatModeAsync(mode: number) { return sys.board.bodies.setHeatModeAsync(this, mode); }
-    //public setHeatSetpoint(setPoint: number) { sys.board.bodies.setHeatSetpointAsync(this, setPoint); }
 }
 export class ScheduleCollection extends EqItemCollection<Schedule> {
     constructor(data: any, name?: string) { super(data, name || "schedules"); }

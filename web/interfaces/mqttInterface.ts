@@ -186,92 +186,97 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
     }
 
     public bindEvent(evt: string, ...data: any) {
-        if (!this.sentInitialMessages && evt === 'controller' && data[0].status.val === 1) {
-            state.emitAllEquipmentChanges();
-            this.sentInitialMessages = true;
-        }
-        // Find the binding by first looking for the specific event name.  
-        // If that doesn't exist then look for the "*" (all events).
-        if (typeof this.events !== 'undefined') {
-            if (typeof this.client === 'undefined') this.init();
-            let evts = this.events.filter(elem => elem.name === evt);
-            // If we don't have an explicitly defined event then see if there is a default.
-            if (evts.length === 0) {
-                let e = this.events.find(elem => elem.name === '*');
-                evts = e ? [e] : [];
+        try {
+            if (!this.sentInitialMessages && evt === 'controller' && data[0].status.val === 1) {
+                state.emitAllEquipmentChanges();
+                this.sentInitialMessages = true;
             }
+            // Find the binding by first looking for the specific event name.  
+            // If that doesn't exist then look for the "*" (all events).
+            if (typeof this.events !== 'undefined') {
+                if (typeof this.client === 'undefined') this.init();
+                let evts = this.events.filter(elem => elem.name === evt);
+                // If we don't have an explicitly defined event then see if there is a default.
+                if (evts.length === 0) {
+                    let e = this.events.find(elem => elem.name === '*');
+                    evts = e ? [e] : [];
+                }
 
-            if (evts.length > 0) {
-                let toks = {};
-                let replacer = '';
-                for (let i = 0; i < evts.length; i++) {
-                    let e = evts[i];
-                    if (typeof e.enabled !== 'undefined' && !e.enabled) continue;
-                    let baseOpts = extend(true, { headers: {} }, this.cfg.options, this.context.options);
-                    let opts = extend(true, baseOpts, e.options);
-                    // Figure out whether we need to check the filter.
-                    if (typeof e.filter !== 'undefined') {
-                        this.buildTokens(e.filter, evt, toks, e, data[0]);
-                        if (eval(this.replaceTokens(e.filter, toks)) === false) continue;
-                    }
-
-                    let rootTopic = this.rootTopic();
-                    if (typeof opts.replacer !== 'undefined') replacer = opts.replacer;
-                    if (typeof e.topics !== 'undefined') e.topics.forEach(t => {
-                        let topicToks = {};
-                        if (typeof t.enabled !== 'undefined' && !t.enabled) return;
-                        if (typeof t.filter !== 'undefined') {
-                            this.buildTokens(t.filter, evt, topicToks, e, data[0]);
-                            if (eval(this.replaceTokens(t.filter, topicToks)) === false) return;
+                if (evts.length > 0) {
+                    let toks = {};
+                    let replacer = '';
+                    for (let i = 0; i < evts.length; i++) {
+                        let e = evts[i];
+                        if (typeof e.enabled !== 'undefined' && !e.enabled) continue;
+                        let baseOpts = extend(true, { headers: {} }, this.cfg.options, this.context.options);
+                        let opts = extend(true, baseOpts, e.options);
+                        // Figure out whether we need to check the filter.
+                        if (typeof e.filter !== 'undefined') {
+                            this.buildTokens(e.filter, evt, toks, e, data[0]);
+                            if (eval(this.replaceTokens(e.filter, toks)) === false) continue;
                         }
-                        let topicFormatter = t.formatter || opts.formatter;
-                        let topic = '';
-                        let message: any;
-                        // build tokens for Topic
-                        // we need to keep separated topic tokens because otherwise
-                        // a value like @bind=data.name; would be eval'd the same
-                        // across all topics
-                        this.buildTokensWithFormatter(t.topic, evt, topicToks, e, data[0], topicFormatter);
-                        topic = `${rootTopic}/${this.replaceTokens(t.topic, topicToks)}`;
-                        // Filter out any topics where there may be undefined in it.  We don't want any of this if that is the case.
-                        if (topic.endsWith('/undefined') || topic.indexOf('/undefined/') !== -1 || topic.startsWith('null/') || topic.indexOf('/null') !== -1) return;
 
-
-                        this.buildTokens(t.message, evt, topicToks, e, data[0]);
-                        message = this.tokensReplacer(t.message, evt, topicToks, e, data[0]);
-
-                        let publishOptions: IClientPublishOptions = { retain: typeof baseOpts.retain !== 'undefined' ? baseOpts.retain : true, qos: typeof baseOpts.qos !== 'undefined' ? baseOpts.qos : 2 };
-                        let changesOnly = typeof baseOpts.changesOnly !== 'undefined' ? baseOpts.changesOnly : true;
-                        if (typeof e.options !== 'undefined') {
-                            if (typeof e.options.retain !== 'undefined') publishOptions.retain = e.options.retain;
-                            if (typeof e.options.qos !== 'undefined') publishOptions.retain = e.options.qos;
-                            if (typeof e.options.changesOnly !== 'undefined') changesOnly = e.options.changesOnly;
-                        }
-                        if (typeof t.options !== 'undefined') {
-                            if (typeof t.options.retain !== 'undefined') publishOptions.retain = t.options.retain;
-                            if (typeof t.options.qos !== 'undefined') publishOptions.qos = t.options.qos;
-                            if (typeof t.options.changeOnly !== 'undefined') changesOnly = t.options.changesOnly;
-                        }
-                        if (changesOnly) {
-                            if (typeof t.lastSent === 'undefined') t.lastSent = [];
-                            let lm = t.lastSent.find(elem => elem.topic === topic);
-                            if (typeof lm === 'undefined' || lm.message !== message) {
-                                this.client.publish(topic, message, publishOptions);
-                                logger.silly(`MQTT send:\ntopic: ${topic}\nmessage: ${message}\nopts:${JSON.stringify(publishOptions)}`);
+                        let rootTopic = this.rootTopic();
+                        if (typeof opts.replacer !== 'undefined') replacer = opts.replacer;
+                        if (typeof e.topics !== 'undefined') e.topics.forEach(t => {
+                            let topicToks = {};
+                            if (typeof t.enabled !== 'undefined' && !t.enabled) return;
+                            if (typeof t.filter !== 'undefined') {
+                                this.buildTokens(t.filter, evt, topicToks, e, data[0]);
+                                if (eval(this.replaceTokens(t.filter, topicToks)) === false) return;
                             }
-                            if (typeof lm === 'undefined') t.lastSent.push({ topic: topic, message: message });
-                            else lm.message = message;
+                            let topicFormatter = t.formatter || opts.formatter;
+                            let topic = '';
+                            let message: any;
+                            // build tokens for Topic
+                            // we need to keep separated topic tokens because otherwise
+                            // a value like @bind=data.name; would be eval'd the same
+                            // across all topics
+                            this.buildTokensWithFormatter(t.topic, evt, topicToks, e, data[0], topicFormatter);
+                            topic = `${rootTopic}/${this.replaceTokens(t.topic, topicToks)}`;
+                            // Filter out any topics where there may be undefined in it.  We don't want any of this if that is the case.
+                            if (topic.endsWith('/undefined') || topic.indexOf('/undefined/') !== -1 || topic.startsWith('null/') || topic.indexOf('/null') !== -1) return;
 
-                        }
-                        else {
-                            logger.silly(`MQTT send:\ntopic: ${topic}\nmessage: ${message}\nopts:${JSON.stringify(publishOptions)}`);
-                            this.client.publish(topic, message, publishOptions);
-                            if (typeof t.lastSent !== 'undefined') t.lastSent = undefined;
-                        }
 
-                    })
+                            this.buildTokens(t.message, evt, topicToks, e, data[0]);
+                            message = this.tokensReplacer(t.message, evt, topicToks, e, data[0]);
+
+                            let publishOptions: IClientPublishOptions = { retain: typeof baseOpts.retain !== 'undefined' ? baseOpts.retain : true, qos: typeof baseOpts.qos !== 'undefined' ? baseOpts.qos : 2 };
+                            let changesOnly = typeof baseOpts.changesOnly !== 'undefined' ? baseOpts.changesOnly : true;
+                            if (typeof e.options !== 'undefined') {
+                                if (typeof e.options.retain !== 'undefined') publishOptions.retain = e.options.retain;
+                                if (typeof e.options.qos !== 'undefined') publishOptions.retain = e.options.qos;
+                                if (typeof e.options.changesOnly !== 'undefined') changesOnly = e.options.changesOnly;
+                            }
+                            if (typeof t.options !== 'undefined') {
+                                if (typeof t.options.retain !== 'undefined') publishOptions.retain = t.options.retain;
+                                if (typeof t.options.qos !== 'undefined') publishOptions.qos = t.options.qos;
+                                if (typeof t.options.changeOnly !== 'undefined') changesOnly = t.options.changesOnly;
+                            }
+                            if (changesOnly) {
+                                if (typeof t.lastSent === 'undefined') t.lastSent = [];
+                                let lm = t.lastSent.find(elem => elem.topic === topic);
+                                if (typeof lm === 'undefined' || lm.message !== message) {
+                                    this.client.publish(topic, message, publishOptions);
+                                    logger.silly(`MQTT send:\ntopic: ${topic}\nmessage: ${message}\nopts:${JSON.stringify(publishOptions)}`);
+                                }
+                                if (typeof lm === 'undefined') t.lastSent.push({ topic: topic, message: message });
+                                else lm.message = message;
+
+                            }
+                            else {
+                                logger.silly(`MQTT send:\ntopic: ${topic}\nmessage: ${message}\nopts:${JSON.stringify(publishOptions)}`);
+                                this.client.publish(topic, message, publishOptions);
+                                if (typeof t.lastSent !== 'undefined') t.lastSent = undefined;
+                            }
+
+                        })
+                    }
                 }
             }
+        }
+        catch (err) {
+            logger.error(err);
         }
     }
     private messageHandler = async (topic, message) => {

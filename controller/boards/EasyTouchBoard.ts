@@ -16,9 +16,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as extend from 'extend';
 import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, HeaterCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, ScheduleCommands, ChemControllerCommands } from './SystemBoard';
-import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName, LightGroup, LightGroupCircuit, Feature, ChemController, Circuit } from '../Equipment';
+import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName, LightGroup, LightGroupCircuit, Feature, ChemController, Circuit, ScheduleCollection } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
-import { state, ChlorinatorState, CommsState, State, ICircuitState, ICircuitGroupState, LightGroupState, BodyTempState } from '../State';
+import { state, ChlorinatorState, CommsState, State, ICircuitState, ICircuitGroupState, LightGroupState, BodyTempState, FilterState, ScheduleState } from '../State';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { MessageError, InvalidEquipmentIdError, InvalidEquipmentDataError, InvalidOperationError } from '../Errors';
@@ -960,19 +960,79 @@ class TouchSystemCommands extends SystemCommands {
             // No need to make any changes. Just return.
             if (cname.name === data.name) return resolve(cname);
             let out = Outbound.create({
-                action: 202,
-                payload: [data.id - 1],
+                action: 138,
+                payload: [data.id],
+                response: true,
+                retries: 3,
                 onComplete: (err) => {
-                    if (err) throw reject(err);
+                    if (err) reject(err);
                     else {
                         let c = sys.customNames.getItemById(id, true);
                         c.name = data.name;
                         resolve(c);
                         sys.board.system.syncCustomNamesValueMap();
+                        sys.emitEquipmentChange();
+                        for (let i = 0; i < sys.circuits.length; i++) {
+                            let circ = sys.circuits.getItemByIndex(i);
+                            if (circ.nameId === data.id + 200) {
+                                let cstate = state.circuits.getItemById(circ.id);
+                                cstate.name = circ.name = data.name;
+                                for (let j = 0; j < state.schedules.length; j++){
+                                    let ssched = state.schedules.getItemByIndex(j);
+                                    if (ssched.circuit === cstate.id) {
+                                        ssched.hasChanged = true;
+                                        ssched.emitEquipmentChange();
+                                    }
+                                }
+                            }
+                        }
+                        for (let i = 0; i < sys.circuitGroups.length; i++) {
+                            let cg = sys.circuitGroups.getItemByIndex(i);
+                            if (cg.nameId === data.id + 200) {
+                                let cgstate = state.circuitGroups.getItemById(cg.id);
+                                cgstate.name = cg.name = data.name;
+                                for (let j = 0; j < state.schedules.length; j++){
+                                    let ssched = state.schedules.getItemByIndex(j);
+                                    if (ssched.circuit === cgstate.id) {
+                                        ssched.hasChanged = true;
+                                        ssched.emitEquipmentChange();
+                                    }
+                                }
+                            }
+                        }
+                        for (let i = 0; i < sys.lightGroups.length; i++) {
+                            let lg = sys.lightGroups.getItemByIndex(i);
+                            if (lg.nameId === data.id + 200) {
+                                let lgstate = state.lightGroups.getItemById(lg.id);
+                                lgstate.name = lg.name = data.name;
+                                for (let j = 0; j < state.schedules.length; j++){
+                                    let ssched = state.schedules.getItemByIndex(j);
+                                    if (ssched.circuit === lgstate.id) {
+                                        ssched.hasChanged = true;
+                                        ssched.emitEquipmentChange();
+                                    }
+                                }
+                            }
+                        }
+                        for (let i = 0; i < sys.features.length; i++) {
+                            let f = sys.features.getItemByIndex(i);
+                            if (f.nameId === data.id + 200) {
+                                let fstate = state.features.getItemById(f.id);
+                                fstate.name = f.name = data.name;
+                                for (let j = 0; j < state.schedules.length; j++){
+                                    let ssched = state.schedules.getItemByIndex(j);
+                                    if (ssched.circuit === fstate.id) {
+                                        ssched.hasChanged = true;
+                                        ssched.emitEquipmentChange();
+                                    }
+                                }
+                            }
+                        }
+                        state.emitEquipmentChanges();
                     }
                 }
             });
-            out.appendPayloadString(data.name, 10);
+            out.appendPayloadString(data.name, 11);
             conn.queueSendMessage(out);
         });
     }
