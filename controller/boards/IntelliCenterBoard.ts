@@ -3018,14 +3018,14 @@ class IntelliCenterBodyCommands extends BodyCommands {
             retries: 5,
             payload: [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0,
                 temp1, temp3, temp2, temp4, body1.heatMode || 0, body2.heatMode || 0, body3.heatMode || 0, body4.heatMode || 0, 15,
-                sys.general.options.pumpDelay ? 1 : 0, sys.general.options.cooldownDelay ? 1 : 0, 0, 100, 0, 0, 0, 0, sys.general.options.manualPriority ? 1 : 0, sys.general.options.manualHeat ? 1 : 0]
+                sys.general.options.pumpDelay ? 1 : 0, sys.general.options.cooldownDelay ? 1 : 0, 0, 100, 0, 0, 0, 0, sys.general.options.manualPriority ? 1 : 0, sys.general.options.manualHeat ? 1 : 0, 0]
         });
         return new Promise<BodyTempState>((resolve, reject) => {
             out.onComplete = (err, msg) => {
                 if (err) reject(err);
                 else {
                     let bstate = state.temps.bodies.getItemById(body.id);
-                    body.setPoint = bstate.setPoint = setPoint;
+                    body.heatSetpoint = bstate.heatSetpoint = setPoint;
                     resolve(bstate);
                 }
             };
@@ -3044,6 +3044,12 @@ class IntelliCenterBodyCommands extends BodyCommands {
         let cool1 = sys.bodies.getItemById(1).coolSetpoint || 100;
         let temp2 = sys.bodies.getItemById(2).setPoint || 100;
         let cool2 = sys.bodies.getItemById(2).coolSetpoint || 100;
+
+        //Them
+        //[165, 63, 15, 16, 168, 41][0, 0, 19, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 176, 59, 30, 5, 5, 0, 0, 90, 102, 98, 81, 3, 1, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][4, 129]
+        //Us
+        //[165, 63, 15, 33, 168, 40][0, 0, 19, 1, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 5, 5, 0, 0, 90, 103, 98, 81, 3, 1, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][5, 249]
+        //[165, 63, 15, 33, 168, 40][0, 0, 19, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0, 90, 103, 98, 81, 3, 1, 0, 0, 15, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0][5, 249]
         switch (body.id) {
             case 1:
                 byte2 = 19;
@@ -3061,16 +3067,16 @@ class IntelliCenterBodyCommands extends BodyCommands {
             action: 168,
             response: IntelliCenterBoard.getAckResponse(168),
             retries: 5,
-            payload: [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0,
+            payload: [0, 0, byte2, 1, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0,
                 temp1, cool1, temp2, cool2, body1.heatMode || 0, body2.heatMode || 0, body3.heatMode || 0, body4.heatMode || 0, 15,
-                sys.general.options.pumpDelay ? 1 : 0, sys.general.options.cooldownDelay ? 1 : 0, 0, 100, 0, 0, 0, 0, sys.general.options.manualPriority ? 1 : 0, sys.general.options.manualHeat ? 1 : 0]
+                sys.general.options.pumpDelay ? 1 : 0, sys.general.options.cooldownDelay ? 1 : 0, 0, 100, 0, 0, 0, 0, sys.general.options.manualPriority ? 1 : 0, sys.general.options.manualHeat ? 1 : 0, 0]
         });
         return new Promise<BodyTempState>((resolve, reject) => {
             out.onComplete = (err, msg) => {
                 if (err) reject(err);
                 else {
                     let bstate = state.temps.bodies.getItemById(body.id);
-                    body.setPoint = bstate.setPoint = setPoint;
+                    body.coolSetpoint = bstate.coolSetpoint = setPoint;
                     resolve(bstate);
                 }
             };
