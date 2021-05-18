@@ -192,7 +192,9 @@ export class IntelliCenterBoard extends SystemBoard {
             [0, { name: 'off', desc: 'Off' }],
             [1, { name: 'heater', desc: 'Heater' }],
             [2, { name: 'solar', desc: 'Solar' }],
-            [3, { name: 'cooling', desc: 'Cooling' }]
+            [3, { name: 'cooling', desc: 'Cooling' }],
+            [4, { name: 'hpheat', desc: 'Heatpump (heat)' }],
+            [8, { name: 'hpcool', desc: 'Heatpump (cool)'}]
         ]);
         this.valueMaps.scheduleTypes = new byteValueMap([
             [0, { name: 'runonce', desc: 'Run Once', startDate: true, startTime: true, endTime: true, days: false, heatSource: true, heatSetpoint: true }],
@@ -3031,32 +3033,25 @@ class IntelliCenterBodyCommands extends BodyCommands {
         });
     }
     public async setCoolSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
-        let byte2 = 18;
+        //[165, 1, 15, 16, 168, 41][0, 0, 19, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 176, 110, 30, 188, 3, 0, 0, 76, 99, 78, 100, 5, 5, 0, 0, 15, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0][5, 33]
+        let byte2 = 19;
         let body1 = sys.bodies.getItemById(1);
         let body2 = sys.bodies.getItemById(2);
         let body3 = sys.bodies.getItemById(3);
-        let body4 = sys.bodies.getItemById(4);
+        let body4 = sys.bodies.getItemById(3);
 
         let temp1 = sys.bodies.getItemById(1).setPoint || 100;
+        let cool1 = sys.bodies.getItemById(1).coolSetpoint || 100;
         let temp2 = sys.bodies.getItemById(2).setPoint || 100;
-        let temp3 = sys.bodies.getItemById(3).setPoint || 100;
-        let temp4 = sys.bodies.getItemById(4).setPoint || 100;
+        let cool2 = sys.bodies.getItemById(2).coolSetpoint || 100;
         switch (body.id) {
             case 1:
-                byte2 = 18;
-                temp1 = setPoint;
+                byte2 = 19;
+                cool1 = setPoint;
                 break;
             case 2:
-                byte2 = 20;
-                temp2 = setPoint;
-                break;
-            case 3:
-                byte2 = 19;
-                temp3 = setPoint;
-                break;
-            case 4:
                 byte2 = 21;
-                temp4 = setPoint;
+                cool2 = setPoint;
                 break;
         }
         //                                                             6                             15       17 18        21   22       24 25 
@@ -3067,7 +3062,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
             response: IntelliCenterBoard.getAckResponse(168),
             retries: 5,
             payload: [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0,
-                temp1, temp3, temp2, temp4, body1.heatMode || 0, body2.heatMode || 0, body3.heatMode || 0, body4.heatMode || 0, 15,
+                temp1, cool1, temp2, cool2, body1.heatMode || 0, body2.heatMode || 0, body3.heatMode || 0, body4.heatMode || 0, 15,
                 sys.general.options.pumpDelay ? 1 : 0, sys.general.options.cooldownDelay ? 1 : 0, 0, 100, 0, 0, 0, 0, sys.general.options.manualPriority ? 1 : 0, sys.general.options.manualHeat ? 1 : 0]
         });
         return new Promise<BodyTempState>((resolve, reject) => {
@@ -3422,8 +3417,29 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         let gasHeaterInstalled = htypes.gas > 0;
         let ultratempInstalled = htypes.ultratemp > 0;
 
-        // RKS: 09-26-20 This is a hack to maintain backward compatability with fw versions 1.04 and below.
+        // RKS: 09-26-20 This is a hack to maintain backward compatability with fw versions 1.04 and below.  Ultratemp is not
+        // supported on 1.04 and below.
         if (parseFloat(sys.equipment.controllerFirmware) > 1.04) {
+            // The heat mode options are
+            // 1 = Off
+            // 2 = Gas Heater
+            // 3 = Solar Heater
+            // 4 = Solar Preferred
+            // 5 = UltraTemp Only
+            // 6 = UltraTemp Preferred????  This might be 22
+            // 9 = Heat Pump
+            // 25 = Heat Pump Preferred
+            // ?? = Hybrid
+
+
+            // The heat source options are
+            // 0 = No Change
+            // 1 = Off
+            // 2 = Gas Heater
+            // 3 = Solar Heater
+            // 4 = Solar Preferred
+            // 5 = Heat Pump
+           
             sys.board.valueMaps.heatSources = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
             if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[2, { name: 'heater', desc: 'Heater' }]]);
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar Only' }], [4, { name: 'solarpref', desc: 'Solar Preferred' }]]);
@@ -3436,6 +3452,8 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             if (gasHeaterInstalled) sys.board.valueMaps.heatModes.merge([[2, { name: 'heater', desc: 'Heater' }]]);
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar Only' }], [4, { name: 'solarpref', desc: 'Solar Preferred' }]]);
             else if (solarInstalled) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar' }]]);
+            if (ultratempInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[5, { name: 'ultratemp', desc: 'UltraTemp Only'}], [6, { name: 'ultratemppref', desc: 'UltraTemp Preferred' }]]);
+            else if (ultratempInstalled) sys.board.valueMaps.heatModes.merge([[5, { name: 'ultratemp', desc: 'UltraTemp' }]]);
             if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
             else if (heatPumpInstalled) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
         }

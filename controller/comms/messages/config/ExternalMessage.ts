@@ -750,31 +750,31 @@ export class ExternalMessage {
                     sys.general.options.clockSource = 'manual';
                 msg.isProcessed = true;
                 break;
-            case 18: // Body 1 Setpoint
+            case 18: // Body 1 Heat Setpoint
                 body = sys.bodies.getItemById(1, false);
-                body.setPoint = msg.extractPayloadByte(21);
-                state.temps.bodies.getItemById(1).setPoint = body.setPoint;
+                body.heatSetpoint = msg.extractPayloadByte(21);
+                state.temps.bodies.getItemById(1).heatSetpoint = body.heatSetpoint;
                 state.emitEquipmentChanges();
                 msg.isProcessed = true;
                 break;
-            case 19: // Body 3 Setpoint
-                body = sys.bodies.getItemById(3, false);
-                body.setPoint = msg.extractPayloadByte(22);
-                state.temps.bodies.getItemById(3).setPoint = body.setPoint;
+            case 19: // Body 1 Cool Setpoint
+                body = sys.bodies.getItemById(1, false);
+                body.coolSetpoint = msg.extractPayloadByte(22);
+                state.temps.bodies.getItemById(1).coolSetpoint = body.coolSetpoint;
                 state.emitEquipmentChanges();
                 msg.isProcessed = true;
                 break;
-            case 20: // Body 2 Setpoint
+            case 20: // Body 2 Heat Setpoint
                 body = sys.bodies.getItemById(2, false);
-                body.setPoint = msg.extractPayloadByte(23);
-                state.temps.bodies.getItemById(2).setPoint = body.setPoint;
+                body.heatSetpoint = msg.extractPayloadByte(23);
+                state.temps.bodies.getItemById(2).heatSetpoint = body.heatSetpoint;
                 state.emitEquipmentChanges();
                 msg.isProcessed = true;
                 break;
-            case 21: // Body 4 Setpoint
-                body = sys.bodies.getItemById(4, false);
+            case 21: // Body 2 Cool Setpoint
+                body = sys.bodies.getItemById(2, false);
                 body.setPoint = msg.extractPayloadByte(24);
-                state.temps.bodies.getItemById(4).setPoint = body.setPoint;
+                state.temps.bodies.getItemById(2).coolSetpoint = body.coolSetpoint;
                 state.emitEquipmentChanges();
                 msg.isProcessed = true;
                 break;

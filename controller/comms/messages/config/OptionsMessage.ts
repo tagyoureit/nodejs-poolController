@@ -76,17 +76,21 @@ export class OptionsMessage {
 
                             let body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
                             body.heatMode = msg.extractPayloadByte(24);
-                            body.setPoint = msg.extractPayloadByte(20);
+                            body.heatSetpoint = msg.extractPayloadByte(20);
+                            body.coolSetpoint = msg.extractPayloadByte(21);
+
                             body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
                             body.heatMode = msg.extractPayloadByte(25);
-                            body.setPoint = msg.extractPayloadByte(22);
-                            body = sys.bodies.getItemById(3, sys.equipment.maxBodies > 2);
-                            body.heatMode = msg.extractPayloadByte(26);
-                            body.setPoint = msg.extractPayloadByte(21);
-                            body.manualHeat = sys.general.options.manualHeat;
-                            body = sys.bodies.getItemById(4, sys.equipment.maxBodies > 3);
-                            body.heatMode = msg.extractPayloadByte(27);
-                            body.setPoint = msg.extractPayloadByte(23);
+                            body.heatSetpoint = msg.extractPayloadByte(22);
+                            body.coolSetpoint = msg.extractPayloadByte(23);
+
+                            //body = sys.bodies.getItemById(3, sys.equipment.maxBodies > 2);
+                            //body.heatMode = msg.extractPayloadByte(26);
+                            //body.heatSetpoint = msg.extractPayloadByte(21);
+                            //body.manualHeat = sys.general.options.manualHeat;
+                            //body = sys.bodies.getItemById(4, sys.equipment.maxBodies > 3);
+                            //body.heatMode = msg.extractPayloadByte(27);
+                            //body.heatSetpoint = msg.extractPayloadByte(23);
                             break;
                         }
                     case 1: // Unknown
