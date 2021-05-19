@@ -362,9 +362,9 @@ export class byteValueMaps {
   ]);
   public heaterTypes: byteValueMap = new byteValueMap([
     [1, { name: 'gas', desc: 'Gas Heater', hasAddress: false }],
-    [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false }],
+    [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false, hasCoolSetpoint: true }],
     [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true }],
-    [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true }],
+    [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true, hasCoolSetpoint: true }],
     [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
     [6, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
     [7, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }]
@@ -2669,7 +2669,7 @@ export class HeaterCommands extends BoardCommands {
             if (typeof type !== 'undefined') {
                 if (inst[type.name] === 'undefined') inst[type.name] = 0;
                 inst[type.name] = inst[type.name] + 1;
-                if (heater.coolingEnabled === true) inst['hasCoolSetpoint'] = true;
+                if (heater.coolingEnabled === true && type.hasCoolSetpoint === true) inst['hasCoolSetpoint'] = true;
                 inst.total++;
             }
         }

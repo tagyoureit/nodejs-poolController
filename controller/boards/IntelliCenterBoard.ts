@@ -83,6 +83,16 @@ export class IntelliCenterBoard extends SystemBoard {
             [2, { name: 'off', desc: 'Off' }],
             [3, { name: 'ignore', desc: 'Ignore' }]
         ]);
+        this.valueMaps.heaterTypes = new byteValueMap([
+            [1, { name: 'gas', desc: 'Gas Heater', hasAddress: false }],
+            [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false, hasCoolSetpoint: true }],
+            [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true }],
+            [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true, hasCoolSetpoint: true }],
+            [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
+            [6, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
+            [7, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }]
+        ]);
+
 
         // Keep this around for now so I can fart with the custom names array.
         //this.valueMaps.customNames = new byteValueMap(
