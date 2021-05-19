@@ -296,17 +296,21 @@ export class SendRecieveBuffer {
         return false;
     }
     protected processOutbound() {
+        let msg: Outbound;
         if (!conn.buffer.processWaitPacket() && conn.buffer._outBuffer.length > 0) {
-            var msg: Outbound = conn.buffer._outBuffer.shift();
-            if (typeof msg === 'undefined' || !msg) return;
-            if (conn.isOpen && conn.isRTS) {
-                // If the serial port is busy we don't want to process any outbound.  However, this used to
-                // not process the outbound even when the incoming bytes didn't mean anything.  Now we only delay
-                // the outbound when we actually have a message signatures to process.
-                conn.buffer.writeMessage(msg);
+            if (conn.isOpen) {
+                if (conn.isRTS) {
+                    msg = conn.buffer._outBuffer.shift();
+                    if (typeof msg === 'undefined' || !msg) return;
+                    // If the serial port is busy we don't want to process any outbound.  However, this used to
+                    // not process the outbound even when the incoming bytes didn't mean anything.  Now we only delay
+                    // the outbound when we actually have a message signatures to process.
+                    conn.buffer.writeMessage(msg);
+                }
             }
-            else if (!conn.isOpen) {
+            else {
                 // port is closed, reject message
+                msg = conn.buffer._outBuffer.shift();
                 msg.failed = true;
                 logger.warn(`Comms port is not open.  Message aborted: ${msg.toShortPacket()}`);
                 // This is a hard fail.  We don't have any more tries left and the message didn't
@@ -317,7 +321,7 @@ export class SendRecieveBuffer {
             }
         }
         // RG: added the last `|| typeof msg !== 'undef'` because virtual chem controller only sends a single packet
-        // but this condition would be eval'd before the callback of conn.write was calles and the outbound packet
+        // but this condition would be eval'd before the callback of conn.write was calls and the outbound packet
         // would be sitting idle for eternity. 
         if (conn.buffer._outBuffer.length > 0 || typeof conn.buffer._waitingPacket !== 'undefined' || conn.buffer._waitingPacket || typeof msg !== 'undefined') {
             // Come back later as we still have items to send.
