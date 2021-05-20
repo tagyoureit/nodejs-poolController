@@ -1001,7 +1001,6 @@ export class ScheduleCollection extends EqItemCollection<Schedule> {
             if (typeof eq === 'undefined') return i;
         }
     }
-
 }
 export class Schedule extends EqItem {
     constructor(data: any) { super(data); }
