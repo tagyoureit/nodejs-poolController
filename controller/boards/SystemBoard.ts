@@ -1268,24 +1268,30 @@ export class BodyCommands extends BoardCommands {
     return Promise.resolve(bstate);
   }
 
-  public getHeatModes(bodyId: number) {
-    let heatModes = [];
-    // RKS: 09-26-20 This will need to be overloaded in IntelliCenterBoard when the other heater types are identified. (e.g. ultratemp, hybrid, maxetherm, and mastertemp)
-    heatModes.push(this.board.valueMaps.heatModes.transformByName('off')); // In IC fw 1.047 off is no longer 0.
-    let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
-    if (heatTypes.gas > 0)
-      heatModes.push(this.board.valueMaps.heatModes.transformByName('heater'));
-    if (heatTypes.solar > 0) {
-      let hm = this.board.valueMaps.heatModes.transformByName('solar');
-      heatModes.push(hm);
-      if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('solarpref'));
+    public getHeatModes(bodyId: number) {
+        let heatModes = [];
+        // RKS: 09-26-20 This will need to be overloaded in IntelliCenterBoard when the other heater types are identified. (e.g. ultratemp, hybrid, maxetherm, and mastertemp)
+        heatModes.push(this.board.valueMaps.heatModes.transformByName('off')); // In IC fw 1.047 off is no longer 0.
+        let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
+        if (heatTypes.gas > 0)
+            heatModes.push(this.board.valueMaps.heatModes.transformByName('heater'));
+        if (heatTypes.solar > 0) {
+            let hm = this.board.valueMaps.heatModes.transformByName('solar');
+            heatModes.push(hm);
+            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('solarpref'));
+        }
+        if (heatTypes.heatpump > 0) {
+            let hm = this.board.valueMaps.heatModes.transformByName('heatpump');
+            heatModes.push(hm);
+            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('heatpumppref'));
+        }
+        if (heatTypes.ultratemp > 0) {
+            let hm = this.board.valueMaps.heatModes.transformByName('ultratemp');
+            heatModes.push(hm);
+            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('ultratemppref'));
+        }
+        return heatModes;
     }
-    if (heatTypes.heatpump > 0) {
-      let hm = this.board.valueMaps.heatModes.transformByName('heatpump');
-      if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('heatpumppref'));
-    }
-    return heatModes;
-  }
   public getPoolStates(): BodyTempState[] {
     let arrPools = [];
     for (let i = 0; i < state.temps.bodies.length; i++) {
