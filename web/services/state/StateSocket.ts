@@ -120,7 +120,7 @@ export class StateSocket {
                         else if (typeof data.pHLevel === 'object') {
                             if (!isNaN(parseFloat(data.pHLevel.pH))) scontroller.ph.probe.level = parseFloat(data.pHLevel.pH);
                             if (!isNaN(parseFloat(data.pHLevel.temperature))) scontroller.ph.probe.temperature = parseFloat(data.pHLevel.temperature);
-                            if (['C', 'F', 'c', 'f'].includes(data.pHLevel.tempUnits)) scontroller.ph.probe.tempUnits = data.pHLevel.tempUnits;
+                            if (typeof data.pHLevel.tempUnits !== 'undefined') scontroller.ph.probe.tempUnits = sys.board.valueMaps.tempUnits.encode(data.pHLevel.tempUnits);
                         }
                         if (isBodyOn || !controller.ph.flowReadingsOnly) scontroller.ph.level = scontroller.ph.probe.level;
                     }
