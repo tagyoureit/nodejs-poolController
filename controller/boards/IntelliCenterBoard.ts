@@ -3180,6 +3180,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
                         sched.scheduleDays = ssched.scheduleDays = schedDays;
                         sched.scheduleType = ssched.scheduleType = schedType;
                         sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
+                        sched.coolSetpoint = ssched.coolSetpoint = coolSetpoint;
                         sched.heatSource = ssched.heatSource = heatSource;
                         sched.startTime = ssched.startTime = startTime;
                         sched.endTime = ssched.endTime = endTime;

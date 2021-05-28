@@ -306,6 +306,7 @@ export class NixieBoard extends SystemBoard {
             total += sys.filters.length;
             total += sys.pumps.length;
             total += sys.valves.length;
+            total += sys.schedules.length;
             this.initValves();
             await this.verifySetup();
             await ncp.initAsync(sys);

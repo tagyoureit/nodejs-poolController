@@ -984,6 +984,8 @@ export class ScheduleState extends EqState {
     public set changeHeatSetpoint(val: boolean) { this.setDataVal('changeHeatSetpoint', val); }
     public get heatSetpoint(): number { return this.data.heatSetpoint; }
     public set heatSetpoint(val: number) { this.setDataVal('heatSetpoint', val); }
+    public get coolSetpoint(): number { return this.data.coolSetpoint; }
+    public set coolSetpoint(val: number) { this.setDataVal('coolSetpoint', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public getExtended() {

@@ -529,7 +529,7 @@ export class ExternalMessage {
         //if (hs === 1) hs = 0; // Shim for 1.047
         cfg.heatSource = hs;
         cfg.heatSetpoint = msg.extractPayloadByte(14);
-        cfg.flags = msg.extractPayloadByte(15);
+        cfg.coolSetpoint = msg.extractPayloadByte(15);
         let s = state.schedules.getItemById(schedId, cfg.isActive);
         if (cfg.isActive) {
             let s = state.schedules.getItemById(schedId, cfg.isActive);
@@ -540,6 +540,7 @@ export class ExternalMessage {
             s.scheduleType = cfg.scheduleType;
             s.scheduleDays = cfg.scheduleType === 128 ? cfg.scheduleDays : 0;
             s.heatSetpoint = cfg.heatSetpoint;
+            s.coolSetpoint = cfg.coolSetpoint;
             s.heatSource = cfg.heatSource;
             s.startDate = cfg.startDate;
             s.startTimeType = cfg.startTimeType;

@@ -767,26 +767,28 @@ export class SystemBoard {
   /// This method processes the status message periodically.  The role of this method is to verify the circuit, valve, and heater
   /// relays.  This method does not control RS485 operations such as pumps and chlorinators.  These are done through the respective
   /// equipment polling functions.
-  public async processStatusAsync() {
-    try {
-      if (this._statusCheckRef > 0) return;
-      this.killStatusCheck();
-      // Go through all the assigned equipment and verify the current state.
-      sys.board.system.keepManualTime();
-      await sys.board.circuits.syncCircuitRelayStates();
-      await sys.board.features.syncGroupStates();
-      await sys.board.circuits.syncVirtualCircuitStates();
-      await sys.board.valves.syncValveStates();
-      await sys.board.filters.syncFilterStates();
-      await sys.board.heaters.syncHeaterStates();
-      await sys.board.schedules.syncScheduleStates();
-      state.emitControllerChange();
-      state.emitEquipmentChanges();
-    } catch (err) { state.status = 255; logger.error(`Error performing processStatusAsync ${err.message}`); }
-    finally {
-      if (this.statusInterval > 0) this._statusTimer = setTimeout(() => this.processStatusAsync(), this.statusInterval);
+    public async processStatusAsync() {
+        try {
+            if (this._statusCheckRef > 0) return;
+            this.suspendStatus(true);
+            if (typeof this._statusTimer !== 'undefined' && this._statusTimer) clearTimeout(this._statusTimer);
+            // Go through all the assigned equipment and verify the current state.
+            sys.board.system.keepManualTime();
+            await sys.board.circuits.syncCircuitRelayStates();
+            await sys.board.features.syncGroupStates();
+            await sys.board.circuits.syncVirtualCircuitStates();
+            await sys.board.valves.syncValveStates();
+            await sys.board.filters.syncFilterStates();
+            await sys.board.heaters.syncHeaterStates();
+            await sys.board.schedules.syncScheduleStates();
+            state.emitControllerChange();
+            state.emitEquipmentChanges();
+        } catch (err) { state.status = 255; logger.error(`Error performing processStatusAsync ${err.message}`); }
+        finally {
+            this.suspendStatus(false);
+            if (this.statusInterval > 0) this._statusTimer = setTimeout(() => this.processStatusAsync(), this.statusInterval);
+        }
     }
-  }
   public async setControllerType(obj): Promise<Equipment> {
     try {
       if (obj.controllerType !== sys.controllerType)
@@ -1262,7 +1264,7 @@ export class BodyCommands extends BoardCommands {
   public async setCoolSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
     let bdy = sys.bodies.getItemById(body.id);
     let bstate = state.temps.bodies.getItemById(body.id);
-    bdy.coolSetpoint = bstate.setPoint = setPoint;
+    bdy.coolSetpoint = bstate.coolSetpoint = setPoint;
     state.emitEquipmentChanges();
     sys.board.heaters.syncHeaterStates();
     return Promise.resolve(bstate);
@@ -2596,60 +2598,64 @@ export class ScheduleCommands extends BoardCommands {
       }
     };
   }
-  public async setScheduleAsync(data: any): Promise<Schedule> {
-    let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-    if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
-    if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
-    let sched = sys.schedules.getItemById(id, data.id <= 0);
-    let ssched = state.schedules.getItemById(id, data.id <= 0);
-    let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
-    if (typeof schedType === 'undefined') schedType = 0; // Repeats
+    public async setScheduleAsync(data: any): Promise<Schedule> {
+        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+        if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
+        let sched = sys.schedules.getItemById(id, data.id <= 0);
+        let ssched = state.schedules.getItemById(id, data.id <= 0);
+        let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
+        if (typeof schedType === 'undefined') schedType = 0; // Repeats
 
-    let startTimeType = typeof data.startTimeType !== 'undefined' ? data.startTimeType : sched.startTimeType;
-    let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
-    let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
-    if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
-    let heatSource = typeof data.heatSource !== 'undefined' ? data.heatSource : sched.heatSource;
-    let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
-    let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
-    let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
-    let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
-    let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays);
-    let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? data.changeHeatSetpoint : false;
-    let display = typeof data.display !== 'undefined' ? data.display : sched.display || 0;
+        let startTimeType = typeof data.startTimeType !== 'undefined' ? data.startTimeType : sched.startTimeType;
+        let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
+        let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
+        if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
+        let heatSource = typeof data.heatSource !== 'undefined' ? data.heatSource : sched.heatSource;
+        let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
+        let coolSetpoint = typeof data.coolSetpoint !== 'undefined' ? data.coolSetpoint : sched.coolSetpoint || 100;
+        let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
+        let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
+        let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
+        let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays);
+        let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? data.changeHeatSetpoint : false;
+        let display = typeof data.display !== 'undefined' ? data.display : sched.display || 0;
 
-    // Ensure all the defaults.
-    if (isNaN(startDate.getTime())) startDate = new Date();
-    if (typeof startTime === 'undefined') startTime = 480; // 8am
-    if (typeof endTime === 'undefined') endTime = 1020; // 5pm
-    if (typeof startTimeType === 'undefined') startTimeType = 0; // Manual
-    if (typeof endTimeType === 'undefined') endTimeType = 0; // Manual
+        // Ensure all the defaults.
+        if (isNaN(startDate.getTime())) startDate = new Date();
+        if (typeof startTime === 'undefined') startTime = 480; // 8am
+        if (typeof endTime === 'undefined') endTime = 1020; // 5pm
+        if (typeof startTimeType === 'undefined') startTimeType = 0; // Manual
+        if (typeof endTimeType === 'undefined') endTimeType = 0; // Manual
 
-    // At this point we should have all the data.  Validate it.
-    if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType));
-    if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType));
-    if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType));
-    if (!sys.board.valueMaps.heatSources.valExists(heatSource)) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource));
-    if (heatSetpoint < 0 || heatSetpoint > 104) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint));
-    if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined)
-      return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit));
-    if (schedType === 128 && schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
+        // At this point we should have all the data.  Validate it.
+        if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType));
+        if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType));
+        if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType));
+        if (!sys.board.valueMaps.heatSources.valExists(heatSource)) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource));
+        if (heatSetpoint < 0 || heatSetpoint > 104) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint));
+        if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined)
+            return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit));
+        if (schedType === 128 && schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
 
-    sched.circuit = ssched.circuit = circuit;
-    sched.scheduleDays = ssched.scheduleDays = schedDays;
-    sched.scheduleType = ssched.scheduleType = schedType;
-    sched.changeHeatSetpoint = ssched.changeHeatSetpoint = changeHeatSetpoint;
-    sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
-    sched.heatSource = ssched.heatSource = heatSource;
-    sched.startTime = ssched.startTime = startTime;
-    sched.endTime = ssched.endTime = endTime;
-    sched.startTimeType = ssched.startTimeType = startTimeType;
-    sched.endTimeType = ssched.endTimeType = endTimeType;
-    sched.startDate = ssched.startDate = startDate;
-    ssched.display = sched.display = display;
-    ssched.emitEquipmentChange();
-    return new Promise<Schedule>((resolve, reject) => { resolve(sched); });
-  }
+        sched.circuit = ssched.circuit = circuit;
+        sched.scheduleDays = ssched.scheduleDays = schedDays;
+        sched.scheduleType = ssched.scheduleType = schedType;
+        sched.changeHeatSetpoint = ssched.changeHeatSetpoint = changeHeatSetpoint;
+        sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
+        sched.coolSetpoint = ssched.coolSetpoint = coolSetpoint;
+        sched.heatSource = ssched.heatSource = heatSource;
+        sched.startTime = ssched.startTime = startTime;
+        sched.endTime = ssched.endTime = endTime;
+        sched.startTimeType = ssched.startTimeType = startTimeType;
+        sched.endTimeType = ssched.endTimeType = endTimeType;
+        sched.startDate = ssched.startDate = startDate;
+        ssched.display = sched.display = display;
+        sched.master = 1;
+        await ncp.schedules.setScheduleAsync(sched, data);
+        ssched.emitEquipmentChange();
+        return sched;
+    }
   public deleteScheduleAsync(data: any): Promise<Schedule> {
     let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
     if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
@@ -2660,25 +2666,26 @@ export class ScheduleCommands extends BoardCommands {
     ssched.emitEquipmentChange();
     return new Promise<Schedule>((resolve, reject) => { resolve(sched); });
   }
-  public syncScheduleStates() {
-    try {
-      let dt = state.time.toDate();
-      let dow = dt.getDay();
-      // Convert the dow to the bit value.
-      let sd = sys.board.valueMaps.scheduleDays.toArray().find(elem => elem.dow === dow);
-      let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
-      let ts = dt.getHours() * 60 + dt.getMinutes();
-      for (let i = 0; i < state.schedules.length; i++) {
-        let ssched = state.schedules.getItemByIndex(i);
-        let circ = state.circuits.getInterfaceById(ssched.circuit);
-        if (circ.isOn &&
-          (ssched.scheduleDays & dayVal) > 0 &&
-          ts >= ssched.startTime && ts <= ssched.endTime) ssched.isOn = true
-        else ssched.isOn = false;
-        ssched.emitEquipmentChange();
-      }
-    } catch (err) { logger.error(`Error synchronizing schedule states`); }
-  }
+    public syncScheduleStates() {
+        try {
+            ncp.schedules.triggerSchedules();
+            let dt = state.time.toDate();
+            let dow = dt.getDay();
+            // Convert the dow to the bit value.
+            let sd = sys.board.valueMaps.scheduleDays.toArray().find(elem => elem.dow === dow);
+            let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
+            let ts = dt.getHours() * 60 + dt.getMinutes();
+            for (let i = 0; i < state.schedules.length; i++) {
+                let ssched = state.schedules.getItemByIndex(i);
+                let circ = state.circuits.getInterfaceById(ssched.circuit);
+                if (circ.isOn &&
+                    (ssched.scheduleDays & dayVal) > 0 &&
+                    ts >= ssched.startTime && ts <= ssched.endTime) ssched.isOn = true
+                else ssched.isOn = false;
+                ssched.emitEquipmentChange();
+            }
+        } catch (err) { logger.error(`Error synchronizing schedule states`); }
+    }
   public async setEggTimerAsync(data?: any): Promise<EggTimer> { return Promise.resolve(sys.eggTimers.getItemByIndex(1)); }
   public async deleteEggTimerAsync(data?: any): Promise<EggTimer> { return Promise.resolve(sys.eggTimers.getItemByIndex(1)); }
 }

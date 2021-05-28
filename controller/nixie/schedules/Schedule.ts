@@ -41,13 +41,25 @@ export class NixieScheduleCollection extends NixieEquipmentCollection<NixieSched
         }
         catch (err) { logger.error(`Nixie Schedule initAsync: ${err.message}`); return Promise.reject(err); }
     }
-    public triggerSchedules() {
+    public async triggerSchedules() {
         try {
             let ctx = new NixieScheduleContext();
             for (let i = 0; i < this.length; i++) {
                 (this[i] as NixieSchedule).triggerScheduleAsync(ctx);
             }
+            // Set the heat modes for the bodies.
+            for (let i = 0; i < ctx.heatModes.length; i++) {
+                let mode = ctx.heatModes[i];
+                let body = sys.bodies.getItemById(mode.id);
+                await sys.board.bodies.setHeatModeAsync(sys.bodies.getItemById(mode.id), mode.heatMode);
+                if (typeof mode.heatSetpoint !== 'undefined') await sys.board.bodies.setHeatSetpointAsync(body, mode.heatSetpoint);
+                if (typeof mode.coolSetpoint !== 'undefined') await sys.board.bodies.setCoolSetpointAsync(body, mode.coolSetpoint);
+            }
             // Alright now that we are done with that we need to set all the circuit states that need changing.
+            for (let i = 0; i < ctx.circuits.length; i++) {
+                let circuit = ctx.circuits[i];
+                await sys.board.circuits.setCircuitStateAsync(circuit.id, circuit.isOn);
+            }
         } catch (err) { logger.error(`Error triggering schedules: ${err}`); }
     }
 }
@@ -112,6 +124,7 @@ export class NixieSchedule extends NixieEquipment {
                 return;
             }
             let shouldBeOn = this.shouldBeOn(ssched); // This should also set the validity for the schedule if there are errors.
+            //console.log(`Processing schedule ${this.schedule.id} - ${circuit.name} : ShouldBeOn: ${shouldBeOn} Suspended: ${this.suspended} Running: ${this.running}`);
             // COND 1: The schedule should be on and the schedule is not yet on.
             if (shouldBeOn && !this.running && !this.suspended) {
                 // If the circuit is on then we need to clear the suspended flag and set the running flag.
@@ -120,32 +133,47 @@ export class NixieSchedule extends NixieEquipment {
                     // because the user turned it back on.
                     this.suspended = false;
                 }
-                ctx.circuits.push({ id: circuit.id, isOn: true });
-                //await sys.board.circuits.setCircuitStateAsync(circuit.id, true);
+                ctx.setCircuit(circuit.id, true);
+                // Alright we are turning on the circuit.  If these are body circuits then we need to determine
+                // whether we will be setting the setpoints/heatmode on the body.
+                let body = sys.bodies.find(elem => elem.circuit === circuit.id);
+                if (typeof body !== 'undefined') {
+                    let heatSource = sys.board.valueMaps.heatSources.transform(this.schedule.heatSource);
+                    if (heatSource !== 'nochange') {
+                        switch (heatSource.name) {
+                            case 'dontchange':
+                                break;
+                            case 'off':
+                                ctx.setHeatMode(body.id, 'off');
+                                break;
+                            default:
+                                ctx.setHeatMode(body.id, heatSource.name, this.schedule.heatSetpoint, heatSource.hasCoolSetpoint ? this.schedule.coolSetpoint : undefined);
+                                break;
+                        }
+                    }
+                }
                 ssched.isOn = true;
                 this.running = true;
             }
             else if (shouldBeOn && this.running) {
                 // We do nothing here.
+                this.suspended = !cstate.isOn;
             }
             // Our schedule has expired it is time to turn it off.
             else if (!shouldBeOn) {
                 // Turn this sucker off.  But wait if there is an overlapping schedule then we should
                 // not turn it off. We will need some logic to deal with this.
-                if (this.running) {
-                    ctx.circuits.push({ id: circuit.id, isOn: false });
-                    //await sys.board.circuits.setCircuitStateAsync(circuit.id, false);
-                }
+                if (this.running) ctx.setCircuit(circuit.id, false);
                 ssched.isOn = false;
                 this.running = false;
                 this.suspended = false;
             }
             if (!shouldBeOn && ssched.isOn === true) {
                 // Turn off the circuit.
-                ctx.circuits.push({ id: circuit.id, isOn: false });
-                //await sys.board.circuits.setCircuitStateAsync(circuit.id, false);
+                ctx.setCircuit(circuit.id, false);
                 ssched.isOn = false;
             }
+            ssched.emitEquipmentChange();
         } catch (err) { logger.error(`Error processing schedule: ${err.message}`); }
 
     }
@@ -207,5 +235,21 @@ class NixieScheduleContext {
     constructor() {
 
     }
-    public circuits : { id: number, isOn: boolean }[] = [];
+    public circuits: { id: number, isOn: boolean }[] = [];
+    public heatModes: { id: number, heatMode: number, heatSetpoint?: number, coolSetpoint?: number }[] = [];
+    public setCircuit(id: number, isOn: boolean) {
+        let c = this.circuits.find(elem => elem.id === id);
+        if (typeof c === 'undefined') this.circuits.push({ id: id, isOn: isOn });
+        else c.isOn = isOn;
+    }
+    public setHeatMode(id: number, heatMode: string, heatSetpoint?: number, coolSetpoint?: number) {
+        let mode = sys.board.valueMaps.heatModes.transformByName(heatMode);
+        let hm = this.heatModes.find(elem => elem.id == id);
+        if (typeof hm === 'undefined') this.heatModes.push({ id: id, heatMode: mode.val, heatSetpoint: heatSetpoint, coolSetpoint: coolSetpoint });
+        else {
+            hm.heatMode = mode.val;
+            if (typeof heatSetpoint !== 'undefined') hm.heatSetpoint = heatSetpoint;
+            if (typeof coolSetpoint !== 'undefined') hm.coolSetpoint = coolSetpoint;
+        }
+    }
 }

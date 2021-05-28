@@ -90,10 +90,10 @@ export class ScheduleMessage {
                 case 33:
                     ScheduleMessage.processHeatSetpoint(msg);
                     break;
-                case 34: // Unknown
+                case 34: // Cool Setpoint
                 case 35:
                 case 36:
-                    ScheduleMessage.processFlags(msg);
+                    ScheduleMessage.processCoolSetpoint(msg);
                     break;
                 default:
                     logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
@@ -317,12 +317,14 @@ export class ScheduleMessage {
             }
         }
     }
-    private static processFlags(msg: Inbound) {
+    private static processCoolSetpoint(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 34) * 40 + 1;
         for (let i = 1; i < msg.payload.length && schedId <= ScheduleMessage._maxSchedId; i++) {
             let schedule: Schedule = sys.schedules.getItemById(schedId++, false, { isActive: false });
             if (schedule.isActive !== false) {
-                schedule.flags = msg.extractPayloadByte(i + 1);
+                schedule.coolSetpoint = msg.extractPayloadByte(i + 1);
+                let csched = state.schedules.getItemById(schedule.id);
+                csched.coolSetpoint = schedule.coolSetpoint;
             }
         }
     }
