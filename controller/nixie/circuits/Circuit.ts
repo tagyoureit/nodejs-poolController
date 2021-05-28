@@ -145,8 +145,6 @@ export class NixieCircuit extends NixieEquipment {
                     if (typeof eggOff !== 'undefined' && eggOff.getTime() <= new Date().getTime()) val = false;
                 }
                 // Check to see if we should be on by poking the schedules.
-
-
             }
             if (utils.isNullOrEmpty(this.circuit.connectionId) || utils.isNullOrEmpty(this.circuit.deviceBinding)) {
                 cstate.isOn = val;

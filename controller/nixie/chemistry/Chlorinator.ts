@@ -111,6 +111,7 @@ export class NixieChlorinator extends NixieEquipment {
             schlor.superChlorHours = chlor.superChlorHours = superChlorHours;
             schlor.type = chlor.type = chlorType;
             chlor.body = body;
+            schlor.body = chlor.body;
             schlor.name = chlor.name = data.name || chlor.name || `Chlorinator ${chlor.id}`;
             schlor.isActive = chlor.isActive = true;
         }
