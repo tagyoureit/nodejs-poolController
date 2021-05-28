@@ -152,17 +152,23 @@ export class NixieBoard extends SystemBoard {
             [112, { name: 'lightmagenta', desc: 'Light Magenta' }]
         ]);
         this.valueMaps.heatSources = new byteValueMap([
-            [0, { name: 'off', desc: 'No Heater' }],
-            [3, { name: 'heater', desc: 'Heater' }],
-            [5, { name: 'solar', desc: 'Solar Only' }],
-            [21, { name: 'solarpref', desc: 'Solar Preferred' }],
+            [1, { name: 'off', desc: 'Off' }],
+            [2, { name: 'heater', desc: 'Heater' }],
+            [3, { name: 'solar', desc: 'Solar Only' }],
+            [4, { name: 'solarpref', desc: 'Solar Preferred' }],
+            [5, { name: 'ultratemp', desc: 'Ultratemp Only' }],
+            [6, { name: 'ultratemppref', desc: 'Ultratemp Pref' }],
+            [9, { name: 'heatpump', desc: 'Heatpump Only' }],
+            [25, { name: 'heatpumppref', desc: 'Heatpump Pref' }],
             [32, { name: 'nochange', desc: 'No Change' }]
         ]);
         this.valueMaps.heatStatus = new byteValueMap([
             [0, { name: 'off', desc: 'Off' }],
             [1, { name: 'heater', desc: 'Heater' }],
             [2, { name: 'solar', desc: 'Solar' }],
-            [3, { name: 'cooling', desc: 'Cooling' }]
+            [3, { name: 'cooling', desc: 'Cooling' }],
+            [4, { name: 'hpheat', desc: 'Heating' }],
+            [8, { name: 'hpcool', desc: 'Cooling' }]
         ]);
         this.valueMaps.scheduleTypes = new byteValueMap([
             [0, { name: 'runonce', desc: 'Run Once', startDate: true, startTime: true, endTime: true, days: false, heatSource: true, heatSetpoint: true }],
@@ -1001,6 +1007,59 @@ export class NixieHeaterCommands extends HeaterCommands {
             sys.board.heaters.updateHeaterServices();
             resolve(heater);
         });
+    }
+    public updateHeaterServices() {
+        let htypes = sys.board.heaters.getInstalledHeaterTypes();
+        let solarInstalled = htypes.solar > 0;
+        let heatPumpInstalled = htypes.heatpump > 0;
+        let gasHeaterInstalled = htypes.gas > 0;
+        let ultratempInstalled = htypes.ultratemp > 0;
+
+        // The heat mode options are
+        // 1 = Off
+        // 2 = Gas Heater
+        // 3 = Solar Heater
+        // 4 = Solar Preferred
+        // 5 = UltraTemp Only
+        // 6 = UltraTemp Preferred????  This might be 22
+        // 9 = Heat Pump
+        // 25 = Heat Pump Preferred
+        // ?? = Hybrid
+
+
+        // The heat source options are
+        // 0 = No Change
+        // 1 = Off
+        // 2 = Gas Heater
+        // 3 = Solar Heater
+        // 4 = Solar Preferred
+        // 5 = Heat Pump
+        sys.board.valueMaps.heatSources = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
+        if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[2, { name: 'heater', desc: 'Heater' }]]);
+        if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar Only', hasCoolSetpoint: htypes.hasCoolSetpoint }], [4, { name: 'solarpref', desc: 'Solar Preferred', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
+        else if (solarInstalled) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar', hasCoolsetpoint: htypes.hasCoolSetpoint }]]);
+        if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Pref' }]]);
+        else if (heatPumpInstalled) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
+        if (ultratempInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'ultratemp', desc: 'UltraTemp Only', hasCoolSetpoint: htypes.hasCoolSetpoint }], [6, { name: 'ultratemppref', desc: 'UltraTemp Pref', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
+        else if (ultratempInstalled) sys.board.valueMaps.heatSources.merge([[5, { name: 'ultratemp', desc: 'UltraTemp', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
+        if (sys.heaters.length > 0) sys.board.valueMaps.heatSources.merge([[0, { name: 'nochange', desc: 'No Change' }]]);
+
+        sys.board.valueMaps.heatModes = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
+        if (gasHeaterInstalled) sys.board.valueMaps.heatModes.merge([[2, { name: 'heater', desc: 'Heater' }]]);
+        if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar Only' }], [4, { name: 'solarpref', desc: 'Solar Preferred' }]]);
+        else if (solarInstalled) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar' }]]);
+        if (ultratempInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[5, { name: 'ultratemp', desc: 'UltraTemp Only' }], [6, { name: 'ultratemppref', desc: 'UltraTemp Pref' }]]);
+        else if (ultratempInstalled) sys.board.valueMaps.heatModes.merge([[5, { name: 'ultratemp', desc: 'UltraTemp' }]]);
+        if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
+        else if (heatPumpInstalled) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
+        // Now set the body data.
+        for (let i = 0; i < sys.bodies.length; i++) {
+            let body = sys.bodies.getItemByIndex(i);
+            let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
+            let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
+            btemp.heaterOptions = opts;
+        }
+        this.setActiveTempSensors();
     }
 }
 export class NixieChemControllerCommands extends ChemControllerCommands {

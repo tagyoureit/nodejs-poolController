@@ -162,21 +162,29 @@ export class ConfigRoute {
                 return res.status(200).send(opts);
             } catch (err) { next(err); }
         });
-        app.get('/config/options/schedules', (req, res) => {
-            let opts = {
-                maxSchedules: sys.equipment.maxSchedules,
-                tempUnits: sys.board.valueMaps.tempUnits.transform(state.temps.units),
-                scheduleTimeTypes: sys.board.valueMaps.scheduleTimeTypes.toArray(),
-                scheduleTypes: sys.board.valueMaps.scheduleTypes.toArray(),
-                scheduleDays: sys.board.valueMaps.scheduleDays.toArray(),
-                heatSources: sys.board.valueMaps.heatSources.toArray(),
-                circuits: sys.board.circuits.getCircuitReferences(true, true, false, true),
-                schedules: sys.schedules.get(),
-                clockMode: sys.general.options.clockMode || 12,
-                displayTypes: sys.board.valueMaps.scheduleDisplayTypes.toArray(),
-                eggTimers: sys.eggTimers.get() // needed for *Touch to not overwrite real schedules
-            };
-            return res.status(200).send(opts);
+        app.get('/config/options/schedules', async (req, res, next) => {
+            try {
+                let opts = {
+                    maxSchedules: sys.equipment.maxSchedules,
+                    tempUnits: sys.board.valueMaps.tempUnits.transform(state.temps.units),
+                    scheduleTimeTypes: sys.board.valueMaps.scheduleTimeTypes.toArray(),
+                    scheduleTypes: sys.board.valueMaps.scheduleTypes.toArray(),
+                    scheduleDays: sys.board.valueMaps.scheduleDays.toArray(),
+                    heatSources: sys.board.valueMaps.heatSources.toArray(),
+                    circuits: sys.board.circuits.getCircuitReferences(true, true, false, true),
+                    schedules: sys.schedules.get(),
+                    clockMode: sys.general.options.clockMode || 12,
+                    displayTypes: sys.board.valueMaps.scheduleDisplayTypes.toArray(),
+                    bodies: [],
+                    eggTimers: sys.eggTimers.get() // needed for *Touch to not overwrite real schedules
+                };
+                // Now get all the body heat sources.
+                for (let i = 0; i < sys.bodies.length; i++) {
+                    let body = sys.bodies.getItemByIndex(i);
+                    opts.bodies.push({ id: body.id, circuit: body.circuit, name: body.name, alias: body.alias, heatSources: sys.board.bodies.getHeatSources(body.id) });
+                }
+                return res.status(200).send(opts);
+            } catch (err) { next(err); }
         });
         app.get('/config/options/heaters', async (req, res, next) => {
             try {

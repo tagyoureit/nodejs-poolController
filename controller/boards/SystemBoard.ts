@@ -1267,7 +1267,29 @@ export class BodyCommands extends BoardCommands {
     sys.board.heaters.syncHeaterStates();
     return Promise.resolve(bstate);
   }
-
+    public getHeatSources(bodyId: number) {
+        let heatSources = [];
+        let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
+        heatSources.push(this.board.valueMaps.heatSources.transformByName('nochange'));
+        if (heatTypes.total > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('off'));
+        if (heatTypes.gas > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('heater'));
+        if (heatTypes.solar > 0) {
+            let hm = this.board.valueMaps.heatSources.transformByName('solar');
+            heatSources.push(hm);
+            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('solarpref'));
+        }
+        if (heatTypes.heatpump > 0) {
+            let hm = this.board.valueMaps.heatSources.transformByName('heatpump');
+            heatSources.push(hm);
+            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('heatpumppref'));
+        }
+        if (heatTypes.ultratemp > 0) {
+            let hm = this.board.valueMaps.heatSources.transformByName('ultratemp');
+            heatSources.push(hm);
+            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('ultratemppref'));
+        }
+        return heatSources;
+    }
     public getHeatModes(bodyId: number) {
         let heatModes = [];
         // RKS: 09-26-20 This will need to be overloaded in IntelliCenterBoard when the other heater types are identified. (e.g. ultratemp, hybrid, maxetherm, and mastertemp)

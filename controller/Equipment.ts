@@ -1032,6 +1032,8 @@ export class Schedule extends EqItem {
     public set changeHeatSetpoint(val: boolean) { this.setDataVal('changeHeatSetpoint', val); }
     public get heatSetpoint(): number { return this.data.heatSetpoint; }
     public set heatSetpoint(val: number) { this.setDataVal('heatSetpoint', val); }
+    public get coolSetpoint(): number { return this.data.coolSetpoint; }
+    public set coolSetpoint(val: number) { this.setDataVal('coolSetpoint', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get startMonth(): number { return this._startDate.getMonth() + 1; }

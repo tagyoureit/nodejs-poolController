@@ -105,11 +105,14 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
 export class NixieCircuit extends NixieEquipment {
     public circuit: Circuit;
     private _sequencing = false;
+    private scheduled = false;
+    private timeOn: Timestamp;
     constructor(ncp: INixieControlPanel, circuit: Circuit) {
         super(ncp);
         this.circuit = circuit;
     }
     public get id(): number { return typeof this.circuit !== 'undefined' ? this.circuit.id : -1; }
+    public get eggTimerOff(): Timestamp { return typeof this.timeOn !== 'undefined' && !this.circuit.dontStop ? this.timeOn.clone().addMinutes(this.circuit.eggTimer) : undefined; }
     public async setCircuitAsync(data: any) {
         try {
             let circuit = this.circuit;
@@ -132,17 +135,31 @@ export class NixieCircuit extends NixieEquipment {
         } catch (err) { logger.error(`Nixie: Error sending circuit sequence ${this.id}: ${count}`); }
         finally { this._sequencing = false; }
     }
-
-    public async setCircuitStateAsync(cstate: ICircuitState, val: boolean): Promise<InterfaceServerResponse> {
+    public async setCircuitStateAsync(cstate: ICircuitState, val: boolean, scheduled: boolean = false) : Promise<InterfaceServerResponse> {
         try {
-            if(val !== cstate.isOn) logger.info(`NCP: Setting Circuit ${cstate.name} to ${val}`);
+            if (val !== cstate.isOn) {
+                logger.info(`NCP: Setting Circuit ${cstate.name} to ${val}`);
+                if (cstate.isOn && val) {
+                    // We are already on so lets check the egg timer and shut it off if it has expired.
+                    let eggOff = this.eggTimerOff;
+                    if (typeof eggOff !== 'undefined' && eggOff.getTime() <= new Date().getTime()) val = false;
+                }
+                // Check to see if we should be on by poking the schedules.
+
+
+            }
             if (utils.isNullOrEmpty(this.circuit.connectionId) || utils.isNullOrEmpty(this.circuit.deviceBinding)) {
                 cstate.isOn = val;
                 return new InterfaceServerResponse(200, 'Success');
             }
             if (this._sequencing) return new InterfaceServerResponse(200, 'Success');
             let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, { isOn: val, latch: val ? 10000 : undefined });
-            if (res.status.code === 200) cstate.isOn = val;
+            if (res.status.code === 200) {
+                cstate.isOn = val;
+                // Set this up so we can process our egg timer.
+                if (!cstate.isOn && val) { this.timeOn = new Timestamp(); }
+                else if (!val) this.timeOn = undefined;
+            }
             return res;
         } catch (err) { logger.error(`Nixie: Error setting circuit state ${cstate.id}-${cstate.name} to ${val}`); }
     }

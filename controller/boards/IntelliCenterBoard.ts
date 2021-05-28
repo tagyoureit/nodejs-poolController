@@ -192,10 +192,14 @@ export class IntelliCenterBoard extends SystemBoard {
             [112, { name: 'lightmagenta', desc: 'Light Magenta' }]
         ]);
         this.valueMaps.heatSources = new byteValueMap([
-            [0, { name: 'off', desc: 'No Heater' }],
-            [3, { name: 'heater', desc: 'Heater' }],
-            [5, { name: 'solar', desc: 'Solar Only' }],
-            [21, { name: 'solarpref', desc: 'Solar Preferred' }],
+            [1, { name: 'off', desc: 'Off' }],
+            [2, { name: 'heater', desc: 'Heater' }],
+            [3, { name: 'solar', desc: 'Solar Only' }],
+            [4, { name: 'solarpref', desc: 'Solar Preferred' }],
+            [5, { name: 'ultratemp', desc: 'Ultratemp Only' }],
+            [6, { name: 'ultratemppref', desc: 'Ultratemp Pref' }],
+            [9, { name: 'heatpump', desc: 'Heatpump Only' }],
+            [25, { name: 'heatpumppref', desc: 'Heatpump Pref' }],
             [32, { name: 'nochange', desc: 'No Change' }]
         ]);
         this.valueMaps.heatStatus = new byteValueMap([
@@ -3111,6 +3115,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
             let heatSource = typeof data.heatSource !== 'undefined' && data.heatSource !== null ? data.heatSource : sched.heatSource || 0;
             let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
+            let coolSetpoint = typeof data.coolSetpoint !== 'undefined' ? data.coolSetpoint : sched.coolSetpoint || 100;
             let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
             let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
             let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
@@ -3144,7 +3149,8 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             let runOnce = schedType !== 128 ? 129 : 128;
             if (startTimeType !== 0) runOnce |= (1 << (startTimeType + 1));
             if (endTimeType !== 0) runOnce |= (1 << (endTimeType + 3));
-            let flags = (circuit === 1 || circuit === 6) ? 81 : 100;
+            // This was always the cooling setpoint for ultratemp.
+            //let flags = (circuit === 1 || circuit === 6) ? 81 : 100;
             let out = Outbound.createMessage(168, [
                 3
                 , 0
@@ -3161,7 +3167,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
                 , startDate.getFullYear() - 2000
                 , heatSource
                 , heatSetpoint
-                , flags
+                , coolSetpoint
             ],
                 0
             );
@@ -3458,10 +3464,12 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
            
             sys.board.valueMaps.heatSources = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
             if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[2, { name: 'heater', desc: 'Heater' }]]);
-            if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar Only' }], [4, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-            else if (solarInstalled) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar' }]]);
-            if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'heatpump', desc: 'Heatpump Only' }], [6, { name: 'heatpumppref', desc: 'Heat Pump Pref' }]]);
-            else if (heatPumpInstalled) sys.board.valueMaps.heatSources.merge([[5, { name: 'heatpump', desc: 'Heat Pump' }]]);
+            if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar Only', hasCoolSetpoint: htypes.hasCoolSetpoint }], [4, { name: 'solarpref', desc: 'Solar Preferred', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
+            else if (solarInstalled) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar', hasCoolsetpoint: htypes.hasCoolSetpoint }]]);
+            if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Pref' }]]);
+            else if (heatPumpInstalled) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
+            if (ultratempInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'ultratemp', desc: 'UltraTemp Only', hasCoolSetpoint: htypes.hasCoolSetpoint }], [6, { name: 'ultratemppref', desc: 'UltraTemp Pref', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
+            else if (ultratempInstalled) sys.board.valueMaps.heatSources.merge([[5, { name: 'ultratemp', desc: 'UltraTemp', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
             if (sys.heaters.length > 0) sys.board.valueMaps.heatSources.merge([[0, { name: 'nochange', desc: 'No Change' }]]);
 
             sys.board.valueMaps.heatModes = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);

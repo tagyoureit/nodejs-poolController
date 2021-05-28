@@ -272,6 +272,29 @@ export class Timestamp {
         obj.adjustDST = dateJan.getTimezoneOffset() - dateJul.getTimezoneOffset() > 0; 
         return obj;
     }
+    public addHours(hours: number, minutes: number = 0, seconds: number = 0, milliseconds: number = 0) {
+        let interval = hours * 3600000;
+        interval += minutes * 60000;
+        interval += seconds * 1000;
+        interval += milliseconds;
+        this._dt.setMilliseconds(this._dt.getMilliseconds() + interval);
+        return this;
+    }
+    public addMinutes(minutes: number, seconds?: number, milliseconds?: number): Timestamp { return this.addHours(0, minutes, seconds, this.milliseconds); }
+    public addSeconds(seconds: number, milliseconds: number): Timestamp { return this.addHours(0, 0, seconds, milliseconds); }
+    public addMilliseconds(milliseconds: number): Timestamp { return this.addHours(0, 0, 0, milliseconds); }
+    public static today() {
+        let dt = new Date();
+        dt.setHours(0, 0, 0, 0);
+        return new Timestamp(dt);
+    }
+    public startOfDay() {
+        // This makes the returned timestamp immutable.
+        let dt = new Date(this._dt.getTime());
+        dt.setHours(0, 0, 0, 0);
+        return new Timestamp(dt);
+    }
+    public clone() { return new Timestamp(this._dt); }
 }
 export enum ControllerType {
     IntelliCenter = 'intellicenter',
