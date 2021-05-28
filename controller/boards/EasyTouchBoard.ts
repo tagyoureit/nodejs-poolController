@@ -1149,8 +1149,8 @@ class TouchBodyCommands extends BodyCommands {
             let temp1 = body1.setPoint || 100;
             let temp2 = body2.setPoint || 100;
             body.id === 1 ? temp1 = setPoint : temp2 = setPoint;
-            const mode1 = body1.heatMode;
-            const mode2 = body2.heatMode;
+            const mode1 = body1.heatMode || 0;
+            const mode2 = body2.heatMode || 0;
             const out = Outbound.create({
                 dest: 16,
                 action: 136,
