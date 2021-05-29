@@ -52,6 +52,18 @@
           "topic": "state/time",
           "message": "@bind=data.time;",
           "filter": "@bind=data.status.percent === 100;"
+        },
+        {
+          "topic": "alias",
+          "message": "@bind=data.alias;"
+        },
+        {
+          "topic": "state/status",
+          "message": "@bind=data.status;"
+        },
+        {
+          "topic": "state/mode",
+          "message": "@bind=data.mode;"
         }
       ]
     },
