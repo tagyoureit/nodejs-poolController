@@ -2656,16 +2656,18 @@ export class ScheduleCommands extends BoardCommands {
         ssched.emitEquipmentChange();
         return sched;
     }
-  public deleteScheduleAsync(data: any): Promise<Schedule> {
-    let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-    if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
-    let sched = sys.schedules.getItemById(id, false);
-    let ssched = state.schedules.getItemById(id, false);
-    sys.schedules.removeItemById(id);
-    state.schedules.removeItemById(id);
-    ssched.emitEquipmentChange();
-    return new Promise<Schedule>((resolve, reject) => { resolve(sched); });
-  }
+    public deleteScheduleAsync(data: any): Promise<Schedule> {
+        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+        if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
+        let sched = sys.schedules.getItemById(id, false);
+        let ssched = state.schedules.getItemById(id, false);
+        ssched.isActive = false;
+        if (sched.master === 1) ncp.schedules.removeById(id);
+        sys.schedules.removeItemById(id);
+        state.schedules.removeItemById(id);
+        ssched.emitEquipmentChange();
+        return new Promise<Schedule>((resolve, reject) => { resolve(sched); });
+    }
     public syncScheduleStates() {
         try {
             ncp.schedules.triggerSchedules();
@@ -2795,29 +2797,29 @@ export class HeaterCommands extends BoardCommands {
         let heatPumpInstalled = htypes.heatpump > 0;
         let gasHeaterInstalled = htypes.gas > 0;
 
-    sys.board.valueMaps.heatSources = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
-    if (gasHeaterInstalled) sys.board.valueMaps.heatSources.set(3, { name: 'heater', desc: 'Heater' });
-    if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-    else if (solarInstalled) sys.board.valueMaps.heatSources.set(5, { name: 'solar', desc: 'Solar' });
-    if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
-    else if (heatPumpInstalled) sys.board.valueMaps.heatSources.set(9, { name: 'heatpump', desc: 'Heat Pump' });
-    if (sys.heaters.length > 0) sys.board.valueMaps.heatSources.set(32, { name: 'nochange', desc: 'No Change' });
+        if (sys.heaters.length > 0) sys.board.valueMaps.heatSources = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
+        if (gasHeaterInstalled) sys.board.valueMaps.heatSources.set(3, { name: 'heater', desc: 'Heater' });
+        if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
+        else if (solarInstalled) sys.board.valueMaps.heatSources.set(5, { name: 'solar', desc: 'Solar' });
+        if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
+        else if (heatPumpInstalled) sys.board.valueMaps.heatSources.set(9, { name: 'heatpump', desc: 'Heat Pump' });
+        sys.board.valueMaps.heatSources.set(32, { name: 'nochange', desc: 'No Change' });
 
-    sys.board.valueMaps.heatModes = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
-    if (gasHeaterInstalled) sys.board.valueMaps.heatModes.set(3, { name: 'heater', desc: 'Heater' });
-    if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-    else if (solarInstalled) sys.board.valueMaps.heatModes.set(5, { name: 'solar', desc: 'Solar' });
-    if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
-    else if (heatPumpInstalled) sys.board.valueMaps.heatModes.set(9, { name: 'heatpump', desc: 'Heat Pump' });
-    // Now set the body data.
-    for (let i = 0; i < sys.bodies.length; i++) {
-      let body = sys.bodies.getItemByIndex(i);
-      let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
-      let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
-      btemp.heaterOptions = opts;
+        sys.board.valueMaps.heatModes = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
+        if (gasHeaterInstalled) sys.board.valueMaps.heatModes.set(3, { name: 'heater', desc: 'Heater' });
+        if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
+        else if (solarInstalled) sys.board.valueMaps.heatModes.set(5, { name: 'solar', desc: 'Solar' });
+        if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
+        else if (heatPumpInstalled) sys.board.valueMaps.heatModes.set(9, { name: 'heatpump', desc: 'Heat Pump' });
+        // Now set the body data.
+        for (let i = 0; i < sys.bodies.length; i++) {
+            let body = sys.bodies.getItemByIndex(i);
+            let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
+            let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
+            btemp.heaterOptions = opts;
+        }
+        this.setActiveTempSensors();
     }
-    this.setActiveTempSensors();
-  }
   public initTempSensors() {
     // Add in the potential sensors and delete the ones that shouldn't exist.
     let maxPairs = sys.equipment.maxBodies + (sys.equipment.shared ? -1 : 0);
