@@ -361,12 +361,12 @@ export class EasyTouchBoard extends SystemBoard {
         // Initialize the installed personality board.
         console.log(`Pentair EasyTouch System Detected!`);
 
-        let offset = byte1 === 14 ? 128 : 0;
-        let mt = this.valueMaps.expansionBoards.transform(offset + byte2);
+        let offset = byte2 === 14 ? 128 : 0;
+        let mt = this.valueMaps.expansionBoards.transform(offset + byte1);
         let mod = sys.equipment.modules.getItemById(0, true);
         mod.name = mt.name;
         mod.desc = mt.desc;
-        mod.type = offset + byte2;
+        mod.type = offset + byte1;
         mod.part = mt.part;
         let eq = sys.equipment;
         let md = mod.get();
@@ -408,9 +408,7 @@ export class EasyTouchBoard extends SystemBoard {
             let b = sys.bodies.getItemByIndex(i);
             b.master = 0;
         }
-
         state.emitControllerChange();
-
     }
     public bodies: TouchBodyCommands = new TouchBodyCommands(this);
     public system: TouchSystemCommands = new TouchSystemCommands(this);
