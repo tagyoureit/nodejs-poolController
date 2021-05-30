@@ -25,7 +25,7 @@
         "extend": "^3.0.2",
         "jszip": "^3.6.0",
         "mqtt": "^4.2.6",
-        "multicast-dns": "^7.2.0",
+        "multicast-dns": "^7.2.3",
         "node-ssdp": "^4.0.1",
         "serialport": "^9.0.7",
         "socket.io": "^4.0.1",
