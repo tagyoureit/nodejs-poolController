@@ -2649,11 +2649,11 @@ export class ScheduleCommands extends BoardCommands {
         sched.endTime = ssched.endTime = endTime;
         sched.startTimeType = ssched.startTimeType = startTimeType;
         sched.endTimeType = ssched.endTimeType = endTimeType;
+        sched.startDate = ssched.startDate = startDate;
         sched.startYear = startDate.getFullYear();
         sched.startMonth = startDate.getMonth() + 1;
         sched.startDay = startDate.getDate();
         
-        sched.startDate = ssched.startDate = startDate;
         ssched.display = sched.display = display;
         if (typeof sched.startDate === 'undefined')
         sched.master = 1;

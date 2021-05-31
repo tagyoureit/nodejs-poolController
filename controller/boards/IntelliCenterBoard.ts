@@ -3186,6 +3186,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
                         sched.endTime = ssched.endTime = endTime;
                         sched.startTimeType = ssched.startTimeType = startTimeType;
                         sched.endTimeType = ssched.endTimeType = endTimeType;
+                        sched.startDate = ssched.startDate = startDate;
                         sched.startMonth = startDate.getMonth() + 1;
                         sched.startYear = startDate.getFullYear();
                         sched.startDay = startDate.getDate();
