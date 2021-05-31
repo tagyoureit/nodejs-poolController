@@ -1014,7 +1014,7 @@ export class Schedule extends EqItem {
     }
 
     // todo: investigate schedules having startDate and _startDate
-    private _startDate: Date = new Date();
+    private _startDate: Date;
     public dataName = 'scheduleConfig';
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
