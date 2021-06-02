@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Inbound } from "../Messages";
 import { sys } from "../../../Equipment";
+import { state } from "../../../State";
 import { ControllerType } from "../../../Constants";
 export class OptionsMessage {
     public static process(msg: Inbound): void {
@@ -129,6 +130,19 @@ export class OptionsMessage {
                 // [165,33,16,34,168,10],[0,0,0,254,0,0,0,0,0,0],[2,168 = manual heat mode off
                 // [165,33,16,34,168,10],[0,0,0,254,1,0,0,0,0,0],[2,169] = manual heat mode on
                 sys.general.options.manualHeat = msg.extractPayloadByte(4) === 1;
+                if ((msg.extractPayloadByte(3) & 0x01) === 1) {
+                    // only support for 1 ic with EasyTouch
+                    let chem = sys.chemControllers.getItemByAddress(144, true);
+                    let schem = state.chemControllers.getItemById(chem.id, true);
+                    chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
+                    chem.ph.tank.units = chem.orp.tank.units = '';
+
+                }
+                else {
+                    let chem = sys.chemControllers.getItemByAddress(144);
+                    state.chemControllers.removeItemById(chem.id);
+                    sys.chemControllers.removeItemById(chem.id);
+                }
                 msg.isProcessed = true;
                 break;
         }

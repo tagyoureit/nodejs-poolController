@@ -612,7 +612,7 @@ export class Inbound extends Message {
                         HeaterMessage.process(this);
                         break;
                     case 147:
-                        IntelliChemStateMessage.process(this);
+                        IntellichemMessage.process(this);
                         break;
                     default:
                         // take these out...

@@ -39,6 +39,8 @@ export class IntelliChemStateMessage {
             case 19: // Request to OCP to return the status that ic currently has.
                 // [165,14,16,34,19,1],[0],[0,249]
                 break;
+
+            /* RKS: This is processed in the IntellichemMessage.processTouch() and is the results of asking for the IntelliChem configuration.
             case 147: // OCP is broadcasting it's known ic values...  Need to change our settings if virtual.
                 // 147 is a proto:broadcast message; 
                 // it has exactly the same format as 18 but there is payload[0] which is inserted at the beginning.  Likely the chem controller id.
@@ -46,7 +48,7 @@ export class IntelliChemStateMessage {
                 IntelliChemStateMessage.processControllerChange(msg);
                 break;
             // ---------- End OCP set get ----------- //
-
+            */
             // ---------- ICP or SL set get ----------- //
             case 211: // SL or other controller is telling OCP to set IntelliChem value
                 // It will take these values and pass them in 146 to IntelliChem
