@@ -191,6 +191,10 @@ export class IntelliChemStateMessage {
         scontroller.firmware = `${msg.extractPayloadByte(37)}.${msg.extractPayloadByte(36).toString().padStart(3, '0')}`
         //      38 : Water Chemistry Warning
         scontroller.warnings.waterChemistry = msg.extractPayloadByte(38);
+        if (typeof controller.body === 'undefined') controller.body = scontroller.body = 0;
+        scontroller.ph.pump.isDosing = scontroller.ph.dosingStatus === 0 && controller.ph.enabled;
+        scontroller.orp.pump.isDosing = scontroller.orp.dosingStatus === 0 && controller.orp.enabled;
+
         scontroller.lastComm = new Date().getTime();
 
         // manually emit extended values

@@ -102,9 +102,10 @@ export class IntellichemMessage {
             schem.firmware = `${msg.extractPayloadByte(38)}.${msg.extractPayloadByte(37).toString().padStart(3, '0')}`
             schem.warnings.waterChemistry = msg.extractPayloadByte(39);
             schem.lastComm = new Date().getTime();
-            chem.body = schem.body = 1;
+            if(typeof chem.body === 'undefined') chem.body = schem.body = 0;
             schem.name = chem.name || 'IntelliChem';
-
+            schem.ph.pump.isDosing = schem.ph.dosingStatus === 0 && chem.ph.enabled;
+            schem.orp.pump.isDosing = schem.orp.dosingStatus === 0 && chem.orp.enabled;
             // manually emit extended values
             webApp.emitToClients('chemController', schem.getExtended()); // emit extended data
             schem.hasChanged = false; // try to avoid duplicate emits
