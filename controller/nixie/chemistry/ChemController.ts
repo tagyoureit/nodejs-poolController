@@ -82,7 +82,7 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
                 try {
                     await this[i].closeAsync();
                     this.splice(i, 1);
-                } catch (err) { logger.error(`Error stopping Nixie Chem Controller ${err}`); }
+                } catch (err) { logger.error(`Error stopping Nixie Chem Controller ${err}`); return Promise.reject(err);}
             }
 
         } catch (err) { } // Don't bail if we have an error
@@ -359,7 +359,7 @@ export class NixieChemController extends NixieEquipment {
             else if (typeof this.bodyOnTime === 'undefined') this.bodyOnTime = new Date().getTime();
             return schem.flowDetected;
         }
-        catch (err) { logger.error(`checkFlowAsync: ${err.message}`); schem.alarms.flowSensorFault = 7; this.flowDetected = schem.flowDetected = false; }
+        catch (err) { logger.error(`checkFlowAsync: ${err.message}`); schem.alarms.flowSensorFault = 7; this.flowDetected = schem.flowDetected = false; return Promise.reject(err);}
     }
     private get dissolvedSolidsFactor() { return this.chem.orp.useChlorinator ? 12.2 : 12.1; }
     private calculateTemperatureFactor(schem: ChemControllerState): number {
@@ -408,8 +408,8 @@ export class NixieChemController extends NixieEquipment {
                     logger.warn('REM Server not Connected');
             }
         }
-        catch (err) { logger.error(`Error polling Chem Controller - ${err}`); }
-        finally { this._pollTimer = setTimeout(async () => await this.pollEquipmentAsync(), this.pollingInterval || 10000); }
+        catch (err) { logger.error(`Error polling Chem Controller - ${err}`); return Promise.reject(err);}
+        finally { this._pollTimer = setTimeout(async () => {try {await this.pollEquipmentAsync()} catch (err){return Promise.reject(err);}}, this.pollingInterval || 10000); }
     }
     public processAlarms(schem: ChemControllerState) {
         try {
@@ -703,7 +703,7 @@ class NixieChemical extends NixieChildEquipment {
             }
             schem.mixTimeRemaining = 0;
             this.currentMix = undefined;
-        } catch (err) { logger.error(`Error stopping chemical mix`); }
+        } catch (err) { logger.error(`Error stopping chemical mix`); return Promise.reject(err);}
     }
     public async mixChemicals(schem: ChemicalState, mixingTime?: number) {
         try {
@@ -763,7 +763,7 @@ class NixieChemical extends NixieChildEquipment {
             this._mixTimer = undefined;
             await super.closeAsync();
         }
-        catch (err) { logger.error(`chemController closeAsync ${err.message}`); }
+        catch (err) { logger.error(`chemController closeAsync ${err.message}`); return Promise.reject(err);}
     }
     public async cancelDosing(schem: ChemicalState) {
         try {
@@ -1073,7 +1073,7 @@ export class NixieChemPump extends NixieChildEquipment {
             if (dosage.schem.dosingStatus === 0) {
                 this._dosingTimer = setTimeout(async () => {
                     try { await this.dose(dosage); }
-                    catch (err) { logger.error(err); }
+                    catch (err) { logger.error(err); return Promise.reject(err);}
                 }, 1000);
             }
             else {
@@ -1322,7 +1322,7 @@ export class NixieChemicalPh extends NixieChemical {
                 return true;
             }
         }
-        catch (err) { logger.error(err); }
+        catch (err) { logger.error(err); return Promise.reject(err);}
     }
     public async cancelDosing(sph: ChemicalPhState) {
         try {
@@ -1378,7 +1378,7 @@ export class NixieChemicalPh extends NixieChemical {
                 await this.pump.dose(dosage);
             }
         }
-        catch (err) { logger.error(`manualDoseAsync: ${err.message}`); logger.error(err); }
+        catch (err) { logger.error(`manualDoseAsync: ${err.message}`); logger.error(err); return Promise.reject(err);}
     }
     public async initDose(dosage: NixieChemDose) {
         try {
@@ -1465,7 +1465,7 @@ export class NixieChemicalORP extends NixieChemical {
                 this.currentDose = dosage;
             }
         }
-        catch (err) { logger.error(`manualDoseAsync ORP: ${err.message}`); logger.error(err); }
+        catch (err) { logger.error(`manualDoseAsync ORP: ${err.message}`); logger.error(err); return Promise.reject(err);}
     }
     public async cancelDosing(sorp: ChemicalORPState) {
         try {
@@ -1591,7 +1591,7 @@ export class NixieChemicalORP extends NixieChemical {
                     await this.cancelDosing(sorp);
             }
         }
-        catch (err) { logger.error(`checkDosing ORP: ${err.message}`); }
+        catch (err) { logger.error(`checkDosing ORP: ${err.message}`); return Promise.reject(err);}
     }
 }
 class NixieChemProbe extends NixieChildEquipment {
