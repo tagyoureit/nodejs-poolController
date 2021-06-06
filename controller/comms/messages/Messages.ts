@@ -41,6 +41,7 @@ import { IntellichemMessage } from "./config/IntellichemMessage";
 import { TouchScheduleCommands } from "controller/boards/EasyTouchBoard";
 import { IntelliValveStateMessage } from "./status/IntelliValveStateMessage";
 import { IntelliChemStateMessage } from "./status/IntelliChemStateMessage";
+import { OutboundMessageError } from "../../Errors";
 export enum Direction {
     In = 'in',
     Out = 'out'
@@ -812,6 +813,14 @@ export class Outbound extends Message {
         out.onAbort = obj.onAbort;
         out.onResponseProcessed = obj.onResponseProcessed;
         out.timeout = obj.timeout;
+        for (let i = 0; i < out.header.length; i++){
+            if (out.header[i] >= 0 && out.header[i] <= 255 && out.header[i] !== null && typeof out.header[i] !== 'undefined') continue;
+            throw new OutboundMessageError(out, `Invalid header detected: ${out.toShortPacket()}`);
+        }
+        for (let i = 0; i < out.payload.length; i++){
+            if (out.payload[i] >= 0 && out.payload[i] <= 255 && out.payload[i] !== null && typeof out.payload[i] !== 'undefined') continue;
+            throw new OutboundMessageError(out, `Invalid payload detected: ${out.toShortPacket()}`);
+        }
         return out;
     }
     public static createMessage(action: number, payload: number[], retries?: number, response?: Response | boolean | Function): Outbound {
