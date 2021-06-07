@@ -270,7 +270,7 @@ export class NixieChlorinator extends NixieEquipment {
                 conn.queueSendMessage(out);
             });
 
-        } catch (err) { logger.error(`Communication error with Chlorinator ${this.chlor.name} : ${err.message}`); }
+        } catch (err) { logger.error(`Communication error with Chlorinator ${this.chlor.name} : ${err.message}`); return Promise.reject(err);}
 
     }
     public async getModel() {
@@ -299,7 +299,7 @@ export class NixieChlorinator extends NixieEquipment {
                     conn.queueSendMessage(out);
                 });
             }
-        } catch (err) { logger.error(`Communication error with Chlorinator ${this.chlor.name} : ${err.message}`); }
+        } catch (err) { logger.error(`Communication error with Chlorinator ${this.chlor.name} : ${err.message}`); return Promise.reject(err);}
 
     }
 
