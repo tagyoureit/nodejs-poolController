@@ -14,64 +14,96 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import * as path from "path";
-import * as fs from "fs";
-const extend = require("extend");
 import { logger } from "../logger/Logger";
 // import { https } from "follow-redirects";
 import * as https from 'https';
 import { state } from "../controller/State";
 import { sys } from "../controller/Equipment";
 import { Timestamp } from "../controller/Constants";
+import { execSync } from 'child_process';
+
 class VersionCheck {
     private userAgent: string;
     private gitApiHost: string;
-    private gitLatestReleaseJSONPath:string; 
+    private gitLatestReleaseJSONPath: string;
     private redirects: number;
     constructor() {
         this.userAgent = 'tagyoureit-nodejs-poolController-app';
         this.gitApiHost = 'api.github.com';
         this.gitLatestReleaseJSONPath = '/repos/tagyoureit/nodejs-poolController/releases/latest';
-      }
+    }
 
-    public check() {
+    public checkGitRemote() {
         // need to significantly rate limit this because GitHub will start to throw 'too many requests' error
         // and we simply don't need to check that often if the app needs to be updated
-        if (typeof state.appVersion.nextCheckTime === 'undefined' || new Date() > new Date(state.appVersion.nextCheckTime)) setTimeout(() => {this.checkAll();}, 100);
+        if (typeof state.appVersion.nextCheckTime === 'undefined' || new Date() > new Date(state.appVersion.nextCheckTime)) setTimeout(() => { this.checkAll(); }, 100);
+    }
+    public checkGitLocal() {
+        // check local git version
+        try {
+            let res = execSync('git rev-parse --abbrev-ref HEAD');
+            let out = res.toString().trim();
+            logger.info(`The current git branch output is ${out}`);
+            switch (out) {
+                case 'fatal':
+                case 'command':
+                    state.appVersion.gitLocalBranch = '--';
+                    break;
+                default:
+                    state.appVersion.gitLocalBranch = out;
+            }
+        }
+        catch (err) {
+            logger.error(`Unable to retrieve local git branch.  ${err}`);
+        }
+        try {
+            let res = execSync('git rev-parse HEAD');
+            let out = res.toString().trim();
+            logger.info(`The current git commit output is ${out}`);
+            switch (out) {
+                case 'fatal':
+                case 'command':
+                    state.appVersion.gitLocalCommit = '--';
+                    break;
+                default:
+                    state.appVersion.gitLocalCommit = out;
+            }
+        }
+        catch (err) { logger.error(`Unable to retrieve local git commit.  ${err}`); }
     }
     private checkAll() {
         try {
             this.redirects = 0;
             let dt = new Date();
-            dt.setDate(dt.getDate()+2); // check every 2 days
-            state.appVersion.nextCheckTime = Timestamp.toISOLocal(dt); 
-            this.getLatestRelease().then((publishedVersion)=>{
+            dt.setDate(dt.getDate() + 2); // check every 2 days
+            state.appVersion.nextCheckTime = Timestamp.toISOLocal(dt);
+            this.getLatestRelease().then((publishedVersion) => {
                 state.appVersion.githubRelease = publishedVersion;
                 this.compare();
             });
         }
-        catch (err){
+        catch (err) {
             logger.error(err);
         }
     }
 
-    private async getLatestRelease(redirect?:string):Promise<string> {
-        var options = { 
+    private async getLatestRelease(redirect?: string): Promise<string> {
+        var options = {
             method: 'GET',
             headers: {
                 'User-Agent': this.userAgent
             }
         }
         let url: string;
-        if (typeof redirect === 'undefined'){
+        if (typeof redirect === 'undefined') {
             url = `https://${this.gitApiHost}${this.gitLatestReleaseJSONPath}`;
         }
-        else{
+        else {
             url = redirect;
             this.redirects += 1;
         }
         if (this.redirects >= 20) return Promise.reject(`Too many redirects.`)
-                return new Promise<string>((resolve, reject)=> {
+        return new Promise<string>((resolve, reject) => {
             try {
                 https.request(url, options, async res => {
                     if (res.statusCode > 300 && res.statusCode < 400 && res.headers.location) await this.getLatestRelease(res.headers.location);
@@ -85,7 +117,7 @@ class VersionCheck {
                             reject(`No data returned.`)
                     })
                 })
-                .end();
+                    .end();
             }
             catch (err) {
                 logger.error('Error contacting Github for latest published release: ' + err);

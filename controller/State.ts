@@ -328,7 +328,7 @@ export class State implements IState {
             let times = self.heliotrope.calculatedTimes;
             self.data.sunrise = times.isValid ? Timestamp.toISOLocal(times.sunrise) : '';
             self.data.sunset = times.isValid ? Timestamp.toISOLocal(times.sunset) : '';
-            versionCheck.check()
+            versionCheck.checkGitRemote();
         });
         this.status = 0; // Initializing
         this.equipment = new EquipmentState(this.data, 'equipment');
@@ -350,6 +350,7 @@ export class State implements IState {
         this.comms = new CommsState();
         this.heliotrope = new Heliotrope();
         this.appVersion = new AppVersionState(this.data, 'appVersion');
+        versionCheck.checkGitLocal();
     }
     public resetData() {
         this.circuitGroups.clear();
@@ -2255,6 +2256,10 @@ export class AppVersionState extends EqState {
             this.hasChanged = true;
         }
     }
+    public get gitLocalBranch() {return this.data.gitLocalBranch; }
+    public set gitLocalBranch(val: string) {this.data.gitLocalBranch = val;}
+    public get gitLocalCommit() {return this.data.gitLocalCommit; }
+    public set gitLocalCommit(val: string) {this.data.gitLocalCommit = val;}
 }
 export class CommsState {
     public keepAlives: number;
