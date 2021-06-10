@@ -592,10 +592,12 @@ export class NixieCircuitCommands extends CircuitCommands {
         if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit group id exceeded`, id, 'CircuitGroup'));
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'CircuitGroup'));
         group = sys.circuitGroups.getItemById(id, true);
+        let sgroup = state.circuitGroups.getItemById(id, true);
         return new Promise<CircuitGroup>((resolve, reject) => {
             if (typeof obj.name !== 'undefined') group.name = obj.name;
             if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
             if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
+            if (typeof obj.showInFeatures !== 'undefined') sgroup.showInFeatures = group.showInFeatures = utils.makeBool(obj.showInFeatures);
             group.dontStop = group.eggTimer === 1440;
             group.isActive = true;
 

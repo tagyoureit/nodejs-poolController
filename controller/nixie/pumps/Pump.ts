@@ -336,7 +336,7 @@ export class NixiePumpRS485 extends NixiePump {
             if (!this.closing) await this.setDriveStateAsync(pstate);
             if (!this.closing) {
                 if (this._targetSpeed >= pt.minFlow && this._targetSpeed <= pt.maxFlow) await this.setPumpGPMAsync(pstate);
-                else if (this._targetSpeed >= pt.minSpeed && this._targetSpeed <= pt.maxSpeed) await this.setPumpRPMAsync(pstate);
+                else if (this._targetSpeed >= pt.minSpeed && this._targetSpeed <= pt.maxSpeed) await this.setPumpRPMAsync(pstate);  
             }
            
             if(!this.closing) await utils.sleep(2000);
@@ -507,6 +507,7 @@ export class NixiePumpVS extends NixiePumpRS485 {
             if (circ.isOn) _newSpeed = Math.max(_newSpeed, pc.speed);
         }
         if (isNaN(_newSpeed)) _newSpeed = 0;
+        if (this._targetSpeed !== 0) Math.min(Math.max(this.pump.minSpeed, this._targetSpeed), this.pump.maxSpeed);
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed} RPM.`);
         this._targetSpeed = _newSpeed;
     }
@@ -521,6 +522,7 @@ export class NixiePumpVF extends NixiePumpRS485 {
             if (circ.isOn) _newSpeed = Math.max(_newSpeed, pc.flow);
         }
         if (isNaN(_newSpeed)) _newSpeed = 0;
+        if (this._targetSpeed !== 0) Math.min(Math.max(this.pump.minFlow, this._targetSpeed), this.pump.maxFlow);
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed} GPM.`);
         this._targetSpeed = _newSpeed;
     }
