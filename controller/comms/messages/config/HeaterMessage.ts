@@ -14,11 +14,12 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import {Inbound} from "../Messages";
-import {sys, Heater} from "../../../Equipment";
+import { Inbound } from "../Messages";
+import { sys, Heater } from "../../../Equipment";
 import { ControllerType } from "../../../Constants";
 import { logger } from "../../../../logger/Logger";
 import { state } from "../../../State";
+import { ncp } from "../../../nixie/Nixie";
 export class HeaterMessage {
     public static process(msg: Inbound): void {
         switch (sys.controllerType) {
@@ -94,6 +95,17 @@ export class HeaterMessage {
                 // bits 7,8 = stop temp delta
 
                 if ((msg.extractPayloadByte(0) & 0x2) === 0) {
+                    let heater = sys.heaters.getItemById(1);
+                    if (heater.master === 1) {
+                        heater.master = 0;
+                        (async function () {
+                            try {
+                                await ncp.heaters.deleteHeaterAsync(1);
+                                logger.debug(`Gas heater control returned to OCP.`);
+                            }
+                            catch (err) { logger.error(`Error with OCP reclaiming control over gas heater: ${err}`) }
+                        })();
+                    }
                     sys.heaters.removeItemById(2);
                     sys.heaters.removeItemById(3);
                     sys.board.equipmentIds.invalidIds.remove(20); // include Aux Extra
@@ -110,6 +122,16 @@ export class HeaterMessage {
                 if ((msg.extractPayloadByte(2) & 0x30) === 0) {
                     // solar
                     let solar: Heater = sys.heaters.getItemById(2, true);
+                    if (solar.master === 1) {
+                        solar.master = 0;
+                        (async function () {
+                            try {
+                                await ncp.heaters.deleteHeaterAsync(2);
+                                logger.debug(`Solar heater control returned to OCP.`);
+                            }
+                            catch (err) { logger.error(`Error with OCP reclaiming control over solar heater: ${err}`) }
+                        })();
+                    }
                     solar.name = 'Solar Heater';
                     solar.type = 2;
                     solar.isActive = true;
@@ -117,10 +139,10 @@ export class HeaterMessage {
                     sys.board.equipmentIds.invalidIds.add(20); // exclude Aux Extra
                     sys.features.removeItemById(20); // if present
                     state.features.removeItemById(20); // if present
-                    sys.board.circuits.deleteCircuit(20); 
+                    sys.board.circuits.deleteCircuit(20);
                     solar.body = 32;
-                    solar.freeze = (msg.extractPayloadByte(1) & 0x80) >> 7 === 1; 
-                    solar.coolingEnabled = (msg.extractPayloadByte(1) & 0x20) >> 5 === 1; 
+                    solar.freeze = (msg.extractPayloadByte(1) & 0x80) >> 7 === 1;
+                    solar.coolingEnabled = (msg.extractPayloadByte(1) & 0x20) >> 5 === 1;
                     solar.startTempDelta = ((msg.extractPayloadByte(2) & 0xE) >> 1) + 3;
                     solar.stopTempDelta = ((msg.extractPayloadByte(2) & 0xC0) >> 6) + 2;
                     let sstate = state.heaters.getItemById(solar.id, true);
@@ -130,6 +152,16 @@ export class HeaterMessage {
                 }
                 else if ((msg.extractPayloadByte(2) & 0x10) === 16) {
                     let heatPump: Heater = sys.heaters.getItemById(3, true);
+                    if (heatPump.master === 1) {
+                        heatPump.master = 0;
+                        (async function () {
+                            try {
+                                await ncp.heaters.deleteHeaterAsync(3);
+                                logger.debug(`Heat pump control returned to OCP.`);
+                            }
+                            catch (err) { logger.error(`Error with OCP reclaiming control over heat pump: ${err}`) }
+                        })();
+                    }
                     heatPump.isVirtual = false;
                     heatPump.type = 3;
                     heatPump.isActive = true;
@@ -141,9 +173,9 @@ export class HeaterMessage {
                     hstate.name = heatPump.name;
                     hstate.isVirtual = false;
                 }
-                for (var i = 0; i < sys.heaters.length; i++){
+                for (var i = 0; i < sys.heaters.length; i++) {
                     let heater = sys.heaters.getItemByIndex(i);
-                    if (!heater.isActive){sys.heaters.removeItemByIndex(i);}
+                    if (!heater.isActive) { sys.heaters.removeItemByIndex(i); }
                 }
                 sys.board.heaters.updateHeaterServices();
                 for (let i = 0; i < sys.bodies.length; i++) {

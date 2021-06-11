@@ -26,7 +26,6 @@ export class NixieHeaterCollection extends NixieEquipmentCollection<NixieHeater>
         try {
             let h: NixieHeater = this.find(elem => elem.id === hstate.id) as NixieHeater;
             if (typeof h === 'undefined') {
-                console.log(this);
                 return Promise.reject(new Error(`NCP: Heater ${hstate.id}-${hstate.name} could not be found to set the state to ${val}.`));
             }
             await h.setHeaterStateAsync(hstate, val);

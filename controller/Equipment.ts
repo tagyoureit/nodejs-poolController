@@ -192,7 +192,7 @@ export class PoolSystem implements IPoolSystem {
     public get controllerType(): ControllerType { return this.data.controllerType as ControllerType; }
     public set controllerType(val: ControllerType) {
         if (this.controllerType !== val || this.controllerType === ControllerType.Virtual) {
-            console.log('RESETTING DATA');
+            console.log('RESETTING DATA -- Data files backed up to ./logs directory.');
             // Only go in here if there is a change to the controller type.
             this.resetData(); // Clear the configuration data.
             state.resetData(); // Clear the state data.
