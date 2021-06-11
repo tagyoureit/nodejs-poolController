@@ -121,6 +121,7 @@
           "port": 1883,
           "username": "",
           "password": "",
+          "selfSignedCertificate": false,
           "rootTopic": "@bind=(state.equipment.model).replace(' ','-').replace('/','').toLowerCase();",
           "retain": true,
           "qos": 0,
