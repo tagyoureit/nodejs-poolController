@@ -135,7 +135,7 @@ export class HeaterMessage {
                     solar.name = 'Solar Heater';
                     solar.type = 2;
                     solar.isActive = true;
-                    solar.isVirtual = false;
+                    // solar.isVirtual = false;
                     sys.board.equipmentIds.invalidIds.add(20); // exclude Aux Extra
                     sys.features.removeItemById(20); // if present
                     state.features.removeItemById(20); // if present
@@ -147,7 +147,7 @@ export class HeaterMessage {
                     solar.stopTempDelta = ((msg.extractPayloadByte(2) & 0xC0) >> 6) + 2;
                     let sstate = state.heaters.getItemById(solar.id, true);
                     sstate.name = solar.name;
-                    sstate.isVirtual = false;
+                    // sstate.isVirtual = false;
                     sys.heaters.removeItemById(3);
                 }
                 else if ((msg.extractPayloadByte(2) & 0x10) === 16) {
@@ -162,7 +162,7 @@ export class HeaterMessage {
                             catch (err) { logger.error(`Error with OCP reclaiming control over heat pump: ${err}`) }
                         })();
                     }
-                    heatPump.isVirtual = false;
+                    // heatPump.isVirtual = false;
                     heatPump.type = 3;
                     heatPump.isActive = true;
                     heatPump.heatingEnabled = (msg.extractPayloadByte(1) & 0x1) === 1;
@@ -171,7 +171,7 @@ export class HeaterMessage {
                     sys.board.equipmentIds.invalidIds.remove(20); // include Aux Extra
                     let hstate = state.heaters.getItemById(heatPump.id, true);
                     hstate.name = heatPump.name;
-                    hstate.isVirtual = false;
+                    // hstate.isVirtual = false;
                 }
                 for (var i = 0; i < sys.heaters.length; i++) {
                     let heater = sys.heaters.getItemByIndex(i);
@@ -220,7 +220,17 @@ export class HeaterMessage {
         for (let i = 0; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters - 1; i++) {
             var heater: Heater = sys.heaters.getItemById(i + 1);
             heater.cooldownDelay = msg.extractPayloadByte(i + 2);
-            heater.isVirtual = false;
+            // heater.isVirtual = false;
+            if (heater.master === 1) {
+                heater.master = 0;
+                (async function () {
+                    try {
+                        await ncp.heaters.deleteHeaterAsync(i + 1);
+                        logger.debug(`Heater control returned to OCP.`);
+                    }
+                    catch (err) { logger.error(`Error with OCP reclaiming control over heater: ${err}`) }
+                })();
+            }
         }
     }
 
@@ -243,9 +253,19 @@ export class HeaterMessage {
             else {
                 heater.isActive = heater.type > 0;
                 heater.body = msg.extractPayloadByte(i + 17);
-                heater.isVirtual = false;
+                // heater.isVirtual = false;
+                if (heater.master === 1) {
+                    heater.master = 0;
+                    (async function () {
+                        try {
+                            await ncp.heaters.deleteHeaterAsync(2);
+                            logger.debug(`Heater control returned to OCP.`);
+                        }
+                        catch (err) { logger.error(`Error with OCP reclaiming control over heater: ${err}`) }
+                    })();
+                }
                 let hstate = state.heaters.getItemById(i);
-                hstate.isVirtual = false;
+                // hstate.isVirtual = false;
                 hstate.name = heater.name;
             }
 
