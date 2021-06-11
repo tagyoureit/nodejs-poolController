@@ -127,18 +127,18 @@ export class NixieBoard extends SystemBoard {
             [2, { name: 'sunset', desc: 'Sunset' }]
         ]);
         this.valueMaps.lightThemes = new byteValueMap([
-            [0, { name: 'white', desc: 'White' }],
-            [1, { name: 'green', desc: 'Green' }],
-            [2, { name: 'blue', desc: 'Blue' }],
-            [3, { name: 'magenta', desc: 'Magenta' }],
-            [4, { name: 'red', desc: 'Red' }],
-            [5, { name: 'sam', desc: 'SAm Mode' }],
-            [6, { name: 'party', desc: 'Party' }],
-            [7, { name: 'romance', desc: 'Romance' }],
-            [8, { name: 'caribbean', desc: 'Caribbean' }],
-            [9, { name: 'american', desc: 'American' }],
-            [10, { name: 'sunset', desc: 'Sunset' }],
-            [11, { name: 'royal', desc: 'Royal' }],
+            [0, { name: 'white', desc: 'White', type: 'intellibrite', sequence: 11 }],
+            [1, { name: 'green', desc: 'Green', type: 'intellibrite', sequence: 9 }],
+            [2, { name: 'blue', desc: 'Blue', type: 'intellibrite', sequence: 8 }],
+            [3, { name: 'magenta', desc: 'Magenta', type: 'intellibrite', sequence: 12 }],
+            [4, { name: 'red', desc: 'Red', type: 'intellibrite', sequence: 10 }],
+            [5, { name: 'sam', desc: 'SAm Mode', type: 'intellibrite', sequence: 1 }],
+            [6, { name: 'party', desc: 'Party', type: 'intellibrite', sequence: 2 }],
+            [7, { name: 'romance', desc: 'Romance', type: 'intellibrite', sequence: 3 }],
+            [8, { name: 'caribbean', desc: 'Caribbean', type: 'intellibrite', sequence: 4 }],
+            [9, { name: 'american', desc: 'American', type: 'intellibrite', sequence: 5 }],
+            [10, { name: 'sunset', desc: 'Sunset', type: 'intellibrite', sequence: 6 }],
+            [11, { name: 'royal', desc: 'Royal', type: 'intellibrite', sequence: 7 }],
             [255, { name: 'none', desc: 'None' }]
         ]);
         this.valueMaps.lightColors = new byteValueMap([
