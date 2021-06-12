@@ -40,7 +40,6 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
     private subscribed: boolean; // subscribed to events or not
     private sentInitialMessages = false;
     private init = () => {
-
         let baseOpts = extend(true, { headers: {} }, this.cfg.options, this.context.options);
         if ((typeof baseOpts.hostname === 'undefined' || !baseOpts.hostname) && (typeof baseOpts.host === 'undefined' || !baseOpts.host || baseOpts.host === '*')) {
             logger.warn(`Interface: ${this.cfg.name} has not resolved to a valid host.`);
@@ -52,6 +51,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             clientId: this.tokensReplacer(baseOpts.clientId, undefined, toks, { vars: {} } as any, {}),
             username: baseOpts.username,
             password: baseOpts.password,
+            rejectUnauthorized: !baseOpts.selfSignedCertificate,
             url
         }
         this.client = connect(url, opts);
@@ -63,6 +63,9 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             } catch (err) { logger.error(err); }
         });
 
+        this.client.on('error', (error) => {
+          logger.error(`MQTT error ${error}`)
+        });
     }
     public async stopAsync() {
         try {
