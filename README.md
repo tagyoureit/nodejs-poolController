@@ -20,6 +20,9 @@ Equipment supported
 1. Home Automation:  SmartThings, Hubitat, ISY, Vera, Siri, Echo
 1. Chemical probes (pH, ORP, flow sensors, EC, etc.)
 
+## Latest Changes
+See (Changelog)[https://github.com/tagyoureit/nodejs-poolController/blob/master/Changelog)
+
 ## What's new in 7.0?
 
 The current version includes very tight intergation with [relayEquipmentManager](https://github.com/rstrouse/relayEquipmentManager) which allows for hardware control over your ancillary pool equipment (chemical probes, pumps, tanks, heaters, pumps, etc).  
@@ -33,11 +36,6 @@ Dashpanel Client Screenshot
 
 <img src="https://tagyoureit.github.io/nodejs-poolController/images/v6/clients/dashPanel.png?raw=true" height="300">
 
-Webclient Client Screenshot
-
-<img src="https://tagyoureit.github.io/nodejs-poolController/images/v6/clients/webClient-top.png?raw=true" height="300">
-
-
 ## Installation Instructions
 
 This code requires a physical [RS485](https://github.com/tagyoureit/nodejs-poolController/wiki/RS-485-Adapter-Details) adapter to work.
@@ -49,7 +47,9 @@ If you don't know anything about NodeJS, these directions might be helpful.
 
 1. Install Nodejs (v12 recommended). (https://nodejs.org/en/download/)
 1. Update NPM (https://docs.npmjs.com/getting-started/installing-node).
-1. Download the latest [code release](https://github.com/tagyoureit/nodejs-poolController/releases)
+1. It is recommended to clone the source code as updates are frequently pushed while releases are infrequent
+   
+   Download the latest [code release](https://github.com/tagyoureit/nodejs-poolController/releases)
    OR
    clone with `git clone git@github.com:tagyoureit/nodejs-poolController.git`
 1. Unzip into nodejs-poolController.
