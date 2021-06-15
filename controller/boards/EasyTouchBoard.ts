@@ -541,8 +541,9 @@ export class TouchConfigQueue extends ConfigQueue {
                 action: this.curr.setcategory,
                 payload: [itm],
                 retries: 3,
-                response: true,
-                onResponseProcessed: function () { self.processNext(out); }
+                response: Response.create({response: true, callback: () => {self.processNext(out);}})
+                // response: true,
+                // onResponseProcessed: function () { self.processNext(out); }
             });
             setTimeout(() => conn.queueSendMessage(out), 50);
         } else {

@@ -360,15 +360,7 @@ export class SendRecieveBuffer {
                     if (msg.response instanceof Response && typeof (msg.response.callback) === 'function') {
                         setTimeout(msg.response.callback, 100, msg);
                     }
-                    /*  RSG: This shouldn't be here, correct?  No reason to get back a boolean value here. 
-                    else if (typeof msg.response === 'function')
-                        setTimeout(msg.response, 100, undefined, msg); */
-
                 }
-                // RSG - I'm not even sure this needs to be in the requiresResponse closure.  If it's set, shouldn't we just call it?
-                // RKS: Still not sure what this does.  We already have the onComplete.  The response callback is already being called above and in this
-                // case I suspect that there was actually no requested response as it would have been handled by either of the two message above.
-                if (typeof msg.onResponseProcessed === 'function') setTimeout(msg.onResponseProcessed, 100);
                 conn.isRTS = true;
                 return;
             }
@@ -415,19 +407,12 @@ export class SendRecieveBuffer {
         if (typeof (conn.buffer._waitingPacket) !== 'undefined' && conn.buffer._waitingPacket) {
             var resp = msgOut.response;
             if (msgOut.requiresResponse) {
-                if (resp instanceof Response && resp.isResponse(msgIn, msgOut)) {
+                if (resp instanceof Response && resp.isResponse(msgIn)) {
                     conn.buffer._waitingPacket = null;
                     if (typeof msgOut.onComplete === 'function') msgOut.onComplete(undefined, msgIn);
                     callback = resp.callback;
                     resp.message = msgIn;
                     if (resp.ack) conn.queueSendMessage(resp.ack);
-                }
-                else {
-                    if (typeof resp === 'function' && resp(msgIn, msgOut)) {
-                        conn.buffer._waitingPacket = null;
-                        if (typeof msgOut.onComplete === 'function') msgOut.onComplete(undefined, msgIn);
-                        callback = msgOut.onResponseProcessed;
-                    }
                 }
             }
         }
@@ -441,13 +426,10 @@ export class SendRecieveBuffer {
             if (typeof out === 'undefined') continue;
             let resp = out.response;
             if (out.requiresResponse) {
-                if (resp instanceof Response && resp.isResponse(msgIn, out) && (typeof out.scope === 'undefined' || out.scope === msgOut.scope)) {
+                // if (resp instanceof Response && resp.isResponse(msgIn, out) && (typeof out.scope === 'undefined' || out.scope === msgOut.scope)) {
+                if (resp instanceof Response && resp.isResponse(msgIn) && (typeof out.scope === 'undefined' || out.scope === msgOut.scope)) {
                     resp.message = msgIn;
                     if (typeof (resp.callback) === 'function' && resp.callback) callback = resp.callback;
-                    conn.buffer._outBuffer.splice(i, 1);
-                }
-                else if (typeof resp === 'function' && resp(msgIn, out) && (typeof out.scope === 'undefined' || out.scope === msgOut.scope)) {
-                    if (typeof out.onResponseProcessed !== 'undefined') callback = out.onResponseProcessed;
                     conn.buffer._outBuffer.splice(i, 1);
                 }
             }
