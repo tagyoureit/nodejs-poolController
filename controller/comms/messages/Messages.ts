@@ -766,6 +766,7 @@ export class Response extends OutboundCommon {
     */
     public message: Inbound;
     private _parent: symbol;
+    private _garbageTimer: NodeJS.Timeout;
     constructor(proto: Protocol, source: number, dest: number, action?: number, payload?: number[], ack?: number, callback?: (err, msg?: Outbound) => void) {
         super();
         this.protocol = proto;
@@ -777,6 +778,7 @@ export class Response extends OutboundCommon {
         if (typeof ack !== 'undefined' && ack !== null) this.ack = new Ack(ack);
         this.callback = callback;
         this._parent = Symbol('parent');
+        this._garbageTimer = setTimeout(this.allowGarbageCollection, 60*5*1000);
     }
     public static create(obj?: any) {
         let res = new Response(obj.protocol || Protocol.Broadcast,
@@ -798,6 +800,7 @@ export class Response extends OutboundCommon {
         // remove circular references to avoid memory leaks
         if (typeof this[this._parent] !== 'undefined' || this[this._parent] === null) return;
         if (this[this._parent] !== null && this[this._parent].remainingTries === 0 || bresp) this[this._parent] = null;
+        if (typeof this._garbageTimer !== 'undefined' || this._garbageTimer) { clearTimeout(this._garbageTimer); this._garbageTimer = null; }
     }
 
     // Methods
