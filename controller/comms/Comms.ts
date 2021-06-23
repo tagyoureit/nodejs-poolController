@@ -421,7 +421,7 @@ export class SendRecieveBuffer {
         if (typeof (conn.buffer._waitingPacket) !== 'undefined' && conn.buffer._waitingPacket) {
             var resp = msgOut.response;
             if (msgOut.requiresResponse) {
-                if (resp instanceof Response && resp.isResponse(msgIn)) {
+                if (resp instanceof Response && resp.isResponse(msgIn, msgOut)) {
                     conn.buffer._waitingPacket = null;
                     if (typeof msgOut.onComplete === 'function') msgOut.onComplete(undefined, msgIn);
                     callback = resp.callback;
@@ -440,8 +440,7 @@ export class SendRecieveBuffer {
             if (typeof out === 'undefined') continue;
             let resp = out.response;
             if (out.requiresResponse) {
-                // if (resp instanceof Response && resp.isResponse(msgIn, out) && (typeof out.scope === 'undefined' || out.scope === msgOut.scope)) {
-                if (resp instanceof Response && resp.isResponse(msgIn) && (typeof out.scope === 'undefined' || out.scope === msgOut.scope)) {
+                if (resp instanceof Response && resp.isResponse(msgIn, out) && (typeof out.scope === 'undefined' || out.scope === msgOut.scope)) {
                     resp.message = msgIn;
                     if (typeof (resp.callback) === 'function' && resp.callback) callback = resp.callback;
                     conn.buffer._outBuffer.splice(i, 1);

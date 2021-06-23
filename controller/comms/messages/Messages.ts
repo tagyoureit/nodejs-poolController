@@ -105,7 +105,7 @@ export class Message {
     }
     public get action(): number {
         if (this.protocol === Protocol.Chlorinator) return this.header[3];
-        if (this.header.length > 4) return this.header[4];
+        if (this.header.length > 5) return this.header[4];
         else return -1;
     }
     public get datalen(): number { return this.protocol === Protocol.Chlorinator ? this.payload.length : this.header.length > 5 ? this.header[5] : -1; }
@@ -610,13 +610,11 @@ export class Outbound extends OutboundCommon {
         this.calcChecksum();
         if (response instanceof Response) {
             this.response = response;
-            this.response.setParent(this);
         }
         else
             this.response = Response.create({
                 protocol: this.protocol,
-                response: response || false,
-                parent: this
+                response: response || false
             });
     }
     // Factory
@@ -765,8 +763,13 @@ export class Response extends OutboundCommon {
     accessed via the internal symbol parent.  
     */
     public message: Inbound;
-    private _parent: symbol;
-    private _garbageTimer: NodeJS.Timeout;
+    // rsg moved accessors here because we won't have a full header; just set/check the individual byte.
+    public set action(val: number) { (this.protocol !== Protocol.Chlorinator) ? this.header[4] = val : this.header[3] = val; }
+    public get action(): number {
+        if (this.protocol === Protocol.Chlorinator) return this.header[3];
+        else if (typeof this.header[4] !== 'undefined') return this.header[4]
+        else return -1;
+    }
     constructor(proto: Protocol, source: number, dest: number, action?: number, payload?: number[], ack?: number, callback?: (err, msg?: Outbound) => void) {
         super();
         this.protocol = proto;
@@ -777,53 +780,35 @@ export class Response extends OutboundCommon {
         if (typeof payload !== 'undefined' && payload.length > 0) this.payload.push(...payload);
         if (typeof ack !== 'undefined' && ack !== null) this.ack = new Ack(ack);
         this.callback = callback;
-        this._parent = Symbol('parent');
-        this._garbageTimer = setTimeout(this.allowGarbageCollection, 60*5*1000);
     }
     public static create(obj?: any) {
         let res = new Response(obj.protocol || Protocol.Broadcast,
             obj.source || Message.pluginAddress, obj.dest || 16, obj.action || 0, obj.payload || [], obj.ack, obj.callback);
         res.responseBool = obj.response;
         if (typeof obj.action !== 'undefined') res.responseBool = true;
-        if (typeof obj.parent !== 'undefined') res.setParent(obj.parent);
         return res;
-    }
-    public setParent(parent: Message) {
-        this[this._parent] = parent;
     }
     // Fields
     public ack: Ack;
     public callback: (err, msg?: Outbound) => void;
     public responseBool: boolean;  // if `response: true|false` is passed to the Outbound message we will store that input here
 
-    public allowGarbageCollection(bresp: boolean) {
-        // remove circular references to avoid memory leaks
-        if (typeof this[this._parent] !== 'undefined' || this[this._parent] === null) return;
-        if (this[this._parent] !== null && this[this._parent].remainingTries === 0 || bresp) this[this._parent] = null;
-        if (typeof this._garbageTimer !== 'undefined' || this._garbageTimer) { clearTimeout(this._garbageTimer); this._garbageTimer = null; }
-    }
-
     // Methods
-    public isResponse(msgIn: Inbound): boolean {
+    public isResponse(msgIn: Inbound, msgOut?: Outbound): boolean {
         let bresp = false;;
         try {
-            let parent: Outbound = this[this._parent];
-            if (typeof this.responseBool === 'boolean' && this.responseBool) bresp = this.evalResponse(msgIn);
+            if (typeof this.responseBool === 'boolean' && this.responseBool) bresp = this.evalResponse(msgIn, msgOut);
             else return bresp;
-            if (bresp === true && typeof parent !== 'undefined') msgIn.responseFor.push(parent.id);
+            if (bresp === true && typeof msgOut !== 'undefined') msgIn.responseFor.push(msgOut.id);
             return bresp;
         }
         catch (err) { }
-        finally {
-            this.allowGarbageCollection(bresp);
-        }
     }
 
-    public evalResponse(msgIn: Inbound): boolean {
+    public evalResponse(msgIn: Inbound, msgOut?: Outbound): boolean {
         // this holds the logic to determine if an inbound message is a response.  
         // Aka is this Response object
         // a response to the parent message of Outbound class.
-        let msgOut: Outbound = this[this._parent];
         if (typeof msgOut === 'undefined') return false;
         if (msgIn.protocol !== msgOut.protocol) { return false; }
         if (typeof msgIn === 'undefined') { return false; } // getting here on msg send failure
