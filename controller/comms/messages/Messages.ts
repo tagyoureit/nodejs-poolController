@@ -105,7 +105,7 @@ export class Message {
     }
     public get action(): number {
         if (this.protocol === Protocol.Chlorinator) return this.header[3];
-        if (this.header.length >= 5) return this.header[4];
+        if (this.header.length > 4) return this.header[4];
         else return -1;
     }
     public get datalen(): number { return this.protocol === Protocol.Chlorinator ? this.payload.length : this.header.length > 5 ? this.header[5] : -1; }
