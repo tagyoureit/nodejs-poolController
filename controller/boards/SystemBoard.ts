@@ -1974,6 +1974,7 @@ export class CircuitCommands extends BoardCommands {
   public getCircuitFunctions() { return sys.board.valueMaps.circuitFunctions.toArray(); }
   public getCircuitNames() { return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()]; }
   public async setCircuitAsync(data: any): Promise<ICircuit> {
+    try {
     let id = parseInt(data.id, 10);
     if (id <= 0 || typeof data.id === 'undefined') {
       // We are adding a new circuit.  If we are operating as a nixie controller then we need to start this
@@ -2020,6 +2021,8 @@ export class CircuitCommands extends BoardCommands {
     }
     else
       return Promise.reject(new Error('Circuit id has not been defined'));
+  }
+  catch (err) {logger.error(`setCircuitAsync error with ${data}. ${err}`); return Promise.reject(err);}
   }
   public async setCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
     let group: CircuitGroup = null;

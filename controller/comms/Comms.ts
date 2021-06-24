@@ -36,8 +36,15 @@ export class Connection {
     public buffer: SendRecieveBuffer;
     private connTimer: NodeJS.Timeout;
     protected resetConnTimer(...args) {
+        console.log(`resetting connection timer`);
         if (conn.connTimer !== null) clearTimeout(conn.connTimer);
-        if (!conn._cfg.mockPort && conn._cfg.inactivityRetry > 0) conn.connTimer = setTimeout(() => conn.openAsync(), conn._cfg.inactivityRetry * 1000);
+        if (!conn._cfg.mockPort && conn._cfg.inactivityRetry > 0) conn.connTimer = setTimeout(async () => {
+            try {
+                await conn.openAsync()
+            }
+            catch (err) {};
+        }
+            , conn._cfg.inactivityRetry * 1000);
     }
     public isRTS: boolean = true;
     public emitter: EventEmitter;
@@ -69,27 +76,29 @@ export class Connection {
             nc.on('end', () => { // Happens when the other end of the socket closes.
                 this.isOpen = false;
                 this.resetConnTimer();
-                logger.info(`The end event was fired`);
+                logger.info(`Net connect (socat) end event was fired`);
             });
             //nc.on('drain', () => { logger.info(`The drain event was fired.`); });
             //nc.on('lookup', (o) => { logger.info(`The lookup event was fired ${o}`); });
             // Occurs when there is no activity.  This should not reset the connection, the previous implementation did so and
             // left the connection in a weird state where the previous connection was processing events and the new connection was
             // doing so as well.  This isn't an error it is a warning as the RS485 bus will most likely be communicating at all times.
-            nc.on('timeout', () => { logger.warn(`Connection Idle: ${this._cfg.netHost}:${this._cfg.netPort}`); });
-            return new Promise<boolean>((resolve, reject) => {
+            nc.on('timeout', () => { logger.warn(`Net connect (socat) Connection Idle: ${this._cfg.netHost}:${this._cfg.netPort}`); });
+            return new Promise<boolean>((resolve, _) => {
                 // We only connect an error once as we will destroy this connection on error then recreate a new socket on failure.
                 nc.once('error', (err) => {
-                    logger.error(`Connection: ${err}. ${this._cfg.inactivityRetry > 0 ? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; inactivityRetry set to ${this._cfg.inactivityRetry}`}`);
+                    logger.error(`Net connect (socat) Connection: ${err}. ${this._cfg.inactivityRetry > 0 ? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; inactivityRetry set to ${this._cfg.inactivityRetry}`}`);
                     this.resetConnTimer();
                     this.isOpen = false;
-                    resolve(false);
+                    // if the promise has already been fulfilled, but the error happens later, we don't want to call the promise again.
+                    if (typeof resolve !== 'undefined') { resolve(false); }
                 });
                 nc.connect(conn._cfg.netPort, conn._cfg.netHost, () => {
                     if (typeof this._port !== 'undefined') logger.warn('Net connect (socat) recovered from lost connection.');
                     this._port = nc;
                     this.isOpen = true;
                     resolve(true);
+                    resolve = undefined;
                 });
             });
         }
@@ -139,13 +148,13 @@ export class Connection {
                 });
                 sp.on('close', (err) => {
                     this.isOpen = false;
-                    logger.info(`Serial port has been closed: ${err ? JSON.stringify(err) : ''}`);
+                    logger.info(`Serial Port has been closed: ${err ? JSON.stringify(err) : ''}`);
                 });
                 sp.on('error', (err) => {
                     this.isOpen = false;
                     if (sp.isOpen) sp.close((err) => { }); // call this with the error callback so that it doesn't emit to the error again.
                     this.resetConnTimer();
-                    logger.error(`An error occurred on Port: ${this._cfg.rs485Port}: ${JSON.stringify(err)}`);
+                    logger.error(`Serial Port: An error occurred : ${this._cfg.rs485Port}: ${JSON.stringify(err)}`);
                 });
             });
         }
@@ -173,8 +182,13 @@ export class Connection {
     public write(bytes: Buffer, cb: Function) {
         if (conn._cfg.netConnect) {
             // SOCAT drops the connection and destroys the stream.  Could be weeks or as little as a day.
-            if (typeof conn._port === 'undefined' || conn._port.destroyed !== false) conn.openAsync();
-            conn._port.write(bytes, 'binary', cb);
+            if (typeof conn._port === 'undefined' || conn._port.destroyed !== false) {
+                conn.openAsync().then(() => {
+                    conn._port.write(bytes, 'binary', cb);
+                });
+            }
+            else
+                conn._port.write(bytes, 'binary', cb);
         }
         else
             conn._port.write(bytes, cb);
@@ -183,7 +197,7 @@ export class Connection {
         try {
             await conn.closeAsync();
             logger.info(`Closed serial communications connection.`);
-        } catch (err) { logger.error(`Error closing comms connection: ${err.message}`); }
+        } catch (err) { logger.error(`Error closing comms connection: ${err.message} `); }
     }
     public init() {
         conn._cfg = config.getSection('controller.comms', {
@@ -195,7 +209,7 @@ export class Connection {
             netPort: 9801,
             inactivityRetry: 10
         });
-        if (conn._cfg.enabled) conn.openAsync();
+        if (conn._cfg.enabled) conn.openAsync().then(() => { logger.debug(`Connection opened from init function;`); }).catch((err) => { logger.error(`Connection failed to open from init function. ${err}`); });
         config.emitter.on('reloaded', () => {
             console.log('Config reloaded');
             this.reloadConfig(config.getSection('controller.comms', {
@@ -232,7 +246,7 @@ export class Connection {
     public resume() { if (this.isPaused) setTimeout(function () { conn.buffer.clear(); conn.isPaused = false; }, 0); }
     // RKS: This appears to not be used.
     //public queueReceiveMessage(pkt: Inbound) {
-    //    logger.info(`Receiving ${ pkt.action }`);
+    //    logger.info(`Receiving ${ pkt.action } `);
     //    conn.buffer.pushIn(pkt);
     //}
 }
@@ -288,7 +302,7 @@ export class SendRecieveBuffer {
             let timeout = conn.buffer._waitingPacket.timeout || 1000;
             let dt = new Date();
             if (conn.buffer._waitingPacket.timestamp.getTime() + timeout < dt.getTime()) {
-                logger.silly(`Retrying outbound message after ${(dt.getTime() - conn.buffer._waitingPacket.timestamp.getTime()) / 1000}secs with ${conn.buffer._waitingPacket.remainingTries} attempt(s) left. - ${conn.buffer._waitingPacket.toShortPacket()}`);
+                logger.silly(`Retrying outbound message after ${(dt.getTime() - conn.buffer._waitingPacket.timestamp.getTime()) / 1000} secs with ${conn.buffer._waitingPacket.remainingTries} attempt(s) left. - ${conn.buffer._waitingPacket.toShortPacket()} `);
                 conn.buffer.writeMessage(conn.buffer._waitingPacket);
             }
             return true;
@@ -312,10 +326,10 @@ export class SendRecieveBuffer {
                 // port is closed, reject message
                 msg = conn.buffer._outBuffer.shift();
                 msg.failed = true;
-                logger.warn(`Comms port is not open.  Message aborted: ${msg.toShortPacket()}`);
+                logger.warn(`Comms port is not open.Message aborted: ${msg.toShortPacket()} `);
                 // This is a hard fail.  We don't have any more tries left and the message didn't
                 // make it onto the wire.
-                let error = new OutboundMessageError(msg, `Comms port is not open.  Message aborted: ${msg.toShortPacket()}`);
+                let error = new OutboundMessageError(msg, `Comms port is not open.Message aborted: ${msg.toShortPacket()} `);
                 if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
                 conn.buffer._waitingPacket = null;
             }
@@ -353,22 +367,14 @@ export class SendRecieveBuffer {
                 msg.failed = true;
                 conn.buffer._waitingPacket = null;
                 if (typeof msg.onAbort === 'function') msg.onAbort();
-                else logger.warn(`Message aborted after ${msg.tries} attempt(s): ${msg.toShortPacket()}`);
-                let err = new OutboundMessageError(msg, `Message aborted after ${msg.tries} attempt(s): ${msg.toShortPacket()}`);
+                else logger.warn(`Message aborted after ${msg.tries} attempt(s): ${msg.toShortPacket()} `);
+                let err = new OutboundMessageError(msg, `Message aborted after ${msg.tries} attempt(s): ${msg.toShortPacket()} `);
                 if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
                 if (msg.requiresResponse) {
                     if (msg.response instanceof Response && typeof (msg.response.callback) === 'function') {
                         setTimeout(msg.response.callback, 100, msg);
                     }
-                    /*  RSG: This shouldn't be here, correct?  No reason to get back a boolean value here. 
-                    else if (typeof msg.response === 'function')
-                        setTimeout(msg.response, 100, undefined, msg); */
-
                 }
-                // RSG - I'm not even sure this needs to be in the requiresResponse closure.  If it's set, shouldn't we just call it?
-                // RKS: Still not sure what this does.  We already have the onComplete.  The response callback is already being called above and in this
-                // case I suspect that there was actually no requested response as it would have been handled by either of the two message above.
-                if (typeof msg.onResponseProcessed === 'function') setTimeout(msg.onResponseProcessed, 100);
                 conn.isRTS = true;
                 return;
             }
@@ -384,16 +390,16 @@ export class SendRecieveBuffer {
                     if (msg.remainingTries > 0) conn.buffer._waitingPacket = msg;
                     else {
                         msg.failed = true;
-                        logger.warn(`Message aborted after ${msg.tries} attempt(s): ${bytes}: ${err}`);
+                        logger.warn(`Message aborted after ${msg.tries} attempt(s): ${bytes}: ${err} `);
                         // This is a hard fail.  We don't have any more tries left and the message didn't
                         // make it onto the wire.
-                        let error = new OutboundMessageError(msg, `Message aborted after ${msg.tries} attempt(s): ${err}`);
+                        let error = new OutboundMessageError(msg, `Message aborted after ${msg.tries} attempt(s): ${err} `);
                         if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
                         conn.buffer._waitingPacket = null;
                     }
                 }
                 else {
-                    logger.verbose(`Wrote packet [${bytes}].  Retries remaining: ${msg.remainingTries}`);
+                    logger.verbose(`Wrote packet[${bytes}].Retries remaining: ${msg.remainingTries} `);
                     // We have all the success we are going to get so if the call succeeded then
                     // don't set the waiting packet when we aren't actually waiting for a response.
                     if (!msg.requiresResponse) {
@@ -422,13 +428,6 @@ export class SendRecieveBuffer {
                     resp.message = msgIn;
                     if (resp.ack) conn.queueSendMessage(resp.ack);
                 }
-                else {
-                    if (typeof resp === 'function' && resp(msgIn, msgOut)) {
-                        conn.buffer._waitingPacket = null;
-                        if (typeof msgOut.onComplete === 'function') msgOut.onComplete(undefined, msgIn);
-                        callback = msgOut.onResponseProcessed;
-                    }
-                }
             }
         }
         // Go through and remove all the packets that need to be removed from the queue.
@@ -444,10 +443,6 @@ export class SendRecieveBuffer {
                 if (resp instanceof Response && resp.isResponse(msgIn, out) && (typeof out.scope === 'undefined' || out.scope === msgOut.scope)) {
                     resp.message = msgIn;
                     if (typeof (resp.callback) === 'function' && resp.callback) callback = resp.callback;
-                    conn.buffer._outBuffer.splice(i, 1);
-                }
-                else if (typeof resp === 'function' && resp(msgIn, out) && (typeof out.scope === 'undefined' || out.scope === msgOut.scope)) {
-                    if (typeof out.onResponseProcessed !== 'undefined') callback = out.onResponseProcessed;
                     conn.buffer._outBuffer.splice(i, 1);
                 }
             }
@@ -530,8 +525,8 @@ export class Counter {
     public bytesSent: number;
     public collisions: number;
     public failureRate: string;
-    public updatefailureRate():void {
-        conn.buffer.counter.failureRate = `${(conn.buffer.counter.failed / (conn.buffer.counter.failed + conn.buffer.counter.success) * 100).toFixed(2)}%`;
+    public updatefailureRate(): void {
+        conn.buffer.counter.failureRate = `${(conn.buffer.counter.failed / (conn.buffer.counter.failed + conn.buffer.counter.success) * 100).toFixed(2)}% `;
     }
 }
 export var conn: Connection = new Connection();

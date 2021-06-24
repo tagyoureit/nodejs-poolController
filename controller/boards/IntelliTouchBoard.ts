@@ -30,9 +30,9 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         this._configQueue = new ITTouchConfigQueue();
         this.valueMaps.expansionBoards = new byteValueMap([
             [0, { name: 'IT5', part: 'i5+3', desc: 'IntelliTouch i5+3', circuits: 6, shared: true }],
-            [1, { name: 'IT7', part: 'i7+3', desc: 'IntelliTouch i7+3', circuits: 7, shared: true }],
-            [2, { name: 'IT9', part: 'i9+3', desc: 'IntelliTouch i9+3', circuits: 9, shared: true }],
-            [3, { name: 'IT5S', part: 'i5+3S', desc: 'IntelliTouch i5+3S', circuits: 6, shared: false }],
+            [1, { name: 'IT7', part: 'i7+3', desc: 'IntelliTouch i7+3', circuits: 8, shared: true }],
+            [2, { name: 'IT9', part: 'i9+3', desc: 'IntelliTouch i9+3', circuits: 10, shared: true }],
+            [3, { name: 'IT5S', part: 'i5+3S', desc: 'IntelliTouch i5+3S', circuits: 5, shared: false }],
             [4, { name: 'IT9S', part: 'i9+3S', desc: 'IntelliTouch i9+3S', circuits: 9, shared: false }],
             [5, { name: 'IT10D', part: 'i10D', desc: 'IntelliTouch i10D', circuits: 10, shared: false, dual: true }],
             [32, { name: 'IT10X', part: 'i10X', desc: 'IntelliTouch i10X', circuits: 10, shared: false }]
@@ -67,9 +67,10 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         if (!eq.shared) sys.board.equipmentIds.invalidIds.merge([1]);
         // Add in all the invalid ids from the base personality board.
         sys.board.equipmentIds.invalidIds.set([16, 17, 18]); // These appear to alway be invalid in IntelliTouch.
-        for (let i = 7; i <= 9; i++) {
+        //if (eq.maxCircuits < 9) sys.board.equipmentIds.invalidIds.merge([9]);
+        for (let i = 7; i <= 10; i++) {
             // This will add all the invalid ids between 5 and 9 that are omitted for IntelliTouch models.
-            if (i >= eq.maxCircuits - 1) sys.board.equipmentIds.invalidIds.merge([i]);
+            if (i > eq.maxCircuits) sys.board.equipmentIds.invalidIds.merge([i]);
         }
         // This code should be repeated if we ever see a panel with more than one expansion panel.
         let pnl: ExpansionPanel;

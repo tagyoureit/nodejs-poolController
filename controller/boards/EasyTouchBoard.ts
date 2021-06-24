@@ -541,8 +541,9 @@ export class TouchConfigQueue extends ConfigQueue {
                 action: this.curr.setcategory,
                 payload: [itm],
                 retries: 3,
-                response: true,
-                onResponseProcessed: function () { self.processNext(out); }
+                response: Response.create({response: true, callback: () => {self.processNext(out);}})
+                // response: true,
+                // onResponseProcessed: function () { self.processNext(out); }
             });
             setTimeout(() => conn.queueSendMessage(out), 50);
         } else {
@@ -1183,7 +1184,7 @@ export class TouchCircuitCommands extends CircuitCommands {
         }
     }
     public async setCircuitAsync(data: any): Promise<ICircuit> {
-        return new Promise<ICircuit>(async (resolve, reject) => {
+        try {
             // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]
             // set circuit 17 to function 14 and name 209
             // response: [255,0,255][165,33,34,16,1,1][139][1,133]
@@ -1193,53 +1194,55 @@ export class TouchCircuitCommands extends CircuitCommands {
             // Alright check to see if we are adding a nixie circuit.
             if (id === -1 || circuit.master !== 0) {
                 let circ = await super.setCircuitAsync(data);
-                resolve(circ);
-                return;
+                return circ;
             }
 
             let typeByte = parseInt(data.type, 10) || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
             let nameByte = 3; // set default `Aux 1`
             if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
             else if (typeof circuit.name !== 'undefined') nameByte = circuit.nameId;
-            let out = Outbound.create({
-                action: 139,
-                payload: [parseInt(data.id, 10), typeByte | (utils.makeBool(data.freeze) ? 64 : 0), nameByte, 0, 0],
-                retries: 3,
-                response: true,
-                onComplete: async (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        let circuit = sys.circuits.getInterfaceById(data.id);
-                        let cstate = state.circuits.getInterfaceById(data.id);
-                        circuit.nameId = cstate.nameId = nameByte;
-                        circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
-                        circuit.showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? data.showInFeatures : circuit.showInFeatures || true;
-                        circuit.freeze = typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze;
-                        circuit.type = cstate.type = typeByte;
-                        circuit.eggTimer = typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer || 720;
-                        circuit.dontStop = (typeof data.dontStop !== 'undefined') ? utils.makeBool(data.dontStop) : circuit.eggTimer === 1620;
-                        let eggTimer = sys.eggTimers.find(elem => elem.circuit === parseInt(data.id, 10));
-                        try {
-                            if (circuit.eggTimer === 720) {
-                                if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
+            return new Promise<ICircuit>(async (resolve, reject) => {
+                let out = Outbound.create({
+                    action: 139,
+                    payload: [parseInt(data.id, 10), typeByte | (utils.makeBool(data.freeze) ? 64 : 0), nameByte, 0, 0],
+                    retries: 3,
+                    response: true,
+                    onComplete: async (err, msg) => {
+                        if (err) reject(err);
+                        else {
+                            let circuit = sys.circuits.getInterfaceById(data.id);
+                            let cstate = state.circuits.getInterfaceById(data.id);
+                            circuit.nameId = cstate.nameId = nameByte;
+                            circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
+                            circuit.showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? data.showInFeatures : circuit.showInFeatures || true;
+                            circuit.freeze = typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze;
+                            circuit.type = cstate.type = typeByte;
+                            circuit.eggTimer = typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer || 720;
+                            circuit.dontStop = (typeof data.dontStop !== 'undefined') ? utils.makeBool(data.dontStop) : circuit.eggTimer === 1620;
+                            let eggTimer = sys.eggTimers.find(elem => elem.circuit === parseInt(data.id, 10));
+                            try {
+                                if (circuit.eggTimer === 720) {
+                                    if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
+                                }
+                                else {
+                                    await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: circuit.eggTimer, dontStop: circuit.dontStop, circuit: circuit.id });
+                                }
                             }
-                            else {
-                                await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: circuit.eggTimer, dontStop: circuit.dontStop, circuit: circuit.id });
+                            catch (err) {
+                                // fail silently if there are no slots to fill in the schedules
+                                logger.info(`Cannot set/delete eggtimer on circuit ${circuit.id}.  Error: ${err.message}`);
+                                circuit.eggTimer = 720;
+                                circuit.dontStop = false;
                             }
+                            state.emitEquipmentChanges();
+                            resolve(circuit);
                         }
-                        catch (err) {
-                            // fail silently if there are no slots to fill in the schedules
-                            logger.info(`Cannot set/delete eggtimer on circuit ${circuit.id}.  Error: ${err.message}`);
-                            circuit.eggTimer = 720;
-                            circuit.dontStop = false;
-                        }
-                        state.emitEquipmentChanges();
-                        resolve(circuit);
                     }
-                }
+                });
+                conn.queueSendMessage(out);
             });
-            conn.queueSendMessage(out);
-        });
+        }
+        catch (err) { logger.error(`setCircuitAsync error setting circuit ${JSON.stringify(data)}: ${err}`); return Promise.reject(err); }
     }
     public async deleteCircuitAsync(data: any): Promise<ICircuit> {
         let circuit = sys.circuits.getItemById(data.id);
