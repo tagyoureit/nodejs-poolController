@@ -578,7 +578,7 @@ class OutboundCommon extends Message {
     }
 }
 export class Outbound extends OutboundCommon {
-    constructor(proto: Protocol, source: number, dest: number, action: number, payload: number[], retries?: number, response?: Response | boolean | Function, scope?: string) {
+    constructor(proto: Protocol, source: number, dest: number, action: number, payload: number[], retries?: number, response?: Response | boolean, scope?: string) {
         super();
         this.id = Message.nextMessageId;
         this.protocol = proto;
@@ -608,14 +608,10 @@ export class Outbound extends OutboundCommon {
         this.action = action;
         this.payload.push.apply(this.payload, payload);
         this.calcChecksum();
-        if (response instanceof Response) {
-            this.response = response;
-        }
+        if (typeof response === "boolean" && response)
+            this.response = Response.create({ protocol: this.protocol, response: true });
         else
-            this.response = Response.create({
-                protocol: this.protocol,
-                response: response || false
-            });
+            this.response = response as Response;
     }
     // Factory
     public static create(obj?: any) {
@@ -634,7 +630,7 @@ export class Outbound extends OutboundCommon {
         }
         return out;
     }
-    public static createMessage(action: number, payload: number[], retries?: number, response?: Response | boolean | Function): Outbound {
+    public static createMessage(action: number, payload: number[], retries?: number, response?: Response | boolean): Outbound {
         return new Outbound(Protocol.Broadcast, sys.board.commandSourceAddress || Message.pluginAddress, sys.board.commandDestAddress || 16, action, payload, retries, response);
     }
 
