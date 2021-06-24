@@ -69,7 +69,8 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         sys.board.equipmentIds.invalidIds.set([16, 17, 18]); // These appear to alway be invalid in IntelliTouch.
         //if (eq.maxCircuits < 9) sys.board.equipmentIds.invalidIds.merge([9]);
         for (let i = 7; i <= 10; i++) {
-            // This will add all the invalid ids between 5 and 9 that are omitted for IntelliTouch models.
+            // This will add all the invalid ids between 7 and 10 that are omitted for IntelliTouch models.
+            // For instance an i7+3 can have up to 8 circuits since 1 and 6 are shared but an i7+3S will only have 7.
             if (i > eq.maxCircuits) sys.board.equipmentIds.invalidIds.merge([i]);
         }
         // This code should be repeated if we ever see a panel with more than one expansion panel.
