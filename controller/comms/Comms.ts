@@ -36,7 +36,7 @@ export class Connection {
     public buffer: SendRecieveBuffer;
     private connTimer: NodeJS.Timeout;
     protected resetConnTimer(...args) {
-        console.log(`resetting connection timer`);
+        //console.log(`resetting connection timer`);
         if (conn.connTimer !== null) clearTimeout(conn.connTimer);
         if (!conn._cfg.mockPort && conn._cfg.inactivityRetry > 0) conn.connTimer = setTimeout(async () => {
             try {
