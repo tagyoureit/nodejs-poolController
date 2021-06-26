@@ -36,7 +36,6 @@ export class EasyTouchBoard extends SystemBoard {
         this.equipmentIds.circuitGroups = new EquipmentIdRange(192, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
         this.equipmentIds.circuits.start = sys.equipment.shared || sys.equipment.dual ? 1 : 2;
         if (typeof sys.configVersion.equipment === 'undefined') { sys.configVersion.equipment = 0; }
-        this.valueMaps.heatModes = new byteValueMap([]);
         this.valueMaps.heatSources = new byteValueMap([]);
         this.valueMaps.heatStatus = new byteValueMap([
             [0, { name: 'off', desc: 'Off' }],
@@ -173,7 +172,7 @@ export class EasyTouchBoard extends SystemBoard {
             [1, { name: 'gas', desc: 'Gas Heater', hasAddress: false }],
             [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false }],
             [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true }],
-            [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true }],
+            [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true, hasCoolSetpoint: true }],
             [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
             [6, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
             [7, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }]
@@ -1045,18 +1044,19 @@ class TouchBodyCommands extends BodyCommands {
             // 0    | 85  | Pool Setpoint
             // 1    | 97  | Spa setpoint
             // 2    | 7   | Pool/spa heat modes (01 = Heater spa 11 = Solar Only pool)
-            // 3    | 0   | Unknown (I believe this to be an indicator for the first 2 bodies if there are other bodies active this will be 1 for 2 & 4)
+            // 3    | 0   | Cool set point for ultratemp
             const body1 = sys.bodies.getItemById(1);
             const body2 = sys.bodies.getItemById(2);
             const temp1 = body1.setPoint || 100;
             const temp2 = body2.setPoint || 100;
+            let cool = body1.coolSetpoint || 0;
             let mode1 = body1.heatMode;
             let mode2 = body2.heatMode;
             body.id === 1 ? mode1 = mode : mode2 = mode;
             let out = Outbound.create({
                 dest: 16,
                 action: 136,
-                payload: [temp1, temp2, mode2 << 2 | mode1, 0],
+                payload: [temp1, temp2, mode2 << 2 | mode1, cool],
                 retries: 3,
                 response: true,
                 onComplete: (err, msg) => {
@@ -1074,6 +1074,7 @@ class TouchBodyCommands extends BodyCommands {
     public async setSetpoints(body: Body, obj: any): Promise<BodyTempState> {
         return new Promise<BodyTempState>((resolve, reject) => {
             let setPoint = typeof obj.setPoint !== 'undefined' ? parseInt(obj.setPoint, 10) : parseInt(obj.heatSetpoint, 10);
+            let coolSetPoint = typeof obj.coolSetPoint !== 'undefined' ? parseInt(obj.coolSetPoint, 10) : 0;
             if (isNaN(setPoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid ${body.name} setpoint ${obj.setPoint || obj.heatSetpoint}`, 'body', obj));
             // [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
             // 165,33,16,34,136,4,89,99,7,0,2,71  Request
@@ -1081,31 +1082,44 @@ class TouchBodyCommands extends BodyCommands {
             const tempUnits = state.temps.units;
             switch (tempUnits) {
                 case 0: // fahrenheit
-                    if (setPoint < 40 || setPoint > 104) {
-                        logger.warn(`Setpoint of ${setPoint} is outside acceptable range.`);
-                        return;
+                    {
+                        if (setPoint < 40 || setPoint > 104) {
+                            logger.warn(`Setpoint of ${setPoint} is outside acceptable range.`);
+                        }
+                        if (coolSetPoint < 40 || coolSetPoint > 104) {
+                            logger.warn(`Cool Setpoint of ${setPoint} is outside acceptable range.`);
+                            return;
+                        }
+                        break;
                     }
-                    break;
                 case 1: // celsius
-                    if (setPoint < 4 || setPoint > 40) {
-                        logger.warn(
-                            `Setpoint of ${setPoint} is outside of acceptable range.`
-                        );
-                        return;
+                    {
+                        if (setPoint < 4 || setPoint > 40) {
+                            logger.warn(
+                                `Setpoint of ${setPoint} is outside of acceptable range.`
+                            );
+                            return;
+                        }
+                        if (coolSetPoint < 4 || coolSetPoint > 40) {
+                            logger.warn(`Cool SetPoint of ${coolSetPoint} is outside of acceptable range.`
+                            );
+                            return;
+                        }
+                        break;
                     }
-                    break;
             }
             const body1 = sys.bodies.getItemById(1);
             const body2 = sys.bodies.getItemById(2);
-            let temp1 = body1.setPoint || 100;
-            let temp2 = body2.setPoint || 100;
+            let temp1 = body1.setPoint || tempUnits === 0 ? 40 : 4;
+            let temp2 = body2.setPoint || tempUnits === 0 ? 40 : 4;
+            let cool = coolSetPoint || body1.setPoint + 1;
             body.id === 1 ? temp1 = setPoint : temp2 = setPoint;
             const mode1 = body1.heatMode;
             const mode2 = body2.heatMode;
             const out = Outbound.create({
                 dest: 16,
                 action: 136,
-                payload: [temp1, temp2, mode2 << 2 | mode1, 0],
+                payload: [temp1, temp2, mode2 << 2 | mode1, cool],
                 retries: 3,
                 response: true,
                 onComplete: (err, msg) => {
@@ -1113,6 +1127,7 @@ class TouchBodyCommands extends BodyCommands {
                     body.setPoint = setPoint;
                     let bstate = state.temps.bodies.getItemById(body.id);
                     bstate.setPoint = setPoint;
+                    if (body.id === 1) body.coolSetpoint = bstate.coolSetpoint = cool;
                     state.temps.emitEquipmentChange();
                     resolve(bstate);
                 }
@@ -1150,10 +1165,11 @@ class TouchBodyCommands extends BodyCommands {
             body.id === 1 ? temp1 = setPoint : temp2 = setPoint;
             const mode1 = body1.heatMode || 0;
             const mode2 = body2.heatMode || 0;
+            let cool = body1.coolSetpoint || (body1.setPoint + 1);
             const out = Outbound.create({
                 dest: 16,
                 action: 136,
-                payload: [temp1, temp2, mode2 << 2 | mode1, 0],
+                payload: [temp1, temp2, mode2 << 2 | mode1, cool],
                 retries: 3,
                 response: true,
                 onComplete: (err, msg) => {
@@ -1161,6 +1177,52 @@ class TouchBodyCommands extends BodyCommands {
                     body.setPoint = setPoint;
                     let bstate = state.temps.bodies.getItemById(body.id);
                     bstate.setPoint = setPoint;
+                    state.temps.emitEquipmentChange();
+                    resolve(bstate);
+                }
+
+            });
+            conn.queueSendMessage(out);
+        });
+    }
+    public async setCoolSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
+        return new Promise<BodyTempState>((resolve, reject) => {
+            // [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,Cool,2,56]
+            // 165,33,16,34,136,4,89,99,7,0,2,71  Request
+            // 165,33,34,16,1,1,136,1,130  Controller Response
+            const tempUnits = state.temps.units;
+            switch (tempUnits) {
+                case 0: // fahrenheit
+                    if (setPoint < 40 || setPoint > 104) {
+                        logger.warn(`Setpoint of ${setPoint} is outside acceptable range.`);
+                        return;
+                    }
+                    break;
+                case 1: // celsius
+                    if (setPoint < 4 || setPoint > 40) {
+                        logger.warn(
+                            `Setpoint of ${setPoint} is outside of acceptable range.`
+                        );
+                        return;
+                    }
+                    break;
+            }
+            const body1 = sys.bodies.getItemById(1);
+            const body2 = sys.bodies.getItemById(2);
+            let temp1 = body1.setPoint || 100;
+            let temp2 = body2.setPoint || 100;
+            const mode1 = body1.heatMode || 0;
+            const mode2 = body2.heatMode || 0;
+            const out = Outbound.create({
+                dest: 16,
+                action: 136,
+                payload: [temp1, temp2, mode2 << 2 | mode1, setPoint],
+                retries: 3,
+                response: true,
+                onComplete: (err, msg) => {
+                    if (err) reject(err);
+                    let bstate = state.temps.bodies.getItemById(body.id);
+                    body.coolSetpoint = bstate.coolSetpoint = setPoint;
                     state.temps.emitEquipmentChange();
                     resolve(bstate);
                 }
@@ -2065,6 +2127,7 @@ class TouchHeaterCommands extends HeaterCommands {
             if (typeof type !== 'undefined') {
                 if (inst[type.name] === 'undefined') inst[type.name] = 0;
                 inst[type.name] = inst[type.name] + 1;
+                if (heater.coolingEnabled === true && type.hasCoolSetpoint === true) inst['hasCoolSetpoint'] = true;
                 inst.total++;
             }
         }
@@ -2152,6 +2215,7 @@ class TouchHeaterCommands extends HeaterCommands {
         let htypes = sys.board.heaters.getInstalledHeaterTypes();
         let solarInstalled = htypes.solar > 0;
         let heatPumpInstalled = htypes.heatpump > 0;
+        let ultratempInstalled = htypes.ultratemp > 0;
         let gasHeaterInstalled = htypes.gas > 0;
         sys.board.valueMaps.heatModes.set(0, { name: 'off', desc: 'Off' });
         sys.board.valueMaps.heatSources.set(0, { name: 'off', desc: 'Off' });
@@ -2176,6 +2240,16 @@ class TouchHeaterCommands extends HeaterCommands {
             sys.board.valueMaps.heatSources.set(5, { name: 'heatpumppref', desc: 'Heat Pump Preferred' });
             sys.board.valueMaps.heatSources.set(21, { name: 'heatpump', desc: 'Heat Pump Only' });
         }
+        else if (ultratempInstalled && gasHeaterInstalled) {
+            sys.board.valueMaps.heatModes.merge([
+                [2, { name: 'ultratemppref', desc: 'UltraTemp Pref' }],
+                [3, { name: 'ultratemp', desc: 'UltraTemp Only' }]
+            ]);
+            sys.board.valueMaps.heatSources.merge([
+                [5, { name: 'ultratemppref', desc: 'Ultratemp Pref', hasCoolSetpoint: htypes.hasCoolSetpoint }],
+                [21, { name: 'ultratemp', desc: 'Ultratemp Only', hasCoolSetpoint: htypes.hasCoolSetpoint }]
+            ])
+        }
         else {
             // only gas
             sys.board.valueMaps.heatModes.delete(2);
@@ -2187,24 +2261,3 @@ class TouchHeaterCommands extends HeaterCommands {
         this.setActiveTempSensors();
     }
 }
-
-// class TouchChemControllerCommands extends ChemControllerCommands {
-//     public async setChemControllerAsync(data: any):Promise<ChemController> {
-//         let chem = sys.chemControllers.getItemById(data.id);
-
-//         // we aren't setting an IntelliChem or changing TO an IntelliChem
-//         if (typeof data.type !== 'undefined' && data.type !== sys.board.valueMaps.chemControllerTypes.getValue('IntelliChem') || 
-//             typeof data.type === 'undefined' && typeof data.type === 'undefined')
-//             return super.setChemControllerAsync(data);  
-
-//         else if (chem.type !== sys.board.valueMaps.chemControllerTypes.getValue('IntelliChem'))
-//             return super.setChemControllerAsync(data);  
-
-
-//         // do stuff here to set IntelliChem on *Touch
-//         chem.set(data);
-//         //Lead In Bytes					Destination	Source	Action	No. of Bytes	pH Setpoint Hi	pH Setpoint Lo	ORP Setpoint Hi	ORP Setpoint Lo	Acid Tank Level	ORP Tank Level	Hardness  Hi	Hardness Lo		Cyanuric Acid Level	TA Hi Byte	TA Lo Byte	????										
-//         //[255, 0, 255],[165,0,144,16,146,2][2,218,2,188,4,3,1,144,0,0,0,150,20,0,0,0,0,0,0,0,0,4,200
-//         return Promise.resolve(chem);
-//     }
-// }
