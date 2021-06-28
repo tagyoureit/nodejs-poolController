@@ -15,11 +15,9 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Inbound } from "../Messages";
-import { sys, Feature, Body, ICircuitGroup, LightGroup, CircuitGroup } from "../../../Equipment";
-import { state, BodyTempState, ICircuitGroupState, LightGroupState } from "../../../State";
+import { sys, Body, ICircuitGroup, LightGroup, CircuitGroup } from "../../../Equipment";
+import { state, ICircuitGroupState, LightGroupState } from "../../../State";
 import { utils } from "../../../Constants";
-//import {setTimeout} from "timers";
-//import { exceptions, ExceptionHandler } from "winston";
 import { logger } from "../../../../logger/Logger";
 export class ExternalMessage {
     public static processIntelliCenter(msg: Inbound): void {
@@ -322,12 +320,12 @@ export class ExternalMessage {
                 let circuit = sys.circuits.getItemById(circuitId);
                 let cstate = state.circuits.getItemById(circuitId, circuit.isActive);
                 if (circuit.isActive) {
-                    cstate.isOn = ((byte & (1 << (j))) >> j) > 0;
+                    let isOn = ((byte & (1 << (j))) >> j) > 0;
+                    sys.board.circuits.setEndTime(circuit, cstate, isOn);
+                    cstate.isOn = isOn;                    
                     cstate.name = circuit.name;
                     cstate.showInFeatures = circuit.showInFeatures;
                     cstate.type = circuit.type;
-                    /*                     if (cstate.isOn && circuit.type === 12) body = 6;
-                                        if (cstate.isOn && circuit.type === 13) body = 1; */
                     switch (circuit.type) {
                         case 6: // Globrite
                         case 5: // Magicstream
@@ -391,7 +389,9 @@ export class ExternalMessage {
                 let feature = sys.features.getItemById(featureId, false, { isActive: false });
                 if (feature.isActive !== false) {
                     let fstate = state.features.getItemById(featureId, true);
-                    fstate.isOn = (byte & (1 << j)) > 0;
+                    let isOn = (byte & (1 << j)) > 0;
+                    sys.board.circuits.setEndTime(feature, fstate, isOn);
+                    fstate.isOn = isOn;
                     fstate.name = feature.name;
                 }
                 else
@@ -414,7 +414,9 @@ export class ExternalMessage {
                 let group = sys.circuitGroups.getInterfaceById(groupId);
                 let gstate = group.type === 1 ? state.lightGroups.getItemById(groupId, group.isActive) : state.circuitGroups.getItemById(groupId, group.isActive);
                 if (group.isActive !== false) {
-                    gstate.isOn = ((byte & (1 << (j))) >> j) > 0;
+                    let isOn = ((byte & (1 << (j))) >> j) > 0;
+                    sys.board.circuits.setEndTime(group, gstate, isOn);
+                    gstate.isOn = isOn;
                     gstate.name = group.name;
                     gstate.type = group.type;
                     // Now calculate out the sync/set/swim operations.

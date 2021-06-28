@@ -2319,6 +2319,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                         if (!err) {
                             circuit.level = level;
                             cstate.level = level;
+                            sys.board.circuits.setEndTime(circuit, cstate, true);
                             cstate.isOn = true;
                             state.emitEquipmentChanges();
                             resolve();

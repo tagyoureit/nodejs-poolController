@@ -1330,10 +1330,8 @@ export class TouchCircuitCommands extends CircuitCommands {
                 onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
-                        cstate.isOn = val ? true : false;
-                        //if (id === 6) { sys.board.virtualChlorinatorController.start(); }
-                        // sys.board.virtualPumpControllers.start();
-                        // sys.board.virtualPumpControllers.setTargetSpeed();
+                        sys.board.circuits.setEndTime(c, cstate, val);
+                        cstate.isOn = val;
                         state.emitEquipmentChanges();
                         resolve(cstate);
                     }
@@ -1342,17 +1340,6 @@ export class TouchCircuitCommands extends CircuitCommands {
             conn.queueSendMessage(out);
         });
     }
-    // public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
-    //     let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
-    //     let gstate = (grp.dataName === 'circuitGroupConfig') ? state.circuitGroups.getItemById(grp.id, grp.isActive !== false) : state.lightGroups.getItemById(grp.id, grp.isActive !== false);
-    //     return new Promise<ICircuitGroupState>(async (resolve, reject) => {
-    //         try {
-    //             await sys.board.circuits.setCircuitStateAsync(id, val);
-    //             resolve(state.circuitGroups.getInterfaceById(id));
-    //         }
-    //         catch (err) { reject(err); }
-    //     });
-    // }
     public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> { return this.setCircuitGroupStateAsync(id, val); }
     public async toggleCircuitStateAsync(id: number) {
         let cstate = state.circuits.getInterfaceById(id);
@@ -1531,7 +1518,9 @@ export class TouchCircuitCommands extends CircuitCommands {
                                     await sys.board.circuits.setCircuitStateAsync(c.circuit, false);
                                 else if (!cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) !== 'off') await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
                             }
-                            sgrp.isOn = sys.board.valueMaps.lightThemes.getName(theme) === 'off' ? false : true;
+                            let isOn = sys.board.valueMaps.lightThemes.getName(theme) === 'off' ? false : true;
+                            sys.board.circuits.setEndTime(grp, sgrp, isOn); 
+                            sgrp.isOn = isOn;
                             switch (theme) {
                                 case 0: // off
                                 case 1: // on
