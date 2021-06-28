@@ -77,301 +77,6 @@ export class EquipmentStateMessage {
         let board = sys.board as EasyTouchBoard;
         board.initExpansionModules(model1, model2);
     }
-    //private static initTouch(msg: Inbound, model1: number, model2: number) {
-    //    switch (model2) {
-    //        case 11: // SunTouch.  Eq to IntelliCom??
-    //            sys.controllerType = ControllerType.IntelliCom;
-    //            sys.equipment.model = 'Suntouch/Intellicom';
-    //            sys.equipment.maxBodies = 2;
-    //            sys.equipment.maxFeatures = 4;
-    //            sys.equipment.maxValves = 2;
-    //            sys.equipment.maxSchedules = 4;
-    //            sys.equipment.maxCircuits = 6; // 2 filter + 2 aux
-    //            sys.board.equipmentIds.invalidIds.merge([5, 7, 8, 9, 13, 14, 15, 16, 17, 18])
-    //            sys.equipment.maxCircuitGroups = 0;
-    //            break;
-    //        case 0: // Intellitouch i5+3
-    //            sys.controllerType = ControllerType.IntelliTouch;
-    //            sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
-    //            sys.equipment.model = 'IntelliTouch i5+3';
-    //            sys.equipment.maxBodies = 2;
-    //            sys.equipment.maxFeatures = 10;
-    //            sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
-    //            sys.equipment.maxSchedules = 99;
-    //            sys.equipment.maxCircuits = 6; // 2 filter + 5 aux
-    //            sys.board.equipmentIds.invalidIds.merge([5, 7, 8, 9, 16, 17, 18])
-    //            sys.equipment.maxCircuitGroups = 3;
-    //            break;
-    //        case 1: // IntelliTouch i7+3
-    //            sys.controllerType = ControllerType.IntelliTouch;
-    //            sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
-    //            sys.equipment.model = 'IntelliTouch i7+3';
-    //            sys.equipment.maxBodies = 2;
-    //            sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
-    //            sys.equipment.maxSchedules = 99;
-    //            sys.equipment.maxFeatures = 10;
-    //            sys.equipment.maxCircuits = 7; // 2 filter + 5 aux
-    //            sys.equipment.maxCircuitGroups = 3;
-    //            sys.equipment.maxIntelliBrites = 10;
-    //            break;
-    //        case 2: // IntelliTouch i9+3
-    //            sys.controllerType = ControllerType.IntelliTouch;
-    //            sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
-    //            sys.equipment.model = 'IntelliTouch i9+3';
-    //            sys.equipment.maxBodies = 2;
-    //            sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
-    //            sys.equipment.maxSchedules = 99;
-    //            sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
-    //            sys.equipment.maxFeatures = 10;
-    //            sys.equipment.maxCircuitGroups = 3;
-    //            sys.equipment.maxIntelliBrites = 10;
-    //            break;
-    //        case 3: // IntelliTouch i5+3S
-    //            sys.controllerType = ControllerType.IntelliTouch;
-    //            sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
-    //            sys.equipment.model = 'IntelliTouch i5+3S';
-    //            sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
-    //            sys.equipment.maxSchedules = 99;
-    //            sys.equipment.maxCircuits = 5; // 2 filter + 8 aux
-    //            sys.equipment.maxFeatures = 10;
-    //            sys.equipment.maxCircuitGroups = 3;
-    //            sys.equipment.maxIntelliBrites = 10;
-    //            break;
-    //        case 4: // IntelliTouch i9+3S
-    //            sys.controllerType = ControllerType.IntelliTouch;
-    //            sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
-    //            sys.equipment.model = 'IntelliTouch i9+3S';
-    //            sys.equipment.maxValves = 4; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
-    //            sys.equipment.maxSchedules = 99;
-    //            sys.equipment.maxCircuits = 9; // 1 filter + 8 aux
-    //            sys.equipment.maxFeatures = 10;
-    //            sys.equipment.maxCircuitGroups = 3;
-    //            sys.equipment.maxIntelliBrites = 10;
-    //            break;
-    //        case 5: // IntelliTouch i10+3D
-    //            sys.controllerType = ControllerType.IntelliTouch;
-    //            sys.equipment.maxPumps = 8; // All IntelliTouch systems can support 8VF pumps or 4VS and 4VF pumps.
-    //            sys.equipment.model = 'IntelliTouch i10+3D';
-    //            sys.equipment.maxBodies = 2;
-    //            sys.equipment.maxValves = 6; // This needs to be looked at as 3 additional valves can be added with the valve expansion.
-    //            sys.equipment.maxSchedules = 99;
-    //            sys.equipment.maxCircuits = 10; // 2 filter + 8 aux
-    //            sys.equipment.maxFeatures = 10;
-    //            sys.equipment.maxCircuitGroups = 3;
-    //            sys.equipment.maxIntelliBrites = 10;
-    //            sys.equipment.dual = true;
-    //            sys.equipment.shared = false;
-    //            sys.equipment.maxChemControllers = sys.equipment.maxChlorinators = 2;
-    //            break;
-    //        case 13: // EasyTouch2 Models
-    //            sys.controllerType = ControllerType.EasyTouch;
-    //            // sys.equipment.maxValves = 2; // EasyTouch Systems have Pool/Spa A and B.
-    //            sys.equipment.maxSchedules = 12;
-    //            sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS, VSF or VF pumps.
-    //            sys.equipment.maxCircuitGroups = 0;
-    //            sys.board.equipmentIds.invalidIds.add(10); // exclude invalid circuit
-    //            sys.board.equipmentIds.invalidIds.add(19); // exclude invalid circuit
-    //            sys.equipment.maxValves = 4; // need to check for Single bodies
-    //            // will exclude AUX EXTRA 
-    //            switch (model1) {
-    //                case 0:
-    //                    sys.equipment.model = 'EasyTouch2 8';
-    //                    sys.equipment.maxBodies = 2;
-    //                    sys.equipment.maxCircuits = 8;
-    //                    break;
-    //                case 1:
-    //                    sys.equipment.model = 'EasyTouch2 8P';
-    //                    sys.equipment.maxCircuits = 8;
-    //                    break;
-    //                case 2:
-    //                    sys.equipment.model = 'EasyTouch2 4';
-    //                    sys.equipment.maxBodies = 2;
-    //                    // AuxExtra (20) is valid if not used with solar
-    //                    // Thus, valid features can be 11,12,13,14 and 20
-    //                    // See #113, 244
-    //                    // exclude Aux5-Aux7
-    //                    sys.board.equipmentIds.invalidIds.merge([7, 8, 9])
-    //                    break;
-    //                case 3:
-    //                    sys.equipment.model = 'EasyTouch2 4P';
-    //                    // AuxExtra (20) is valid if not used with solar
-    //                    // Thus, valid features can be 11,12,13,14 and 20
-    //                    // See #113
-    //                    // exclude Aux5-Aux7
-    //                    sys.board.equipmentIds.invalidIds.merge([7, 8, 9])
-    //                    break;
-    //                case 6:
-    //                    sys.equipment.model = 'EasyTouch PSL4'; // POOL AND SPA
-    //                    sys.equipment.maxBodies = 2;
-    //                    sys.equipment.maxPumps = 1;
-    //                    sys.equipment.maxSchedules = 4;
-    //                    sys.equipment.maxFeatures = 2;
-    //                    // exclude Aux5-Aux7
-    //                    sys.board.equipmentIds.invalidIds.merge([7, 8, 9])
-    //                    break;
-    //                case 7: // EasyTouch PL4 P/N 522523
-    //                    sys.equipment.model = 'EasyTouch PL4'; // SINGLE BODY; POOL ONLY
-    //                    sys.equipment.maxBodies = 1;
-    //                    sys.equipment.maxPumps = 1;
-    //                    sys.equipment.maxSchedules = 4;
-    //                    sys.equipment.maxFeatures = 2;
-    //                    // exclude Aux5-Aux7
-    //                    sys.board.equipmentIds.invalidIds.merge([7, 8, 9])
-    //                    break;
-    //            }
-    //            break;
-
-    //        case 14: // EasyTouch1 Models
-    //            sys.controllerType = ControllerType.EasyTouch;
-    //            sys.equipment.maxValves = 4; // EasyTouch Systems have Pool/Spa A and B.
-    //            sys.equipment.maxSchedules = 12;
-    //            sys.equipment.maxPumps = 2; // All EasyTouch systems can support 2 VS or VF pumps.
-    //            sys.equipment.maxCircuitGroups = 0;
-    //            sys.equipment.maxFeatures = 8;
-    //            switch (model1) {
-    //                case 0:
-    //                    sys.equipment.model = 'EasyTouch1 8';
-    //                    sys.equipment.maxBodies = 2;
-    //                    sys.equipment.maxCircuits = 8;
-    //                    break;
-    //                case 1:
-    //                    sys.equipment.model = 'EasyTouch1 8P';
-    //                    sys.equipment.maxCircuits = 8;
-    //                    sys.equipment.maxBodies = 1;
-    //                    break;
-    //                case 2: // check...
-    //                    sys.equipment.model = 'EasyTouch1 4';
-    //                    sys.equipment.maxBodies = 2;
-    //                    break;
-    //                case 3: // check...
-    //                    sys.equipment.model = 'EasyTouch1 4P';
-    //                    sys.equipment.maxBodies = 1;
-    //                    break;
-    //            }
-    //            break;
-    //    }
-    //    if (sys.controllerType === ControllerType.IntelliTouch) {
-    //        sys.equipment.maxCustomNames = 20;
-    //        sys.equipment.maxCircuitGroups = 10;
-    //        let pnl: ExpansionPanel;
-    //        pnl = sys.equipment.expansions.getItemById(1, true);
-    //        pnl.type = msg.extractPayloadByte(9) & 0x20;
-    //        pnl.name = pnl.type === 32 ? 'i10X' : 'none';
-    //        pnl.isActive = pnl.type !== 0;
-    //        // if type is i9 or i10 we can have up to 3 expansion boards
-    //        if (pnl.isActive) {
-    //            sys.equipment.maxCircuits += 10;
-    //            sys.equipment.maxValves += 3;
-    //        }
-    //        pnl = sys.equipment.expansions.getItemById(2, true);
-    //        pnl.type = 0; // msg.extractPayloadByte(9) & 0x20;
-    //        pnl.name = pnl.type === 1 ? 'i10X' : 'none';
-    //        pnl.isActive = pnl.type !== 0;
-    //        if (pnl.isActive) {
-    //            sys.equipment.maxCircuits += 10;
-    //            sys.equipment.maxValves += 3;
-    //        }
-    //        pnl = sys.equipment.expansions.getItemById(3, true);
-    //        pnl.type = 0; // msg.extractPayloadByte(9) & 0x20;
-    //        pnl.name = pnl.type === 1 ? 'i10X' : 'none';
-    //        pnl.isActive = pnl.type !== 0;
-    //        if (pnl.isActive) {
-    //            sys.equipment.maxCircuits += 10;
-    //            sys.equipment.maxValves += 3;
-    //        }
-    //    }
-    //    if (typeof sys.equipment.model === 'undefined') sys.equipment.model = `Unknown OCP[${model1},${model2}]`;
-    //    state.equipment.model = sys.equipment.model;
-    //    state.equipment.controllerType = sys.controllerType;
-    //    if (sys.equipment.model.includes('PL')) state.equipment.shared = sys.equipment.shared = false;
-    //    else if (sys.equipment.model.includes('PSL')) state.equipment.shared = sys.equipment.shared = true;
-    //    else['S', 'P', 'D'].includes(sys.equipment.model.slice(-1)) ? state.equipment.shared = sys.equipment.shared = false : state.equipment.shared = sys.equipment.shared = true;
-    //    sys.equipment.shared ? sys.board.equipmentIds.circuits.start = 1 : sys.board.equipmentIds.circuits.start = 2;
-
-    //    // shared equipment frees up one physical circuit
-    //    sys.equipment.maxCircuits += sys.equipment.shared ? 1 : 0;
-    //    state.equipment.maxBodies = sys.equipment.maxBodies;
-    //    let heater = sys.heaters.getItemById(1, true);
-    //    heater.isActive = true;
-    //    heater.type = 1;
-    //    heater.name = "Gas Heater";
-    //    let sheater = state.heaters.getItemById(1, true);
-    //    sheater.type = heater.type;
-    //    sheater.name = heater.name;
-    //    sheater.isVirtual = heater.isVirtual = false;
-
-    //    sys.equipment.shared ? heater.body = 32 : heater.body = 0;
-    //    sys.equipment.setEquipmentIds();
-    //    // Initialize the bodies.  We will need these very soon.
-    //    for (let i = 1; i <= sys.equipment.maxBodies; i++) {
-    //        // Add in the bodies for the configuration.  These need to be set.
-    //        let cbody = sys.bodies.getItemById(i, true);
-    //        let tbody = state.temps.bodies.getItemById(i, true);
-    //        // If the body doesn't represent a spa then we set the type.
-    //        tbody.type = cbody.type = i > 1 && !sys.equipment.shared ? 1 : 0;
-    //        cbody.isActive = true;
-    //        if (typeof cbody.name === 'undefined') {
-    //            let bt = sys.board.valueMaps.bodyTypes.transform(cbody.type);
-    //            tbody.name = cbody.name = bt.name;
-    //        }
-    //    }
-    //    if (!sys.equipment.shared && !sys.equipment.dual) {
-    //        sys.bodies.removeItemById(2);
-    //        state.temps.bodies.removeItemById(2);
-    //    }
-    //    // RKS: 04-14-21 - Remove the spa circuit from the equation if this is a single body panel.
-    //    if (sys.equipment.maxBodies === 1) sys.board.equipmentIds.invalidIds.merge([1])
-    //    sys.bodies.removeItemById(3);
-    //    sys.bodies.removeItemById(4);
-    //    state.temps.bodies.removeItemById(3);
-    //    state.temps.bodies.removeItemById(4);
-
-    //    sys.board.heaters.initTempSensors();
-    //    // time defaults
-    //    sys.general.options.clockMode = sys.general.options.clockMode || 12;
-    //    sys.general.options.clockSource = sys.general.options.clockSource || 'manual';
-    //    // This will let any connected clients know if anything has changed.  If nothing has ...crickets.
-    //    state.emitControllerChange();
-    //}
-    //public static initVirtual() {
-    //    state.equipment.controllerType = sys.controllerType = ControllerType.Virtual;
-    //    state.equipment.model = sys.equipment.model = 'Virtual Controller';
-    //    sys.equipment.maxFeatures = 10;
-    //    sys.equipment.maxCircuits = 0;
-    //    sys.equipment.maxSchedules = 0;
-    //    sys.equipment.maxValves = 0;
-    //    sys.equipment.maxIntelliBrites = 0;
-    //    sys.equipment.maxLightGroups = 0;
-    //    sys.equipment.maxCustomNames = 0;
-    //    sys.equipment.maxCircuitGroups = 40;
-    //    // setup pool circuit
-    //    let pool = sys.circuits.getItemById(6, true);
-    //    let spool = state.circuits.getItemById(6, true);
-    //    pool.name = spool.name = 'Pool';
-    //    pool.type = spool.type = 2;
-    //    pool.isActive = true;
-    //    spool.isOn = false;
-    //    const cbody = sys.bodies.getItemById(1, true, { id: 1, isActive: true, name: "Pool" });
-    //    const tbody = state.temps.bodies.getItemById(1, true);
-    //    tbody.heatMode = cbody.heatMode = 0;
-    //    tbody.name = cbody.name;
-    //    tbody.circuit = cbody.circuit = 6;
-    //    tbody.heatStatus = 0;
-    //    tbody.isOn = false;
-    //    sys.general.options.clockMode = 12;
-    //    sys.general.options.clockSource = 'server';
-    //    state.equipment.maxBodies = sys.equipment.maxBodies;
-    //    state.mode = 0;
-    //    state.status = 1;
-    //    state.temps.units = 0;
-    //    sys.equipment.setEquipmentIds();
-    //    state.emitControllerChange();
-    //    sys.board.virtualPumpControllers.start();
-    //    sys.board.heaters.initTempSensors();
-    //    sys.board.heaters.updateHeaterServices();
-    //    sys.board.processStatusAsync();
-
-    //}
     private static initController(msg: Inbound) {
         state.status = 1;
         const model1 = msg.extractPayloadByte(27);
@@ -589,7 +294,7 @@ export class EquipmentStateMessage {
                         // 26   | 163 | Unknown
                         // 27   | 1   | Byte 2 of OCP identifier
                         // 28   | 0   | Byte 1 of OCP identifier
-                       
+
 
                         // Heat Modes
                         // 1 = Heater
@@ -694,7 +399,7 @@ export class EquipmentStateMessage {
                         case ControllerType.EasyTouch:
                         case ControllerType.IntelliTouch:
                             {
-                                this.processTouchCircuits(msg);
+                                EquipmentStateMessage.processTouchCircuits(msg);
                                 // This will toggle the group states depending on the state of the individual circuits.
                                 sys.board.circuits.syncCircuitRelayStates();
                                 sys.board.features.syncGroupStates();
@@ -755,6 +460,7 @@ export class EquipmentStateMessage {
                 let cbody: Body = sys.bodies.getItemById(1);
                 tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(5) & 3;
                 tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(3);
+                tbody.coolSetpoint = cbody.coolSetpoint = msg.extractPayloadByte(9);
                 if (tbody.isOn) tbody.temp = state.temps.waterSensor1;
                 cbody = sys.bodies.getItemById(2);
                 if (cbody.isActive) {
@@ -808,45 +514,6 @@ export class EquipmentStateMessage {
                 break;
         }
     }
-    // RKS: 07-06-20 I am deprecating this from processing in IntelliCenter.  This was a throwback from *Touch but
-    // not all the features are represented and I am unsure if it actually processes correctly in all situations.  The
-    // bytes may be set but it may also be coincidental.  This is wholly unreliable in 1.047+.  Message 204 contains the complete set.
-    //private static processFeatureState(msg: Inbound) {
-    //    // Somewhere in this packet we need to find support for 32 bits of features.
-    //    // Turning on the first defined feature set by 7 to 16
-    //    // Turning on the second defined feature set byte 7 to 32
-    //    // This means that the first 4 feature circuits are located at byte 7 on the 4 most significant bits.  This leaves 28 bits
-    //    // unaccounted for when it comes to a total of 32 features.
-
-    //    // We do know that the first 6 bytes are accounted for so byte 8, 10, or 11 are potential candidates.
-    //    // RKS: 09-26-20 IntelliCenter versions after 1.040 now pass the feature state in message 204.  The 2 data is no longer reliable.
-    //    if (parseFloat(sys.equipment.controllerFirmware) <= 1.04) {
-
-    //        // TODO: To RKS, can we combine this and processCircuitState for IntelliCenter?  
-    //        // Not exactly sure why we are hardcoding byte 7 here.
-    //        // I combined the *touch circuits and features in processTouchCircuits below.
-    //        let featureId = sys.board.equipmentIds.features.start;
-    //        for (let i = 1; i <= sys.features.length; i++) {
-    //            // Use a case statement here since we don't know where to go after 4.
-    //            switch (i) {
-    //                case 1:
-    //                case 2:
-    //                case 3:
-    //                case 4: {
-    //                    const byte = msg.extractPayloadByte(7);
-    //                    const feature = sys.features.getItemById(featureId, false, { isActive: false });
-    //                    if (feature.isActive !== false) {
-    //                        const fstate = state.features.getItemById(featureId, feature.isActive);
-    //                        fstate.isOn = (byte >> 4 & 1 << (i - 1)) > 0;
-    //                        fstate.name = feature.name;
-    //                    }
-    //                    break;
-    //                }
-    //            }
-    //            featureId++;
-    //        }
-    //    }
-    //}
     private static processCircuitState(msg: Inbound) {
         // The way this works is that there is one byte per 8 circuits for a total of 5 bytes or 40 circuits.  The
         // configuration already determined how many available circuits we have by querying the model of the panel
@@ -861,7 +528,9 @@ export class EquipmentStateMessage {
                 let circuit = sys.circuits.getItemById(circuitId, false, { isActive: false });
                 if (circuit.isActive !== false) {
                     let cstate = state.circuits.getItemById(circuitId, circuit.isActive);
-                    cstate.isOn = (byte & (1 << j)) > 0;
+                    let isOn = (byte & (1 << j)) > 0;
+                    sys.board.circuits.setEndTime(circuit, cstate, isOn);
+                    cstate.isOn = isOn;
                     cstate.name = circuit.name;
                     cstate.nameId = circuit.nameId;
                     cstate.showInFeatures = circuit.showInFeatures;
@@ -900,7 +569,9 @@ export class EquipmentStateMessage {
                 if (circ.isActive) {
                     const cstate = state.circuits.getInterfaceById(circuitId, circ.isActive);
                     cstate.showInFeatures = circ.showInFeatures;
-                    cstate.isOn = (byte & 1 << j) >> j > 0;
+                    let isOn = (byte & 1 << j) >> j > 0;
+                    sys.board.circuits.setEndTime(circ, cstate, isOn);
+                    cstate.isOn = isOn;
                     cstate.name = circ.name;
                     cstate.type = circ.type;
                     cstate.nameId = circ.nameId;
@@ -925,6 +596,7 @@ export class EquipmentStateMessage {
         state.emitEquipmentChanges();
         msg.isProcessed = true;
     }
+
     private static processIntelliBriteMode(msg: Inbound) {
         // eg RED: [165,16,16,34,96,2],[195,0],[2,12]
         // data[0] = color
@@ -945,17 +617,9 @@ export class EquipmentStateMessage {
                     // stored.  Once the message is sent then it throws away the data.  When you turn the light
                     // on again it will be on at whatever theme happened to be set at the time it went off.  We keep this
                     // as a best guess so when the user turns on the light it will likely be the last theme observed.
-                    // state.intellibrite.lightingTheme = sys.intellibrite.lightingTheme = theme;
                     const grp = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
                     const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
                     grp.lightingTheme = sgrp.lightingTheme = theme;
-                    /*                     for (let i = 0; i <= sys.intellibrite.circuits.length; i++) {
-                                            let ib = sys.intellibrite.circuits.getItemByIndex(i);
-                                            const sgrp = state.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
-                                            let circuit = sys.circuits.getItemById(ib.circuit);
-                                            let cstate = state.circuits.getItemById(ib.circuit);
-                                            if (cstate.isOn) cstate.lightingTheme = circuit.lightingTheme = theme;
-                                        } */
                     for (let i = 0; i < grp.circuits.length; i++) {
                         let c = grp.circuits.getItemByIndex(i);
                         let cstate = state.circuits.getItemById(c.circuit);
@@ -979,7 +643,6 @@ export class EquipmentStateMessage {
                         default:
                             sys.board.circuits.sequenceLightGroupAsync(grp.id, 'color');
                         // other themes for magicstream?
-
                     }
                     break;
                 }

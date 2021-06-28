@@ -22,9 +22,9 @@ import * as util from 'util';
 import { logger } from '../logger/Logger';
 import { webApp } from '../web/Server';
 import { ControllerType, Timestamp, utils, Heliotrope } from './Constants';
-import { sys, Chemical } from './Equipment';
+import { sys } from './Equipment';
 import { versionCheck } from '../config/VersionCheck';
-import { EquipmentStateMessage } from './comms/messages/status/EquipmentStateMessage';
+
 
 export class State implements IState {
     statePath: string;
@@ -447,6 +447,7 @@ export interface ICircuitState {
     name: string;
     nameId?: number;
     isOn: boolean;
+    endTime: number;
     lightingTheme?: number;
     emitEquipmentChange();
     get(bCopy?: boolean);
@@ -1010,7 +1011,7 @@ export interface ICircuitGroupState {
     type: number;
     name: string;
     nameId?: number;
-    // eggTimer: number;
+    endTime: number;
     isOn: boolean;
     isActive: boolean;
     dataName: string;
@@ -1058,10 +1059,10 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState, IC
             this.hasChanged = true;
         }
     }
-    // public get eggTimer(): number { return this.data.eggTimer; }
-    // public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
+    public get endTime(): number { return this.data.endTime; }
+    public set endTime(val: number) { this.setDataVal('endTime', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get showInFeatures(): boolean { return typeof this.data.showInFeatures === 'undefined' ? true : this.data.showInFeatures; }
@@ -1130,8 +1131,8 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
             this.hasChanged = true;
         }
     }
-    // public get eggTimer(): number { return this.data.eggTimer; }
-    // public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
+    public get endTime(): number { return this.data.endTime; }
+    public set endTime(val: number) { this.setDataVal('endTime', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get isActive(): boolean { return this.data.isActive; }
@@ -1367,6 +1368,8 @@ export class FeatureState extends EqState implements ICircuitState {
     }
     public get showInFeatures(): boolean { return this.data.showInFeatures; }
     public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
+    public get endTime(): number { return this.data.endTime; }
+    public set endTime(val: number) { this.setDataVal('endTime', val); }
 }
 export class VirtualCircuitState extends EqState implements ICircuitState {
     public dataName: string = 'virtualCircuit';
@@ -1385,6 +1388,8 @@ export class VirtualCircuitState extends EqState implements ICircuitState {
             this.hasChanged = true;
         }
     }
+    public get endTime(): number { return this.data.endTime; }
+    public set endTime(val: number) { this.setDataVal('endTime', val); }
 }
 export class VirtualCircuitStateCollection extends EqStateCollection<VirtualCircuitState> {
     public createItem(data: any): VirtualCircuitState { return new VirtualCircuitState(data); }
@@ -1458,6 +1463,8 @@ export class CircuitState extends EqState implements ICircuitState {
             this.hasChanged = true;
         }
     }
+    public get endTime(): number { return this.data.endTime; }
+    public set endTime(val: number) { this.setDataVal('endTime', val); }
 }
 export class ValveStateCollection extends EqStateCollection<ValveState> {
     public createItem(data: any): ValveState { return new ValveState(data); }

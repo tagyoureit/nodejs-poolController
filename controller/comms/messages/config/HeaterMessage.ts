@@ -94,6 +94,7 @@ export class HeaterMessage {
                 //             on/off (16) = solar as a heat pump
                 // bits 7,8 = stop temp delta
 
+                // gas heater only; solar/heatpump/ultratemp disabled
                 if ((msg.extractPayloadByte(0) & 0x2) === 0) {
                     let heater = sys.heaters.getItemById(1);
                     if (heater.master === 1) {
@@ -106,20 +107,71 @@ export class HeaterMessage {
                             catch (err) { logger.error(`Error with OCP reclaiming control over gas heater: ${err}`) }
                         })();
                     }
-                    sys.heaters.removeItemById(2);
-                    sys.heaters.removeItemById(3);
+                    sys.heaters.getItemById(2).isActive = false;
+                    sys.heaters.getItemById(3).isActive = false;
+                    sys.heaters.getItemById(4).isActive = false;
                     sys.board.equipmentIds.invalidIds.remove(20); // include Aux Extra
-                    sys.board.heaters.updateHeaterServices();
-                    sys.equipment.setEquipmentIds();
+/*                     sys.equipment.setEquipmentIds();
                     for (let i = 0; i < sys.bodies.length; i++) {
                         let body = sys.bodies.getItemByIndex(i);
                         let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
                         let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
                         btemp.heaterOptions = opts;
                     }
-                    return;
+                    return; */
                 }
-                if ((msg.extractPayloadByte(2) & 0x30) === 0) {
+                // Ultratemp (+ cooling?); 
+                else if ((msg.extractPayloadByte(2) & 0x30) === 0x30) {
+                    let heatPump: Heater = sys.heaters.getItemById(4, true);
+                    if (heatPump.master === 1) {
+                        heatPump.master = 0;
+                        (async function () {
+                            try {
+                                await ncp.heaters.deleteHeaterAsync(4);
+                                logger.debug(`Ultratemp control returned to OCP.`);
+                            }
+                            catch (err) { logger.error(`Error with OCP reclaiming control over Ultratemp: ${err}`) }
+                        })();
+                    }
+                    heatPump.name = 'Ultratemp';
+                    heatPump.body = 32;
+                    heatPump.type = 4;
+                    heatPump.isActive = true;
+                    heatPump.heatingEnabled = true
+                    heatPump.coolingEnabled = (msg.extractPayloadByte(1) & 0x3) === 3;
+                    sys.heaters.getItemById(2).isActive = false;
+                    sys.heaters.getItemById(3).isActive = false;
+                    sys.board.equipmentIds.invalidIds.add(20); // exclude Aux Extra
+                    let hstate = state.heaters.getItemById(heatPump.id, true);
+                    hstate.name = heatPump.name;
+                }
+                // 0x10 = 16 = heat pump (solar as a heat pump)
+                else if ((msg.extractPayloadByte(2) & 0x10) === 0x10) {
+                    let heatPump: Heater = sys.heaters.getItemById(3, true);
+                    if (heatPump.master === 1) {
+                        heatPump.master = 0;
+                        (async function () {
+                            try {
+                                await ncp.heaters.deleteHeaterAsync(3);
+                                logger.debug(`Heat pump control returned to OCP.`);
+                            }
+                            catch (err) { logger.error(`Error with OCP reclaiming control over heat pump: ${err}`) }
+                        })();
+                    }
+                    heatPump.name = 'Heat Pump';
+                    heatPump.body = 32;
+                    heatPump.type = 3;
+                    heatPump.isActive = true;
+                    heatPump.heatingEnabled = true;
+                    heatPump.coolingEnabled = false;
+                    heatPump.freeze = (msg.extractPayloadByte(1) & 0x80) >> 7 === 1;
+                    sys.heaters.getItemById(2).isActive = false;
+                    sys.heaters.getItemById(4).isActive = false;
+                    sys.board.equipmentIds.invalidIds.add(20); // exclude Aux Extra
+                    let hstate = state.heaters.getItemById(heatPump.id, true);
+                    hstate.name = heatPump.name;
+                }
+                else if ((msg.extractPayloadByte(2) & 0x30) === 0) {
                     // solar
                     let solar: Heater = sys.heaters.getItemById(2, true);
                     if (solar.master === 1) {
@@ -147,31 +199,8 @@ export class HeaterMessage {
                     solar.stopTempDelta = ((msg.extractPayloadByte(2) & 0xC0) >> 6) + 2;
                     let sstate = state.heaters.getItemById(solar.id, true);
                     sstate.name = solar.name;
-                    // sstate.isVirtual = false;
-                    sys.heaters.removeItemById(3);
-                }
-                else if ((msg.extractPayloadByte(2) & 0x10) === 16) {
-                    let heatPump: Heater = sys.heaters.getItemById(3, true);
-                    if (heatPump.master === 1) {
-                        heatPump.master = 0;
-                        (async function () {
-                            try {
-                                await ncp.heaters.deleteHeaterAsync(3);
-                                logger.debug(`Heat pump control returned to OCP.`);
-                            }
-                            catch (err) { logger.error(`Error with OCP reclaiming control over heat pump: ${err}`) }
-                        })();
-                    }
-                    // heatPump.isVirtual = false;
-                    heatPump.type = 3;
-                    heatPump.isActive = true;
-                    heatPump.heatingEnabled = (msg.extractPayloadByte(1) & 0x1) === 1;
-                    heatPump.coolingEnabled = (msg.extractPayloadByte(1) & 0x2) >> 1 === 1 || ((msg.extractPayloadByte(2) & 0x10) === 16);
-                    sys.heaters.removeItemById(2);
-                    sys.board.equipmentIds.invalidIds.remove(20); // include Aux Extra
-                    let hstate = state.heaters.getItemById(heatPump.id, true);
-                    hstate.name = heatPump.name;
-                    // hstate.isVirtual = false;
+                    sys.heaters.getItemById(3).isActive = false;
+                    sys.heaters.getItemById(4).isActive = false;
                 }
                 for (var i = 0; i < sys.heaters.length; i++) {
                     let heater = sys.heaters.getItemByIndex(i);

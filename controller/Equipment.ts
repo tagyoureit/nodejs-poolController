@@ -1116,9 +1116,6 @@ export class Circuit extends EqItem implements ICircuit {
     public set freeze(val: boolean) { this.setDataVal('freeze', val); }
     public get showInFeatures(): boolean { return this.data.showInFeatures; }
     public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
-    // RKS: This turned out to be the Don't Stop flag.
-    //public get showInCircuits(): boolean { return this.data.showInCircuits; }
-    //public set showInCircuits(val: boolean) { this.setDataVal('showInCircuits', val); }
     public get eggTimer(): number { return this.data.eggTimer; }
     public set eggTimer(val: number) { this.setDataVal('eggTimer', val); }
     public get lightingTheme(): number | any { return this.data.lightingTheme; }
