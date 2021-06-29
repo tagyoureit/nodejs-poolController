@@ -19,13 +19,14 @@ import { state } from "../../../State";
 import { sys, ControllerType } from "../../../Equipment";
 import { logger } from "../../../../logger/Logger";
 import { webApp } from "../../../../web/Server";
+import { Timestamp, utils } from "../../../Constants"
 export class IntelliChemStateMessage {
     public static process(msg: Inbound) {
         if (sys.controllerType === ControllerType.Unknown) return;
         if (msg.source < 144 || msg.source > 158) return;
         switch (msg.action) {
 
-            // ---------- IntelliChem set get ----------- //
+            // ---------- IntelliChem Control panel is spitting out its status ----------- //
             case 18: // IntelliChem is sending us it's status.
                 IntelliChemStateMessage.processState(msg);
                 break;
@@ -98,7 +99,7 @@ export class IntelliChemStateMessage {
         //      21 : ORP tank level 1-7
         //      22 : LSI. (byte(22) & 0x80) === 0x80 ? (256 - byte(22) / -100 : byte(22)/100
         //      23-24 : Calcium Hardness = byte(23) x 256 + byte(24) = 250
-        //      25 : Unknown = 0 (probably reserved CYA byte so the controller is always dealing with integers)
+        //      25 : Unknown = 0 (probably reserved CYA byte so the chem is always dealing with integers)
         //      26 : CYA Max value = 210.
         //      27-28 : Alkalinity = byte(27) x 256 + byte(28)
         //      29 : Salt level = byte(29) x 50
@@ -114,57 +115,59 @@ export class IntelliChemStateMessage {
         //      40 : Unknown
         let address = msg.source;
         // The address is king here.  The id is not.
-        let controller = sys.chemControllers.getItemByAddress(address, true);
-        let scontroller = state.chemControllers.getItemById(controller.id, true);
-        scontroller.isActive = controller.isActive = true;
-        scontroller.status = 0;
-        scontroller.type = controller.type = sys.board.valueMaps.chemControllerTypes.getValue('intellichem');
-        controller.name = controller.name || `IntelliChem ${controller.address - 143}`; // default to true id if no name is set
-        scontroller.lastComm = new Date().getTime();
-        scontroller.status = scontroller.alarms.comms = 0; 
-        controller.ph.tank.capacity = controller.orp.tank.capacity = 6;
-        controller.ph.tank.units = controller.orp.tank.units = '';
+        let chem = sys.chemControllers.getItemByAddress(address, true);
+        let schem = state.chemControllers.getItemById(chem.id, true);
+        schem.isActive = chem.isActive = true;
+        schem.status = 0;
+        schem.type = chem.type = sys.board.valueMaps.chemControllerTypes.getValue('intellichem');
+        chem.name = chem.name || `IntelliChem ${chem.address - 143}`; // default to true id if no name is set
+        schem.lastComm = new Date().getTime();
+        schem.status = schem.alarms.comms = 0; 
+        chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
+        chem.ph.tank.units = chem.orp.tank.units = '';
         
-        scontroller.address = controller.address;
-        scontroller.ph.level = scontroller.ph.probe.level = msg.extractPayloadIntBE(0) / 100;
-        scontroller.orp.level = scontroller.orp.probe.level = msg.extractPayloadIntBE(2);
-        controller.ph.setpoint = msg.extractPayloadIntBE(4) / 100;
-        controller.orp.setpoint = msg.extractPayloadIntBE(6);
+        schem.address = chem.address;
+        schem.ph.level = schem.ph.probe.level = msg.extractPayloadIntBE(0) / 100;
+        schem.orp.level = schem.orp.probe.level = msg.extractPayloadIntBE(2);
+        chem.ph.setpoint = msg.extractPayloadIntBE(4) / 100;
+        chem.orp.setpoint = msg.extractPayloadIntBE(6);
         // Missing information on the related bytes.
         // Bytes 8-14 (Probably Total Dissolved Solids in here if no IntelliChlor)
-
+        let phPrev = { status: schem.orp.dosingStatus, time: schem.ph.timeDosed || 0, vol: schem.ph.volumeDosed };
+        let orpPrev = { status: schem.orp.dosingStatus, time: schem.orp.timeDosed || 0, vol: schem.orp.volumeDosed };
+        // IntelliChem never tells us what the dose time or volume is so we will let that dog lie.
         //      11-12 : pH Dose time
-        scontroller.ph.doseTime = (msg.extractPayloadByte(11) * 256) + msg.extractPayloadByte(12);
+        schem.ph.timeDosed = (msg.extractPayloadByte(11) * 256) + msg.extractPayloadByte(12);
         //      14-15 : ORP Dose time seconds.  The number of seconds since the dose started.
-        scontroller.orp.doseTime = (msg.extractPayloadByte(14) * 256) + msg.extractPayloadByte(15);
+        schem.orp.timeDosed = (msg.extractPayloadByte(14) * 256) + msg.extractPayloadByte(15);
         //      16-17 : pH Dose volume (unknown units) = 35
-        scontroller.ph.doseVolume = (msg.extractPayloadByte(16) * 256) + msg.extractPayloadByte(17);
+        schem.ph.volumeDosed = (msg.extractPayloadByte(16) * 256) + msg.extractPayloadByte(17);
         //      18-19 : ORP Dose volume (unknown units) = 0
-        scontroller.orp.doseVolume = (msg.extractPayloadByte(18) * 256) + msg.extractPayloadByte(19);
+        schem.orp.volumeDosed = (msg.extractPayloadByte(18) * 256) + msg.extractPayloadByte(19);
         //      20 : pH tank level 1-7 = 6
-        scontroller.ph.tank.level = Math.max(msg.extractPayloadByte(20) > 0 ? msg.extractPayloadByte(20) - 1 : msg.extractPayloadByte(20), 0); // values reported as 1-7; possibly 0 if no tank present
+        schem.ph.tank.level = Math.max(msg.extractPayloadByte(20) > 0 ? msg.extractPayloadByte(20) - 1 : msg.extractPayloadByte(20), 0); // values reported as 1-7; possibly 0 if no tank present
         //      21 : ORP tank level 1-7 = 6
-        scontroller.orp.tank.level = Math.max(msg.extractPayloadByte(21) > 0 ? msg.extractPayloadByte(21) - 1 : msg.extractPayloadByte(21), 0); // values reported as 1-7; possibly 0 if no tank present
+        schem.orp.tank.level = Math.max(msg.extractPayloadByte(21) > 0 ? msg.extractPayloadByte(21) - 1 : msg.extractPayloadByte(21), 0); // values reported as 1-7; possibly 0 if no tank present
         //      22 : LSI = 3 & 0x80 === 0x80 ? (256 - 3) / -100 : 3/100 = .03
         let lsi = msg.extractPayloadByte(22);
-        scontroller.saturationIndex = (lsi & 0x80) === 0x80 ? (256 - lsi) / -100 : lsi / 100;
+        schem.lsi = (lsi & 0x80) === 0x80 ? (256 - lsi) / -100 : lsi / 100;
         //      23-24 : Calcium Hardness = 0x256+250 = 250
-        controller.calciumHardness = (msg.extractPayloadByte(23) * 256) + msg.extractPayloadByte(24);
+        chem.calciumHardness = (msg.extractPayloadByte(23) * 256) + msg.extractPayloadByte(24);
         //      26 : CYA = 44
-        controller.cyanuricAcid = msg.extractPayloadByte(26);
+        chem.cyanuricAcid = msg.extractPayloadByte(26);
         //      27-28 : Alkalinity
-        controller.alkalinity = (msg.extractPayloadByte(27) * 256) + msg.extractPayloadByte(28);
+        chem.alkalinity = (msg.extractPayloadByte(27) * 256) + msg.extractPayloadByte(28);
         //      29 : Salt level = 20 
         if (sys.chlorinators.length > 0) {
             let chlor = state.chlorinators.find(elem => elem.id === 1);
-            scontroller.orp.probe.saltLevel = (typeof chlor !== 'undefined') ? chlor.saltLevel : msg.extractPayloadByte(29) * 50;
+            schem.orp.probe.saltLevel = (typeof chlor !== 'undefined') ? chlor.saltLevel : msg.extractPayloadByte(29) * 50;
         }
-        else scontroller.orp.probe.saltLevel = 0;
+        else schem.orp.probe.saltLevel = 0;
         //      31 : Temperature = 81
-        scontroller.ph.probe.temperature = msg.extractPayloadByte(31);
-        scontroller.ph.probe.tempUnits = state.temps.units;
+        schem.ph.probe.temperature = msg.extractPayloadByte(31);
+        schem.ph.probe.tempUnits = state.temps.units;
         //      32 : Alarms = 8 = (no alarm)
-        const alarms = scontroller.alarms;
+        const alarms = schem.alarms;
         alarms.flow = msg.extractPayloadByte(32) & 0x01;
         alarms.pH = msg.extractPayloadByte(32) & 0x06;
         alarms.orp = msg.extractPayloadByte(32) & 0x18;
@@ -172,34 +175,79 @@ export class IntelliChemStateMessage {
         alarms.orpTank = msg.extractPayloadByte(32) & 0x40;
         alarms.probeFault = msg.extractPayloadByte(32) & 0x80;
         //      33 : Warnings -- pH Lockout, Daily Limit Reached, Invalid Setup, Chlorinator Comm error
-        const warnings = scontroller.warnings;
+        const warnings = schem.warnings;
         warnings.pHLockout = msg.extractPayloadByte(33) & 0x01;
         warnings.pHDailyLimitReached = msg.extractPayloadByte(33) & 0x02;
         warnings.orpDailyLimitReached = msg.extractPayloadByte(33) & 0x04;
         warnings.invalidSetup = msg.extractPayloadByte(33) & 0x08;
         warnings.chlorinatorCommError = msg.extractPayloadByte(33) & 0x10;
+        // So we need to do some calculation here.
+
         //      34 : Dosing Status = 149 = (pH Monitoring, ORP Mixing)
-        scontroller.ph.dosingStatus = (msg.extractPayloadByte(34) & 0x30) >> 4; // mask 00xx0000 and shift bit 5 & 6
-        scontroller.orp.dosingStatus = (msg.extractPayloadByte(34) & 0xC0) >> 6; // mask xx000000 and shift bit 7 & 8
+        schem.ph.dosingStatus = (msg.extractPayloadByte(34) & 0x30) >> 4; // mask 00xx0000 and shift bit 5 & 6
+        schem.orp.dosingStatus = (msg.extractPayloadByte(34) & 0xC0) >> 6; // mask xx000000 and shift bit 7 & 8
         //      35 : Delays = 0
-        scontroller.status = msg.extractPayloadByte(35) & 0x80 >> 7; // to be verified as comms lost
-        scontroller.ph.manualDosing = (msg.extractPayloadByte(35) & 0x08) === 1 ? true : false;
-        controller.orp.useChlorinator = (msg.extractPayloadByte(35) & 0x10) === 1 ? true : false;
-        controller.HMIAdvancedDisplay = (msg.extractPayloadByte(35) & 0x20) === 1 ? true : false;
-        controller.ph.phSupply = (msg.extractPayloadByte(35) & 0x40) === 1 ? true : false; // acid pH dosing = 1; base pH dosing = 0;
+        schem.status = msg.extractPayloadByte(35) & 0x80 >> 7; // to be verified as comms lost
+        schem.ph.manualDosing = (msg.extractPayloadByte(35) & 0x08) === 1 ? true : false;
+        chem.orp.useChlorinator = (msg.extractPayloadByte(35) & 0x10) === 1 ? true : false;
+        chem.HMIAdvancedDisplay = (msg.extractPayloadByte(35) & 0x20) === 1 ? true : false;
+        chem.ph.phSupply = (msg.extractPayloadByte(35) & 0x40) === 1 ? true : false; // acid pH dosing = 1; base pH dosing = 0;
         //      36-37 : Firmware = 80,1 = 1.080
-        scontroller.firmware = `${msg.extractPayloadByte(37)}.${msg.extractPayloadByte(36).toString().padStart(3, '0')}`
+        chem.firmware = `${msg.extractPayloadByte(37)}.${msg.extractPayloadByte(36).toString().padStart(3, '0')}`
         //      38 : Water Chemistry Warning
-        scontroller.warnings.waterChemistry = msg.extractPayloadByte(38);
-        if (typeof controller.body === 'undefined') controller.body = scontroller.body = 0;
-        scontroller.ph.pump.isDosing = scontroller.ph.dosingStatus === 0 && controller.ph.enabled;
-        scontroller.orp.pump.isDosing = scontroller.orp.dosingStatus === 0 && controller.orp.enabled;
-
-        scontroller.lastComm = new Date().getTime();
-
+        schem.warnings.waterChemistry = msg.extractPayloadByte(38);
+        if (typeof chem.body === 'undefined') chem.body = schem.body = 0;
+        schem.ph.pump.isDosing = schem.ph.dosingStatus === 0 && chem.ph.enabled;
+        schem.orp.pump.isDosing = schem.orp.dosingStatus === 0 && chem.orp.enabled;
+        schem.calculateSaturationIndex();
+        schem.lastComm = new Date().getTime();
+        // If we are changing states lets set that up.
+        if (schem.ph.dosingStatus === 0 && phPrev.status !== 0) {
+            if (schem.ph.dosingStatus === 0) {
+                // We are starting a dose so we need to set the current dose.
+                schem.ph.startDose(Timestamp.now.addSeconds(-schem.ph.doseTime).toDate(), schem.ph.manualDosing ? 'manual' : 'auto', 0, schem.ph.volumeDosed, 0, schem.ph.timeDosed * 1000);
+            }
+        }
+        else if (schem.ph.dosingStatus !== 0 && phPrev.status === 0) {
+            if (typeof schem.ph.currentDose !== 'undefined') {
+                // We just ended a dose so write it out to the chem logs.
+                schem.ph.endDose(Timestamp.now.addSeconds(-(schem.ph.doseTime - phPrev.time)).toDate(), 'completed',
+                    schem.ph.volumeDosed - phPrev.vol, (schem.ph.doseTime - phPrev.time) * 1000);
+            }
+        }
+        else if (schem.ph.dosingStatus === 0) {
+            // We are still dosing so add the time and volume to the dose.
+            schem.ph.appendDose(schem.ph.doseVolume - phPrev.vol, (schem.ph.doseTime - phPrev.time) * 1000);
+        }
+        else {
+            // Make sure we don't have a current dose going.
+            schem.ph.currentDose = undefined;
+        }
+        // If we are changing states lets set that up for orp.
+        if (schem.orp.dosingStatus === 0 && orpPrev.status !== 0) {
+            if (schem.orp.dosingStatus === 0) {
+                // We are starting a dose so we need to set the current dose.
+                schem.orp.startDose(Timestamp.now.addSeconds(-schem.orp.doseTime).toDate(), schem.orp.manualDosing ? 'manual' : 'auto', 0, schem.orp.volumeDosed, schem.orp.timeDosed * 1000);
+            }
+        }
+        else if (schem.orp.dosingStatus !== 0 && orpPrev.status === 0) {
+            if (typeof schem.orp.currentDose !== 'undefined') {
+                // We just ended a dose so write it out to the chem logs.
+                schem.orp.endDose(Timestamp.now.addSeconds(-(schem.orp.doseTime - orpPrev.time)).toDate(), 'completed',
+                    schem.orp.volumeDosed - orpPrev.vol, schem.orp.doseTime - orpPrev.time);
+            }
+        }
+        else if (schem.orp.dosingStatus === 0) {
+            // We are still dosing so add the time and volume to the dose.
+            schem.orp.appendDose(schem.orp.doseTime - orpPrev.time, schem.orp.doseVolume - orpPrev.vol);
+        }
+        else {
+            // Make sure we don't have a current dose going.
+            schem.orp.currentDose = undefined;
+        }
         // manually emit extended values
-        webApp.emitToClients('chemController', scontroller.getExtended()); // emit extended data
-        scontroller.hasChanged = false; // try to avoid duplicate emits
+        webApp.emitToClients('chemController', schem.getExtended()); // emit extended data
+        schem.hasChanged = false; // try to avoid duplicate emits
         msg.isProcessed = true;
 
         /*

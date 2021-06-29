@@ -1923,9 +1923,12 @@ export class ChemController extends EqItem {
     public get ph(): ChemicalPh { return new ChemicalPh(this.data, 'ph', this); }
     public get orp(): ChemicalORP { return new ChemicalORP(this.data, 'orp', this); }
     public get lsiRange(): AlarmSetting { return new AlarmSetting(this.data, 'lsiRange', this); }
+    public get firmware(): string { return this.data.firmware; }
+    public set firmware(val: string) { this.setDataVal('firmware', val); }
     public getExtended() {
         let chem = this.get(true);
         chem.type = sys.board.valueMaps.chemControllerTypes.transform(this.type);
+        chem.siCalcType = sys.board.valueMaps.siCalcTypes.transform(this.type);
         chem.body = sys.board.valueMaps.bodies.transform(this.body);
         chem.ph = this.ph.getExtended();
         chem.orp = this.orp.getExtended();

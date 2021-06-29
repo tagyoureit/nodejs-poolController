@@ -1071,16 +1071,10 @@ export class NixieHeaterCommands extends HeaterCommands {
 export class NixieChemControllerCommands extends ChemControllerCommands {
     protected async setIntelliChemAsync(data: any): Promise<ChemController> {
         try {
-            let chem = await super.setIntelliChemAsync(data);
-            // Now Nixie needs to make sure we are polling IntelliChem
-            return Promise.resolve(chem);
-        }
-        catch (err) { return Promise.reject(err); }
-    }
-    protected async setIntelliChemStateAsync(data: any): Promise<ChemControllerState> {
-        try {
-            let schem = await super.setIntelliChemStateAsync(data);
-            return Promise.resolve(schem);
+            // Nixie is always in control so let her do her thing.
+            let chem = sys.chemControllers.getItemById(data.id, true);
+            await ncp.chemControllers.setControllerAsync(chem, data);
+            return chem;
         }
         catch (err) { return Promise.reject(err); }
     }

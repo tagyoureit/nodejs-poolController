@@ -417,7 +417,7 @@ export class EasyTouchBoard extends SystemBoard {
     public pumps: TouchPumpCommands = new TouchPumpCommands(this);
     public schedules: TouchScheduleCommands = new TouchScheduleCommands(this);
     public heaters: TouchHeaterCommands = new TouchHeaterCommands(this);
-    //public chemControllers: TouchChemControllerCommands = new TouchChemControllerCommands(this);
+    public chemControllers: TouchChemControllerCommands = new TouchChemControllerCommands(this);
     protected _configQueue: TouchConfigQueue = new TouchConfigQueue();
 
     public checkConfiguration() {
@@ -2250,3 +2250,154 @@ class TouchHeaterCommands extends HeaterCommands {
         this.setActiveTempSensors();
     }
 }
+class TouchChemControllerCommands extends ChemControllerCommands {
+    // This method is not meant to be called directly.  The setChemControllerAsync method does some routing to set IntelliChem correctly
+    // if an OCP is involved.  This is the reason that the method is protected.
+    protected async setIntelliChemAsync(data: any): Promise<ChemController> {
+        let chem = sys.board.chemControllers.findChemController(data);
+        let ichemType = sys.board.valueMaps.chemControllerTypes.encode('intellichem');
+        if (typeof chem === 'undefined') {
+            // We are adding an IntelliChem.  Check to see how many intellichems we have.
+            let arr = sys.chemControllers.toArray();
+            let count = 0;
+            for (let i = 0; i < arr.length; i++) {
+                let cc: ChemController = arr[i];
+                if (cc.type === ichemType) count++;
+            }
+            if (count >= sys.equipment.maxChemControllers) return Promise.reject(new InvalidEquipmentDataError(`The max number of IntelliChem controllers has been reached: ${sys.equipment.maxChemControllers}`, 'chemController', sys.equipment.maxChemControllers));
+            chem = sys.chemControllers.getItemById(data.id);
+        }
+        let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : chem.address;
+        if (typeof address === 'undefined' || isNaN(address) || (address < 144 || address > 158)) return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address`, 'chemController', address));
+        if (typeof sys.chemControllers.find(elem => elem.id !== data.id && elem.type === ichemType && elem.address === address) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address: Address is used on another IntelliChem`, 'chemController', address));
+        // Now lets do all our validation to the incoming chem controller data.
+        let name = typeof data.name !== 'undefined' ? data.name : chem.name || `IntelliChem - ${address - 143}`;
+        let type = sys.board.valueMaps.chemControllerTypes.transformByName('intellichem');
+        // So now we are down to the nitty gritty setting the data for the REM or Homegrown Chem controller.
+        let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
+        let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
+        let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
+        let borates = typeof data.borates !== 'undefined' ? parseInt(data.borates, 10) : chem.borates || 0;
+        let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
+        if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
+        // Do a final validation pass so we dont send this off in a mess.
+        if (isNaN(calciumHardness)) return Promise.reject(new InvalidEquipmentDataError(`Invalid calcium hardness`, 'chemController', calciumHardness));
+        if (isNaN(cyanuricAcid)) return Promise.reject(new InvalidEquipmentDataError(`Invalid cyanuric acid`, 'chemController', cyanuricAcid));
+        if (isNaN(alkalinity)) return Promise.reject(new InvalidEquipmentDataError(`Invalid alkalinity`, 'chemController', alkalinity));
+        if (isNaN(borates)) return Promise.reject(new InvalidEquipmentDataError(`Invalid borates`, 'chemController', borates));
+        let schem = state.chemControllers.getItemById(chem.id, true);
+        let pHSetpoint = typeof data.ph !== 'undefined' && typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
+        let orpSetpoint = typeof data.orp !== 'undefined' && typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
+        let lsiRange = typeof data.lsiRange !== 'undefined' ? data.lsiRange : chem.lsiRange || {};
+        if (typeof data.lsiRange !== 'undefined') {
+            if (typeof data.lsiRange.enabled !== 'undefined') lsiRange.enabled = utils.makeBool(data.lsiRange.enabled);
+            if (typeof data.lsiRange.low === 'number') lsiRange.low = parseFloat(data.lsiRange.low);
+            if (typeof data.lsiRange.high === 'number') lsiRange.high = parseFloat(data.lsiRange.high);
+        }
+        if (isNaN(pHSetpoint) || pHSetpoint > type.ph.max || pHSetpoint < type.ph.min) Promise.reject(new InvalidEquipmentDataError(`Invalid pH setpoint`, 'ph.setpoint', pHSetpoint));
+        if (isNaN(orpSetpoint) || orpSetpoint > type.orp.max || orpSetpoint < type.orp.min) Promise.reject(new InvalidEquipmentDataError(`Invalid orp setpoint`, 'orp.setpoint', orpSetpoint));
+        let phTolerance = typeof data.ph.tolerance !== 'undefined' ? data.ph.tolerance : chem.ph.tolerance;
+        let orpTolerance = typeof data.orp.tolerance !== 'undefined' ? data.orp.tolerance : chem.orp.tolerance;
+        if (typeof data.ph.tolerance !== 'undefined') {
+            if (typeof data.ph.tolerance.enabled !== 'undefined') phTolerance.enabled = utils.makeBool(data.ph.tolerance.enabled);
+            if (typeof data.ph.tolerance.low !== 'undefined') phTolerance.low = parseFloat(data.ph.tolerance.low);
+            if (typeof data.ph.tolerance.high !== 'undefined') phTolerance.high = parseFloat(data.ph.tolerance.high);
+            if (isNaN(phTolerance.low)) phTolerance.low = type.ph.min;
+            if (isNaN(phTolerance.high)) phTolerance.high = type.ph.max;
+        }
+        if (typeof data.orp.tolerance !== 'undefined') {
+            if (typeof data.orp.tolerance.enabled !== 'undefined') orpTolerance.enabled = utils.makeBool(data.orp.tolerance.enabled);
+            if (typeof data.orp.tolerance.low !== 'undefined') orpTolerance.low = parseFloat(data.orp.tolerance.low);
+            if (typeof data.orp.tolerance.high !== 'undefined') orpTolerance.high = parseFloat(data.orp.tolerance.high);
+            if (isNaN(orpTolerance.low)) orpTolerance.low = type.orp.min;
+            if (isNaN(orpTolerance.high)) orpTolerance.high = type.orp.max;
+        }
+        let phEnabled = typeof data.ph.enabled !== 'undefined' ? utils.makeBool(data.ph.enabled) : chem.ph.enabled;
+        let orpEnabled = typeof data.orp.enabled !== 'undefined' ? utils.makeBool(data.orp.enabled) : chem.orp.enabled;
+        let siCalcType = typeof data.siCalcType !== 'undefined' ? sys.board.valueMaps.siCalcTypes.encode(data.siCalcType, 0) : chem.siCalcType;
+
+        let saltLevel = (state.chlorinators.length > 0) ? state.chlorinators.getItemById(1).saltLevel || 1000 : 1000
+        chem.ph.tank.capacity = 6;
+        chem.orp.tank.capacity = 6;
+        let acidTankLevel = typeof data.ph !== 'undefined' && typeof data.ph.tank !== 'undefined' && typeof data.ph.tank.level !== 'undefined' ? parseInt(data.ph.tank.level, 10) : schem.ph.tank.level;
+        let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' && typeof data.orp.tank.level !== 'undefined' ? parseInt(data.orp.tank.level, 10) : schem.orp.tank.level;
+        return new Promise<ChemController>((resolve, reject) => {
+            let out = Outbound.create({
+                protocol: Protocol.IntelliChem,
+                action: 211,
+                payload: [],
+                retries: 3, // We are going to try 4 times.
+                response: Response.create({ protocol: Protocol.IntelliChem, action: 1, payload:[211] }),
+                onAbort: () => { },
+                onComplete: (err) => {
+                    if (err) reject(err);
+                    else {
+                        chem = sys.chemControllers.getItemById(data.id, true);
+                        schem = state.chemControllers.getItemById(data.id, true);
+                        chem.master = 0;
+                        // Copy the data back to the chem object.
+                        schem.name = chem.name = name;
+                        schem.type = chem.type = sys.board.valueMaps.chemControllerTypes.encode('intellichem');
+                        chem.calciumHardness = calciumHardness;
+                        chem.cyanuricAcid = cyanuricAcid;
+                        chem.alkalinity = alkalinity;
+                        chem.borates = borates;
+                        chem.body = schem.body = body;
+                        schem.isActive = chem.isActive = true;
+                        chem.lsiRange.enabled = lsiRange.enabled;
+                        chem.lsiRange.low = lsiRange.low;
+                        chem.lsiRange.high = lsiRange.high;
+                        chem.ph.tolerance.enabled = phTolerance.enabled;
+                        chem.ph.tolerance.low = phTolerance.low;
+                        chem.ph.tolerance.high = phTolerance.high;
+                        chem.orp.tolerance.enabled = orpTolerance.enabled;
+                        chem.orp.tolerance.low = orpTolerance.low;
+                        chem.orp.tolerance.high = orpTolerance.high;
+                        chem.ph.setpoint = pHSetpoint;
+                        chem.orp.setpoint = orpSetpoint;
+                        chem.siCalcType = siCalcType;
+                        chem.address = schem.address = address;
+                        chem.name = schem.name = name;
+                        chem.flowSensor.enabled = false;
+                        resolve(chem);
+                    }
+                }
+            });
+            out.insertPayloadBytes(0, 0, 22);
+            out.setPayloadByte(0, address - 144);
+            out.setPayloadByte(1, Math.floor((pHSetpoint * 100) / 256) || 0);
+            out.setPayloadByte(2, Math.round((pHSetpoint * 100) % 256) || 0);
+            out.setPayloadByte(3, Math.floor(orpSetpoint / 256) || 0);
+            out.setPayloadByte(4, Math.round(orpSetpoint % 256) || 0);
+            out.setPayloadByte(5, phEnabled ? acidTankLevel + 1 : 0);
+            out.setPayloadByte(6, orpEnabled ? orpTankLevel + 1 : 0);
+            out.setPayloadByte(7, Math.floor(calciumHardness / 256) || 0);
+            out.setPayloadByte(8, Math.round(calciumHardness % 256) || 0);
+            out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid || 0);
+            out.setPayloadByte(11, Math.floor(alkalinity / 256) || 0);
+            out.setPayloadByte(12, Math.round(alkalinity % 256) || 0);
+            out.setPayloadByte(13, Math.round(saltLevel / 50) || 20);
+            conn.queueSendMessage(out);
+        });
+    }
+}
+// class TouchChemControllerCommands extends ChemControllerCommands {
+//     public async setChemControllerAsync(data: any):Promise<ChemController> {
+//         let chem = sys.chemControllers.getItemById(data.id);
+
+//         // we aren't setting an IntelliChem or changing TO an IntelliChem
+//         if (typeof data.type !== 'undefined' && data.type !== sys.board.valueMaps.chemControllerTypes.getValue('IntelliChem') || 
+//             typeof data.type === 'undefined' && typeof data.type === 'undefined')
+//             return super.setChemControllerAsync(data);  
+
+//         else if (chem.type !== sys.board.valueMaps.chemControllerTypes.getValue('IntelliChem'))
+//             return super.setChemControllerAsync(data);  
+
+
+//         // do stuff here to set IntelliChem on *Touch
+//         chem.set(data);
+//         //Lead In Bytes					Destination	Source	Action	No. of Bytes	pH Setpoint Hi	pH Setpoint Lo	ORP Setpoint Hi	ORP Setpoint Lo	Acid Tank Level	ORP Tank Level	Hardness  Hi	Hardness Lo		Cyanuric Acid Level	TA Hi Byte	TA Lo Byte	????										
+//         //[255, 0, 255],[165,0,144,16,146,2][2,218,2,188,4,3,1,144,0,0,0,150,20,0,0,0,0,0,0,0,0,4,200
+//         return Promise.resolve(chem);
+//     }
+// }

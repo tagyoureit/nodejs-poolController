@@ -38,15 +38,20 @@ export class IntellichemMessage {
 
         }
     }
+    // When IntelliChem is attached to a Touch controller the OCP emits a 147 message that is separate from the normal
+    // 18 message coming directly from the controller.  We process this message but it should alway jive with the 18 message
+    // that is processed in IntelliChemState message.  The only difference here is that byte 0 is appended to the front.  We have
+    // only witnessed this byte as 0 but this HAS to be the address offset byte for the controller.
     private static processTouch(msg: Inbound) {
         // RKS: This is actually the inbound message for the IntelliChem Installation
         //[165, 1, 15, 16, 147, 42][0, 2, 238, 2, 193, 2, 248, 2, 188, 0, 0, 0, 0, 0, 0, 0, 16, 0, 0, 0, 35, 3, 3, 157, 0, 25, 0, 0, 0, 90, 20, 0, 85, 0, 0, 165, 0, 60, 1, 1, 0, 0][7, 130]
         //[165, 0, 16, 144, 18, 41][   2, 238, 2, 193, 2, 248, 2, 188, 0, 0, 0, 0, 0, 0, 0, 16, 0, 0, 0, 35, 3, 3, 157, 0, 25, 0, 0, 0, 90, 20, 0, 85, 0, 0, 165, 0, 60, 1, 1, 0, 0][7, 128]
         //let isActive = msg.extractPayloadByte(0);
         // RKS: Apparently this message is only sent when the IntelliChem is actually installed so it will always be active?
-        let isActive = true;
+        let addr = msg.extractPayloadByte(0) + 144;
+        let isActive = addr < 160;
         if (isActive) {
-            let chem = sys.chemControllers.getItemByAddress(144, true);
+            let chem = sys.chemControllers.getItemByAddress(addr, true);
             let schem = state.chemControllers.getItemById(chem.id, true);
             schem.type = chem.type = sys.board.valueMaps.chemControllerTypes.getValue('intellichem');
 
@@ -99,7 +104,7 @@ export class IntellichemMessage {
             chem.orp.useChlorinator = (msg.extractPayloadByte(36) & 0x10) === 1 ? true : false;
             chem.HMIAdvancedDisplay = (msg.extractPayloadByte(36) & 0x20) === 1 ? true : false;
             chem.ph.phSupply = (msg.extractPayloadByte(36) & 0x40) === 1 ? true : false; // acid pH dosing = 1; base pH dosing = 0;
-            schem.firmware = `${msg.extractPayloadByte(38)}.${msg.extractPayloadByte(37).toString().padStart(3, '0')}`
+            chem.firmware = `${msg.extractPayloadByte(38)}.${msg.extractPayloadByte(37).toString().padStart(3, '0')}`
             schem.warnings.waterChemistry = msg.extractPayloadByte(39);
             schem.lastComm = new Date().getTime();
             if(typeof chem.body === 'undefined') chem.body = schem.body = 0;

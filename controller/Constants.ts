@@ -183,6 +183,7 @@ export class Timestamp {
         this.emitter = new EventEmitter();
     }
     private _isUpdating: boolean = false;
+    public static get now(): Timestamp { return new Timestamp(); }
     public toDate() { return this._dt; }
     public set isUpdating(val:boolean) {this._isUpdating = val;}
     public get isUpdating(): boolean { return this._isUpdating;}
@@ -281,7 +282,7 @@ export class Timestamp {
         return this;
     }
     public addMinutes(minutes: number, seconds?: number, milliseconds?: number): Timestamp { return this.addHours(0, minutes, seconds, this.milliseconds); }
-    public addSeconds(seconds: number, milliseconds: number): Timestamp { return this.addHours(0, 0, seconds, milliseconds); }
+    public addSeconds(seconds: number, milliseconds: number = 0): Timestamp { return this.addHours(0, 0, seconds, milliseconds); }
     public addMilliseconds(milliseconds: number): Timestamp { return this.addHours(0, 0, 0, milliseconds); }
     public static today() {
         let dt = new Date();
