@@ -472,7 +472,7 @@ class EqItem implements IEqItemCreator<EqItem>, IEqItem {
     }
     // This is a tricky endeavor.  If we run into a collection then we need to obliterate the existing data and add in our data.
     public set(data: any) {
-        let op = Object.getOwnPropertyNames(Object.getPrototypeOf(this))
+        let op = Object.getOwnPropertyNames(Object.getPrototypeOf(this));
         for (let i in op) {
             let prop = op[i];
             if (typeof this[prop] === 'function') continue;

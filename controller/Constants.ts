@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { EventEmitter } from 'events';
 import { logger } from "../logger/Logger";
+import * as util from 'util';
 export class Heliotrope {
     constructor() {
         this.isCalculated = false;
@@ -484,7 +485,40 @@ export class Utils {
         return seconds;
     }
     public isNullOrEmpty(val: any) {  return (typeof val === 'string') ? val === null || val === '' : typeof val === 'undefined' || val === null; }
-    public sleep = (ms:number) => new Promise(resolve => setTimeout(resolve, ms));
+    public sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    // Use this method to get around the circular references for the toJSON function.
+    public serialize(obj, fn?: (key, value) => any): string {
+        let op = Object.getOwnPropertyNames(obj);
+        let s = '{';
+        for (let i in op) {
+            let prop = op[i];
+            if (typeof obj[prop] === 'undefined' || typeof obj[prop] === 'function') continue;
+            let v = typeof fn === 'function' ? fn(prop, obj[prop]) : obj[prop];
+            if (typeof v === 'undefined') continue;
+            s += `"${prop}": ${JSON.stringify(v, fn)},`;
+        }
+        if (s.charAt(s.length - 1) === ',') s = s.substring(0, s.length - 1);
+        return s + '}';
+    }
+    public replaceProps(obj, fn?: (key, value) => any): any {
+        let op = Object.getOwnPropertyNames(obj);
+        if (typeof obj === 'undefined') return undefined;
+        let isArray = Array.isArray(obj);
+        let o = isArray ? [] : {};
+        for (let i in op) {
+            let prop = op[i];
+            if (typeof obj[prop] === 'undefined' || typeof obj[prop] === 'function') continue;
+            let v = typeof fn === 'function' ? fn(prop, obj[prop]) : obj[prop];
+            if (typeof v === 'undefined') continue;
+            if (util.types.isBoxedPrimitive(v))
+                o[prop] = v.valueOf();
+            if (Array.isArray(v) || typeof v === 'object')
+                o[prop] = utils.replaceProps(v, fn);
+            else
+                o[prop] = v;
+        }
+        return o;
+    }
 }
 
 export const utils = new Utils();

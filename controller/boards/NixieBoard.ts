@@ -1078,4 +1078,19 @@ export class NixieChemControllerCommands extends ChemControllerCommands {
         }
         catch (err) { return Promise.reject(err); }
     }
+    public async deleteChemControllerAsync(data: any): Promise<ChemController> {
+        try {
+            let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
+            if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemController'));
+            let chem = sys.chemControllers.getItemById(id);
+            let schem = state.chemControllers.getItemById(chem.id);
+            await ncp.chemControllers.removeById(chem.id);
+            chem.isActive = schem.isActive = false;
+            sys.chemControllers.removeItemById(chem.id);
+            state.chemControllers.removeItemById(chem.id);
+            schem.emitEquipmentChange();
+            return chem;
+        }
+        catch (err) { return Promise.reject(err); }
+    }
 }

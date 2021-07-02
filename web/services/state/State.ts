@@ -15,10 +15,12 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as express from "express";
-import { state, ICircuitState, LightGroupState, ICircuitGroupState } from "../../../controller/State";
+import { state, ICircuitState, LightGroupState, ICircuitGroupState, ChemicalDoseState } from "../../../controller/State";
 import { sys } from "../../../controller/Equipment";
 import { utils } from '../../../controller/Constants';
 import { logger } from "../../../logger/Logger";
+import { DataLogger } from "../../../logger/DataLogger";
+
 import { ServiceParameterError } from "../../../controller/Errors";
 
 export class StateRoute {
@@ -47,7 +49,48 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
+        app.get('/state/chemController/:id/doseHistory', (req, res) => {
+            let schem = state.chemControllers.getItemById(parseInt(req.params.id));
+            let hist = { ph: [], orp: [] };
+            for (let i = 0; i < schem.ph.doseHistory.length; i++)
+                hist.ph.push(schem.ph.doseHistory[i]);
+            for (let i = 0; i < schem.orp.doseHistory.length; i++)
+                hist.orp.push(schem.orp.doseHistory[i]);
+            return res.status(200).send(hist);
+        });
+        app.put('/state/chemController/:id/doseHistory/orp/clear', async (req, res, next) => {
+            try {
+                let schem = state.chemControllers.getItemById(parseInt(req.params.id));
+                schem.orp.doseHistory = [];
+                schem.orp.calcDoseHistory();
+                return res.status(200).send(schem.orp.doseHistory);
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/state/chemController/:id/doseHistory/ph/clear', async (req, res, next) => {
+            try {
+                let schem = state.chemControllers.getItemById(parseInt(req.params.id));
+                schem.ph.doseHistory = [];
+                schem.ph.calcDoseHistory();
+                return res.status(200).send(schem.ph.doseHistory);
+            }
+            catch (err) { next(err); }
 
+        });
+        app.search('/state/chemController/:id/doseHistory/ph', async (req, res, next) => {
+            try {
+                let schem = state.chemControllers.getItemById(parseInt(req.params.id));
+                let filter = req.body || {};
+                let dh = DataLogger.readFromEnd(`chemDosage_${schem.ph.chemType}.log`, ChemicalDoseState, (lineNumber: number, entry: ChemicalDoseState, arr: ChemicalDoseState[]): boolean => {
+                    if (entry.id !== schem.id) return;
+                    if (typeof filter.lines !== 'undefined' && filter.lines <= arr.length) return false;
+                    if (typeof filter.date !== 'undefined' && entry.end < filter.date) return false;
+                    return true;
+                });
+                return res.status(200).send(dh);
+            }
+            catch (err) { next(err); }
+        });
         app.put('/state/chemController/cancelDosing', async (req, res, next) => {
             try {
                 let schem = await sys.board.chemControllers.cancelDosingAsync(req.body);

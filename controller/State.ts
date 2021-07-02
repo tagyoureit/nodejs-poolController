@@ -43,7 +43,7 @@ export class State implements IState {
                 const val = Reflect.get(target, property, receiver);
                 if (typeof val === 'function') return val.bind(receiver);
                 if (typeof (val) === 'object' && val !== null) {
-                    if (util.types.isProxy(val))
+                    if (util.types.isProxy(val) || util.types.isDate(val) || util.types.isBoxedPrimitive(val))
                         return val;
                     return new Proxy(val, handler);
                 }
@@ -314,13 +314,6 @@ export class State implements IState {
             this.hasChanged = true;
         }
     }
-    /*     public get body(): number { return this.data.body; }
-        public set body(val: number) {
-            if (this.body !== val) {
-                this.data.body = val;
-                this.hasChanged = true;
-            }
-        } */
     public get delay(): number { return typeof this.data.delay !== 'undefined' ? this.data.delay.val : -1; }
     public set delay(val: number) {
         if (this.delay !== val) {
@@ -328,12 +321,6 @@ export class State implements IState {
             this.hasChanged = true;
         }
     }
-    // public get adjustDST(): boolean { return this.data.adjustDST; }
-    // public set adjustDST(val: boolean) {
-    //     if (this.data.adjustDST !== val) {
-    //         this.data.adjustDST = val;
-    //     }
-    // }
     public get batteryVoltage(): number { return this.data.batteryVoltage; }
     public set batteryVoltage(val: number) {
         if (this.data.batteryVoltage !== val) {
@@ -350,7 +337,8 @@ export class State implements IState {
         if (isNaN(pnlTime.getTime())) pnlTime = new Date();
         this._dt = new Timestamp(pnlTime);
         this._dt.milliseconds = 0;
-        this.data = this.onchange(state, function () { self.dirty = true; });
+        this.data = state;
+            //this.onchange(state, function () { self.dirty = true; });
         this._dt.emitter.on('change', function () {
             self.data.time = self._dt.format();
             self.hasChanged = true;
@@ -524,9 +512,11 @@ class EqState implements IEqStateCreator<EqState> {
     public emitData(name: string, data: any) { webApp.emitToClients(name, data); }
     protected setDataVal(name, val, persist?: boolean): any {
         if (this.data[name] !== val) {
-            // console.log(`Changing state: ${ this.dataName } ${ this.data.id } ${ name }:${ this.data[name] } --> ${ val }`);
             this.data[name] = val;
-            if (typeof persist === 'undefined' || persist) this.hasChanged = true;
+            if (typeof persist === 'undefined' || persist) {
+                this.hasChanged = true;
+                state.dirty = true;
+            }
         }
         else if (typeof persist !== 'undefined' && persist) this.hasChanged = true;
         // Added for chaining.
@@ -647,7 +637,13 @@ class EqStateCollection<T> {
     }
 }
 class DirtyStateCollection extends Array<EqState> {
-    public maybeAddEqState(eqItem: EqState) { if (!this.eqStateExists(eqItem)) this.push(eqItem); }
+    public maybeAddEqState(eqItem: EqState) : boolean {
+        if (!this.eqStateExists(eqItem)) {
+            this.push(eqItem);
+            return true;
+        }
+        return false;
+    }
     public eqStateExists(eqItem: EqState): boolean {
         for (let i = this.length - 1; i >= 0; i--) {
             if (eqItem.isEqual(this[i])) return true;
@@ -1890,7 +1886,6 @@ export class ChemControllerState extends EqState {
         let tempK = utils.convert.temperature.convertUnits(t, u, 'K');
         let I = ((1.5 * chem.calciumHardness + chem.alkalinity)) / 50045 + extraSalt / 58440;
         let carbAlk = chem.alkalinity - 0.38772 * chem.cyanuricAcid / (1 + Math.pow(10, 6.83 - this.ph.level)) - 4.63 * chem.borates / (1 + Math.pow(10, 9.11 - ph));
-        //                console.log({ msg: 'Calculating CSI', saltLevel: saltLevel, extraSalt: extraSalt, tempK: tempK, I: I, pH: ph, carbAlk: carbAlk });
         let SI = Math.round((
             ph
             - 6.9395
@@ -1955,6 +1950,8 @@ export class ChemControllerState extends EqState {
         // the 18 (status) message.  Therefore the check below for type === 2.
         this.csi = this.calculateCSI();
         if (this.type !== 2) this.lsi = this.calculateLSI();
+        if (this.siCalcType === 0) this.saturationIndex = this.lsi;
+        else this.saturationIndex = this.csi;
         return this.saturationIndex;
     }
     public get ph(): ChemicalPhState { return new ChemicalPhState(this.data, 'ph', this); }
@@ -1984,8 +1981,6 @@ export class ChemControllerState extends EqState {
     }
 }
 export class ChemicalState extends ChildEqState {
-    public doseHistory: ChemicalDoseState[];
-    public currentDose: ChemicalDoseState;
     public initData() {
         if (typeof this.data.probe === 'undefined') this.data.probe = {};
         if (typeof this.data.tank == 'undefined') this.data.tank = { capacity: 0, level: 0, units: 0 };
@@ -2013,13 +2008,18 @@ export class ChemicalState extends ChildEqState {
         let dtMax = dt.setTime(dt.getTime() - (24 * 60 * 60 * 1000));
         for (let i = this.doseHistory.length - 1; i >= 0; i--) {
             let dh = this.doseHistory[i];
-            if (dh.end.getTime() > dtMax) dailyVolumeDosed += dh.volumeDosed;
-            else this.doseHistory.splice(i, 1);
+            if (typeof dh.end !== 'undefined'
+                && typeof dh.end.getTime == 'function'
+                && dh.end.getTime() > dtMax
+                && dh.volumeDosed > 0) dailyVolumeDosed += dh.volumeDosed;
+            else {
+                logger.info(`Removing dose history ${dh.chem} ${dh.end}`);
+                this.doseHistory.splice(i, 1);
+            }
         }
         return dailyVolumeDosed + (typeof this.currentDose !== 'undefined' ? this.currentDose.volumeDosed : 0);
     }
     public startDose(dtStart: Date = new Date(), method: string = 'auto', volume: number = 0, volumeDosed: number = 0, time: number = 0, timeDosed: number = 0): ChemicalDoseState {
-        //let cfg = this.getConfig();
         this.currentDose = new ChemicalDoseState();
         this.currentDose.id = this.chemController.id;
         this.currentDose.start = dtStart;
@@ -2030,32 +2030,38 @@ export class ChemicalState extends ChildEqState {
         this.doseVolume = this.currentDose.volume = volume;
         this.currentDose.chem = this.chemType;
         this.currentDose.setpoint = this.setpoint;
-        this.currentDose._time = time;
+        this.currentDose.time = time;
         this.currentDose._timeDosed = timeDosed;
         this.volumeDosed = this.currentDose.volumeDosed;
         this.timeDosed = Math.round(timeDosed / 1000);
         this.dosingTimeRemaining = this.currentDose.timeRemaining;
         this.dosingVolumeRemaining = this.currentDose.volumeRemaining;
-        this.doseTime = Math.round(this.currentDose._time / 1000);
-        webApp.emitToClients(`chemicalDose`, this.currentDose);
+        this.doseTime = Math.round(this.currentDose.time / 1000);
+        this.currentDose._isManual = method === 'manual';
+        this.currentDose.status = 'current';
+        //webApp.emitToClients(`chemicalDose`, this.currentDose);
         return this.currentDose;
     }
     public endDose(dtEnd: Date = new Date(), status: string = 'completed', volumeDosed: number = 0, timeDosed: number = 0): ChemicalDoseState {
         let dose = this.currentDose;
-        dose._timeDosed += timeDosed;
-        dose.volumeDosed += volumeDosed;
-        dose.end = dtEnd;
-        dose.timeDosed = utils.formatDuration(dose._timeDosed / 1000);
-        dose.status = status;
-        this.volumeDosed = dose.volumeDosed;
-        this.timeDosed = Math.round(dose._timeDosed / 1000);
-        this.dosingTimeRemaining = 0;
-        this.dosingVolumeRemaining = 0;
-        this.doseHistory.unshift(dose);
-        this.dailyVolumeDosed = this.calcDoseHistory();
-        DataLogger.writeEnd(`chemDosage_${this.chemType}.log`, dose);
-        webApp.emitToClients(`chemicalDose`, dose);
-        this.currentDose = undefined;
+        if (typeof dose !== 'undefined') {
+            dose._timeDosed += timeDosed;
+            dose.volumeDosed += volumeDosed;
+            dose.end = dtEnd;
+            dose.timeDosed = dose._timeDosed / 1000;
+            dose.status = status;
+            this.volumeDosed = dose.volumeDosed;
+            this.timeDosed = Math.round(dose._timeDosed / 1000);
+            this.dosingTimeRemaining = 0;
+            this.dosingVolumeRemaining = 0;
+            if (dose.volumeDosed > 0) {
+                this.doseHistory.unshift(dose);
+                this.dailyVolumeDosed = this.calcDoseHistory();
+                DataLogger.writeEnd(`chemDosage_${this.chemType}.log`, dose);
+                webApp.emitToClients(`chemicalDose`, dose);
+            }
+            this.currentDose = undefined;
+        }
         return dose;
     }
     // Appends dose information to the current dose.  The time here is in ms and our target will be in sec.
@@ -2067,9 +2073,29 @@ export class ChemicalState extends ChildEqState {
         this.timeDosed = Math.round(dose._timeDosed / 1000);
         this.dosingTimeRemaining = dose.timeRemaining;
         this.dosingVolumeRemaining = dose.volumeRemaining;
-        webApp.emitToClients(`chemicalDose`, dose);
+        if (dose.volumeDosed > 0) webApp.emitToClients(`chemicalDose`, dose);
         return dose;
     }
+    public get currentDose(): ChemicalDoseState {
+        if (typeof this.data.currentDose === 'undefined') return this.data.currentDose;
+        if (typeof this.data.currentDose.save !== 'function') this.data.currentDose = new ChemicalDoseState(this.data.currentDose);
+        return this.data.currentDose;
+    }
+    public set currentDose(val: ChemicalDoseState) {
+        this.setDataVal('currentDose', val);
+    }
+    public get doseHistory(): ChemicalDoseState[] {
+        if (typeof this.data.doseHistory === 'undefined' || this.data.doseHistory.length === 0) return this.data.doseHistory;
+        if (typeof this.data.doseHistory[0].save !== 'function') {
+            let arr: ChemicalDoseState[] = [];
+            for (let i = 0; i < this.data.doseHistory.length; i++) {
+                arr.push(new ChemicalDoseState(this.data.doseHistory[i]));
+            }
+            this.data.doseHistory = arr;
+        }
+        return this.data.doseHistory;
+    }
+    public set doseHistory(val: ChemicalDoseState[]) { this.setDataVal('doseHistory', val); }
     public get enabled(): boolean { return this.data.enabled; }
     public set enabled(val: boolean) { this.data.enabled = val; }
     public get level(): number { return this.data.level; }
@@ -2127,14 +2153,6 @@ export class ChemicalPhState extends ChemicalState {
     public initData() {
         if (typeof this.data.chemType === 'undefined') this.data.chemType === 'acid';
         super.initData();
-        // Load up the 24 hours doseHistory.
-        this.doseHistory = DataLogger.readFromEnd(`chemDosage_${this.chemType}.log`, ChemicalDoseState, (lineNumber: number, entry: ChemicalDoseState): boolean => {
-            let dt = new Date();
-            let dtMax = dt.setTime(dt.getTime() - (24 * 60 * 60 * 1000));
-            // If we are reading back in time prior to 24 hours then we don't want the data.
-            if (entry.end.getTime() < dtMax) return false;
-            return true;
-        });
     }
     public getConfig() {
         let schem = this.chemController;
@@ -2195,13 +2213,13 @@ export class ChemicalORPState extends ChemicalState {
         if (typeof this.data.chemType === 'undefined') this.data.chemType === 'orp';
         super.initData();
         // Load up the 24 hours doseHistory.
-        this.doseHistory = DataLogger.readFromEnd(`chemDosage_${this.chemType}.log`, ChemicalDoseState, (lineNumber: number, entry: ChemicalDoseState): boolean => {
-            let dt = new Date();
-            let dtMax = dt.setTime(dt.getTime() - (24 * 60 * 60 * 1000));
-            // If we are reading back in time prior to 24 hours then we don't want the data.
-            if (entry.end.getTime() < dtMax) return false;
-            return true;
-        });
+        //this.doseHistory = DataLogger.readFromEnd(`chemDosage_${this.chemType}.log`, ChemicalDoseState, (lineNumber: number, entry: ChemicalDoseState): boolean => {
+        //    let dt = new Date();
+        //    let dtMax = dt.setTime(dt.getTime() - (24 * 60 * 60 * 1000));
+        //    // If we are reading back in time prior to 24 hours then we don't want the data.
+        //    if (entry.end.getTime() < dtMax) return false;
+        //    return true;
+        //});
     }
     public get chemType() { return 'orp'; }
     public get probe() { return new ChemicalProbeORPState(this.data, 'probe', this); }
@@ -2314,12 +2332,21 @@ export class ChemicalTankState extends ChildEqState {
     }
 }
 export class ChemicalDoseState extends DataLoggerEntry {
-    public _timeDosed: number = 0;
+    public _timeDosed: number; // _timeDosed is in ms.
     public _lastLatch: number = 0;
-    public _isManual: boolean = false;
-    public _time: number = 0;
+    public _isManual: boolean;
 
-    constructor(entry?: string) { super(entry); }
+    constructor(entry?: string | object) {
+        super(entry);
+        // Javascript is idiotic in that the initialization of variables
+        // do not happen before the assignment so some of the values can be undefined.
+        if (typeof this.volumeDosed === 'undefined' || !this.volumeDosed) this.volumeDosed = 0;
+        if (typeof this.volume === 'undefined' || !this.volume) this.volume = 0;
+        if (typeof this._isManual === 'undefined') this._isManual = this.method === 'manual';
+        if (typeof this.timeDosed === 'undefined' || !this.timeDosed) this.timeDosed = 0;
+        if (typeof this._timeDosed === 'undefined') this.timeDosed * 1000;
+        if (typeof this.time === 'undefined' || !this.time) this.time = 0;
+    }
     public id: number;
     public method: string;
     public start: Date;
@@ -2328,16 +2355,15 @@ export class ChemicalDoseState extends DataLoggerEntry {
     public setpoint: number;
     public demand: number;
     public level: number;
-    public volume: number = 0;
+    public volume: number;
     public status: string;
-    //public maxVolume: number = 0;
-    //public maxTime: number = 0;
-    public volumeDosed: number = 0;
-    public timeDosed: string;
+    public volumeDosed: number;
+    public time: number;
+    public timeDosed: number;
 
     public createInstance(entry?: string): ChemicalDoseState { return new ChemicalDoseState(entry); }
     public save() { DataLogger.writeEnd(`chemDosage_${this.chem}.log`, this); }
-    public get timeRemaining(): number { return Math.floor(Math.max(0, this._time - (this._timeDosed / 1000))); }
+    public get timeRemaining(): number { return Math.floor(Math.max(0, this.time - (this._timeDosed / 1000))); }
     public get volumeRemaining(): number { return Math.max(0, this.volume - this.volumeDosed); }
 }
 

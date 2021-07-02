@@ -1,5 +1,6 @@
 ﻿import { webApp, REMInterfaceServer, InterfaceServerResponse } from "../../web/Server";
 import { logger } from "../../logger/Logger";
+import e = require("express");
 export interface INixieControlPanel {
     getREMServers();
     logData(file: string, data: any);
@@ -22,16 +23,18 @@ export class NixieEquipment {
         try {
             let result: InterfaceServerResponse;
             let server = webApp.findServerByGuid(uuid);
-            if (typeof server === 'undefined') return Promise.reject(new Error(`Error sending device command: Server [${uuid}] not found.`));
+            if (typeof server === 'undefined')
+                return InterfaceServerResponse.createError(new Error(`Error sending device command: Server [${uuid}] not found.`));
             if (!server.isConnected) {
                 logger.warn(`Cannot send PUT ${url} to ${server.name} server is not connected.`);
-                return Promise.reject(new Error(`Error sending device command: [${server.name}] not connected.`));
+                return InterfaceServerResponse.createError(new Error(`Error sending device command: [${server.name}] not connected.`));
             }
             if (server.type === 'rem') {
                 let rem = server as REMInterfaceServer;
                 result = await rem.putApiService(url, data, timeout);
                 // If the result code is > 200 we have an issue.
-                if (result.status.code > 200 || result.status.code === -1) return Promise.reject(new Error(`putDeviceService: ${result.error.message}`));
+                //if (result.status.code > 200 || result.status.code === -1)
+                //    return Promise.reject(new Error(`putDeviceService: ${result.error.message}`));
             }
             return result;
         }
@@ -84,6 +87,8 @@ export class NixieEquipmentCollection<T> extends Array<NixieEquipment> {
                 await eq.closeAsync();
                 this.splice(ndx, 1);
             }
+            else
+                logger.warn(`A Nixie equipment item was not found with id ${id}. Equipment not removed.`);
         }
         catch (err) { return Promise.reject(err); }
     }

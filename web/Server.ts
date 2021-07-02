@@ -237,6 +237,9 @@ interface ServerToClientEvents {
 }
 export class HttpServer extends ProtoServer {
     // Http protocol
+    private static dateTestISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
+    private static dateTextAjax = /^\/Date\((d|-|.*)\)[\/|\\]$/;
+
     public app: express.Application;
     public server: http.Server;
     public sockServer: SocketIoServer<ClientToServerEvents, ServerToClientEvents>;
@@ -363,7 +366,26 @@ export class HttpServer extends ProtoServer {
                         return res.redirect('https://' + host + req.url);
                     });
                 }
-                this.app.use(express.json());
+                this.app.use(express.json(
+                    {
+                        reviver: (key, value) => {
+                            if (typeof value === 'string') {
+                                let d = HttpServer.dateTestISO.exec(value);
+                                // By parsing the date and then creating a new date from that we will get
+                                // the date in the proper timezone.
+                                if (d) return new Date(Date.parse(value));
+                                d = HttpServer.dateTextAjax.exec(value);
+                                if (d) {
+                                    // Not sure we will be seeing ajax dates but this is
+                                    // something that we may see from external sources.
+                                    let a = d[1].split(/[-+,.]/);
+                                    return new Date(a[0] ? +a[0] : 0 - +a[1]);
+                                }
+                            }
+                            return value;
+                        }
+                    })
+                );
                 this.app.use((req, res, next) => {
                     res.header('Access-Control-Allow-Origin', '*');
                     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, api_key, Authorization'); // api_key and Authorization needed for Swagger editor live API document calls
@@ -877,7 +899,11 @@ export class InterfaceServerResponse {
     error: Error;
     data: string;
     obj: any;
-
+    public static createError(err: Error, data?: string, obj?: any) {
+        let resp = new InterfaceServerResponse(500, err.message);
+        resp.error = err;
+        return resp;
+    }
 }
 export class REMInterfaceServer extends ProtoServer {
     public async init(cfg) {

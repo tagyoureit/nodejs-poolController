@@ -2323,7 +2323,6 @@ class TouchChemControllerCommands extends ChemControllerCommands {
         let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' && typeof data.orp.tank.level !== 'undefined' ? parseInt(data.orp.tank.level, 10) : schem.orp.tank.level;
         return new Promise<ChemController>((resolve, reject) => {
             let out = Outbound.create({
-                protocol: Protocol.IntelliChem,
                 action: 211,
                 payload: [],
                 retries: 3, // We are going to try 4 times.
@@ -2380,24 +2379,48 @@ class TouchChemControllerCommands extends ChemControllerCommands {
             conn.queueSendMessage(out);
         });
     }
+    public async deleteChemControllerAsync(data: any): Promise<ChemController> {
+        let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
+        if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemController'));
+        let chem = sys.chemControllers.getItemById(id);
+        if (chem.master === 1) return super.deleteChemControllerAsync(data);
+        return new Promise<ChemController>((resolve, reject) => {
+            let out = Outbound.create({
+                action: 211,
+                response: Response.create({ protocol: Protocol.IntelliChem, action: 1, payload: [211] }),
+                retries: 3,
+                payload: [],
+                onComplete: (err) => {
+                    if (err) { reject(err); }
+                    else {
+                        let schem = state.chemControllers.getItemById(id);
+                        chem.isActive = false;
+                        chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
+                        chem.ph.tank.units = chem.orp.tank.units = '';
+                        schem.isActive = false;
+                        sys.chemControllers.removeItemById(id);
+                        state.chemControllers.removeItemById(id);
+                        resolve(chem);
+                    }
+                }
+            });
+            // I think this payload should delete the controller on Touch.
+            out.insertPayloadBytes(0, 0, 22);
+            out.setPayloadByte(0, chem.address - 144);
+            out.setPayloadByte(1, Math.floor((chem.ph.setpoint * 100) / 256) || 0);
+            out.setPayloadByte(2, Math.round((chem.ph.setpoint * 100) % 256) || 0);
+            out.setPayloadByte(3, Math.floor(chem.orp.setpoint / 256) || 0);
+            out.setPayloadByte(4, Math.round(chem.orp.setpoint % 256) || 0);
+            out.setPayloadByte(5, 0);
+            out.setPayloadByte(6, 0);
+            out.setPayloadByte(7, Math.floor(chem.calciumHardness / 256) || 0);
+            out.setPayloadByte(8, Math.round(chem.calciumHardness % 256) || 0);
+            out.setPayloadByte(9, chem.cyanuricAcid || 0);
+            out.setPayloadByte(11, Math.floor(chem.alkalinity / 256) || 0);
+            out.setPayloadByte(12, Math.round(chem.alkalinity % 256) || 0);
+            out.setPayloadByte(13, 20);
+            conn.queueSendMessage(out);
+        });
+    }
+
 }
-// class TouchChemControllerCommands extends ChemControllerCommands {
-//     public async setChemControllerAsync(data: any):Promise<ChemController> {
-//         let chem = sys.chemControllers.getItemById(data.id);
-
-//         // we aren't setting an IntelliChem or changing TO an IntelliChem
-//         if (typeof data.type !== 'undefined' && data.type !== sys.board.valueMaps.chemControllerTypes.getValue('IntelliChem') || 
-//             typeof data.type === 'undefined' && typeof data.type === 'undefined')
-//             return super.setChemControllerAsync(data);  
-
-//         else if (chem.type !== sys.board.valueMaps.chemControllerTypes.getValue('IntelliChem'))
-//             return super.setChemControllerAsync(data);  
-
-
-//         // do stuff here to set IntelliChem on *Touch
-//         chem.set(data);
-//         //Lead In Bytes					Destination	Source	Action	No. of Bytes	pH Setpoint Hi	pH Setpoint Lo	ORP Setpoint Hi	ORP Setpoint Lo	Acid Tank Level	ORP Tank Level	Hardness  Hi	Hardness Lo		Cyanuric Acid Level	TA Hi Byte	TA Lo Byte	????										
-//         //[255, 0, 255],[165,0,144,16,146,2][2,218,2,188,4,3,1,144,0,0,0,150,20,0,0,0,0,0,0,0,0,4,200
-//         return Promise.resolve(chem);
-//     }
-// }

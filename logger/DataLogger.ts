@@ -1,4 +1,4 @@
-﻿import { Timestamp } from '../controller/Constants';
+﻿import { Timestamp, utils } from '../controller/Constants';
 import * as extend from 'extend';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -389,13 +389,15 @@ export class DataLogger {
     }
 }
 export interface IDataLoggerEntry<T> {
-    createInstance(entry?: string): T
+    createInstance(entry?: string): T,
+    parse(entry?: string): T
 }
 export class DataLoggerEntry {
     private static dateTestISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
     private static dateTextAjax = /^\/Date\((d|-|.*)\)[\/|\\]$/;
-    constructor(entry?: string) {
+    constructor(entry?: string | object) {
         // Parse the data from the log entry if it exists.
+        if (typeof entry === 'object') entry = JSON.stringify(entry);
         if (typeof entry === 'string') this.parse(entry);
     }
     public createInstance(entry?: string) { return new DataLoggerEntry(entry); }
@@ -419,12 +421,13 @@ export class DataLoggerEntry {
         }
         return value;
     }
-    public toLog(): string {
-        return JSON.stringify(this, (key, value) => {
-            // Hide the private stuff.
+    public toJSON() {
+        return utils.replaceProps(this, (key, value) => {
             if (key.startsWith('_')) return undefined;
+            if (typeof value === 'undefined' || value === null) return undefined;
             if (typeof value.getMonth === 'function') return Timestamp.toISOLocal(value);
             return value;
         });
     }
+    public toLog(): string { return JSON.stringify(this) + '\n'; }
 }

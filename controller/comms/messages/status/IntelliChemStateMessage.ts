@@ -220,6 +220,7 @@ export class IntelliChemStateMessage {
             schem.ph.appendDose(schem.ph.doseVolume - phPrev.vol, (schem.ph.doseTime - phPrev.time) * 1000);
         }
         else {
+            console.log(`DOSING STATUS === ${schem.ph.dosingStatus}`);
             // Make sure we don't have a current dose going.
             schem.ph.currentDose = undefined;
         }
