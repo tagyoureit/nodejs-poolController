@@ -288,6 +288,7 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
                 this.configSent = false;
                 let out = Outbound.create({
                     protocol: Protocol.IntelliChem,
+                    source: 16,
                     dest: this.chem.address,
                     action: 146,
                     payload: [],
@@ -327,6 +328,7 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
             let success = await new Promise<boolean>((resolve, reject) => {
                 let out = Outbound.create({
                     protocol: Protocol.IntelliChem,
+                    source: 16,
                     dest: this.chem.address,
                     action: 210,
                     payload: [210],
