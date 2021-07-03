@@ -292,7 +292,7 @@ export class ExternalMessage {
         else {
             let hstate = state.heaters.getItemById(heater.id, true);
             hstate.name = heater.name;
-            heater.isVirtual = hstate.isVirtual = false;
+            //heater.isVirtual = hstate.isVirtual = false;
             hstate.name = heater.name;
             hstate.type = heater.type;
         }

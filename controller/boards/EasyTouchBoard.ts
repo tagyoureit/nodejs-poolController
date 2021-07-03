@@ -325,7 +325,7 @@ export class EasyTouchBoard extends SystemBoard {
         let sheater = state.heaters.getItemById(1, true);
         sheater.type = heater.type;
         sheater.name = heater.name;
-        sheater.isVirtual = heater.isVirtual = false;
+        //sheater.isVirtual = heater.isVirtual = false;
         sys.equipment.shared ? heater.body = 32 : heater.body = 0;
     }
     public initBodyDefaults() {
@@ -2177,7 +2177,7 @@ class TouchHeaterCommands extends HeaterCommands {
                 }
             }
             let hstate = state.heaters.getItemById(id, true);
-            hstate.isVirtual = heater.isVirtual = true;
+            //hstate.isVirtual = heater.isVirtual = true;
             hstate.name = heater.name;
             hstate.type = heater.type;
             heater.master = 1;

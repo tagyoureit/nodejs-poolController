@@ -308,6 +308,7 @@ export class NixieBoard extends SystemBoard {
             total += sys.valves.length;
             total += sys.schedules.length;
             this.initValves();
+            sys.board.heaters.initTempSensors();
             await this.verifySetup();
             await ncp.initAsync(sys);
             sys.board.heaters.updateHeaterServices();
@@ -993,7 +994,7 @@ export class NixieHeaterCommands extends HeaterCommands {
                 }
             }
             let hstate = state.heaters.getItemById(id, true);
-            hstate.isVirtual = heater.isVirtual = true;
+            //hstate.isVirtual = heater.isVirtual = true;
             hstate.name = heater.name;
             hstate.type = heater.type;
             heater.master = 1;

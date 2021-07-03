@@ -779,6 +779,12 @@ export class EquipmentMessages extends EqStateCollection<EquipmentMessage> {
         }
         return rem;
     }
+    public setMessageByCode(code: string, severity: string | number, message: string): EquipmentMessage {
+        let msg = this.getItemByCode(code, true);
+        msg.severity = sys.board.valueMaps.eqMessageSeverities.encode(severity, 0);
+        msg.message = message;
+        return msg;
+    }
 }
 export class EquipmentMessage extends ChildEqState {
     public initData() {
@@ -1338,8 +1344,10 @@ export class HeaterState extends EqState {
     public set name(val: string) { this.setDataVal('name', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
-    public get isVirtual(): boolean { return this.data.isVirtual; }
-    public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
+    public get isCooling(): boolean { return this.data.isCooling; }
+    public set isCooling(val: boolean) { this.setDataVal('isCooling', val); }
+    //public get isVirtual(): boolean { return this.data.isVirtual; }
+    //public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
     public get type(): number | any { return typeof this.data.type !== 'undefined' ? this.data.type.val : 0; }
     public set type(val: number | any) {
         if (this.type !== val) {

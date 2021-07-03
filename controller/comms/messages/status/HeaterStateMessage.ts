@@ -31,13 +31,24 @@ export class HeaterStateMessage {
         }
     }
     public static processHeaterStatus(msg: Inbound) {
-        let heater: Heater;
-        heater = sys.heaters.getItemByAddress(msg.source);
-
+        // RKS: 07-03-21 - We only know byte 2 at this point for Ultratemp for the 115 message we are processing here.  The 
+        // byte  description
+        // ------------------------------------------------
+        // 0    Unknown
+        // 1    Unknown
+        // 2    Current heater status 0=off, 1=heat, 2=cool
+        // 3-9  Unknown
+        let heater: Heater = sys.heaters.getItemByAddress(msg.source);
+        let sheater = state.heaters.getItemById(heater.id);
         // We need to decode the message.  For a 2 of
         //[165, 1, 15, 16, 2, 29][16, 42, 3, 0, 0, 0, 0, 0, 0, 32, 0, 0, 2, 0, 88, 88, 0, 241, 95, 100, 24, 246, 0, 0, 0, 0, 0, 40, 0][4, 221]
         //[165, 0, 112, 16, 114, 10][144, 0, 0, 0, 0, 0, 0, 0, 0, 0][2, 49] // OCP to Heater
         //[165, 0, 16, 112, 115, 10][160, 1, 0, 3, 0, 0, 0, 0, 0, 0][2, 70] // Heater Reply
+        let byte = msg.extractPayloadByte(2);
+        sheater.isOn = byte >= 1;
+        sheater.isCooling = byte === 2;
+        sheater.commStatus = 0;
+        state.equipment.messages.removeItemByCode(`heater:${heater.id}:comms`);
         msg.isProcessed = true;
     }
 }

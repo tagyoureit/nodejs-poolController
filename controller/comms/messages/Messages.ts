@@ -597,7 +597,7 @@ export class Outbound extends OutboundCommon {
             this.header.push.apply(this.header, [165, Message.headerSubByte, 15, Message.pluginAddress, 0, 0]);
             this.term.push.apply(this.term, [0, 0]);
         }
-        else if (proto === Protocol.Pump || proto === Protocol.IntelliValve || proto === Protocol.IntelliChem) {
+        else if (proto === Protocol.Pump || proto === Protocol.IntelliValve || proto === Protocol.IntelliChem || proto === Protocol.Heater) {
             this.preamble.push.apply(this.preamble, [255, 0, 255]);
             this.header.push.apply(this.header, [165, 0, 15, Message.pluginAddress, 0, 0]);
             this.term.push.apply(this.term, [0, 0]);

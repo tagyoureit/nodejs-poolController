@@ -3388,7 +3388,7 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
                     heater.economyTime = economyTime;
                     heater.startTempDelta = startTempDelta;
                     heater.stopTempDelta = stopTempDelta;
-                    hstate.isVirtual = heater.isVirtual = false;
+                    //hstate.isVirtual = heater.isVirtual = false;
                     heater.cooldownDelay = cooldownDelay;
                     resolve(heater);
                 }
