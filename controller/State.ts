@@ -2085,7 +2085,8 @@ export class ChemicalState extends ChildEqState {
         this.setDataVal('currentDose', val);
     }
     public get doseHistory(): ChemicalDoseState[] {
-        if (typeof this.data.doseHistory === 'undefined' || this.data.doseHistory.length === 0) return this.data.doseHistory;
+        if (typeof this.data.doseHistory === 'undefined') this.data.doseHistory = [];
+        if (this.data.doseHistory.length === 0) return this.data.doseHistory;
         if (typeof this.data.doseHistory[0].save !== 'function') {
             let arr: ChemicalDoseState[] = [];
             for (let i = 0; i < this.data.doseHistory.length; i++) {
