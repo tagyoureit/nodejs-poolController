@@ -3647,7 +3647,7 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
                         chem.orp.tolerance.high = orpTolerance.high;
                         chem.ph.setpoint = pHSetpoint;
                         chem.orp.setpoint = orpSetpoint;
-                        chem.siCalcType = siCalcType;
+                        schem.siCalcType = chem.siCalcType = siCalcType;
                         chem.address = schem.address = address;
                         chem.name = schem.name = name;
                         chem.flowSensor.enabled = false;

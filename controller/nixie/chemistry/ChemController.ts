@@ -270,7 +270,7 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
             chem.orp.tolerance.high = orpTolerance.high;
             chem.ph.setpoint = pHSetpoint;
             chem.orp.setpoint = orpSetpoint;
-            chem.siCalcType = siCalcType;
+            schem.siCalcType = chem.siCalcType = siCalcType;
             chem.address = schem.address = address;
             chem.name = schem.name = name;
             chem.flowSensor.enabled = false;
@@ -488,7 +488,7 @@ export class NixieChemController extends NixieChemControllerBase {
                 if (typeof data.lsiRange.low === 'number') chem.lsiRange.low = data.lsiRange.low;
                 if (typeof data.lsiRange.high === 'number') chem.lsiRange.high = data.lsiRange.high;
             }
-            if (typeof data.siCalcType !== 'undefined') chem.siCalcType = data.siCalcType;
+            if (typeof data.siCalcType !== 'undefined') schem.siCalcType = chem.siCalcType = data.siCalcType;
             await this.flowSensor.setSensorAsync(data.flowSensor);
             // Alright we are down to the equipment items all validation should have been completed by now.
             // ORP Settings
