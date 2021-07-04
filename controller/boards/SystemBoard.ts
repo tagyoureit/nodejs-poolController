@@ -2067,7 +2067,6 @@ export class CircuitCommands extends BoardCommands {
     // emits substantially, let the clients keep their own local timers
     // or just display the end time.
     if (thing.dontStop || !isOn) {
-      console.log(`setting thing ${thingState.id} end time to undefined.`);
       thingState.endTime = undefined;
     }
     else if (!thingState.isOn && isOn) {
