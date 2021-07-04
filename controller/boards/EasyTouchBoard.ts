@@ -36,7 +36,10 @@ export class EasyTouchBoard extends SystemBoard {
         this.equipmentIds.circuitGroups = new EquipmentIdRange(192, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
         this.equipmentIds.circuits.start = sys.equipment.shared || sys.equipment.dual ? 1 : 2;
         if (typeof sys.configVersion.equipment === 'undefined') { sys.configVersion.equipment = 0; }
-        this.valueMaps.heatSources = new byteValueMap([]);
+        this.valueMaps.heatSources = new byteValueMap([
+            [0, { name: 'off', desc: 'Off' }],
+            [32, { name: 'nochange', desc: 'No Change' }]
+        ]);
         this.valueMaps.heatStatus = new byteValueMap([
             [0, { name: 'off', desc: 'Off' }],
             [1, { name: 'heater', desc: 'Heater' }],
@@ -194,7 +197,7 @@ export class EasyTouchBoard extends SystemBoard {
             [64, { name: 'sat', desc: 'Saturday', dow: 6 }]
         ]);
         this.valueMaps.scheduleTypes = new byteValueMap([
-            [0, { name: 'repeat', desc: 'Repeats', startDate: false, startTime: true, entTime: true, days: 'multi', heatSource: true, heatSetpoint: false }],
+            [0, { name: 'repeat', desc: 'Repeats', startDate: false, startTime: true, endTime: true, days: 'multi', heatSource: true, heatSetpoint: false }],
             [26, { name: 'runonce', desc: 'Run Once', startDate: false, startTime: true, endTime: false, days: 'single', heatSource: true, heatSetpoint: false }]
         ]);
         this.valueMaps.featureFunctions = new byteValueMap([
@@ -895,6 +898,13 @@ class TouchSystemCommands extends SystemCommands {
         });
     }
     public async setDateTimeAsync(obj: any): Promise<any> {
+        let dayOfWeek = function (): number {
+            // for IntelliTouch set date/time
+            if (state.time.toDate().getUTCDay() === 0)
+                return 0;
+            else
+                return Math.pow(2, state.time.toDate().getUTCDay() - 1);
+        }
         return new Promise<any>((resolve, reject) => {
             let dst = sys.general.options.adjustDST ? 1 : 0;
             if (typeof obj.dst !== 'undefined') utils.makeBool(obj.dst) ? dst = 1 : dst = 0;
@@ -903,7 +913,7 @@ class TouchSystemCommands extends SystemCommands {
                 date = state.time.date,
                 month = state.time.month,
                 year = state.time.year >= 100 ? state.time.year - 2000 : state.time.year,
-                dow = state.time.dayOfWeek } = obj;
+                dow = dayOfWeek() } = obj;
             if (obj.dt instanceof Date) {
                 let _dt: Date = obj.dt;
                 hour = _dt.getHours();

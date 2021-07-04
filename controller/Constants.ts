@@ -237,13 +237,7 @@ export class Timestamp {
             this.emitter.emit('change');
         }
     }
-    public get dayOfWeek(): number {
-        // for IntelliTouch set date/time
-        if (this._dt.getUTCDay() === 0)
-            return 0;
-        else
-            return Math.pow(2, this._dt.getUTCDay() - 1);
-    }
+    public getDay(): number { return this._dt.getDay(); }
     public getTime() { return this._dt.getTime(); }
     public format(): string { return Timestamp.toISOLocal(this._dt); }
     public static toISOLocal(dt): string {
@@ -296,7 +290,8 @@ export class Timestamp {
         dt.setHours(0, 0, 0, 0);
         return new Timestamp(dt);
     }
-    public clone() { return new Timestamp(this._dt); }
+    public clone() { return new Timestamp(new Date(this._dt)); }
+    public static locale() { return Intl.DateTimeFormat().resolvedOptions().locale; }
 }
 export enum ControllerType {
     IntelliCenter = 'intellicenter',

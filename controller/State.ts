@@ -338,7 +338,7 @@ export class State implements IState {
         this._dt = new Timestamp(pnlTime);
         this._dt.milliseconds = 0;
         this.data = state;
-            //this.onchange(state, function () { self.dirty = true; });
+        //this.onchange(state, function () { self.dirty = true; });
         this._dt.emitter.on('change', function () {
             self.data.time = self._dt.format();
             self.hasChanged = true;
@@ -467,7 +467,7 @@ export interface ICircuitState {
     name: string;
     nameId?: number;
     isOn: boolean;
-    endTime: number;
+    endTime: Timestamp;
     lightingTheme?: number;
     emitEquipmentChange();
     get(bCopy?: boolean);
@@ -637,7 +637,7 @@ class EqStateCollection<T> {
     }
 }
 class DirtyStateCollection extends Array<EqState> {
-    public maybeAddEqState(eqItem: EqState) : boolean {
+    public maybeAddEqState(eqItem: EqState): boolean {
         if (!this.eqStateExists(eqItem)) {
             this.push(eqItem);
             return true;
@@ -804,7 +804,7 @@ export class EquipmentMessage extends ChildEqState {
     public get createDate(): Date { return this._createDate; }
     public set createDate(val: Date) { this._createDate = val; this._saveCreateDate(); }
     private _saveCreateDate() { this.setDataVal('createDate', Timestamp.toISOLocal(this.createDate)); }
-    public get severity(): number {  return typeof (this.data.severity) !== 'undefined' ? this.data.severity.val : 0;  }
+    public get severity(): number { return typeof (this.data.severity) !== 'undefined' ? this.data.severity.val : 0; }
     public set severity(val: number) {
         if (this.severity !== val) {
             this.data.type = sys.board.valueMaps.eqMessageSeverities.transform(val);
@@ -1043,7 +1043,7 @@ export interface ICircuitGroupState {
     type: number;
     name: string;
     nameId?: number;
-    endTime: number;
+    endTime: Timestamp;
     isOn: boolean;
     isActive: boolean;
     dataName: string;
@@ -1093,8 +1093,11 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState, IC
     }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
-    public get endTime(): number { return this.data.endTime; }
-    public set endTime(val: number) { this.setDataVal('endTime', val); }
+    public get endTime(): Timestamp {
+        if (typeof this.data.endTime === 'undefined') return undefined;
+        return new Timestamp(this.data.endTime);
+    }
+    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate()), false) : this.setDataVal('endTime', undefined); } 
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get showInFeatures(): boolean { return typeof this.data.showInFeatures === 'undefined' ? true : this.data.showInFeatures; }
@@ -1163,8 +1166,11 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
             this.hasChanged = true;
         }
     }
-    public get endTime(): number { return this.data.endTime; }
-    public set endTime(val: number) { this.setDataVal('endTime', val); }
+    public get endTime(): Timestamp {
+        if (typeof this.data.endTime === 'undefined') return undefined;
+        return new Timestamp(this.data.endTime);
+    }
+    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate()), false) : this.setDataVal('endTime', undefined); } 
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get isActive(): boolean { return this.data.isActive; }
@@ -1402,8 +1408,11 @@ export class FeatureState extends EqState implements ICircuitState {
     }
     public get showInFeatures(): boolean { return this.data.showInFeatures; }
     public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
-    public get endTime(): number { return this.data.endTime; }
-    public set endTime(val: number) { this.setDataVal('endTime', val); }
+    public get endTime(): Timestamp {
+        if (typeof this.data.endTime === 'undefined') return undefined;
+        return new Timestamp(this.data.endTime);
+    }
+    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate()), false) : this.setDataVal('endTime', undefined); }
 }
 export class VirtualCircuitState extends EqState implements ICircuitState {
     public dataName: string = 'virtualCircuit';
@@ -1422,8 +1431,11 @@ export class VirtualCircuitState extends EqState implements ICircuitState {
             this.hasChanged = true;
         }
     }
-    public get endTime(): number { return this.data.endTime; }
-    public set endTime(val: number) { this.setDataVal('endTime', val); }
+    public get endTime(): Timestamp {
+        if (typeof this.data.endTime === 'undefined') return undefined;
+        return new Timestamp(this.data.endTime);
+    }
+    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate()), false) : this.setDataVal('endTime', undefined); }
 }
 export class VirtualCircuitStateCollection extends EqStateCollection<VirtualCircuitState> {
     public createItem(data: any): VirtualCircuitState { return new VirtualCircuitState(data); }
@@ -1497,8 +1509,11 @@ export class CircuitState extends EqState implements ICircuitState {
             this.hasChanged = true;
         }
     }
-    public get endTime(): number { return this.data.endTime; }
-    public set endTime(val: number) { this.setDataVal('endTime', val); }
+    public get endTime(): Timestamp {
+        if (typeof this.data.endTime === 'undefined') return undefined;
+        return new Timestamp(this.data.endTime);
+    }
+    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate()), false) : this.setDataVal('endTime', undefined); }
 }
 export class ValveStateCollection extends EqStateCollection<ValveState> {
     public createItem(data: any): ValveState { return new ValveState(data); }
@@ -2567,10 +2582,10 @@ export class AppVersionState extends EqState {
             this.hasChanged = true;
         }
     }
-    public get gitLocalBranch() {return this.data.gitLocalBranch; }
-    public set gitLocalBranch(val: string) {this.data.gitLocalBranch = val;}
-    public get gitLocalCommit() {return this.data.gitLocalCommit; }
-    public set gitLocalCommit(val: string) {this.data.gitLocalCommit = val;}
+    public get gitLocalBranch() { return this.data.gitLocalBranch; }
+    public set gitLocalBranch(val: string) { this.data.gitLocalBranch = val; }
+    public get gitLocalCommit() { return this.data.gitLocalCommit; }
+    public set gitLocalCommit(val: string) { this.data.gitLocalCommit = val; }
 }
 export class CommsState {
     public keepAlives: number;

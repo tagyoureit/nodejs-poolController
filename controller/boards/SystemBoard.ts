@@ -23,7 +23,7 @@ import { Message, Outbound, Protocol, Response } from '../comms/messages/Message
 import { utils, Heliotrope, Timestamp } from '../Constants';
 import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType, TempSensorCollection, Filter, Equipment } from '../Equipment';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
-import { BodyTempState, ValveState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState, ScheduleState, FilterState, ChemicalState, CircuitGroupState } from '../State';
+import { BodyTempState, ValveState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState, ScheduleState, FilterState, ChemicalState, CircuitGroupState, CircuitState } from '../State';
 
 export class byteValueMap extends Map<number, any> {
   public transform(byte: number, ext?: number) { return extend(true, { val: byte || 0 }, this.get(byte) || this.get(0)); }
@@ -479,9 +479,9 @@ export class byteValueMaps {
     [82, { name: 'ivstatus', desc: 'IntelliValve Status' }]
   ]);
   public chemControllerTypes: byteValueMap = new byteValueMap([
-      [0, { name: 'none', desc: 'None', ph: { min: 6.8, max: 7.6 }, orp: { min: 400, max: 800 }, hasAddress: false }],
+    [0, { name: 'none', desc: 'None', ph: { min: 6.8, max: 7.6 }, orp: { min: 400, max: 800 }, hasAddress: false }],
     [1, { name: 'unknown', desc: 'Unknown', ph: { min: 6.8, max: 7.6 }, hasAddress: false }],
-      [2, { name: 'intellichem', desc: 'IntelliChem', ph: { min: 7.2, max: 7.6 }, orp: { min: 400, max: 800 }, hasAddress: true }],
+    [2, { name: 'intellichem', desc: 'IntelliChem', ph: { min: 7.2, max: 7.6 }, orp: { min: 400, max: 800 }, hasAddress: true }],
     [3, { name: 'homegrown', desc: 'Homegrown', ph: { min: 6.8, max: 7.6 }, hasAddress: false }],
     [4, { name: 'rem', desc: 'REM Chem', ph: { min: 6.8, max: 8.0 }, hasAddress: false }]
   ]);
@@ -577,11 +577,11 @@ export class byteValueMaps {
     [4, { name: 'orpdailylimit', desc: 'orp Daily Limit Reached' }],
     [128, { name: 'commslost', desc: 'Communications with Chem Controller Lost' }] // to be verified
   ]);
-    public chemControllerDosingStatus: byteValueMap = new byteValueMap([
-        [0, { name: 'dosing', desc: 'Dosing' }],
-        [1, { name: 'mixing', desc: 'Mixing' }],
-        [2, { name: 'monitoring', desc: 'Monitoring' }]
-    ]);
+  public chemControllerDosingStatus: byteValueMap = new byteValueMap([
+    [0, { name: 'dosing', desc: 'Dosing' }],
+    [1, { name: 'mixing', desc: 'Mixing' }],
+    [2, { name: 'monitoring', desc: 'Monitoring' }]
+  ]);
   public acidTypes: byteValueMap = new byteValueMap([
     [0, { name: 'a34.6', desc: '34.6% - 22 Baume', dosingFactor: 0.909091 }],
     [1, { name: 'a31.45', desc: '31.45% - 20 Baume', dosingFactor: 1 }],
@@ -2058,56 +2058,45 @@ export class CircuitCommands extends BoardCommands {
   public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
     return sys.board.circuits.setCircuitGroupStateAsync(id, val);
   }
-  public setEndTime(thing: ICircuit, thingState:ICircuitState, isOn: boolean) {
+  public setEndTime(thing: ICircuit, thingState: ICircuitState, isOn: boolean) {
     // this is a generic fn for circuits, features, circuitGroups, lightGroups
     // to set the end time based on the egg timer.
     // it will be called from set[]StateAsync calls as well as when then state is 
-    // eval'ed from status packets/external messages.
+    // eval'ed from status packets/external messages and schedule changes.
     // instead of maintaining timers here which would increase the amount of 
     // emits substantially, let the clients keep their own local timers
     // or just display the end time.
-    if (thing.dontStop || !isOn) thingState.endTime = undefined;
+    if (thing.dontStop || !isOn) {
+      console.log(`setting thing ${thingState.id} end time to undefined.`);
+      thingState.endTime = undefined;
+    }
     else if (!thingState.isOn && isOn) {
-      let currTime = state.time.hours * 60 + state.time.minutes;
-      let closestEndTime: number;
-      let remainingDuration: number;
-      // egg timers don't come into play if a schedule will turn it off first
+      let endTime: Timestamp;
+      let eggTimerEndTime: Timestamp;
+      // let remainingDuration: number;
+      if (typeof thing.eggTimer !== 'undefined') {
+        eggTimerEndTime = state.time.clone().addHours(0, thing.eggTimer);
+      }
+      // egg timers don't come into play if a schedule will control the circuit
       for (let i = 0; i < sys.schedules.length; i++) {
         let sched = sys.schedules.getItemByIndex(i);
-        if (sched.isActive && sched.circuit === thing.id) {
-          // schedules.push(sched);
-          // find the end time of the schedule that will turn off the circuit next
-          // 1. if closest end time is undef, use current time/remaining duration
-          // 2. if sched end time > closest end time && sched end time 
-          // if (typeof closestEndTime === 'undefined') {
-          //   closestEndTime = sched.endTime;
-          //   remainingDuration = sched.endTime - currTime;
-          // }
-          // else 
-          if (sched.endTime >= currTime) {
-            if (typeof remainingDuration === 'undefined' || typeof remainingDuration === 'undefined' || sched.endTime - currTime < remainingDuration) {
-              remainingDuration = sched.endTime - currTime;
-              closestEndTime = sched.endTime;
-            }
-          }
-          else if (typeof remainingDuration === 'undefined' || sched.endTime < currTime){
-            if (typeof remainingDuration === 'undefined' || 24*60 - currTime + sched.endTime < remainingDuration ){
-              remainingDuration = 24*60 - currTime + sched.endTime;
-              closestEndTime = sched.endTime;
-            }
-          }
+        if (sched.isActive && sys.board.schedules.includesCircuit(sched, thing.id)) {
+          let nearestStartTime = sys.board.schedules.getNearestStartTime(sched);
+          let nearestEndTime = sys.board.schedules.getNearestEndTime(sched);
+          // if the schedule doesn't have an end date (eg no days)...
+          if (nearestEndTime.getTime() === 0) continue;
+          // else if the egg timer will turn the circuit off before the schedule begins
+          else if (eggTimerEndTime.getTime() < nearestStartTime.getTime()) continue;
+          // else if the end time isn't yet set
+          else if (typeof endTime === 'undefined') endTime = nearestEndTime.clone();
+          // and finally, compare the end time of this sched to the existing closest end time
+          else if (nearestEndTime.getTime() < endTime.getTime()) endTime = nearestEndTime.clone();
         }
       }
-      if (typeof thing.eggTimer !== 'undefined'){
-        if (typeof remainingDuration === 'undefined' || thing.eggTimer < remainingDuration) {
-          closestEndTime = (currTime + thing.eggTimer) % 1440;``
-        }
-      }
-      thingState.endTime = closestEndTime;
+      thingState.endTime = typeof endTime !== 'undefined' ? endTime : eggTimerEndTime;
     }
   }
 }
-
 export class FeatureCommands extends BoardCommands {
   public async setFeatureAsync(obj: any): Promise<Feature> {
     let id = parseInt(obj.id, 10);
@@ -2195,8 +2184,10 @@ export class FeatureCommands extends BoardCommands {
         }
         let sgrp = state.circuitGroups.getItemById(grp.id);
         let isOn = bIsOn && bSyncOn && grp.isActive;
-        sys.board.circuits.setEndTime(grp, sgrp, isOn);
-        sgrp.isOn = isOn;
+        if (isOn !== sgrp.isOn) {
+          sys.board.circuits.setEndTime(grp, sgrp, isOn);
+          sgrp.isOn = isOn;
+        }
         sys.board.valves.syncValveStates();
       }
       // I am guessing that there will only be one here but iterate
@@ -2213,11 +2204,13 @@ export class FeatureCommands extends BoardCommands {
           }
         }
         let sgrp = state.lightGroups.getItemById(grp.id);
-        sys.board.circuits.setEndTime(grp, sgrp, true);
-        sgrp.isOn = bIsOn;
+        if (bIsOn !== sgrp.isOn) {
+          sys.board.circuits.setEndTime(grp, sgrp, bIsOn);
+          sgrp.isOn = bIsOn;
+        }
       }
       state.emitEquipmentChanges();
-    } catch (err) { logger.error(`Error synchronizing group circuits`); }
+    } catch (err) { logger.error(`Error synchronizing group circuits. ${err}`); }
   }
 }
 export class ChlorinatorCommands extends BoardCommands {
@@ -2428,20 +2421,69 @@ export class ScheduleCommands extends BoardCommands {
       let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
       let ts = dt.getHours() * 60 + dt.getMinutes();
       for (let i = 0; i < state.schedules.length; i++) {
+        let schedIsOn: boolean;
         let ssched = state.schedules.getItemByIndex(i);
-        let circ = state.circuits.getInterfaceById(ssched.circuit);
-        if (circ.isOn &&
+        let scirc = state.circuits.getInterfaceById(ssched.circuit);
+        if (scirc.isOn &&
           (ssched.scheduleDays & dayVal) > 0 &&
-          ts >= ssched.startTime && ts <= ssched.endTime) ssched.isOn = true
-        else ssched.isOn = false;
-        // if the schedule state changes, it may affect the end time
-        sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(ssched.circuit), circ, ssched.isOn);
+          ts >= ssched.startTime && ts <= ssched.endTime) schedIsOn = true
+        else schedIsOn = false;
+        if (schedIsOn !== ssched.isOn){
+          // if the schedule state changes, it may affect the end time
+          sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(ssched.circuit), scirc, ssched.isOn);
+          ssched.isOn = schedIsOn;
+        }
         ssched.emitEquipmentChange();
       }
     } catch (err) { logger.error(`Error synchronizing schedule states`); }
   }
   public async setEggTimerAsync(data?: any): Promise<EggTimer> { return Promise.resolve(sys.eggTimers.getItemByIndex(1)); }
   public async deleteEggTimerAsync(data?: any): Promise<EggTimer> { return Promise.resolve(sys.eggTimers.getItemByIndex(1)); }
+  public includesCircuit(sched: Schedule, circuit: number) {
+    let bIncludes = false;
+    if (circuit === sched.circuit) bIncludes = true;
+    else if (sys.board.equipmentIds.circuitGroups.isInRange(sched.circuit)) {
+      let circs = sys.circuitGroups.getItemById(sched.circuit).getExtended().circuits;
+      for (let i = 0; i < circs.length; i++) {
+        if (circs[i].circuit.id === circuit) bIncludes = true;
+      }
+    }
+    return bIncludes;
+  }
+  public getNearestEndTime(sched: Schedule): Timestamp {
+    let nearestEndTime = new Timestamp(new Date(0))
+    let today = new Timestamp().startOfDay();
+    let todayTime = state.time.hours * 60 + state.time.minutes;
+    if (!sched.isActive) return nearestEndTime;
+    let startDate = typeof sched.startDate !== 'undefined' ? new Timestamp(new Date(Math.max(new Timestamp(sched.startDate).getTime(), today.getTime()))).startOfDay() : today.startOfDay();
+    let startDateDay = startDate.getDay();
+    let days = sys.board.valueMaps.scheduleDays.transform(sched.scheduleDays).days;
+    for (let i = 0; i < days.length; i++) {
+      let schedDay = days[i].dow;
+      let dateDiff = schedDay + 7 - startDateDay % 7;
+      if (schedDay === startDateDay && sched.endTime > todayTime) dateDiff = 0;
+      let endDateTime = startDate.clone().addHours(dateDiff * 24, sched.endTime);
+      if (nearestEndTime.getTime() === 0 || endDateTime.getTime() < nearestEndTime.getTime()) nearestEndTime = endDateTime;
+    }
+    return nearestEndTime;
+  }
+  public getNearestStartTime(sched: Schedule): Timestamp {
+    let nearestStartTime = new Timestamp(new Date(0))
+    let today = new Timestamp().startOfDay();
+    let todayTime = state.time.hours * 60 + state.time.minutes;
+    if (!sched.isActive) return nearestStartTime;
+    let startDate = typeof sched.startDate !== 'undefined' ? new Timestamp(new Date(Math.max(new Timestamp(sched.startDate).getTime(), today.getTime()))).startOfDay() : today.startOfDay();
+    let startDateDay = startDate.getDay();
+    let days = sys.board.valueMaps.scheduleDays.transform(sched.scheduleDays).days;
+    for (let i = 0; i < days.length; i++) {
+      let schedDay = days[i].dow;
+      let dateDiff = schedDay + 7 - startDateDay % 7;
+      if (schedDay === startDateDay && sched.startTime > todayTime) dateDiff = 0;
+      let startDateTime = startDate.clone().addHours(dateDiff * 24, sched.startTime);
+      if (nearestStartTime.getTime() === 0 || startDateTime.getTime() < nearestStartTime.getTime()) nearestStartTime = startDateTime;
+    }
+    return nearestStartTime;
+  }
 }
 export class HeaterCommands extends BoardCommands {
   public getInstalledHeaterTypes(body?: number): any {
@@ -2914,142 +2956,142 @@ export class ValveCommands extends BoardCommands {
   }
 }
 export class ChemControllerCommands extends BoardCommands {
-    public async deleteChemControllerAsync(data: any): Promise<ChemController> {
-        try {
-            let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
-            if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemController'));
-            let chem = sys.chemControllers.getItemById(id);
-            let schem = state.chemControllers.getItemById(id);
-            schem.isActive = chem.isActive = false;
-            await ncp.chemControllers.removeById(id);
-            sys.chemControllers.removeItemById(id);
-            state.chemControllers.removeItemById(id);
-            sys.emitEquipmentChange();
-            return Promise.resolve(chem);
-        } catch (err) { logger.error(`Error deleting chem controller ${err.message}`); }
-    }
-    public async manualDoseAsync(data: any): Promise<ChemControllerState> {
-        try {
-            let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Invalid chem controller id was provided ${data.id}`, 'chemController', data.id));
-            let chem = sys.chemControllers.find(elem => elem.id === id);
-            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Chem controller was not found ${data.id}`, 'chemController', data.id));
-            // Let's check the type.  AFAIK you cannot manual dose an IntelliChem.
-            let type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
-            if (type.name !== 'rem') return Promise.reject(new InvalidEquipmentDataError(`You can only perform manual dosing on REM Chem controllers. Cannot manually dose ${type.desc}`, 'chemController', data.id));
-            // We are down to the nitty gritty.  Let REM Chem do its thing.
-            await ncp.chemControllers.manualDoseAsync(chem.id, data);
-            return Promise.resolve(state.chemControllers.getItemById(id));
-        } catch (err) { return Promise.reject(err); }
-    }
-    public async cancelDosingAsync(data: any): Promise<ChemControllerState> {
-        try {
-            let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel dosing: Invalid chem controller id was provided ${data.id}`, 'chemController', data.id));
-            let chem = sys.chemControllers.find(elem => elem.id === id);
-            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel dosing: Chem controller was not found ${data.id}`, 'chemController', data.id));
-            // Let's check the type.  AFAIK you cannot manual dose an IntelliChem.
-            let type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
-            if (type.name !== 'rem') return Promise.reject(new InvalidEquipmentDataError(`You can only cancel dosing on REM Chem controllers. Cannot cancel ${type.desc}`, 'chemController', data.id));
-            // We are down to the nitty gritty.  Let REM Chem do its thing.
-            await ncp.chemControllers.cancelDoseAsync(chem.id, data);
-            return Promise.resolve(state.chemControllers.getItemById(id));
-        } catch (err) { return Promise.reject(err); }
-    }
-    public async manualMixAsync(data: any): Promise<ChemControllerState> {
-        try {
-            let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin mixing: Invalid chem controller id was provided ${data.id}`, 'chemController', data.id));
-            let chem = sys.chemControllers.find(elem => elem.id === id);
-            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin mixing: Chem controller was not found ${data.id}`, 'chemController', data.id));
-            // Let's check the type.  AFAIK you cannot manual dose an IntelliChem.
-            let type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
-            if (type.name !== 'rem') return Promise.reject(new InvalidEquipmentDataError(`You can only perform manual mixing REM Chem controllers. Cannot manually dose ${type.desc}`, 'chemController', data.id));
-            // We are down to the nitty gritty.  Let REM Chem do its thing.
-            await ncp.chemControllers.manualMixAsync(chem.id, data);
-            return Promise.resolve(state.chemControllers.getItemById(id));
-        } catch (err) { return Promise.reject(err); }
-    }
-    public async cancelMixingAsync(data: any): Promise<ChemControllerState> {
-        try {
-            let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel mixing: Invalid chem controller id was provided ${data.id}`, 'chemController', data.id));
-            let chem = sys.chemControllers.find(elem => elem.id === id);
-            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel mixing: Chem controller was not found ${data.id}`, 'chemController', data.id));
-            // Let's check the type.  AFAIK you cannot manual dose an IntelliChem.
-            let type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
-            if (type.name !== 'rem') return Promise.reject(new InvalidEquipmentDataError(`You can only cancel mixing on REM Chem controllers. Cannot cancel ${type.desc}`, 'chemController', data.id));
-            // We are down to the nitty gritty.  Let REM Chem do its thing.
-            await ncp.chemControllers.cancelMixingAsync(chem.id, data);
-            return Promise.resolve(state.chemControllers.getItemById(id));
-        } catch (err) { return Promise.reject(err); }
-    }
+  public async deleteChemControllerAsync(data: any): Promise<ChemController> {
+    try {
+      let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
+      if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemController'));
+      let chem = sys.chemControllers.getItemById(id);
+      let schem = state.chemControllers.getItemById(id);
+      schem.isActive = chem.isActive = false;
+      await ncp.chemControllers.removeById(id);
+      sys.chemControllers.removeItemById(id);
+      state.chemControllers.removeItemById(id);
+      sys.emitEquipmentChange();
+      return Promise.resolve(chem);
+    } catch (err) { logger.error(`Error deleting chem controller ${err.message}`); }
+  }
+  public async manualDoseAsync(data: any): Promise<ChemControllerState> {
+    try {
+      let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
+      if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Invalid chem controller id was provided ${data.id}`, 'chemController', data.id));
+      let chem = sys.chemControllers.find(elem => elem.id === id);
+      if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Chem controller was not found ${data.id}`, 'chemController', data.id));
+      // Let's check the type.  AFAIK you cannot manual dose an IntelliChem.
+      let type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
+      if (type.name !== 'rem') return Promise.reject(new InvalidEquipmentDataError(`You can only perform manual dosing on REM Chem controllers. Cannot manually dose ${type.desc}`, 'chemController', data.id));
+      // We are down to the nitty gritty.  Let REM Chem do its thing.
+      await ncp.chemControllers.manualDoseAsync(chem.id, data);
+      return Promise.resolve(state.chemControllers.getItemById(id));
+    } catch (err) { return Promise.reject(err); }
+  }
+  public async cancelDosingAsync(data: any): Promise<ChemControllerState> {
+    try {
+      let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
+      if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel dosing: Invalid chem controller id was provided ${data.id}`, 'chemController', data.id));
+      let chem = sys.chemControllers.find(elem => elem.id === id);
+      if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel dosing: Chem controller was not found ${data.id}`, 'chemController', data.id));
+      // Let's check the type.  AFAIK you cannot manual dose an IntelliChem.
+      let type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
+      if (type.name !== 'rem') return Promise.reject(new InvalidEquipmentDataError(`You can only cancel dosing on REM Chem controllers. Cannot cancel ${type.desc}`, 'chemController', data.id));
+      // We are down to the nitty gritty.  Let REM Chem do its thing.
+      await ncp.chemControllers.cancelDoseAsync(chem.id, data);
+      return Promise.resolve(state.chemControllers.getItemById(id));
+    } catch (err) { return Promise.reject(err); }
+  }
+  public async manualMixAsync(data: any): Promise<ChemControllerState> {
+    try {
+      let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
+      if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin mixing: Invalid chem controller id was provided ${data.id}`, 'chemController', data.id));
+      let chem = sys.chemControllers.find(elem => elem.id === id);
+      if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin mixing: Chem controller was not found ${data.id}`, 'chemController', data.id));
+      // Let's check the type.  AFAIK you cannot manual dose an IntelliChem.
+      let type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
+      if (type.name !== 'rem') return Promise.reject(new InvalidEquipmentDataError(`You can only perform manual mixing REM Chem controllers. Cannot manually dose ${type.desc}`, 'chemController', data.id));
+      // We are down to the nitty gritty.  Let REM Chem do its thing.
+      await ncp.chemControllers.manualMixAsync(chem.id, data);
+      return Promise.resolve(state.chemControllers.getItemById(id));
+    } catch (err) { return Promise.reject(err); }
+  }
+  public async cancelMixingAsync(data: any): Promise<ChemControllerState> {
+    try {
+      let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
+      if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel mixing: Invalid chem controller id was provided ${data.id}`, 'chemController', data.id));
+      let chem = sys.chemControllers.find(elem => elem.id === id);
+      if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel mixing: Chem controller was not found ${data.id}`, 'chemController', data.id));
+      // Let's check the type.  AFAIK you cannot manual dose an IntelliChem.
+      let type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
+      if (type.name !== 'rem') return Promise.reject(new InvalidEquipmentDataError(`You can only cancel mixing on REM Chem controllers. Cannot cancel ${type.desc}`, 'chemController', data.id));
+      // We are down to the nitty gritty.  Let REM Chem do its thing.
+      await ncp.chemControllers.cancelMixingAsync(chem.id, data);
+      return Promise.resolve(state.chemControllers.getItemById(id));
+    } catch (err) { return Promise.reject(err); }
+  }
 
-    // If we land here then this is definitely a non-OCP implementation.  Pass this off to nixie to do her thing.
-    protected async setIntelliChemAsync(data: any): Promise<ChemController> {
-        try {
-            let chem = sys.chemControllers.getItemById(data.id);
-            return await ncp.chemControllers.setControllerAsync(chem, data);
-        } catch (err) { return Promise.reject(err); }
-    }
-    public findChemController(data: any) {
-        let address = parseInt(data.address, 10);
-        let id = parseInt(data.id, 10);
-        if (!isNaN(id)) return sys.chemControllers.find(x => x.id === id);
-        else if (!isNaN(address)) return sys.chemControllers.find(x => x.address === address);
-    }
-    public async setChemControllerAsync(data: any): Promise<ChemController> {
-        // The following are the rules related to when an OCP is present.
-        // ==============================================================
-        // 1. IntelliChem cannot be controlled/polled via Nixie, since there is no enable/disable from the OCP at this point we don't know who is in control of polling.
-        // 2. With *Touch Commands will be sent directly to the IntelliChem controller in the hopes that the OCP will pick it up. Turns out this is not correct.  The TouchBoard now has the proper interface.
-        // 3. njspc will communicate to the OCP for IntelliChem control via the configuration interface.
+  // If we land here then this is definitely a non-OCP implementation.  Pass this off to nixie to do her thing.
+  protected async setIntelliChemAsync(data: any): Promise<ChemController> {
+    try {
+      let chem = sys.chemControllers.getItemById(data.id);
+      return await ncp.chemControllers.setControllerAsync(chem, data);
+    } catch (err) { return Promise.reject(err); }
+  }
+  public findChemController(data: any) {
+    let address = parseInt(data.address, 10);
+    let id = parseInt(data.id, 10);
+    if (!isNaN(id)) return sys.chemControllers.find(x => x.id === id);
+    else if (!isNaN(address)) return sys.chemControllers.find(x => x.address === address);
+  }
+  public async setChemControllerAsync(data: any): Promise<ChemController> {
+    // The following are the rules related to when an OCP is present.
+    // ==============================================================
+    // 1. IntelliChem cannot be controlled/polled via Nixie, since there is no enable/disable from the OCP at this point we don't know who is in control of polling.
+    // 2. With *Touch Commands will be sent directly to the IntelliChem controller in the hopes that the OCP will pick it up. Turns out this is not correct.  The TouchBoard now has the proper interface.
+    // 3. njspc will communicate to the OCP for IntelliChem control via the configuration interface.
 
-        // The following are the rules related to when no OCP is present.
-        // =============================================================
-        // 1. All chemControllers will be controlled via Nixie (IntelliChem, REM Chem).
-        try {
-            let chem = sys.board.chemControllers.findChemController(data);
-            let isAdd = typeof chem === 'undefined';
-            let type = sys.board.valueMaps.chemControllerTypes.encode(isAdd ? data.type : chem.type);
-            if (typeof type === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`The chem controller type could not be determined ${data.type || type}`, 'chemController', type));
-            if (isAdd && sys.equipment.maxChemControllers <= sys.chemControllers.length) return Promise.reject(new InvalidEquipmentDataError(`The maximum number of chem controllers have been added to your controller`, 'chemController', sys.equipment.maxChemControllers));
-            let address = parseInt(data.address, 10);
-            let t = sys.board.valueMaps.chemControllerTypes.transform(type);
-            if (t.hasAddress) {
-                // First lets make sure the user supplied an address.
-                if (isNaN(address)) return Promise.reject(new InvalidEquipmentDataError(`${type.desc} chem controllers require a valid address`, 'chemController', data.address));
-                if (typeof sys.chemControllers.find(x => x.address === address && x.id !== (isAdd ? -1 : chem.id)) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`${type.desc} chem controller addresses must be unique`, 'chemController', data.address));
-            }
-            if (isAdd) {
-                // At this point we are going to add the chem controller no matter what.
-                data.id = sys.chemControllers.getNextControllerId(type);
-                chem = sys.chemControllers.getItemById(data.id, true);
-                chem.type = type;
-                if (t.hasAddress) chem.address = address;
-            }
-            chem.isActive = true;
-            // So here is the thing.  If you have an OCP then the IntelliChem must be controlled by that.
-            // the messages on the bus will talk back to the OCP so if you do not do this mayhem will ensue.
-            if (type.name === 'intellichem')
-                await this.setIntelliChemAsync(data);
-            else
-                await ncp.chemControllers.setControllerAsync(chem, data);
-            return Promise.resolve(chem);
-        }
-        catch (err) { return Promise.reject(err); }
+    // The following are the rules related to when no OCP is present.
+    // =============================================================
+    // 1. All chemControllers will be controlled via Nixie (IntelliChem, REM Chem).
+    try {
+      let chem = sys.board.chemControllers.findChemController(data);
+      let isAdd = typeof chem === 'undefined';
+      let type = sys.board.valueMaps.chemControllerTypes.encode(isAdd ? data.type : chem.type);
+      if (typeof type === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`The chem controller type could not be determined ${data.type || type}`, 'chemController', type));
+      if (isAdd && sys.equipment.maxChemControllers <= sys.chemControllers.length) return Promise.reject(new InvalidEquipmentDataError(`The maximum number of chem controllers have been added to your controller`, 'chemController', sys.equipment.maxChemControllers));
+      let address = parseInt(data.address, 10);
+      let t = sys.board.valueMaps.chemControllerTypes.transform(type);
+      if (t.hasAddress) {
+        // First lets make sure the user supplied an address.
+        if (isNaN(address)) return Promise.reject(new InvalidEquipmentDataError(`${type.desc} chem controllers require a valid address`, 'chemController', data.address));
+        if (typeof sys.chemControllers.find(x => x.address === address && x.id !== (isAdd ? -1 : chem.id)) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`${type.desc} chem controller addresses must be unique`, 'chemController', data.address));
+      }
+      if (isAdd) {
+        // At this point we are going to add the chem controller no matter what.
+        data.id = sys.chemControllers.getNextControllerId(type);
+        chem = sys.chemControllers.getItemById(data.id, true);
+        chem.type = type;
+        if (t.hasAddress) chem.address = address;
+      }
+      chem.isActive = true;
+      // So here is the thing.  If you have an OCP then the IntelliChem must be controlled by that.
+      // the messages on the bus will talk back to the OCP so if you do not do this mayhem will ensue.
+      if (type.name === 'intellichem')
+        await this.setIntelliChemAsync(data);
+      else
+        await ncp.chemControllers.setControllerAsync(chem, data);
+      return Promise.resolve(chem);
     }
-    public async setChemControllerStateAsync(data: any): Promise<ChemControllerState> {
-        // For the most part all of the settable settings for IntelliChem are config settings.  REM is a bit of a different story so that
-        // should map to the ncp
-        let chem = sys.board.chemControllers.findChemController(data);
-        if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`A valid chem controller could not be found for id:${data.id} or address ${data.address}`, data.id || data.address, 'chemController'));
-        data.id = chem.id;
-        if (chem.master !== 0) await ncp.chemControllers.setControllerAsync(chem, data);
-        else await sys.board.chemControllers.setChemControllerAsync(data);
-        let schem = state.chemControllers.getItemById(chem.id, true);
-        return Promise.resolve(schem);
-    }
+    catch (err) { return Promise.reject(err); }
+  }
+  public async setChemControllerStateAsync(data: any): Promise<ChemControllerState> {
+    // For the most part all of the settable settings for IntelliChem are config settings.  REM is a bit of a different story so that
+    // should map to the ncp
+    let chem = sys.board.chemControllers.findChemController(data);
+    if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`A valid chem controller could not be found for id:${data.id} or address ${data.address}`, data.id || data.address, 'chemController'));
+    data.id = chem.id;
+    if (chem.master !== 0) await ncp.chemControllers.setControllerAsync(chem, data);
+    else await sys.board.chemControllers.setChemControllerAsync(data);
+    let schem = state.chemControllers.getItemById(chem.id, true);
+    return Promise.resolve(schem);
+  }
 }
 export class FilterCommands extends BoardCommands {
   public async syncFilterStates() {

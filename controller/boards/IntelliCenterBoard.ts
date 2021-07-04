@@ -3390,6 +3390,8 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
                     heater.stopTempDelta = stopTempDelta;
                     //hstate.isVirtual = heater.isVirtual = false;
                     heater.cooldownDelay = cooldownDelay;
+                    sys.board.heaters.updateHeaterServices();
+                    sys.board.heaters.syncHeaterStates();
                     resolve(heater);
                 }
 

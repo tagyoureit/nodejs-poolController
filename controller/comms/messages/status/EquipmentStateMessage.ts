@@ -570,8 +570,10 @@ export class EquipmentStateMessage {
                     const cstate = state.circuits.getInterfaceById(circuitId, circ.isActive);
                     cstate.showInFeatures = circ.showInFeatures;
                     let isOn = (byte & 1 << j) >> j > 0;
-                    sys.board.circuits.setEndTime(circ, cstate, isOn);
-                    cstate.isOn = isOn;
+                    if (isOn !== cstate.isOn) {
+                        sys.board.circuits.setEndTime(circ, cstate, isOn);
+                        cstate.isOn = isOn;
+                    }
                     cstate.name = circ.name;
                     cstate.type = circ.type;
                     cstate.nameId = circ.nameId;

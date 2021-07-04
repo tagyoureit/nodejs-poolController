@@ -1,5 +1,16 @@
 # Changelog
 
+## 7.2
+1. Refactor Intellichem and Chem Controllers
+
+## 7.1.1
+1. Added end time for circuits to show eggtimer/schedule off times
+2. Ultratemp updates
+3. Heater logic refactored
+4. Message response logic refactored
+5. Intellichem updates
+
+
 ## 7.1.0
 1. Moved virtual chlorinator code and control to Nixie
 2. Moved virtual pump code and control to Nixie; Nixie supports SS, DS, SuperFlo, VS, VF, VSF
