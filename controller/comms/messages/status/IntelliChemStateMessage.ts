@@ -197,6 +197,24 @@ export class IntelliChemStateMessage {
         //      38 : Water Chemistry Warning
         schem.warnings.waterChemistry = msg.extractPayloadByte(38);
         if (typeof chem.body === 'undefined') chem.body = schem.body = 0;
+        if (state.equipment.controllerType === 'nixie') {
+            if (chem.ph.probe.feedBodyTemp) {
+                let temps: any = {};
+                let body = state.temps.bodies.getBodyIsOn();
+                if (typeof body !== 'undefined') {
+                    if (body.id === 1 && (schem.body === 0 || schem.body === 32)) {
+                        temps.waterSensor1 = schem.ph.probe.temperature;
+                    }
+                    else if (body.id === 2 && (schem.body === 2 || schem.body === 32)) {
+                        temps.waterSensor1 = schem.ph.probe.temperature;
+                    }
+                    else if (body.id === 2 && chem.body === 1) {
+                        temps.waterSensor2 = schem.ph.probe.temperature;
+                    }
+                }
+                sys.board.system.setTempsAsync(temps).catch(err => logger.error(err))
+            }
+        }
         schem.ph.pump.isDosing = schem.ph.dosingStatus === 0 && chem.ph.enabled;
         schem.orp.pump.isDosing = schem.orp.dosingStatus === 0 && chem.orp.enabled;
         schem.calculateSaturationIndex();

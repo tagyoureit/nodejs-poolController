@@ -316,6 +316,14 @@ export class ConfigRoute {
             }
             return res.status(200).send(opts);
         });
+        app.get('/app/options/comms', (req, res) => {
+            // todo: move bytevaluemaps out to a proper location; add additional definitions
+            let opts = {
+                comms: config.getSection('controller.comms')
+            }
+            return res.status(200).send(opts);
+        });
+
         app.get('/config/options/tempSensors', (req, res) => {
             let opts = {
                 tempUnits: sys.board.valueMaps.tempUnits.toArray(),
