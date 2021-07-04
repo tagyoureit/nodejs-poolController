@@ -568,6 +568,7 @@ class OutboundCommon extends Message {
             case Protocol.IntelliValve:
             case Protocol.Unidentified:
             case Protocol.IntelliChem:
+            case Protocol.Heater:
                 this.chkHi = Math.floor(sum / 256);
                 this.chkLo = (sum - (super.chkHi * 256));
                 break;
