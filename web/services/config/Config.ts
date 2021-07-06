@@ -58,8 +58,8 @@ export class ConfigRoute {
         });
         app.get('/config/options/rs485', (req, res) => {
             let opts = {
-                port: config.getSection('comms', { enabled: false, netConnect: false }),
-                portStatus: conn.buffer.counter
+                port: config.getSection('controller.comms', { enabled: false, netConnect: false }),
+                stats: conn.buffer.counter
             };
             return res.status(200).send(opts);
         });
@@ -316,14 +316,6 @@ export class ConfigRoute {
             }
             return res.status(200).send(opts);
         });
-        app.get('/app/options/comms', (req, res) => {
-            // todo: move bytevaluemaps out to a proper location; add additional definitions
-            let opts = {
-                comms: config.getSection('controller.comms')
-            }
-            return res.status(200).send(opts);
-        });
-
         app.get('/config/options/tempSensors', (req, res) => {
             let opts = {
                 tempUnits: sys.board.valueMaps.tempUnits.toArray(),
@@ -839,6 +831,13 @@ export class ConfigRoute {
             return res.status(200).send('OK');
         }
         catch (err) {next(err);}
+        });
+        app.put('/app/rs485Port', async (req, res, next) => {
+            try {
+                let port = await conn.setPortAsync(req.body);
+                return res.status(200).send(port);
+            }
+            catch (err) { next(err); }
         });
         app.get('/app/config/startPacketCapture', (req, res) => {
             startPacketCapture(true);

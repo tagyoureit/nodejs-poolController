@@ -22,13 +22,16 @@ import { logger } from '../../logger/Logger';
 import * as net from 'net';
 import { setTimeout, setInterval } from 'timers';
 import { Message, Outbound, Inbound, Response } from './messages/Messages';
-import { MessageError, OutboundMessageError } from '../Errors';
+import { InvalidOperationError, MessageError, OutboundMessageError } from '../Errors';
+import { utils } from "../Constants";
+import { webApp } from "../../web/Server";
 const extend = require("extend");
 export class Connection {
     constructor() {
         this.emitter = new EventEmitter();
     }
     public isOpen: boolean = false;
+    private _closing: boolean = false;
     private _cfg: any;
     private _port: any;
     public mockPort: boolean = false;
@@ -38,17 +41,47 @@ export class Connection {
     protected resetConnTimer(...args) {
         //console.log(`resetting connection timer`);
         if (conn.connTimer !== null) clearTimeout(conn.connTimer);
-        if (!conn._cfg.mockPort && conn._cfg.inactivityRetry > 0) conn.connTimer = setTimeout(async () => {
+        if (!conn._cfg.mockPort && conn._cfg.inactivityRetry > 0 && !conn._closing) conn.connTimer = setTimeout(async () => {
             try {
                 await conn.openAsync()
             }
             catch (err) {};
-        }
-            , conn._cfg.inactivityRetry * 1000);
+        }, conn._cfg.inactivityRetry * 1000);
     }
     public isRTS: boolean = true;
     public emitter: EventEmitter;
     public get enabled(): boolean { return typeof this._cfg !== 'undefined' && this._cfg.enabled; }
+    public async setPortAsync(data: any) : Promise<any> {
+        try {
+            // Lets set the config data.
+            let pdata = config.getSection('controller.comms', {});
+            pdata.enabled = typeof data.enabled !== 'undefined' ? utils.makeBool(data.enabled) : utils.makeBool(pdata.enabled);
+            pdata.netConnect = typeof data.netConnect !== 'undefined' ? utils.makeBool(data.netConnect) : utils.makeBool(pdata.netConnect);
+            pdata.rs485Port = typeof data.rs485Port !== 'undefined' ? data.rs485Port : pdata.rs485Port;
+            pdata.inactivityRetry = typeof data.inactivityRetry === 'number' ? data.inactivityRetry : pdata.inactivityRetry;
+            if (pdata.netConnect) {
+                pdata.netHost = typeof data.netHost !== 'undefined' ? data.netHost : pdata.netHost;
+                pdata.netPort = typeof data.netPort === 'number' ? data.netPort : pdata.netPort;
+            }
+            if (!await this.closeAsync()) {
+                return Promise.reject(new InvalidOperationError(`Unable to close the current RS485 port`, 'setPortAsync'));
+            }
+            config.setSection('controller.comms', pdata);
+            this._cfg = config.getSection('controller.comms', {
+                rs485Port: "/dev/ttyUSB0",
+                portSettings: { baudRate: 9600, dataBits: 8, parity: 'none', stopBits: 1, flowControl: false, autoOpen: false, lock: false },
+                mockPort: false,
+                netConnect: false,
+                netHost: "raspberrypi",
+                netPort: 9801,
+                inactivityRetry: 10
+            });
+            if (!await this.openAsync()) {
+                return Promise.reject(new InvalidOperationError(`Unable to open RS485 port ${pdata.rs485Port}`, 'setPortAsync'));
+            }
+            return this._cfg;
+        } catch (err) { return Promise.reject(err); }
+    }
     public async openAsync(): Promise<boolean> {
         if (typeof (this.buffer) === 'undefined') {
             this.buffer = new SendRecieveBuffer();
@@ -84,7 +117,7 @@ export class Connection {
             // left the connection in a weird state where the previous connection was processing events and the new connection was
             // doing so as well.  This isn't an error it is a warning as the RS485 bus will most likely be communicating at all times.
             nc.on('timeout', () => { logger.warn(`Net connect (socat) Connection Idle: ${this._cfg.netHost}:${this._cfg.netPort}`); });
-            return new Promise<boolean>((resolve, _) => {
+            return await new Promise<boolean>((resolve, _) => {
                 // We only connect an error once as we will destroy this connection on error then recreate a new socket on failure.
                 nc.once('error', (err) => {
                     logger.error(`Net connect (socat) Connection: ${err}. ${this._cfg.inactivityRetry > 0 ? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; inactivityRetry set to ${this._cfg.inactivityRetry}`}`);
@@ -95,6 +128,7 @@ export class Connection {
                 });
                 nc.connect(conn._cfg.netPort, conn._cfg.netHost, () => {
                     if (typeof this._port !== 'undefined') logger.warn('Net connect (socat) recovered from lost connection.');
+                    logger.info(`Net connect (socat) Connection connected`);
                     this._port = nc;
                     this.isOpen = true;
                     resolve(true);
@@ -159,19 +193,61 @@ export class Connection {
             });
         }
     }
-    public closeAsync() {
+    public async closeAsync(): Promise<boolean> {
         try {
-            if (conn.connTimer) clearTimeout(conn.connTimer);
-            if (typeof (conn._port) !== 'undefined' && conn._cfg.netConnect) {
-                if (typeof (conn._port.destroy) !== 'function')
-                    conn._port.close(function (err) {
-                        if (err) logger.error('Error closing %s:%s', conn._cfg.netHost, conn._cfg.netPort);
-                    });
-                else
-                    conn._port.destroy();
+            this._closing = true;
+            if (this.connTimer) clearTimeout(this.connTimer);
+            if (typeof this._port !== 'undefined' && this.isOpen) {
+                let success = await new Promise<boolean>((resolve, reject) => {
+                    if (this._cfg.netConnect) {
+                        this._port.removeAllListeners();
+                        this._port.once('error', (err) => {
+                            if (err) {
+                                logger.error(`Error closing ${this._cfg.netHost}:${this._cfg.netPort}/${this._cfg.rs485Port}: ${err}`);
+                                resolve(false);
+                            }
+                            else {
+                                conn._port = undefined;
+                                this.isOpen = false;
+                                logger.info(`Successfully closed (socat) port ${this._cfg.netHost}:${this._cfg.netPort}/${this._cfg.rs485Port}`);
+                                resolve(true);
+                            }
+                        });
+                        this._port.once('close', (p) => {
+                            this.isOpen = false;
+                            this._port = undefined;
+                            logger.info(`Net connect (socat) successfully closed: ${this._cfg.netHost}:${this._cfg.netPort}`);
+                            resolve(true);
+                        });
+                        this._port.destroy();
+                    }
+                    else if (typeof conn._port.close === 'function') {
+                        conn._port.close((err) => {
+                            if (err) {
+                                logger.error(`Error closing ${this._cfg.rs485Port}: ${err}`);
+                                resolve(false);
+                            }
+                            else {
+                                conn._port = undefined;
+                                logger.info(`Successfully closed seral port ${this._cfg.rs485Port}`);
+                                resolve(true);
+                                this.isOpen = false;
+                            }
+                        });
+                    }
+                    else {
+                        resolve(true);
+                        conn._port = undefined;
+                    }
+                });
+                if (success) {
+                    if (typeof conn.buffer !== 'undefined') conn.buffer.close();
+                }
+               
+                return success;
             }
-            if (typeof conn.buffer !== 'undefined') conn.buffer.close();
-        } catch (err) { logger.error(`Error closing comms connection: ${err.message}`); }
+            return true;
+        } catch (err) { logger.error(`Error closing comms connection: ${err.message}`); return Promise.resolve(false); }
     }
     public drain(cb: Function) {
         if (typeof (conn._port.drain) === 'function')
@@ -303,6 +379,7 @@ export class SendRecieveBuffer {
             let dt = new Date();
             if (conn.buffer._waitingPacket.timestamp.getTime() + timeout < dt.getTime()) {
                 logger.silly(`Retrying outbound message after ${(dt.getTime() - conn.buffer._waitingPacket.timestamp.getTime()) / 1000} secs with ${conn.buffer._waitingPacket.remainingTries} attempt(s) left. - ${conn.buffer._waitingPacket.toShortPacket()} `);
+                conn.buffer.counter.sndRetries++;
                 conn.buffer.writeMessage(conn.buffer._waitingPacket);
             }
             return true;
@@ -375,6 +452,7 @@ export class SendRecieveBuffer {
                         setTimeout(msg.response.callback, 100, msg);
                     }
                 }
+                conn.buffer.counter.sndAborted++;
                 conn.isRTS = true;
                 return;
             }
@@ -396,6 +474,7 @@ export class SendRecieveBuffer {
                         let error = new OutboundMessageError(msg, `Message aborted after ${msg.tries} attempt(s): ${err} `);
                         if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
                         conn.buffer._waitingPacket = null;
+                        conn.buffer.counter.sndAborted++;
                     }
                 }
                 else {
@@ -406,11 +485,15 @@ export class SendRecieveBuffer {
                         // As far as we know the message made it to OCP.
                         conn.buffer._waitingPacket = null;
                         if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
+                        conn.buffer.counter.sndSuccess++;
+
                     }
                     else if (msg.remainingTries >= 0) {
                         conn.buffer._waitingPacket = msg;
                     }
                 }
+                conn.buffer.counter.updatefailureRate();
+                webApp.emitToChannel('rs485PortStats', 'rs485Stats', conn.buffer.counter);
             });
         }
     }
@@ -456,20 +539,21 @@ export class SendRecieveBuffer {
     private processCompletedMessage(msg: Inbound, ndx): number {
         msg.timestamp = new Date();
         msg.id = Message.nextMessageId;
-        conn.buffer.counter.collisions += msg.collisions;
+        conn.buffer.counter.recCollisions += msg.collisions;
         if (msg.isValid) {
-            conn.buffer.counter.success++;
+            conn.buffer.counter.recSuccess++;
             conn.buffer.counter.updatefailureRate();
             msg.process();
             conn.buffer.clearResponses(msg);
         }
         else {
-            conn.buffer.counter.failed++;
+            conn.buffer.counter.recFailed++;
             conn.buffer.counter.updatefailureRate();
-            console.log('RS485 Stats:' + JSON.stringify(conn.buffer.counter));
+            console.log('RS485 Stats:' + conn.buffer.counter.toLog());
             ndx = this.rewindFailedMessage(msg, ndx);
         }
         logger.packet(msg);
+        webApp.emitToChannel('rs485PortStats', 'rs485Stats', conn.buffer.counter);
         return ndx;
     }
     private rewindFailedMessage(msg: Inbound, ndx: number): number {
@@ -513,20 +597,34 @@ export class SendRecieveBuffer {
 export class Counter {
     constructor() {
         this.bytesReceived = 0;
-        this.success = 0;
-        this.failed = 0;
+        this.recSuccess = 0;
+        this.recFailed = 0;
+        this.recCollisions = 0;
         this.bytesSent = 0;
-        this.collisions = 0;
-        this.failureRate = '0.00%';
+        this.sndAborted = 0;
+        this.sndRetries = 0;
+        this.sndSuccess = 0;
+        this.recFailureRate = 0;
+        this.sndFailureRate = 0;
     }
     public bytesReceived: number;
-    public success: number;
-    public failed: number;
     public bytesSent: number;
-    public collisions: number;
-    public failureRate: string;
+    public recSuccess: number;
+    public recFailed: number;
+    public recCollisions: number;
+    public recFailureRate: number;
+    public sndSuccess: number;
+    public sndAborted: number;
+    public sndRetries: number;
+    public sndFailureRate: number;
     public updatefailureRate(): void {
-        conn.buffer.counter.failureRate = `${(conn.buffer.counter.failed / (conn.buffer.counter.failed + conn.buffer.counter.success) * 100).toFixed(2)}% `;
+        conn.buffer.counter.recFailureRate = (this.recFailed + this.recSuccess) !== 0 ? (this.recFailed / (this.recFailed + this.recSuccess) * 100) : 0;
+        conn.buffer.counter.sndFailureRate = (this.sndAborted + this.sndSuccess) !== 0 ? (this.sndAborted / (this.sndAborted + this.sndSuccess) * 100) : 0;
+        //conn.buffer.counter.recFailureRate = `${(conn.buffer.counter.recFailed / (conn.buffer.counter.recFailed + conn.buffer.counter.recSuccess) * 100).toFixed(2)}% `;
+        //conn.buffer.counter.sndFailureRate = `${(conn.buffer.counter.sndAborted / (conn.buffer.counter.sndAborted + conn.buffer.counter.sndSuccess) * 100).toFixed(2)}% `;
+    }
+    public toLog(): string {
+        return `{ "bytesReceived": ${this.bytesReceived} "success": ${this.recSuccess}, "failed": ${this.recFailed}, "bytesSent": ${this.bytesSent}, "collisions": ${this.recCollisions}, "failureRate": ${this.recFailureRate.toFixed(2)}% }`;
     }
 }
 export var conn: Connection = new Connection();

@@ -346,6 +346,11 @@ export class HttpServer extends ProtoServer {
             if (!sendMessages) sock.leave('msgLogger');
             else sock.join('msgLogger');
         });
+        sock.on('sendRS485PortStats', function (sendPortStatus: boolean) {
+            console.log(`sendRS485PortStats set to ${sendPortStatus}`);
+            if (!sendPortStatus) sock.leave('rs485PortStats');
+            else sock.join('rs485PortStats');
+        });
         StateSocket.initSockets(sock);
         ConfigSocket.initSockets(sock);
     }
