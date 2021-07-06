@@ -132,7 +132,7 @@ export class StateSocket {
                         if (isBodyOn || !controller.orp.flowReadingsOnly) scontroller.orp.level = scontroller.orp.probe.level;
                     }
                     if (typeof data.temperature !== 'undefined') scontroller.ph.probe.temperature = data.temperauture;
-                    if (typeof data.tempUnits !== 'undefined') scontroller.ph.probe.tempUnits = data.tempUnits;
+                    if (typeof data.tempUnits !== 'undefined') scontroller.ph.probe.tempUnits = sys.board.valueMaps.tempUnits.encode(data.tempUnits);
                     if (typeof data.acidTank !== 'undefined') {
                         if (!isNaN(parseFloat(data.acidTank.level))) scontroller.ph.tank.level = parseFloat(data.acidTank.level);
                         if (!isNaN(parseFloat(data.acidTank.capacity))) scontroller.ph.tank.capacity = controller.ph.tank.capacity = parseFloat(data.acidTank.capacity);
