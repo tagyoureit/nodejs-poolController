@@ -2,7 +2,8 @@ import extend = require("extend");
 import { logger } from "../../logger/Logger";
 import { sys as sysAlias } from "../../controller/Equipment";
 import { state as stateAlias} from "../../controller/State";
-import { webApp as webAppAlias} from '../Server';
+import { webApp as webAppAlias } from '../Server';
+import { utils, Timestamp } from "../../controller/Constants";
 
 export class BaseInterfaceBindings {
     constructor(cfg) {

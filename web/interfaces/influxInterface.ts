@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import extend = require("extend");
 import { ClientOptions, InfluxDB, Point, WriteApi, WritePrecisionType } from '@influxdata/influxdb-client';
-import { utils } from '../../controller/Constants';
+import { utils, Timestamp } from '../../controller/Constants';
 import { logger } from "../../logger/Logger";
 import { BaseInterfaceBindings, InterfaceContext, InterfaceEvent } from "./baseInterface";
 export class InfluxInterfaceBindings extends BaseInterfaceBindings {
