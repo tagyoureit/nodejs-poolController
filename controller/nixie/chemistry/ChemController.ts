@@ -1576,7 +1576,7 @@ export class NixieChemicalORP extends NixieChemical {
             else if (sorp.dailyLimitReached) {
                 await this.cancelDosing(sorp, 'daily limit');
             }
-            else if (status === 'monitoring' || status === 'dosing' && !this.orp.useChlorinator) {
+            else if (status === 'monitoring' || status === 'dosing') {
                 let dose = 0;
                 if (this.orp.setpoint > sorp.level && !sorp.lockout) {
                     // Calculate how many mL are required to raise to our ORP level.
@@ -1614,27 +1614,33 @@ export class NixieChemicalORP extends NixieChemical {
                             }
                             break;
                     }
-                    logger.info(`Chem orp dose calculated ${dose}mL for ${utils.formatDuration(time)} Tank Level: ${sorp.tank.level} using ${meth}`);
+                    if (chem.orp.useChlorinator) {
 
-                    sorp.demand = sorp.calcDemand(chem);
-                    if (typeof sorp.currentDose === 'undefined') {
-                        // We will include this with the dose demand because our limits may reduce it.
-                        //dosage.demand = demand;
-                        if (sorp.dosingStatus === 0) { // 0 is dosing.
-                            // We need to finish off a dose that was interrupted by regular programming.  This occurs
-                            // when for instance njspc is interrupted and restarted in the middle of a dose. If we were
-                            // mixing before we will never get here.
-                            if (typeof sorp.currentDose === 'undefined')
-                                sorp.startDose(new Timestamp().addSeconds(-sorp.doseTime).toDate(), 'auto', sorp.doseVolume + sorp.dosingVolumeRemaining, sorp.doseVolume, (sorp.doseTime + sorp.dosingTimeRemaining) * 1000, sorp.doseTime * 1000);
+
+                    }
+                    else {
+                        logger.info(`Chem orp dose calculated ${dose}mL for ${utils.formatDuration(time)} Tank Level: ${sorp.tank.level} using ${meth}`);
+
+                        sorp.demand = sorp.calcDemand(chem);
+                        if (typeof sorp.currentDose === 'undefined') {
+                            // We will include this with the dose demand because our limits may reduce it.
+                            //dosage.demand = demand;
+                            if (sorp.dosingStatus === 0) { // 0 is dosing.
+                                // We need to finish off a dose that was interrupted by regular programming.  This occurs
+                                // when for instance njspc is interrupted and restarted in the middle of a dose. If we were
+                                // mixing before we will never get here.
+                                if (typeof sorp.currentDose === 'undefined')
+                                    sorp.startDose(new Timestamp().addSeconds(-sorp.doseTime).toDate(), 'auto', sorp.doseVolume + sorp.dosingVolumeRemaining, sorp.doseVolume, (sorp.doseTime + sorp.dosingTimeRemaining) * 1000, sorp.doseTime * 1000);
+                            }
+                            else
+                                sorp.startDose(new Date(), 'auto', dose, 0, time, 0);
                         }
-                        else
-                            sorp.startDose(new Date(), 'auto', dose, 0, time, 0);
+                        // Now let's determine what we need to do with our pump to satisfy our acid demand.
+                        if (sorp.tank.level > 0) {
+                            await this.pump.dose(sorp);
+                        }
+                        else await this.cancelDosing(sorp, 'empty tank');
                     }
-                    // Now let's determine what we need to do with our pump to satisfy our acid demand.
-                    if (sorp.tank.level > 0) {
-                        await this.pump.dose(sorp);
-                    }
-                    else await this.cancelDosing(sorp, 'empty tank');
                 }
                 else
                     await this.cancelDosing(sorp, 'unknown cancel');
