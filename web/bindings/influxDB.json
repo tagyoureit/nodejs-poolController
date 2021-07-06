@@ -78,10 +78,10 @@
       ]
     },
     {
-      "name": "chemDose",
+      "name": "chemicalDose",
       "points": [
         {
-          "measurement": "chemDose",
+          "measurement": "chemicalDose",
           "description": "Active doses recorded by chemical dosed",
           "tags": [
             {
