@@ -79,7 +79,7 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                         this.buildTokens(e.filter, evt, toks, e, data[0]);
                         if (eval(this.replaceTokens(e.filter, toks)) === false) continue;
                     }
-                    for (let j = 0; j < e.points.length; j++){
+                    for (let j = 0; j < e.points.length; j++) {
                         let _point = e.points[j];
                         // Figure out whether we need to check the filter for each point.
                         if (typeof _point.filter !== 'undefined') {
@@ -105,39 +105,41 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                             }
                         })
                         _point.fields.forEach(_field => {
-                            let sname = _field.name;
-                            this.buildTokens(sname, evt, toks, e, data[0]);
-                            //console.log(toks);
-                            sname = this.replaceTokens(sname, toks);
-                            let svalue = _field.value;
-                            this.buildTokens(svalue, evt, toks, e, data[0]);
-                            svalue = this.replaceTokens(svalue, toks);
-                            if (typeof sname !== 'undefined' && typeof svalue !== 'undefined' && !sname.includes('@bind') && !svalue.includes('@bind') && svalue !== null)
-                                switch (_field.type) {
-                                    case 'int':
-                                    case 'integer':
-                                        let int = parseInt(svalue, 10);
-                                        if (!isNaN(int)) point.intField(sname, int);
-                                        // if (!isNaN(int) && typeof _point.storePrevState !== 'undefined' && _point.storePrevState) point2.intField(sname, int);
-                                        break;
-                                    case 'string':
-                                        point.stringField(sname, svalue);
-                                        // if (typeof _point.storePrevState !== 'undefined' && _point.storePrevState) point2.stringField(sname, svalue);
-                                        break;
-                                    case 'boolean':
-                                        point.booleanField(sname, utils.makeBool(svalue));
-                                        if (typeof _point.storePrevState !== 'undefined' && _point.storePrevState) point2.booleanField(sname, !utils.makeBool(svalue));
-                                        break;
-                                    case 'float':
-                                        let float = parseFloat(svalue);
-                                        if (!isNaN(float)) point.floatField(sname, float);
-                                        // if (!isNaN(float) && typeof _point.storePrevState !== 'undefined' && _point.storePrevState) point2.intField(sname, int);
-                                        break;
+                            try {
+                                let sname = _field.name;
+                                this.buildTokens(sname, evt, toks, e, data[0]);
+                                //console.log(toks);
+                                sname = this.replaceTokens(sname, toks);
+                                let svalue = _field.value;
+                                this.buildTokens(svalue, evt, toks, e, data[0]);
+                                svalue = this.replaceTokens(svalue, toks);
+                                if (typeof sname !== 'undefined' && typeof svalue !== 'undefined' && !sname.includes('@bind') && !svalue.includes('@bind') && svalue !== null)
+                                    switch (_field.type) {
+                                        case 'int':
+                                        case 'integer':
+                                            let int = parseInt(svalue, 10);
+                                            if (!isNaN(int)) point.intField(sname, int);
+                                            // if (!isNaN(int) && typeof _point.storePrevState !== 'undefined' && _point.storePrevState) point2.intField(sname, int);
+                                            break;
+                                        case 'string':
+                                            point.stringField(sname, svalue);
+                                            // if (typeof _point.storePrevState !== 'undefined' && _point.storePrevState) point2.stringField(sname, svalue);
+                                            break;
+                                        case 'boolean':
+                                            point.booleanField(sname, utils.makeBool(svalue));
+                                            if (typeof _point.storePrevState !== 'undefined' && _point.storePrevState) point2.booleanField(sname, !utils.makeBool(svalue));
+                                            break;
+                                        case 'float':
+                                            let float = parseFloat(svalue);
+                                            if (!isNaN(float)) point.floatField(sname, float);
+                                            // if (!isNaN(float) && typeof _point.storePrevState !== 'undefined' && _point.storePrevState) point2.intField(sname, int);
+                                            break;
+                                    }
+                                else {
+                                    logger.error(`InfluxDB point binding failure on ${evt}:${_field.name}/${_field.value} --> ${svalue || 'undefined'}`);
                                 }
-                            else {
-                                logger.error(`InfluxDB point binding failure on ${evt}:${_field.name}/${_field.value} --> ${svalue || 'undefined'}`);
-                            }
-                        })
+                            } catch (err) { logger.error(`Error binding InfluxDB point fields ${err.message}`); }
+                        });
                         point.timestamp(new Date());
                         try {
 

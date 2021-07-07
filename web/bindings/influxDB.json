@@ -124,7 +124,7 @@
             },
             {
               "name": "end",
-              "value": "@bind=typeof data.end === 'undefined' ? TimeStamp.now.toISOLocal() : data.end;"
+              "value": "@bind=data.end;"
             }
           ]
         }
