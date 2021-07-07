@@ -83,11 +83,8 @@
         {
           "measurement": "chemicalDose",
           "description": "Active doses recorded by chemical dosed",
+          "series": { "value": "@bind=data.startDate" },
           "tags": [
-            {
-              "name": "startDate",
-              "value": "@bind=data.startDate;"
-            },
             {
               "name": "chemical",
               "value": "@bind=data.chem;"
@@ -96,35 +93,44 @@
           "fields": [
             {
               "name": "volumeDosed",
-              "value": "@bind=data.volumeDosed;"
+              "value": "@bind=data.volumeDosed;",
+              "type": "float"
+
             },
             {
               "name": "timeDosed",
-              "value": "@bind=data.timeDosed;"
+              "value": "@bind=data.timeDosed;",
+              "type": "float"
             },
             {
               "name": "id",
-              "value": "@bind=data.id;"
+              "value": "@bind=data.id;",
+              "type": "int"
             },
             {
               "name": "demand",
-              "value": "@bind=data.demand;"
+              "value": "@bind=data.demand;",
+              "type": "float"
             },
             {
               "name": "setpoint",
-              "value": "@bind=data.setpoint;"
+              "value": "@bind=data.setpoint;",
+              "type": "float"
             },
             {
               "name": "method",
-              "value": "@bind=data.method;"
+              "value": "@bind=data.method;",
+              "type": "string"
             },
             {
               "name": "status",
-              "value": "@bind=data.status;"
+              "value": "@bind=data.status;",
+              "type":  "string"
             },
             {
               "name": "end",
-              "value": "@bind=data.end;"
+              "value": "@bind=data.end;",
+              "type": "date"
             }
           ]
         }
