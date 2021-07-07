@@ -83,7 +83,7 @@
         {
           "measurement": "chemicalDose",
           "description": "Active doses recorded by chemical dosed",
-          "series": { "value": "@bind=data.startDate" },
+          "series": { "value": "@bind=data.startDate;" },
           "tags": [
             {
               "name": "chemical",
