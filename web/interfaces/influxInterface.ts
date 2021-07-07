@@ -137,7 +137,10 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                                         case 'timestamp':
                                         case 'datetime':
                                         case 'date':
-                                            let dt = Date.parse(svalue);
+                                            //let dt = Date.parse(svalue.replace(/^["'](.+(?=["']$))["']$/, '$1'));
+                                            // RKS: 07-06-21 - I think this is missing the eval function around all of this. The strings still have the quotes around them.  I think
+                                            // maybe we need to create a closure and execute it as a code segment for variable data.
+                                            let dt = Date.parse(eval(svalue));
                                             if (!isNaN(dt)) point.intField(sname, dt);
                                             else if (svalue !== '') logger.warn(`Influx error parsing date from ${sname}: ${svalue}`);
                                             break;
