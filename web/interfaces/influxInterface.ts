@@ -145,15 +145,17 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                             } catch (err) { logger.error(`Error binding InfluxDB point fields ${err.message}`); }
                         });
                         if (typeof _point.series !== 'undefined') {
-                            this.buildTokens(_point.series.value, evt, toks, e, data);
-                            let ser = eval(this.replaceTokens(_point.series.value, toks));
-                            let ts = Date.parse(ser);
-                            logger.info(`Setting InfluxDB series timestamp to ${ser}`);
-                            if (isNaN(ts)) {
-                                logger.error(`Influx series timestamp is invalid ${ser}`);
-                            }
-                            else
-                                point.timestamp(new Date(ts));
+                            try {
+                                this.buildTokens(_point.series.value, evt, toks, e, data);
+                                let ser = eval(this.replaceTokens(_point.series.value, toks));
+                                let ts = Date.parse(ser);
+                                logger.info(`Setting InfluxDB series timestamp to ${ser}`);
+                                if (isNaN(ts)) {
+                                    logger.error(`Influx series timestamp is invalid ${ser}`);
+                                }
+                                else
+                                    point.timestamp(new Date(ts));
+                            } catch (err) { logger.error(`Error parsing Influx point series for ${evt} - ${_point.series.value}`); }
                         }
                         else
                             point.timestamp(new Date());
