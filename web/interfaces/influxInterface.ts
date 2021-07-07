@@ -134,9 +134,12 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                                             if (!isNaN(float)) point.floatField(sname, float);
                                             // if (!isNaN(float) && typeof _point.storePrevState !== 'undefined' && _point.storePrevState) point2.intField(sname, int);
                                             break;
+                                        case 'timestamp':
+                                        case 'datetime':
                                         case 'date':
                                             let dt = Date.parse(svalue);
                                             if (!isNaN(dt)) point.intField(sname, dt);
+                                            else if (svalue !== '') logger.warn(`Influx error parsing date from ${sname}: ${svalue}`);
                                             break;
                                     }
                                 else {
@@ -149,7 +152,6 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                                 this.buildTokens(_point.series.value, evt, toks, e, data[0]);
                                 let ser = eval(this.replaceTokens(_point.series.value, toks));
                                 let ts = Date.parse(ser);
-                                logger.info(`Setting InfluxDB series timestamp to ${_point.series.value} -> ${ser}`);
                                 if (isNaN(ts)) {
                                     logger.error(`Influx series timestamp is invalid ${ser}`);
                                 }
