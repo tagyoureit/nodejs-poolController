@@ -92,41 +92,41 @@
               "name": "chemical",
               "value": "@bind=data.chem;"
             }
+          ],
+          "fields": [
+            {
+              "name": "volumeDosed",
+              "value": "@bind=data.volumeDosed;"
+            },
+            {
+              "name": "timeDosed",
+              "value": "@bind=data.timeDosed;"
+            },
+            {
+              "name": "id",
+              "value": "@bind=data.id;"
+            },
+            {
+              "name": "demand",
+              "value": "@bind=data.demand;"
+            },
+            {
+              "name": "setpoint",
+              "value": "@bind=data.setpoint;"
+            },
+            {
+              "name": "method",
+              "value": "@bind=data.method;"
+            },
+            {
+              "name": "status",
+              "value": "@bind=data.status;"
+            },
+            {
+              "name": "end",
+              "value": "@bind=typeof data.end === 'undefined' ? TimeStamp.now.toISOLocal() : data.end;"
+            }
           ]
-        }
-      ],
-      "fields": [
-        {
-          "name": "volumeDosed",
-          "value": "@bind=data.volumeDosed;"
-        },
-        {
-          "name": "timeDosed",
-          "value": "@bind=data.timeDosed;"
-        },
-        {
-          "name": "id",
-          "value": "@bind=data.id;"
-        },
-        {
-          "name": "demand",
-          "value": "@bind=data.demand;"
-        },
-        {
-          "name": "setpoint",
-          "value": "@bind=data.setpoint;"
-        },
-        {
-          "name": "method",
-          "value": "@bind=data.method;"
-        },
-        {
-          "name": "status",
-          "value": "@bind=data.status;"
-        },
-        {
-          "name": "end",
-          "value":  "@bind=typeof data.end === 'undefined' ? TimeStamp.now.toISOLocal() : data.end;"
         }
       ]
     },
