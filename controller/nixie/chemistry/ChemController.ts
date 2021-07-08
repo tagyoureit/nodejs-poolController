@@ -1272,7 +1272,7 @@ export class NixieChemicalPh extends NixieChemical {
         try {
             let status = sys.board.valueMaps.chemControllerDosingStatus.getName(sph.dosingStatus);
             let demand = sph.calcDemand(chem);
-            //let demand = this.calcDemand(sph);
+            sph.demand = Math.max(demand, 0);
             if (sph.suspendDosing) {
                 // Kill off the dosing and make sure the pump isn't running.  Let's force the issue here.
                 await this.cancelDosing(sph, 'suspended');
@@ -1302,7 +1302,6 @@ export class NixieChemicalPh extends NixieChemical {
                     // Unfortunately we will lose the original start date but who cares as the volumes should remain the same.
                     let volume = sph.volumeDosed + sph.dosingVolumeRemaining;
                     let time = sph.timeDosed + sph.dosingTimeRemaining;
-                    sph.demand = sph.calcDemand(this.chemController.chem);
                     sph.startDose(new Timestamp().addSeconds(-sph.doseTime).toDate(), 'manual', volume, sph.dosingVolumeRemaining, time * 1000, sph.doseTime * 1000);
                 }
                 if (sph.tank.level > 0) {
@@ -1360,7 +1359,6 @@ export class NixieChemicalPh extends NixieChemical {
                             break;
                     }
                     logger.verbose(`Chem acid dosing maximums applied ${dose}mL for ${utils.formatDuration(time)}`);
-                    sph.demand = demand;
                     if (typeof sph.currentDose === 'undefined' && sph.tank.level > 0) {
                         // We will include this with the dose demand because our limits may reduce it.
                         //dosage.demand = demand;
