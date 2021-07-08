@@ -16,14 +16,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as extend from 'extend';
 import { logger } from '../../logger/Logger';
-import { webApp } from '../../web/Server';
-import { conn } from '../comms/Comms';
-import { ncp } from "../nixie/Nixie"
-import { Message, Outbound, Protocol, Response } from '../comms/messages/Messages';
-import { utils, Heliotrope, Timestamp } from '../Constants';
-import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, CustomName, CustomNameCollection, EggTimer, Feature, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, Valve, ControllerType, TempSensorCollection, Filter, Equipment } from '../Equipment';
-import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
-import { BodyTempState, ValveState, ChemControllerState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, PumpState, state, TemperatureState, VirtualCircuitState, HeaterState, ScheduleState, FilterState, ChemicalState, CircuitGroupState, CircuitState } from '../State';
+import { Message, Outbound } from '../comms/messages/Messages';
+import { Timestamp, utils } from '../Constants';
+import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, ControllerType, CustomName, CustomNameCollection, EggTimer, Equipment, Feature, Filter, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, TempSensorCollection, Valve } from '../Equipment';
+import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError } from '../Errors';
+import { ncp } from "../nixie/Nixie";
+import { BodyTempState, ChemControllerState, ChlorinatorState, CircuitGroupState, FilterState, ICircuitGroupState, ICircuitState, LightGroupState, ScheduleState, state, TemperatureState, ValveState, VirtualCircuitState } from '../State';
 
 export class byteValueMap extends Map<number, any> {
   public transform(byte: number, ext?: number) { return extend(true, { val: byte || 0 }, this.get(byte) || this.get(0)); }
@@ -2058,41 +2056,68 @@ export class CircuitCommands extends BoardCommands {
   public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
     return sys.board.circuits.setCircuitGroupStateAsync(id, val);
   }
-  public setEndTime(thing: ICircuit, thingState: ICircuitState, isOn: boolean) {
-    // this is a generic fn for circuits, features, circuitGroups, lightGroups
-    // to set the end time based on the egg timer.
-    // it will be called from set[]StateAsync calls as well as when then state is 
-    // eval'ed from status packets/external messages and schedule changes.
-    // instead of maintaining timers here which would increase the amount of 
-    // emits substantially, let the clients keep their own local timers
-    // or just display the end time.
-    if (thing.dontStop || !isOn) {
-      thingState.endTime = undefined;
-    }
-    else if (!thingState.isOn && isOn) {
-      let endTime: Timestamp;
-      let eggTimerEndTime: Timestamp;
-      // let remainingDuration: number;
-      if (typeof thing.eggTimer !== 'undefined') {
-        eggTimerEndTime = state.time.clone().addHours(0, thing.eggTimer);
+  public setEndTime(thing: ICircuit, thingState: ICircuitState, isOn: boolean, bForce: boolean= false) {
+    /*
+    this is a generic fn for circuits, features, circuitGroups, lightGroups
+    to set the end time based on the egg timer.
+    it will be called from set[]StateAsync calls as well as when then state is 
+    eval'ed from status packets/external messages and schedule changes.
+    instead of maintaining timers here which would increase the amount of 
+    emits substantially, let the clients keep their own local timers
+    or just display the end time.
+
+    bForce is an override sent by the syncScheduleStates.  It gets set after the circuit gets set but we need to know if the sched is on.  This allows the circuit end time to be 
+    re-evaluated even though it already has an end time.
+
+    Logic gets fun here... 
+    0. If the circuit is off, or has don't stop enabled, don't set an end time 
+    0.1. If the circuit state hasn't changed, abort (unless bForce is true).
+    1. If the schedule is on, the egg timer does not come into play
+    2. If the schedule is off...
+    2.1.  and the egg timer will turn off the circuit off before the schedule starts, use egg timer time
+    2.2.  else if the schedule will start before the egg timer turns it off, use the schedule end time
+    3. Iterate over each schedule for 1-2 above; nearest end time wins
+    */
+    try {
+      if (thing.dontStop || !isOn) {
+        thingState.endTime = undefined;
       }
-      // egg timers don't come into play if a schedule will control the circuit
-      for (let i = 0; i < sys.schedules.length; i++) {
-        let sched = sys.schedules.getItemByIndex(i);
-        if (sched.isActive && sys.board.schedules.includesCircuit(sched, thing.id)) {
-          let nearestStartTime = sys.board.schedules.getNearestStartTime(sched);
-          let nearestEndTime = sys.board.schedules.getNearestEndTime(sched);
-          // if the schedule doesn't have an end date (eg no days)...
-          if (nearestEndTime.getTime() === 0) continue;
-          // else if the egg timer will turn the circuit off before the schedule begins
-          else if (eggTimerEndTime.getTime() < nearestStartTime.getTime()) continue;
-          // else if the end time isn't yet set
-          else if (typeof endTime === 'undefined') endTime = nearestEndTime.clone();
-          // and finally, compare the end time of this sched to the existing closest end time
-          else if (nearestEndTime.getTime() < endTime.getTime()) endTime = nearestEndTime.clone();
+      else if (!thingState.isOn && isOn || bForce) {
+        let endTime: Timestamp;
+        let eggTimerEndTime: Timestamp;
+        // let remainingDuration: number;
+        if (typeof thing.eggTimer !== 'undefined') {
+          eggTimerEndTime = state.time.clone().addHours(0, thing.eggTimer);
         }
+        // egg timers don't come into play if a schedule will control the circuit
+        for (let i = 0; i < sys.schedules.length; i++) {
+          let sched = sys.schedules.getItemByIndex(i);
+          let ssched = state.schedules.getItemById(sched.id);
+          if (sched.isActive && sys.board.schedules.includesCircuit(sched, thing.id)) {
+            let nearestStartTime = sys.board.schedules.getNearestStartTime(sched);
+            let nearestEndTime = sys.board.schedules.getNearestEndTime(sched);
+            // if the schedule doesn't have an end date (eg no days)...
+            if (nearestEndTime.getTime() === 0) continue;
+            if (ssched.isOn) {
+              if (typeof endTime === 'undefined' || nearestEndTime.getTime() < endTime.getTime()) {
+                endTime = nearestEndTime.clone();
+                eggTimerEndTime = undefined;
+              }
+            }
+            else {
+              if (typeof eggTimerEndTime !== 'undefined' && eggTimerEndTime.getTime() < nearestStartTime.getTime()) {
+                if (typeof endTime === 'undefined' || eggTimerEndTime.getTime() < endTime.getTime()) endTime = eggTimerEndTime.clone();
+              }
+              else if (typeof endTime === 'undefined' || nearestEndTime.getTime() < endTime.getTime()) endTime = nearestEndTime.clone();
+            }
+          }
+        }
+        if (typeof endTime !== 'undefined') thingState.endTime = endTime;
+        else if (typeof eggTimerEndTime !== 'undefined') thingState.endTime = eggTimerEndTime;
       }
-      thingState.endTime = typeof endTime !== 'undefined' ? endTime : eggTimerEndTime;
+    }
+    catch (err) {
+      logger.error(`Error setting end time for ${thing.id}: ${err}`)
     }
   }
 }
@@ -2427,10 +2452,10 @@ export class ScheduleCommands extends BoardCommands {
           (ssched.scheduleDays & dayVal) > 0 &&
           ts >= ssched.startTime && ts <= ssched.endTime) schedIsOn = true
         else schedIsOn = false;
-        if (schedIsOn !== ssched.isOn){
+        if (schedIsOn !== ssched.isOn) {
           // if the schedule state changes, it may affect the end time
-          sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(ssched.circuit), scirc, ssched.isOn);
           ssched.isOn = schedIsOn;
+          sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(ssched.circuit), scirc, scirc.isOn, true);
         }
         ssched.emitEquipmentChange();
       }
@@ -2459,8 +2484,8 @@ export class ScheduleCommands extends BoardCommands {
     let days = sys.board.valueMaps.scheduleDays.transform(sched.scheduleDays).days;
     for (let i = 0; i < days.length; i++) {
       let schedDay = days[i].dow;
-      let dateDiff = schedDay + 7 - startDateDay % 7;
-      if (schedDay === startDateDay && sched.endTime > todayTime) dateDiff = 0;
+      let dateDiff = (schedDay + 7 - startDateDay) % 7;
+      if (schedDay === startDateDay && sched.endTime < todayTime) dateDiff = 7;
       let endDateTime = startDate.clone().addHours(dateDiff * 24, sched.endTime);
       if (nearestEndTime.getTime() === 0 || endDateTime.getTime() < nearestEndTime.getTime()) nearestEndTime = endDateTime;
     }
@@ -2476,8 +2501,8 @@ export class ScheduleCommands extends BoardCommands {
     let days = sys.board.valueMaps.scheduleDays.transform(sched.scheduleDays).days;
     for (let i = 0; i < days.length; i++) {
       let schedDay = days[i].dow;
-      let dateDiff = schedDay + 7 - startDateDay % 7;
-      if (schedDay === startDateDay && sched.startTime > todayTime) dateDiff = 0;
+      let dateDiff = (schedDay + 7 - startDateDay) % 7;
+      if (schedDay === startDateDay && sched.startTime < todayTime) dateDiff = 7;
       let startDateTime = startDate.clone().addHours(dateDiff * 24, sched.startTime);
       if (nearestStartTime.getTime() === 0 || startDateTime.getTime() < nearestStartTime.getTime()) nearestStartTime = startDateTime;
     }
@@ -2718,164 +2743,164 @@ export class HeaterCommands extends BoardCommands {
   }
   // This updates the heater states based upon the installed heaters.  This is true for heaters that are tied to the OCP
   // and those that are not.
-    public syncHeaterStates() {
-        try {
-            // Go through the installed heaters and bodies to determine whether they should be on.  If there is a
-            // heater that is not controlled by the OCP then we need to determine whether it should be on.
-            let heaters = sys.heaters.toArray();
-            let bodies = state.temps.bodies.toArray();
-            let hon = [];
-            for (let i = 0; i < bodies.length; i++) {
-                let body: BodyTempState = bodies[i];
-                let cfgBody: Body = sys.bodies.getItemById(body.id);
-                let isHeating = false;
-                if (body.isOn) {
-                    if (typeof body.temp === 'undefined' && heaters.length > 0) logger.warn(`The body temperature for ${body.name} cannot be determined. Heater status for this body cannot be calculated.`);
-                    for (let j = 0; j < heaters.length; j++) {
-                        let heater: Heater = heaters[j];
-                        if (heater.isActive === false) continue;
-                        let isOn = false;
-                        let isCooling = false;
-                        let sensorTemp = state.temps.waterSensor1;
-                        if (body.id === 4) sensorTemp = state.temps.waterSensor4;
-                        if (body.id === 3) sensorTemp = state.temps.waterSensor3;
-                        if (body.id === 2 && !sys.equipment.shared) sensorTemp = state.temps.waterSensor2;
+  public syncHeaterStates() {
+    try {
+      // Go through the installed heaters and bodies to determine whether they should be on.  If there is a
+      // heater that is not controlled by the OCP then we need to determine whether it should be on.
+      let heaters = sys.heaters.toArray();
+      let bodies = state.temps.bodies.toArray();
+      let hon = [];
+      for (let i = 0; i < bodies.length; i++) {
+        let body: BodyTempState = bodies[i];
+        let cfgBody: Body = sys.bodies.getItemById(body.id);
+        let isHeating = false;
+        if (body.isOn) {
+          if (typeof body.temp === 'undefined' && heaters.length > 0) logger.warn(`The body temperature for ${body.name} cannot be determined. Heater status for this body cannot be calculated.`);
+          for (let j = 0; j < heaters.length; j++) {
+            let heater: Heater = heaters[j];
+            if (heater.isActive === false) continue;
+            let isOn = false;
+            let isCooling = false;
+            let sensorTemp = state.temps.waterSensor1;
+            if (body.id === 4) sensorTemp = state.temps.waterSensor4;
+            if (body.id === 3) sensorTemp = state.temps.waterSensor3;
+            if (body.id === 2 && !sys.equipment.shared) sensorTemp = state.temps.waterSensor2;
 
-                        // Determine whether the heater can be used on this body.
-                        let isAssociated = false;
-                        let b = sys.board.valueMaps.bodies.transform(heater.body);
-                        switch (b.name) {
-                            case 'body1':
-                            case 'pool':
-                                if (body.id === 1) isAssociated = true;
-                                break;
-                            case 'body2':
-                            case 'spa':
-                                if (body.id === 2) isAssociated = true;
-                                break;
-                            case 'poolspa':
-                                if (body.id === 1 || body.id === 2) isAssociated = true;
-                                break;
-                            case 'body3':
-                                if (body.id === 3) isAssociated = true;
-                                break;
-                            case 'body4':
-                                if (body.id === 4) isAssociated = true;
-                                break;
-                        }
-                        logger.silly(`Heater ${heater.name} is ${isAssociated === true ? '' : 'not '}associated with ${body.name}`);
-                        if (isAssociated) {
-                            let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
-                            let status = sys.board.valueMaps.heatStatus.transform(body.heatStatus);
-                            let hstate = state.heaters.getItemById(heater.id, true);
-                            if (heater.isVirtual === true || heater.master === 1) {
-                                // We need to do our own calculation as to whether it is on.  This is for Nixie heaters.
-                                let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
-                                switch (htype.name) {
-                                    case 'solar':
-                                        if (mode === 'solar' || mode === 'solarpref') {
-                                            // Measure up against start and stop temp deltas for effective solar heating.
-                                            if (body.temp < cfgBody.heatSetpoint &&
-                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
-                                                isHeating = true;
-                                            }
-                                            else if (heater.coolingEnabled && body.temp > cfgBody.coolSetpoint && state.heliotrope.isNight &&
-                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
-                                                isHeating = true;
-                                                isCooling = true;
-                                            }
-                                            //else if (heater.coolingEnabled && state.time.isNight)
-                                        }
-                                        break;
-                                    case 'ultratemp':
-                                        // We need to determine whether we are going to use the air temp or the solar temp
-                                        // for the sensor.
-                                        let deltaTemp = Math.max(state.temps.air, state.temps.solar || 0);
-                                        if (mode === 'ultratemp' || mode === 'ultratemppref') {
-                                            if (body.temp < cfgBody.heatSetpoint &&
-                                                deltaTemp > body.temp + heater.differentialTemp || 0) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
-                                                isHeating = true;
-                                                isCooling = false;
-                                            }
-                                            else if (body.temp > cfgBody.coolSetpoint && heater.coolingEnabled) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpcool');
-                                                isHeating = true;
-                                                isCooling = true;
-                                            }
-                                        }
-                                        break;
-                                    case 'gas':
-                                        if (mode === 'heater') {
-                                            if (body.temp < cfgBody.setPoint) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                                                isHeating = true;
-                                            }
-                                        }
-                                        else if (mode === 'solarpref' || mode === 'heatpumppref') {
-                                            // If solar should be running gas heater should be off.
-                                            if (body.temp < cfgBody.setPoint &&
-                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) isOn = false;
-                                            else if (body.temp < cfgBody.setPoint) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                                                isHeating = true;
-                                            }
-                                        }
-                                        break;
-                                    case 'heatpump':
-                                        if (mode === 'heatpump' || mode === 'heatpumppref') {
-                                            if (body.temp < cfgBody.setPoint &&
-                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                                                isHeating = true;
-                                            }
-                                        }
-                                        break;
-                                    default:
-                                        isOn = utils.makeBool(hstate.isOn);
-                                        break;
-                                }
-                                logger.debug(`Heater Type: ${htype.name} Mode:${mode} Temp: ${body.temp} Setpoint: ${cfgBody.setPoint} Status: ${body.heatStatus}`);
-                            }
-                            if (isOn === true && typeof hon.find(elem => elem === heater.id) === 'undefined') {
-                                hon.push(heater.id);
-                                if (heater.master === 1 && isOn) (async () => {
-                                    try {
-                                        await ncp.heaters.setHeaterStateAsync(hstate, isOn, isCooling);
-                                    } catch (err) { logger.error(err.message); }
-                                })();
-                                else hstate.isOn = isOn;
-                            }
-                        }
+            // Determine whether the heater can be used on this body.
+            let isAssociated = false;
+            let b = sys.board.valueMaps.bodies.transform(heater.body);
+            switch (b.name) {
+              case 'body1':
+              case 'pool':
+                if (body.id === 1) isAssociated = true;
+                break;
+              case 'body2':
+              case 'spa':
+                if (body.id === 2) isAssociated = true;
+                break;
+              case 'poolspa':
+                if (body.id === 1 || body.id === 2) isAssociated = true;
+                break;
+              case 'body3':
+                if (body.id === 3) isAssociated = true;
+                break;
+              case 'body4':
+                if (body.id === 4) isAssociated = true;
+                break;
+            }
+            logger.silly(`Heater ${heater.name} is ${isAssociated === true ? '' : 'not '}associated with ${body.name}`);
+            if (isAssociated) {
+              let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
+              let status = sys.board.valueMaps.heatStatus.transform(body.heatStatus);
+              let hstate = state.heaters.getItemById(heater.id, true);
+              if (heater.isVirtual === true || heater.master === 1) {
+                // We need to do our own calculation as to whether it is on.  This is for Nixie heaters.
+                let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
+                switch (htype.name) {
+                  case 'solar':
+                    if (mode === 'solar' || mode === 'solarpref') {
+                      // Measure up against start and stop temp deltas for effective solar heating.
+                      if (body.temp < cfgBody.heatSetpoint &&
+                        state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                        isOn = true;
+                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                        isHeating = true;
+                      }
+                      else if (heater.coolingEnabled && body.temp > cfgBody.coolSetpoint && state.heliotrope.isNight &&
+                        state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                        isOn = true;
+                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
+                        isHeating = true;
+                        isCooling = true;
+                      }
+                      //else if (heater.coolingEnabled && state.time.isNight)
                     }
+                    break;
+                  case 'ultratemp':
+                    // We need to determine whether we are going to use the air temp or the solar temp
+                    // for the sensor.
+                    let deltaTemp = Math.max(state.temps.air, state.temps.solar || 0);
+                    if (mode === 'ultratemp' || mode === 'ultratemppref') {
+                      if (body.temp < cfgBody.heatSetpoint &&
+                        deltaTemp > body.temp + heater.differentialTemp || 0) {
+                        isOn = true;
+                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                        isHeating = true;
+                        isCooling = false;
+                      }
+                      else if (body.temp > cfgBody.coolSetpoint && heater.coolingEnabled) {
+                        isOn = true;
+                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpcool');
+                        isHeating = true;
+                        isCooling = true;
+                      }
+                    }
+                    break;
+                  case 'gas':
+                    if (mode === 'heater') {
+                      if (body.temp < cfgBody.setPoint) {
+                        isOn = true;
+                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                        isHeating = true;
+                      }
+                    }
+                    else if (mode === 'solarpref' || mode === 'heatpumppref') {
+                      // If solar should be running gas heater should be off.
+                      if (body.temp < cfgBody.setPoint &&
+                        state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) isOn = false;
+                      else if (body.temp < cfgBody.setPoint) {
+                        isOn = true;
+                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                        isHeating = true;
+                      }
+                    }
+                    break;
+                  case 'heatpump':
+                    if (mode === 'heatpump' || mode === 'heatpumppref') {
+                      if (body.temp < cfgBody.setPoint &&
+                        state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                        isOn = true;
+                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                        isHeating = true;
+                      }
+                    }
+                    break;
+                  default:
+                    isOn = utils.makeBool(hstate.isOn);
+                    break;
                 }
-                // When the controller is a virtual one we need to control the heat status ourselves.
-                if (!isHeating && (sys.controllerType === ControllerType.Virtual || sys.controllerType === ControllerType.Nixie)) body.heatStatus = 0;
+                logger.debug(`Heater Type: ${htype.name} Mode:${mode} Temp: ${body.temp} Setpoint: ${cfgBody.setPoint} Status: ${body.heatStatus}`);
+              }
+              if (isOn === true && typeof hon.find(elem => elem === heater.id) === 'undefined') {
+                hon.push(heater.id);
+                if (heater.master === 1 && isOn) (async () => {
+                  try {
+                    await ncp.heaters.setHeaterStateAsync(hstate, isOn, isCooling);
+                  } catch (err) { logger.error(err.message); }
+                })();
+                else hstate.isOn = isOn;
+              }
             }
-            // Turn off any heaters that should be off.  The code above only turns heaters on.
-            for (let i = 0; i < heaters.length; i++) {
-                let heater: Heater = heaters[i];
-                if (typeof hon.find(elem => elem === heater.id) === 'undefined') {
-                    let hstate = state.heaters.getItemById(heater.id, true);
-                    if (heater.master === 1) (async () => {
-                        try {
-                            await ncp.heaters.setHeaterStateAsync(hstate, false, false);
-                        } catch (err) { logger.error(err.message); }
-                    })();
-                    else hstate.isOn = false;
-                }
-            }
-        } catch (err) { logger.error(`Error synchronizing heater states`); }
-    }
+          }
+        }
+        // When the controller is a virtual one we need to control the heat status ourselves.
+        if (!isHeating && (sys.controllerType === ControllerType.Virtual || sys.controllerType === ControllerType.Nixie)) body.heatStatus = 0;
+      }
+      // Turn off any heaters that should be off.  The code above only turns heaters on.
+      for (let i = 0; i < heaters.length; i++) {
+        let heater: Heater = heaters[i];
+        if (typeof hon.find(elem => elem === heater.id) === 'undefined') {
+          let hstate = state.heaters.getItemById(heater.id, true);
+          if (heater.master === 1) (async () => {
+            try {
+              await ncp.heaters.setHeaterStateAsync(hstate, false, false);
+            } catch (err) { logger.error(err.message); }
+          })();
+          else hstate.isOn = false;
+        }
+      }
+    } catch (err) { logger.error(`Error synchronizing heater states`); }
+  }
 }
 export class ValveCommands extends BoardCommands {
   public async setValveStateAsync(valve: Valve, vstate: ValveState, isDiverted: boolean) {

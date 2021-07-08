@@ -250,7 +250,7 @@ export class CircuitMessage {
             circuit.freeze = (functionId & 64) === 64;
             circuit.showInFeatures = typeof circuit.showInFeatures === 'undefined' ? true : circuit.showInFeatures;
             circuit.isActive = _isActive;
-            if (typeof circuit.eggTimer === 'undefined') circuit.eggTimer = 720;
+            if (typeof circuit.eggTimer === 'undefined' || circuit.eggTimer === 0) circuit.eggTimer = 720;
             if (typeof circuit.dontStop === 'undefined') circuit.dontStop = circuit.eggTimer === 1620;
             if ([9, 10, 16, 17].includes(circuit.type)) {
                 const lg = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start, true);

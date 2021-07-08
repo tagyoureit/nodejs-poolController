@@ -1097,7 +1097,7 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState, IC
         if (typeof this.data.endTime === 'undefined') return undefined;
         return new Timestamp(this.data.endTime);
     }
-    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate()), false) : this.setDataVal('endTime', undefined); } 
+    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate())) : this.setDataVal('endTime', undefined); } 
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get showInFeatures(): boolean { return typeof this.data.showInFeatures === 'undefined' ? true : this.data.showInFeatures; }
@@ -1170,7 +1170,7 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
         if (typeof this.data.endTime === 'undefined') return undefined;
         return new Timestamp(this.data.endTime);
     }
-    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate()), false) : this.setDataVal('endTime', undefined); } 
+    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate())) : this.setDataVal('endTime', undefined); } 
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get isActive(): boolean { return this.data.isActive; }
@@ -1412,7 +1412,7 @@ export class FeatureState extends EqState implements ICircuitState {
         if (typeof this.data.endTime === 'undefined') return undefined;
         return new Timestamp(this.data.endTime);
     }
-    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate()), false) : this.setDataVal('endTime', undefined); }
+    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate())) : this.setDataVal('endTime', undefined); }
 }
 export class VirtualCircuitState extends EqState implements ICircuitState {
     public dataName: string = 'virtualCircuit';
@@ -1435,7 +1435,7 @@ export class VirtualCircuitState extends EqState implements ICircuitState {
         if (typeof this.data.endTime === 'undefined') return undefined;
         return new Timestamp(this.data.endTime);
     }
-    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate()), false) : this.setDataVal('endTime', undefined); }
+    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate())) : this.setDataVal('endTime', undefined); }
 }
 export class VirtualCircuitStateCollection extends EqStateCollection<VirtualCircuitState> {
     public createItem(data: any): VirtualCircuitState { return new VirtualCircuitState(data); }
@@ -1513,7 +1513,7 @@ export class CircuitState extends EqState implements ICircuitState {
         if (typeof this.data.endTime === 'undefined') return undefined;
         return new Timestamp(this.data.endTime);
     }
-    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate()), false) : this.setDataVal('endTime', undefined); }
+    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate())) : this.setDataVal('endTime', undefined); }
 }
 export class ValveStateCollection extends EqStateCollection<ValveState> {
     public createItem(data: any): ValveState { return new ValveState(data); }

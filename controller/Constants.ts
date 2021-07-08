@@ -179,8 +179,9 @@ export class Heliotrope {
 export class Timestamp {
     private _dt: Date;
     public emitter: EventEmitter;
-    constructor(dt?: Date) {
-        this._dt = dt || new Date();
+    constructor(dt?: Date | string) {
+        if (typeof dt === 'string') this._dt = new Date(dt);
+        else this._dt = dt || new Date();
         this.emitter = new EventEmitter();
     }
     private _isUpdating: boolean = false;

@@ -543,7 +543,7 @@ export class TouchConfigQueue extends ConfigQueue {
                 action: this.curr.setcategory,
                 payload: [itm],
                 retries: 3,
-                response: Response.create({response: true, callback: () => {self.processNext(out);}})
+                response: Response.create({ response: true, callback: () => { self.processNext(out); } })
                 // response: true,
                 // onResponseProcessed: function () { self.processNext(out); }
             });
@@ -985,7 +985,7 @@ class TouchSystemCommands extends SystemCommands {
                             if (circ.nameId === data.id + 200) {
                                 let cstate = state.circuits.getItemById(circ.id);
                                 cstate.name = circ.name = data.name;
-                                for (let j = 0; j < state.schedules.length; j++){
+                                for (let j = 0; j < state.schedules.length; j++) {
                                     let ssched = state.schedules.getItemByIndex(j);
                                     if (ssched.circuit === cstate.id) {
                                         ssched.hasChanged = true;
@@ -999,7 +999,7 @@ class TouchSystemCommands extends SystemCommands {
                             if (cg.nameId === data.id + 200) {
                                 let cgstate = state.circuitGroups.getItemById(cg.id);
                                 cgstate.name = cg.name = data.name;
-                                for (let j = 0; j < state.schedules.length; j++){
+                                for (let j = 0; j < state.schedules.length; j++) {
                                     let ssched = state.schedules.getItemByIndex(j);
                                     if (ssched.circuit === cgstate.id) {
                                         ssched.hasChanged = true;
@@ -1013,7 +1013,7 @@ class TouchSystemCommands extends SystemCommands {
                             if (lg.nameId === data.id + 200) {
                                 let lgstate = state.lightGroups.getItemById(lg.id);
                                 lgstate.name = lg.name = data.name;
-                                for (let j = 0; j < state.schedules.length; j++){
+                                for (let j = 0; j < state.schedules.length; j++) {
                                     let ssched = state.schedules.getItemByIndex(j);
                                     if (ssched.circuit === lgstate.id) {
                                         ssched.hasChanged = true;
@@ -1027,7 +1027,7 @@ class TouchSystemCommands extends SystemCommands {
                             if (f.nameId === data.id + 200) {
                                 let fstate = state.features.getItemById(f.id);
                                 fstate.name = f.name = data.name;
-                                for (let j = 0; j < state.schedules.length; j++){
+                                for (let j = 0; j < state.schedules.length; j++) {
                                     let ssched = state.schedules.getItemByIndex(j);
                                     if (ssched.circuit === fstate.id) {
                                         ssched.hasChanged = true;
@@ -1329,6 +1329,15 @@ export class TouchCircuitCommands extends CircuitCommands {
         if (c.master !== 0) return await super.setCircuitStateAsync(id, val);
         if (id === 192 || c.type === 3) return await sys.board.circuits.setLightGroupThemeAsync(id - 191, val ? 1 : 0);
         if (id >= 192) return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
+
+        // for some dumb reason, if the spa is on and the pool circuit is desired to be on,
+        // it will ignore the packet.
+        // We can override that by emulating a click to turn off the spa instead of turning
+        // on the pool
+        if (sys.equipment.maxBodies > 1 && id === 6 && val && state.circuits.getItemById(1).isOn) {
+            id = 1;
+            val = false;
+        }
         return new Promise<ICircuitState>((resolve, reject) => {
             let cstate = state.circuits.getInterfaceById(id);
             let out = Outbound.create({
@@ -1349,6 +1358,7 @@ export class TouchCircuitCommands extends CircuitCommands {
             });
             conn.queueSendMessage(out);
         });
+
     }
     public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> { return this.setCircuitGroupStateAsync(id, val); }
     public async toggleCircuitStateAsync(id: number) {
@@ -1529,7 +1539,7 @@ export class TouchCircuitCommands extends CircuitCommands {
                                 else if (!cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) !== 'off') await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
                             }
                             let isOn = sys.board.valueMaps.lightThemes.getName(theme) === 'off' ? false : true;
-                            sys.board.circuits.setEndTime(grp, sgrp, isOn); 
+                            sys.board.circuits.setEndTime(grp, sgrp, isOn);
                             sgrp.isOn = isOn;
                             switch (theme) {
                                 case 0: // off
@@ -2336,7 +2346,7 @@ class TouchChemControllerCommands extends ChemControllerCommands {
                 action: 211,
                 payload: [],
                 retries: 3, // We are going to try 4 times.
-                response: Response.create({ protocol: Protocol.IntelliChem, action: 1, payload:[211] }),
+                response: Response.create({ protocol: Protocol.IntelliChem, action: 1, payload: [211] }),
                 onAbort: () => { },
                 onComplete: (err) => {
                     if (err) reject(err);
