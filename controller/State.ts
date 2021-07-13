@@ -2017,6 +2017,7 @@ export class ChemicalState extends ChildEqState {
         if (typeof this.data.mixTimeRemaining === 'undefined') this.data.mixTimeRemaining = 0;
         if (typeof this.data.dailyLimitReached === 'undefined') this.data.dailyLimitReached = false;
         if (typeof this.data.manualDosing === 'undefined') this.data.manualDosing = false;
+        if (typeof this.data.manualMixing === 'undefined') this.data.manualMixing = false;
         if (typeof this.data.flowDelay === 'undefined') this.data.flowDelay = false;
         if (typeof this.data.dosingStatus === 'undefined') this.dosingStatus = 2;
         if (typeof this.data.enabled === 'undefined') this.data.enabled = true;
@@ -2161,6 +2162,8 @@ export class ChemicalState extends ChildEqState {
     public set flowDelay(val: boolean) { this.data.flowDelay = val; }
     public get manualDosing(): boolean { return utils.makeBool(this.data.manualDosing); }
     public set manualDosing(val: boolean) { this.setDataVal('manualDosing', val); }
+    public get manualMixing(): boolean { return utils.makeBool(this.data.manualMixing); }
+    public set manualMixing(val: boolean) { this.setDataVal('manualMixing', val); }
     public get dailyLimitReached(): boolean { return utils.makeBool(this.data.dailyLimitReached); }
     public set dailyLimitReached(val: boolean) { this.data.dailyLimitReached = val; }
     public get tank(): ChemicalTankState { return new ChemicalTankState(this.data, 'tank', this); }
