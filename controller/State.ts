@@ -2082,7 +2082,7 @@ export class ChemicalState extends ChildEqState {
                 this.doseHistory.unshift(dose);
                 this.dailyVolumeDosed = this.calcDoseHistory();
                 DataLogger.writeEnd(`chemDosage_${this.chemType}.log`, dose);
-                webApp.emitToClients(`chemicalDose`, dose);
+                process.nextTick(() => { webApp.emitToClients(`chemicalDose`, dose); });
             }
             this.currentDose = undefined;
         }
@@ -2097,7 +2097,7 @@ export class ChemicalState extends ChildEqState {
         this.timeDosed = Math.round(dose._timeDosed / 1000);
         this.dosingTimeRemaining = dose.timeRemaining;
         this.dosingVolumeRemaining = dose.volumeRemaining;
-        if (dose.volumeDosed > 0) webApp.emitToClients(`chemicalDose`, dose);
+        if (dose.volumeDosed > 0) process.nextTick(() => { webApp.emitToClients(`chemicalDose`, dose); });
         return dose;
     }
     public get currentDose(): ChemicalDoseState {
@@ -2211,7 +2211,7 @@ export class ChemicalPhState extends ChemicalState {
         if (chem.body === 1 || chem.body === 32 || sys.equipment.shared) totalGallons += sys.bodies.getItemById(2).capacity;
         if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
         if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
-        logger.verbose(`Chem begin calculating demand: ${this.level} setpoint: ${this.setpoint} body: ${totalGallons}`);
+        logger.verbose(`Chem begin calculating ${this.chemType} demand: ${this.level} setpoint: ${this.setpoint} body: ${totalGallons}`);
         let chg = this.setpoint - this.level;
         let delta = chg * totalGallons;
         let temp = (this.level + this.setpoint) / 2;
