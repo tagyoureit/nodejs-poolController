@@ -383,6 +383,7 @@ export class NixieChemController extends NixieChemControllerBase {
             // not been set and we have a state obect defined.
             let cstate = state.chemControllers.find(x => x.id === chem.id);
             if (cstate && typeof cstate !== 'undefined') {
+                console.log(`Converting to v2.x data structure`);
                 if (cstate.ph.dosingStatus === 1) cstate.ph.dosingStatus = 2;
                 else if (cstate.ph.dosingStatus === 2) cstate.ph.dosingStatus = 1;
                 if (cstate.orp.dosingStatus === 1) cstate.orp.dosingStatus = 2;
@@ -522,6 +523,7 @@ export class NixieChemController extends NixieChemControllerBase {
                 schem.alarms.flowSensorFault = 0;
             }
             else {
+                logger.verbose(`Begin getting flow sensor state`);
                 let ret = await this.flowSensor.getState();
                 schem.flowSensor.state = ret.obj.state;
                 // Call out to REM to see if we have flow.
@@ -553,6 +555,7 @@ export class NixieChemController extends NixieChemControllerBase {
             }
             if (!schem.flowDetected) this.bodyOnTime = undefined;
             else if (typeof this.bodyOnTime === 'undefined') this.bodyOnTime = new Date().getTime();
+            logger.verbose(`End getting flow sensor state`);
             return schem.flowDetected;
         }
         catch (err) { logger.error(`checkFlowAsync: ${err.message}`); schem.alarms.flowSensorFault = 7; this.flowDetected = schem.flowDetected = false; return Promise.reject(err); }
@@ -560,6 +563,7 @@ export class NixieChemController extends NixieChemControllerBase {
     }
     public async pollEquipmentAsync() {
         try {
+            logger.verbose(`Begin polling Chem Controller ${this.id}`);
             if (this._suspendPolling > 0) logger.warn(`Suspend polling for ${this.chem.name} -> ${this._suspendPolling}`);
             if (this.suspendPolling) return;
             if (this._ispolling) return;
@@ -579,7 +583,6 @@ export class NixieChemController extends NixieChemControllerBase {
                     // We are not processing Homegrown at this point.
                     // Check each piece of equipment to make sure it is doing its thing.
                     schem.calculateSaturationIndex();
-                    //this.calculateSaturationIndex();
                     this.processAlarms(schem);
                     if (this.chem.ph.enabled) await this.ph.checkDosing(this.chem, schem.ph);
                     if (this.chem.orp.enabled) await this.orp.checkDosing(this.chem, schem.orp);
@@ -590,7 +593,12 @@ export class NixieChemController extends NixieChemControllerBase {
             this._ispolling = false;
         }
         catch (err) { this._ispolling = false; logger.error(`Error polling Chem Controller - ${err}`); return Promise.reject(err); }
-        finally { if(!this.closing && !this._ispolling) this._pollTimer = setTimeout(async () => { try { await this.pollEquipmentAsync() } catch (err) { return Promise.reject(err); } }, this.pollingInterval || 10000); }
+        finally {
+            if (!this.closing && !this._ispolling)
+                this._pollTimer = setTimeout(async () => { try { await this.pollEquipmentAsync() } catch (err) { return Promise.reject(err); } }, this.pollingInterval || 10000);
+            logger.verbose(`End polling Chem Controller ${this.id}`);
+
+        }
     }
     public processAlarms(schem: ChemControllerState) {
         try {
@@ -700,6 +708,7 @@ export class NixieChemController extends NixieChemControllerBase {
     public async validateSetupAsync(chem: ChemController, schem: ChemControllerState) {
         try {
             // The validation will be different if the body is on or not.  So lets get that information.
+            logger.verbose(`Begin validating ${chem.id} - ${chem.name} setup`);
             if (chem.orp.enabled) {
                 if (chem.orp.probe.type !== 0) {
                     let type = sys.board.valueMaps.chemORPProbeTypes.transform(chem.orp.probe.type);
@@ -762,6 +771,8 @@ export class NixieChemController extends NixieChemControllerBase {
                 if (schem.alarms.bodyFault !== 0) logger.warn(`Chem controller body calculation invalid ${totalGallons} -> ${chem.body}`);
             }
             schem.alarms.comms = 0;
+            logger.verbose(`End validating ${chem.id} - ${chem.name} setup`);
+
         } catch (err) { logger.error(`Error checking Chem Controller Hardware ${this.chem.name}: ${err.message}`); schem.alarms.comms = 2; return Promise.reject(err); }
     }
     public async closeAsync() {
@@ -857,6 +868,7 @@ class NixieChemical extends NixieChildEquipment {
         try {
             this._stoppingMix = true;
             this.suspendPolling = true;
+            if (typeof this.currentMix !== 'undefined') logger.debug(`Stopping ${schem.chemType} mix and clearing the current mix object.`);
             schem.pump.isDosing = false;
             if (typeof this._mixTimer !== 'undefined') {
                 clearInterval(this._mixTimer);
@@ -895,7 +907,6 @@ class NixieChemical extends NixieChildEquipment {
                 else
                     this.currentMix.set({ time: this.chemical.mixingTime, timeMixed: 0 });
                 logger.info(`Chem Controller begin mixing ${schem.chemType} for ${utils.formatDuration(this.currentMix.timeRemaining)} of ${utils.formatDuration(this.currentMix.time)}`)
-                schem.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.getValue('mixing');
                 schem.mixTimeRemaining = this.currentMix.timeRemaining;
             }
             if (typeof this._mixTimer === 'undefined' || !this._mixTimer) {
@@ -906,7 +917,15 @@ class NixieChemical extends NixieChildEquipment {
     }
     public async mixChemicals(schem: ChemicalState, mixingTime?: number) {
         try {
-            if (this._stoppingMix) return;
+            if (this._stoppingMix) {
+                logger.verbose(`${schem.chemType} is currently stopping mixChemicals ignored.`)
+                return;
+            }
+            if (this._processingMix) {
+                logger.verbose(`${schem.chemType} is already processing mixChemicals ignored.`);
+                return;
+            }
+            this._processingMix = true;
             let dt = new Date().getTime();
             await this.initMixChemicals(schem, mixingTime);
             if (this._stoppingMix) return;
@@ -924,12 +943,13 @@ class NixieChemical extends NixieChildEquipment {
             if (schem.mixTimeRemaining <= 0) {
                 logger.info(`Chem Controller ${schem.chemType} mixing Complete after ${utils.formatDuration(this.currentMix.timeMixed)}`);
                 await this.stopMixing(schem);
-                //schem.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.getValue('monitoring');
             }
-            else { schem.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.getValue('mixing'); }
+            else {
+                schem.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.getValue('mixing');
+            }
             this._processingMix = false;
         } catch (err) { this._processingMix = false; logger.error(`Error mixing chemicals: ${err.message}`); }
-        finally { process.nextTick(() => { schem.chemController.emitEquipmentChange(); }); }
+        finally { setImmediate(() => { schem.chemController.emitEquipmentChange(); }); }
     }
     public async initDose(schem: ChemicalState) { }
     public async closeAsync() {
@@ -1292,7 +1312,10 @@ export class NixieChemicalPh extends NixieChemical {
                 sph.manualDosing = false;
                 sph.dosingVolumeRemaining = 0;
                 sph.dosingTimeRemaining = 0;
-                await this.stopMixing(sph);
+                if (typeof this.currentMix !== 'undefined') {
+                    logger.debug(`We are now monitoring and have a mixing object`);
+                    await this.stopMixing(sph);
+                }
                 await this.cancelDosing(sph, 'monitoring');
             }
             if (status === 'mixing') {
@@ -1416,6 +1439,7 @@ export class NixieChemicalPh extends NixieChemical {
     }
     public async manualDoseAsync(sph: ChemicalPhState, volume: number) {
         try {
+            logger.debug(`Starting manual ${sph.chemType} dose of ${volume}mL`);
             let status = sys.board.valueMaps.chemControllerDosingStatus.getName(sph.dosingStatus);
             if (status === 'monitoring') {
                 // Alright our mixing and dosing have either been cancelled or we fininsed a mixing cycle.  Either way

@@ -44,7 +44,9 @@ export class StateRoute {
         });
         app.put('/state/chemController/manualMix', async (req, res, next) => {
             try {
+                logger.debug(`Starting manual mix`);
                 let schem = await sys.board.chemControllers.manualMixAsync(req.body);
+                logger.debug(`Started manual mix`);
                 return res.status(200).send(schem.getExtended());
             }
             catch (err) { next(err); }
