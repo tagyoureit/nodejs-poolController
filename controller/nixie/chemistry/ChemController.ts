@@ -72,8 +72,11 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
                 let cc = controllers.getItemByIndex(i);
                 if (cc.master === 1) {
                     logger.info(`Initializing chemController ${cc.name}`);
-                    let ncc = NixieChemControllerBase.create(this.controlPanel, cc);
-                    this.push(ncc);
+                    // First check to make sure it isnt already there.
+                    if (typeof this.find(elem => elem.id === cc.id) === 'undefined') {
+                        let ncc = NixieChemControllerBase.create(this.controlPanel, cc);
+                        this.push(ncc);
+                    }
                 }
             }
         }

@@ -260,7 +260,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                                 if (typeof t.lastSent === 'undefined') t.lastSent = [];
                                 let lm = t.lastSent.find(elem => elem.topic === topic);
                                 if (typeof lm === 'undefined' || lm.message !== message) {
-                                    this.client.publish(topic, message, publishOptions);
+                                    setImmediate(() => { this.client.publish(topic, message, publishOptions); });
                                     logger.silly(`MQTT send:\ntopic: ${topic}\nmessage: ${message}\nopts:${JSON.stringify(publishOptions)}`);
                                 }
                                 if (typeof lm === 'undefined') t.lastSent.push({ topic: topic, message: message });
@@ -269,7 +269,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                             }
                             else {
                                 logger.silly(`MQTT send:\ntopic: ${topic}\nmessage: ${message}\nopts:${JSON.stringify(publishOptions)}`);
-                                this.client.publish(topic, message, publishOptions);
+                                setImmediate(() => { this.client.publish(topic, message, publishOptions); });
                                 if (typeof t.lastSent !== 'undefined') t.lastSent = undefined;
                             }
 
