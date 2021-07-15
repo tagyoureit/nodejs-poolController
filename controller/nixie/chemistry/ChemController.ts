@@ -807,11 +807,17 @@ class NixieChemical extends NixieChildEquipment {
     protected _processingMix = false;
     //public currentDose: ChemicalDoseState;
     public chemType: string;
-    public currentMix: NixieChemMix;
+    public _currentMix: NixieChemMix;
     //public doseHistory: NixieChemDoseLog[] = [];
     protected _mixTimer: NodeJS.Timeout;
     //public get logFilename() { return `chemDosage_unknown.log`; }
     public get chemController(): NixieChemController { return this.getParent() as NixieChemController; }
+    public get currentMix(): NixieChemMix { return this._currentMix; }
+    public set currentMix(val: NixieChemMix) {
+        if (typeof val === 'undefined') logger.debug(`${this.chemical.chemType} mix set to undefined`);
+        else logger.debug(`Set new current ${this.chemical.chemType}`)
+        this._currentMix = val;
+    }
     constructor(controller: NixieChemController, chemical: Chemical) {
         super(controller);
         chemical.master = 1;
@@ -1260,43 +1266,10 @@ export class NixieChemicalPh extends NixieChemical {
         }
         catch (err) { logger.error(`chemController setPhAysnc.: ${err.message}`); return Promise.reject(err); }
     }
-    //public calcDemand(sph: ChemicalPhState): number {
-    //    let chem = this.chemController.chem;
-    //    // Calculate how many mL are required to raise to our pH level.
-    //    // 1. Get the total gallons of water that the chem controller is in
-    //    // control of.
-    //    let totalGallons = 0;
-
-    //    if (chem.body === 0 || chem.body === 32 || sys.equipment.shared) totalGallons += sys.bodies.getItemById(1).capacity;
-    //    if (chem.body === 1 || chem.body === 32 || sys.equipment.shared) totalGallons += sys.bodies.getItemById(2).capacity;
-    //    if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
-    //    if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
-    //    logger.verbose(`Chem begin calculating demand: ${sph.level} setpoint: ${this.ph.setpoint} body: ${totalGallons}`);
-    //    let chg = this.ph.setpoint - sph.level;
-    //    let delta = chg * totalGallons;
-    //    let temp = (sph.level + this.ph.setpoint) / 2;
-    //    let adj = (192.1626 + -60.1221 * temp + 6.0752 * temp * temp + -0.1943 * temp * temp * temp) * (chem.alkalinity + 13.91) / 114.6;
-    //    let extra = (-5.476259 + 2.414292 * temp + -0.355882 * temp * temp + 0.01755 * temp * temp * temp) * (chem.borates || 0);
-    //    extra *= delta;
-    //    delta *= adj;
-    //    let dose = 0;
-    //    if (this.ph.phSupply === 0) {  // We are dispensing base so we need to calculate the demand here.
-    //        if (chg > 0) {
-
-    //        }
-    //    }
-    //    else {
-    //        if (chg < 0) {
-    //            let at = sys.board.valueMaps.acidTypes.transform(this.ph.acidType);
-    //            dose = Math.round(utils.convert.volume.convertUnits((delta / -240.15 * at.dosingFactor) + (extra / -240.15 * at.dosingFactor), 'oz', 'mL'));
-    //        }
-    //    }
-    //    sph.demand = dose;
-    //    return dose;
-    //}
     public async checkDosing(chem: ChemController, sph: ChemicalPhState) {
         try {
             let status = sys.board.valueMaps.chemControllerDosingStatus.getName(sph.dosingStatus);
+            logger.debug(`Begin check ${sph.chemType} dosing status = ${status}`);
             let demand = sph.calcDemand(chem);
             sph.demand = Math.max(demand, 0);
             if (sph.suspendDosing) {
@@ -1417,7 +1390,10 @@ export class NixieChemicalPh extends NixieChemical {
                 return true;
             }
         }
-        catch (err) { logger.error(err); return Promise.reject(err);}
+        catch (err) { logger.error(err); return Promise.reject(err); }
+        finally {
+            logger.debug(`End check ${sph.chemType} dosing status = ${sys.board.valueMaps.chemControllerDosingStatus.getName(sph.dosingStatus)}`);
+        }
     }
     public async cancelDosing(sph: ChemicalPhState, reason: string) {
         try {

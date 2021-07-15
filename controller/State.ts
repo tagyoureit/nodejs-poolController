@@ -2152,6 +2152,7 @@ export class ChemicalState extends ChildEqState {
     public get dosingStatus(): number { return typeof (this.data.dosingStatus) !== 'undefined' ? this.data.dosingStatus.val : undefined; }
     public set dosingStatus(val: number) {
         if (this.dosingStatus !== val) {
+            logger.debug(`${this.chemType} dosing status changed from ${this.dosingStatus} to ${val}`);
             this.data.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
             this.hasChanged = true;
         }
