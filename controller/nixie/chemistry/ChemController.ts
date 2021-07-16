@@ -1325,7 +1325,7 @@ export class NixieChemicalPh extends NixieChemical {
                         logger.info(`More than one NixieChemController object was found ${JSON.stringify(arrIds)}`);
                     }
                     logger.info(`Current ${sph.chemType} mix object not defined initializing mix`);
-                    console.log(JSON.stringify(this));
+                    //console.log(JSON.stringify(this));
                     await this.mixChemicals(sph);
                 }
             }
