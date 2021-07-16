@@ -149,6 +149,7 @@ export class NixieChlorinator extends NixieEquipment {
         return isOn;
     }
     public async pollEquipment() {
+        let self = this;
         try {
             if (this._pollTimer) {
                 clearTimeout(this._pollTimer);
@@ -173,7 +174,7 @@ export class NixieChlorinator extends NixieEquipment {
             // Comms failure will be handeled by the message processor.
             logger.error(`Chlorinator ${this.chlor.name} comms failure: ${err.message}`);
         }
-        finally { if(!this.closing) this._pollTimer = setTimeout(async () => { await this.pollEquipment(); }, this.pollingInterval); }
+        finally { if(!this.closing) this._pollTimer = setTimeout(async () => { await self.pollEquipment(); }, this.pollingInterval); }
     }
     public async takeControl(): Promise<boolean> {
         try {

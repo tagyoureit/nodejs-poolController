@@ -341,7 +341,8 @@ export class SendRecieveBuffer {
     private _waitingPacket: Outbound;
     private _msg: Inbound;
     public pushIn(pkt) {
-        conn.buffer._inBuffer.push.apply(conn.buffer._inBuffer, pkt.toJSON().data); setTimeout(() => { this.processPackets(); }, 0);
+        let self = this;
+        conn.buffer._inBuffer.push.apply(conn.buffer._inBuffer, pkt.toJSON().data); setTimeout(() => { self.processPackets(); }, 0);
     }
     public pushOut(msg) { conn.buffer._outBuffer.push(msg); setTimeout(() => { this.processPackets(); }, 0); }
     public clear() { conn.buffer._inBuffer.length = 0; conn.buffer._outBuffer.length = 0; }
@@ -416,7 +417,8 @@ export class SendRecieveBuffer {
         // would be sitting idle for eternity. 
         if (conn.buffer._outBuffer.length > 0 || typeof conn.buffer._waitingPacket !== 'undefined' || conn.buffer._waitingPacket || typeof msg !== 'undefined') {
             // Come back later as we still have items to send.
-            conn.buffer.procTimer = setTimeout(() => this.processPackets(), 100);
+            let self = this;
+            conn.buffer.procTimer = setTimeout(() => self.processPackets(), 100);
         }
     }
     /*

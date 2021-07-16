@@ -95,13 +95,14 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
         } catch (err) { logger.error(`initCircuitAsync: ${err.message}`); return Promise.reject(err); }
     }
     public async pollCircuitsAsync() {
+        let self = this;
         try {
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
             let success = false;
 
         } catch (err) { logger.error(`Error polling circuits: ${err.message}`); return Promise.reject(err); }
-        finally { this._pollTimer = setTimeout(async () => await this.pollCircuitsAsync(), this.pollingInterval || 10000); }
+        finally { this._pollTimer = setTimeout(async () => await self.pollCircuitsAsync(), this.pollingInterval || 10000); }
     }
 }
 export class NixieCircuit extends NixieEquipment {

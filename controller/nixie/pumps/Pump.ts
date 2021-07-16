@@ -210,6 +210,7 @@ export class NixiePump extends NixieEquipment {
         catch (err) { logger.error(`Nixie setPumpAsync: ${err.message}`); return Promise.reject(err); }
     }
     public async pollEquipmentAsync() {
+        let self = this;
         try {
             if (this.suspendPolling || this.closing) return;
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
@@ -220,7 +221,7 @@ export class NixiePump extends NixieEquipment {
             await this.setPumpStateAsync(pstate);
         }
         catch (err) { logger.error(`Nixie Error running pump sequence - ${err}`); }
-        finally { if (!this.closing) this._pollTimer = setTimeout(async () => await this.pollEquipmentAsync(), this.pollingInterval || 2000); }
+        finally { if (!this.closing) this._pollTimer = setTimeout(async () => await self.pollEquipmentAsync(), this.pollingInterval || 2000); }
     }
     private async checkHardwareStatusAsync(connectionId: string, deviceBinding: string) {
         try {

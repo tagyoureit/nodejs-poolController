@@ -124,13 +124,14 @@ export class PoolSystem implements IPoolSystem {
         return arr;
     }
     public async start() {
+        let self = this;
         this.data.appVersion = state.appVersion.installed = this.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         versionCheck.compare(); // if we installed a new version, reset the flag so we don't show an outdated message for up to 2 days 
         logger.info(`Starting Pool System ${this.controllerType}`);
         if (this.controllerType === 'unknown' || typeof this.controllerType === 'undefined') {
             // Delay for 7.5 seconds to give any OCPs a chance to start emitting messages.
             logger.info(`Listening for any installed OCPs`);
-            setTimeout(() => { this.initNixieController(); }, 7500);
+            setTimeout(() => { self.initNixieController(); }, 7500);
         }
         else
             this.initNixieController();
@@ -191,6 +192,7 @@ export class PoolSystem implements IPoolSystem {
     }
     public get controllerType(): ControllerType { return this.data.controllerType as ControllerType; }
     public set controllerType(val: ControllerType) {
+        let self = this;
         if (this.controllerType !== val || this.controllerType === ControllerType.Virtual) {
             console.log('RESETTING DATA -- Data files backed up to ./logs directory.');
             // Only go in here if there is a change to the controller type.
@@ -200,7 +202,7 @@ export class PoolSystem implements IPoolSystem {
             EquipmentStateMessage.initDefaults();
             // We are actually changing the config so lets clear out all the data.
             this.board = BoardFactory.fromControllerType(val, this);
-            if (this.data.controllerType === ControllerType.Unknown || this.controllerType === ControllerType.Virtual) setTimeout(() => { this.initNixieController(); }, 7500);
+            if (this.data.controllerType === ControllerType.Unknown || this.controllerType === ControllerType.Virtual) setTimeout(() => { self.initNixieController(); }, 7500);
         }
     }
     public resetData() {
@@ -320,6 +322,7 @@ export class PoolSystem implements IPoolSystem {
     public appVersion: string;
     public get dirty(): boolean { return this._isDirty; }
     public set dirty(val) {
+        let self = this;
         this._isDirty = val;
         this._lastUpdated = new Date();
         this.data.lastUpdated = this._lastUpdated.toLocaleString();
@@ -328,7 +331,7 @@ export class PoolSystem implements IPoolSystem {
             this._timerDirty = null;
         }
         if (this._isDirty) {
-            this._timerDirty = setTimeout(() => this.persist(), 3000);
+            this._timerDirty = setTimeout(() => self.persist(), 3000);
         }
     }
     public persist() {

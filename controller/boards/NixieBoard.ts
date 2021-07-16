@@ -185,6 +185,7 @@ export class NixieBoard extends SystemBoard {
     public async initNixieBoard() {
         try {
             this.killStatusCheck();
+            let self = this;
             sys.general.options.clockSource = 'server';
             state.status = sys.board.valueMaps.controllerStatus.transform(0, 0);
             // First lets clear out all the messages.
@@ -316,7 +317,7 @@ export class NixieBoard extends SystemBoard {
             logger.info(`${sys.equipment.model} control board initialized`);
             state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
             // At this point we should have the start of a board so lets check to see if we are ready or if we are stuck initializing.
-            setTimeout(() => this.processStatusAsync(), 5000);
+            setTimeout(() => self.processStatusAsync(), 5000);
         } catch (err) { state.status = 255; logger.error(`Error Initializing Nixie Control Panel ${err.message}`); }
     }
     public initValves() {

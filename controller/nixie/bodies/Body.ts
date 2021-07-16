@@ -83,13 +83,14 @@ export class NixieBody extends NixieEquipment {
     }
 
     public async pollEquipmentAsync() {
+        let self = this;
         try {
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
             let success = false;
         }
         catch (err) { logger.error(`Nixie Error polling body - ${err}`); }
-        finally { this._pollTimer = setTimeout(async () => await this.pollEquipmentAsync(), this.pollingInterval || 10000); }
+        finally { this._pollTimer = setTimeout(async () => await self.pollEquipmentAsync(), this.pollingInterval || 10000); }
     }
     private async checkHardwareStatusAsync(connectionId: string, deviceBinding: string) {
         try {

@@ -912,13 +912,14 @@ export class InterfaceServerResponse {
 }
 export class REMInterfaceServer extends ProtoServer {
     public async init(cfg) {
+        let self = this;
         this.cfg = cfg;
         this.uuid = cfg.uuid;
         if (cfg.enabled) {
             this.initSockets();
             setTimeout(async () => {
                 try {
-                    await this.initConnection();
+                    await self.initConnection();
                 }
                 catch (err) {
                     logger.error(`Error establishing bi-directional Nixie/REM connection: ${err}`)
@@ -930,6 +931,7 @@ export class REMInterfaceServer extends ProtoServer {
         try {
             // find HTTP server
             return new Promise<void>(async (resolve, reject) => {
+                let self = this;
                 // First, send the connection info for njsPC and see if a connection exists.
                 let url = '/config/checkconnection/';
                 // can & should extend for https/username-password/ssl
@@ -957,7 +959,7 @@ export class REMInterfaceServer extends ProtoServer {
                             logger.info(`REM bi-directional communications established.`)
                             return resolve();
                         });
-                        result = await this.putApiService(url, data);
+                        result = await self.putApiService(url, data);
                         // If the result code is > 200 or -1 we have an issue.
                         if (result.status.code > 200 || result.status.code === -1) return reject(new Error(`initConnection: ${result.error.message}`));
                         else {

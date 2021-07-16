@@ -177,13 +177,14 @@ export class NixieGasHeater extends NixieHeaterBase {
         } catch (err) { return logger.error(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
     }
     public async pollEquipmentAsync() {
+        let self = this;
         try {
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
             let success = false;
         }
         catch (err) { logger.error(`Nixie Error polling Heater - ${err}`); }
-        finally { this._pollTimer = setTimeout(async () => await this.pollEquipmentAsync(), this.pollingInterval || 10000); }
+        finally { this._pollTimer = setTimeout(async () => await self.pollEquipmentAsync(), this.pollingInterval || 10000); }
     }
     private async checkHardwareStatusAsync(connectionId: string, deviceBinding: string) {
         try {
@@ -251,13 +252,14 @@ export class NixieSolarHeater extends NixieHeaterBase {
         } catch (err) { return logger.error(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
     }
     public async pollEquipmentAsync() {
+        let self = this;
         try {
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
             let success = false;
         }
         catch (err) { logger.error(`Nixie Error polling Heater - ${err}`); }
-        finally { this._pollTimer = setTimeout(async () => await this.pollEquipmentAsync(), this.pollingInterval || 10000); }
+        finally { this._pollTimer = setTimeout(async () => await self.pollEquipmentAsync(), this.pollingInterval || 10000); }
     }
     private async checkHardwareStatusAsync(connectionId: string, deviceBinding: string) {
         try {
@@ -307,6 +309,7 @@ export class NixieHeatpump extends NixieHeaterBase {
         finally { this.suspendPolling = false; }
     }
     public async pollEquipmentAsync() {
+        let self = this;
         try {
             this.suspendPolling = true;
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
@@ -323,7 +326,7 @@ export class NixieHeatpump extends NixieHeaterBase {
         catch (err) { logger.error(`Error polling Heat Pump - ${err}`); }
         finally {
             this.suspendPolling = false; if (!this.closing) this._pollTimer = setTimeout(async () => {
-                try { await this.pollEquipmentAsync() } catch (err) { }
+                try { await self.pollEquipmentAsync() } catch (err) { }
             }, this.pollingInterval || 10000);
         }
     }
@@ -373,6 +376,7 @@ export class NixieUltratemp extends NixieHeatpump {
         this.pollEquipmentAsync();
     }
     public async pollEquipmentAsync() {
+        let self = this;
         try {
             this.suspendPolling = true;
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
@@ -388,7 +392,7 @@ export class NixieUltratemp extends NixieHeatpump {
         catch (err) { logger.error(`Error polling UltraTemp heater - ${err}`); }
         finally {
             this.suspendPolling = false; if (!this.closing) this._pollTimer = setTimeout(async () => {
-                try { await this.pollEquipmentAsync() } catch (err) {}
+                try { await self.pollEquipmentAsync() } catch (err) {}
             }, this.pollingInterval || 10000);
         }
     }

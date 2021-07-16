@@ -177,6 +177,7 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
         this.pollEquipmentAsync();
     }
     public async pollEquipmentAsync() {
+        let self = this;
         try {
             this.suspendPolling = true;
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
@@ -193,7 +194,7 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
             }
         }
         catch (err) { logger.error(`Error polling IntelliChem Controller - ${err}`); return Promise.reject(err); }
-        finally { this.suspendPolling = false; if (!this.closing) this._pollTimer = setTimeout(async () => { try { await this.pollEquipmentAsync() } catch (err) { return Promise.reject(err); } }, this.pollingInterval || 10000); }
+        finally { this.suspendPolling = false; if (!this.closing) this._pollTimer = setTimeout(async () => { try { await self.pollEquipmentAsync() } catch (err) { return Promise.reject(err); } }, this.pollingInterval || 10000); }
     }
     public async setControllerAsync(data: any) {
         try {
@@ -564,6 +565,7 @@ export class NixieChemController extends NixieChemControllerBase {
         finally { this.suspendPolling = false; }
     }
     public async pollEquipmentAsync() {
+        let self = this;
         try {
             logger.verbose(`Begin polling Chem Controller ${this.id}`);
             if (this._suspendPolling > 0) logger.warn(`Suspend polling for ${this.chem.name} -> ${this._suspendPolling}`);
@@ -597,9 +599,8 @@ export class NixieChemController extends NixieChemControllerBase {
         catch (err) { this._ispolling = false; logger.error(`Error polling Chem Controller - ${err}`); return Promise.reject(err); }
         finally {
             if (!this.closing && !this._ispolling)
-                this._pollTimer = setTimeout(async () => { try { await this.pollEquipmentAsync() } catch (err) { return Promise.reject(err); } }, this.pollingInterval || 10000);
+                this._pollTimer = setTimeout(async () => { try { await self.pollEquipmentAsync() } catch (err) { return Promise.reject(err); } }, this.pollingInterval || 10000);
             logger.verbose(`End polling Chem Controller ${this.id}`);
-
         }
     }
     public processAlarms(schem: ChemControllerState) {
@@ -816,7 +817,7 @@ class NixieChemical extends NixieChildEquipment {
     public get chemController(): NixieChemController { return this.getParent() as NixieChemController; }
     public get currentMix(): NixieChemMix { return this._currentMix; }
     public set currentMix(val: NixieChemMix) {
-        if (typeof val === 'undefined') logger.debug(`${this.chemical.chemType} mix set to undefined`);
+        if (typeof val === 'undefined' && typeof this._currentMix !== 'undefined') logger.debug(`${this.chemical.chemType} mix set to undefined`);
         else logger.debug(`Set new current mix ${this.chemical.chemType}`)
         this._currentMix = val;
     }
@@ -928,7 +929,8 @@ class NixieChemical extends NixieChildEquipment {
                 schem.mixTimeRemaining = this.currentMix.timeRemaining;
             }
             if (typeof this._mixTimer === 'undefined' || !this._mixTimer) {
-                this._mixTimer = setInterval(async () => { await this.mixChemicals(schem); }, 1000);
+                let self = this;
+                this._mixTimer = setInterval(async () => { await self.mixChemicals(schem); }, 1000);
                 logger.verbose(`Set ${schem.chemType} mix timer`);
             }
         } catch (err) { logger.error(`Error initializing ${schem.chemType} mix: ${err.message}`); }
@@ -1064,6 +1066,7 @@ export class NixieChemPump extends NixieChildEquipment {
         finally { this._isStopping = false; }
     }
     public async dose(schem: ChemicalState) {
+        let self = this;
         let dose: ChemicalDoseState = schem.currentDose;
         try {
             if (this._dosingTimer) {
@@ -1184,7 +1187,7 @@ export class NixieChemPump extends NixieChildEquipment {
             // Add a check to tell the chem when we are done.
             if (schem.dosingStatus === 0) {
                 this._dosingTimer = setTimeout(async () => {
-                    try { await this.dose(schem); }
+                    try { await self.dose(schem); }
                     catch (err) { logger.error(err); return Promise.reject(err);}
                 }, 1000);
             }
@@ -1322,6 +1325,7 @@ export class NixieChemicalPh extends NixieChemical {
                         logger.info(`More than one NixieChemController object was found ${JSON.stringify(arrIds)}`);
                     }
                     logger.info(`Current ${sph.chemType} mix object not defined initializing mix`);
+                    console.log(JSON.stringify(this));
                     await this.mixChemicals(sph);
                 }
             }

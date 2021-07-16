@@ -764,28 +764,29 @@ export class SystemBoard {
   /// This method processes the status message periodically.  The role of this method is to verify the circuit, valve, and heater
   /// relays.  This method does not control RS485 operations such as pumps and chlorinators.  These are done through the respective
   /// equipment polling functions.
-  public async processStatusAsync() {
-    try {
-      if (this._statusCheckRef > 0) return;
-      this.suspendStatus(true);
-      if (typeof this._statusTimer !== 'undefined' && this._statusTimer) clearTimeout(this._statusTimer);
-      // Go through all the assigned equipment and verify the current state.
-      sys.board.system.keepManualTime();
-      await sys.board.circuits.syncCircuitRelayStates();
-      await sys.board.features.syncGroupStates();
-      await sys.board.circuits.syncVirtualCircuitStates();
-      await sys.board.valves.syncValveStates();
-      await sys.board.filters.syncFilterStates();
-      await sys.board.heaters.syncHeaterStates();
-      await sys.board.schedules.syncScheduleStates();
-      state.emitControllerChange();
-      state.emitEquipmentChanges();
-    } catch (err) { state.status = 255; logger.error(`Error performing processStatusAsync ${err.message}`); }
-    finally {
-      this.suspendStatus(false);
-      if (this.statusInterval > 0) this._statusTimer = setTimeout(() => this.processStatusAsync(), this.statusInterval);
+    public async processStatusAsync() {
+        let self = this;
+        try {
+            if (this._statusCheckRef > 0) return;
+            this.suspendStatus(true);
+            if (typeof this._statusTimer !== 'undefined' && this._statusTimer) clearTimeout(this._statusTimer);
+            // Go through all the assigned equipment and verify the current state.
+            sys.board.system.keepManualTime();
+            await sys.board.circuits.syncCircuitRelayStates();
+            await sys.board.features.syncGroupStates();
+            await sys.board.circuits.syncVirtualCircuitStates();
+            await sys.board.valves.syncValveStates();
+            await sys.board.filters.syncFilterStates();
+            await sys.board.heaters.syncHeaterStates();
+            await sys.board.schedules.syncScheduleStates();
+            state.emitControllerChange();
+            state.emitEquipmentChanges();
+        } catch (err) { state.status = 255; logger.error(`Error performing processStatusAsync ${err.message}`); }
+        finally {
+            this.suspendStatus(false);
+            if (this.statusInterval > 0) this._statusTimer = setTimeout(() => self.processStatusAsync(), this.statusInterval);
+        }
     }
-  }
   public async setControllerType(obj): Promise<Equipment> {
     try {
       if (obj.controllerType !== sys.controllerType)

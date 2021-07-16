@@ -84,13 +84,14 @@ export class NixieSchedule extends NixieEquipment {
         catch (err) { logger.error(`Nixie setScheduleAsync: ${err.message}`); return Promise.reject(err); }
     }
     public async pollEquipmentAsync() {
+        let self = this;
         try {
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
             let success = false;
         }
         catch (err) { logger.error(`Nixie Error polling Schedule - ${err}`); }
-        finally { this._pollTimer = setTimeout(async () => await this.pollEquipmentAsync(), this.pollingInterval || 10000); }
+        finally { this._pollTimer = setTimeout(async () => await self.pollEquipmentAsync(), this.pollingInterval || 10000); }
     }
     public async validateSetupAsync(Schedule: Schedule, temp: ScheduleState) {
         try {
