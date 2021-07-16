@@ -42,9 +42,11 @@ export class NixieFilterCollection extends NixieEquipmentCollection<NixieFilter>
             for (let i = 0; i < filters.length; i++) {
                 let filter = filters.getItemByIndex(i);
                 if (filter.master === 1) {
-                    logger.info(`Initializing Filter ${Filter.name}`);
-                    let nFilter = new NixieFilter(this.controlPanel, filter);
-                    this.push(nFilter);
+                    if (typeof this.find(elem => elem.id === filter.id) === 'undefined') {
+                        logger.info(`Initializing Filter ${Filter.name}`);
+                        let nFilter = new NixieFilter(this.controlPanel, filter);
+                        this.push(nFilter);
+                    }
                 }
             }
         }

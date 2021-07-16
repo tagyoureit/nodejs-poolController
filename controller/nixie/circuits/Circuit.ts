@@ -62,9 +62,11 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
             for (let i = 0; i < circuits.length; i++) {
                 let circuit = circuits.getItemByIndex(i);
                 if (circuit.master === 1) {
-                    logger.info(`Initializing Nixie circuit ${circuit.name}`);
-                    let ncircuit = new NixieCircuit(this.controlPanel, circuit);
-                    this.push(ncircuit);
+                    if (typeof this.find(elem => elem.id === circuit.id) === 'undefined') {
+                        logger.info(`Initializing Nixie circuit ${circuit.name}`);
+                        let ncircuit = new NixieCircuit(this.controlPanel, circuit);
+                        this.push(ncircuit);
+                    }
                 }
             }
         }

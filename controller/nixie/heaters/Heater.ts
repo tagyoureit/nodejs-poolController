@@ -56,9 +56,11 @@ export class NixieHeaterCollection extends NixieEquipmentCollection<NixieHeaterB
             for (let i = 0; i < heaters.length; i++) {
                 let heater = heaters.getItemByIndex(i);
                 if (heater.master === 1) {
-                    logger.info(`Initializing Heater ${heater.name}`);
-                    let nHeater = NixieHeaterBase.create(this.controlPanel, heater);
-                    this.push(nHeater);
+                    if (typeof this.find(elem => elem.id === heater.id) === 'undefined') {
+                        logger.info(`Initializing Heater ${heater.name}`);
+                        let nHeater = NixieHeaterBase.create(this.controlPanel, heater);
+                        this.push(nHeater);
+                    }
                 }
             }
         }

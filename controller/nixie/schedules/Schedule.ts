@@ -33,9 +33,11 @@ export class NixieScheduleCollection extends NixieEquipmentCollection<NixieSched
             for (let i = 0; i < schedules.length; i++) {
                 let schedule = schedules.getItemByIndex(i);
                 if (schedule.master === 1) {
-                    logger.info(`Initializing Schedule ${schedule.id}`);
-                    let nSchedule = new NixieSchedule(this.controlPanel, schedule);
-                    this.push(nSchedule);
+                    if (typeof this.find(elem => elem.id === schedule.id) === 'undefined') {
+                        logger.info(`Initializing Schedule ${schedule.id}`);
+                        let nSchedule = new NixieSchedule(this.controlPanel, schedule);
+                        this.push(nSchedule);
+                    }
                 }
             }
         }

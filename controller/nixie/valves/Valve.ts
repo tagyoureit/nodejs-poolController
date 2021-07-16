@@ -54,9 +54,11 @@ export class NixieValveCollection extends NixieEquipmentCollection<NixieValve> {
             for (let i = 0; i < valves.length; i++) {
                 let valve = valves.getItemByIndex(i);
                 if (valve.master === 1) {
-                    let nvalve = new NixieValve(this.controlPanel, valve);
-                    logger.info(`Initializing Nixie Valve ${nvalve.id}-${valve.name}`);
-                    this.push(nvalve);
+                    if (typeof this.find(elem => elem.id === valve.id) === 'undefined') {
+                        let nvalve = new NixieValve(this.controlPanel, valve);
+                        logger.info(`Initializing Nixie Valve ${nvalve.id}-${valve.name}`);
+                        this.push(nvalve);
+                    }
                 }
             }
         }

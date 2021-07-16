@@ -49,10 +49,12 @@ export class NixieChlorinatorCollection extends NixieEquipmentCollection<NixieCh
             for (let i = 0; i < chlorinators.length; i++) {
                 let cc = chlorinators.getItemByIndex(i);
                 if (cc.master === 1) {
-                    logger.info(`Initializing Nixie chlorinator ${cc.name}`);
-                    let ncc = new NixieChlorinator(this.controlPanel, cc);
-                    this.push(ncc);
-                    await ncc.initAsync();
+                    if (typeof this.find(elem => elem.id === cc.id) === 'undefined') {
+                        logger.info(`Initializing Nixie chlorinator ${cc.name}`);
+                        let ncc = new NixieChlorinator(this.controlPanel, cc);
+                        this.push(ncc);
+                        await ncc.initAsync();
+                    }
                 }
             }
         }

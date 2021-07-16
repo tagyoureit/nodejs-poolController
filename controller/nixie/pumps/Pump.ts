@@ -65,10 +65,12 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
             for (let i = 0; i < pumps.length; i++) {
                 let pump = pumps.getItemByIndex(i);
                 if (pump.master === 1) {
-                    let type = sys.board.valueMaps.pumpTypes.getName(pump.type);
-                    let npump = this.pumpFactory(pump);
-                    logger.info(`Initializing Nixie Pump ${npump.id}-${pump.name}`);
-                    this.push(npump);
+                    if (typeof this.find(elem => elem.id === pump.id) === 'undefined') {
+                        let type = sys.board.valueMaps.pumpTypes.getName(pump.type);
+                        let npump = this.pumpFactory(pump);
+                        logger.info(`Initializing Nixie Pump ${npump.id}-${pump.name}`);
+                        this.push(npump);
+                    }
                 }
             }
         }
