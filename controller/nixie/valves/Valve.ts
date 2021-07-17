@@ -50,7 +50,6 @@ export class NixieValveCollection extends NixieEquipmentCollection<NixieValve> {
     }
     public async initAsync(valves: ValveCollection) {
         try {
-            this.length = 0;
             for (let i = 0; i < valves.length; i++) {
                 let valve = valves.getItemByIndex(i);
                 if (valve.master === 1) {

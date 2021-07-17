@@ -61,7 +61,6 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
     }
     public async initAsync(pumps: PumpCollection) {
         try {
-            this.length = 0;
             for (let i = 0; i < pumps.length; i++) {
                 let pump = pumps.getItemByIndex(i);
                 if (pump.master === 1) {

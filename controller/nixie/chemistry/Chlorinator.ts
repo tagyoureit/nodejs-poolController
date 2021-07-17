@@ -45,7 +45,6 @@ export class NixieChlorinatorCollection extends NixieEquipmentCollection<NixieCh
     }
     public async initAsync(chlorinators: ChlorinatorCollection) {
         try {
-            this.length = 0;
             for (let i = 0; i < chlorinators.length; i++) {
                 let cc = chlorinators.getItemByIndex(i);
                 if (cc.master === 1) {

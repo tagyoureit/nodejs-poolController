@@ -56,6 +56,7 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
             else {
                 await ncc.setControllerAsync(data);
             }
+            // Now go back through the array and undo anything that is in need of pruning.
         }
         catch (err) { logger.error(`setControllerAsync: ${err.message}`); return Promise.reject(err); }
     }
@@ -973,6 +974,8 @@ class NixieChemical extends NixieChildEquipment {
     public async initDose(schem: ChemicalState) { }
     public async closeAsync() {
         try {
+            // We are only killing the mix timer here so when njsPC is restarted it picks up where
+            // it left off with mixing.
             if (typeof this._mixTimer !== 'undefined') clearInterval(this._mixTimer);
             this._mixTimer = undefined;
             await super.closeAsync();
@@ -1055,11 +1058,12 @@ export class NixieChemPump extends NixieChildEquipment {
             let dose = schem.currentDose;
             if (this.pump.type !== 0) await this.turnOff(schem);
             if (typeof dose !== 'undefined') {
-                schem.endDose();
+                schem.endDose(new Date(), reason);
                 schem.manualDosing = false;
                 schem.dosingTimeRemaining = 0;
                 schem.dosingVolumeRemaining = 0;
                 schem.volumeDosed = 0;
+                schem.timeDosed = 0;
             }
         } catch (err) { logger.error(`Error stopping ${schem.chemType} dosing: ${err.message}`); return Promise.reject(err); }
         finally { this._isStopping = false; }
@@ -1316,15 +1320,15 @@ export class NixieChemicalPh extends NixieChemical {
                 await this.cancelDosing(sph, 'mixing');
                 if (typeof this.currentMix === 'undefined') {
                     // First lets check to see how many chem controllers we have.
-                    if (ncp.chemControllers.length > 1) {
-                        let arrIds = [];
-                        for (let i = 0; i < ncp.chemControllers.length; i++) {
-                            arrIds.push(ncp[i].id);
-                        }
-                        logger.info(`More than one NixieChemController object was found ${JSON.stringify(arrIds)}`);
-                    }
+                    // RKS: Keep this case around in case there is another Moby Dick and Nixie has an orphan out there.
+                    //if (ncp.chemControllers.length > 1) {
+                    //    let arrIds = [];
+                    //    for (let i = 0; i < ncp.chemControllers.length; i++) {
+                    //        arrIds.push(ncp[i].id);
+                    //    }
+                    //    logger.info(`More than one NixieChemController object was found ${JSON.stringify(arrIds)}`);
+                    //}
                     logger.info(`Current ${sph.chemType} mix object not defined initializing mix`);
-                    //console.log(JSON.stringify(this));
                     await this.mixChemicals(sph);
                 }
             }
@@ -1654,9 +1658,9 @@ export class NixieChemicalORP extends NixieChemical {
 
                     }
                     else {
-                        logger.info(`Chem orp dose calculated ${dose}mL for ${utils.formatDuration(time)} Tank Level: ${sorp.tank.level} using ${meth}`);
-
                         sorp.demand = sorp.calcDemand(chem);
+                        if (sorp.demand > 0) logger.info(`Chem orp dose calculated ${dose}mL for ${utils.formatDuration(time)} Tank Level: ${sorp.tank.level} using ${meth}`);
+
                         if (typeof sorp.currentDose === 'undefined') {
                             // We will include this with the dose demand because our limits may reduce it.
                             //dosage.demand = demand;

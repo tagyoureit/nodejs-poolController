@@ -93,12 +93,12 @@ export class NixieEquipmentCollection<T> extends Array<NixieEquipment> {
         catch (err) { return Promise.reject(err); }
     }
 }
-export class NixieRelay extends NixieEquipment {
+//export class NixieRelay extends NixieEquipment {
 
-}
-export class NixieCircuit extends NixieRelay {
+//}
+//export class NixieCircuit extends NixieRelay {
 
-}
-export class NixieValve extends NixieRelay {
+//}
+//export class NixieValve extends NixieRelay {
 
-}
+//}

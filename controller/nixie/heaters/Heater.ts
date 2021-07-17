@@ -52,7 +52,6 @@ export class NixieHeaterCollection extends NixieEquipmentCollection<NixieHeaterB
     }
     public async initAsync(heaters: HeaterCollection) {
         try {
-            this.length = 0;
             for (let i = 0; i < heaters.length; i++) {
                 let heater = heaters.getItemByIndex(i);
                 if (heater.master === 1) {

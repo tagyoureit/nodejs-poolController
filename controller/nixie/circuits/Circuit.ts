@@ -58,7 +58,6 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
     }
     public async initAsync(circuits: CircuitCollection) {
         try {
-            this.length = 0;
             for (let i = 0; i < circuits.length; i++) {
                 let circuit = circuits.getItemByIndex(i);
                 if (circuit.master === 1) {

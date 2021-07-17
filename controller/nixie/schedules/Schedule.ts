@@ -29,7 +29,6 @@ export class NixieScheduleCollection extends NixieEquipmentCollection<NixieSched
     }
     public async initAsync(schedules: ScheduleCollection) {
         try {
-            this.length = 0;
             for (let i = 0; i < schedules.length; i++) {
                 let schedule = schedules.getItemByIndex(i);
                 if (schedule.master === 1) {
