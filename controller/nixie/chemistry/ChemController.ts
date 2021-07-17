@@ -68,7 +68,6 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
     }
     public async initAsync(controllers: ChemControllerCollection) {
         try {
-            this.length = 0;
             for (let i = 0; i < controllers.length; i++) {
                 let cc = controllers.getItemByIndex(i);
                 if (cc.master === 1) {
