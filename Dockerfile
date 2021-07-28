@@ -8,6 +8,7 @@ RUN npm run build
 RUN npm ci --production
 
 FROM node:lts-alpine as prod
+RUN apk add git
 RUN mkdir /app && chown node:node /app
 WORKDIR /app
 COPY --chown=node:node --from=build /app .
