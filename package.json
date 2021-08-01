@@ -23,7 +23,7 @@
         "eslint-config-promise": "^2.0.2",
         "express": "^4.17.1",
         "extend": "^3.0.2",
-        "jszip": "^3.6.0",
+        "jszip": "^3.7.0",
         "mqtt": "^4.2.6",
         "multicast-dns": "^7.2.0",
         "node-ssdp": "^4.0.1",
