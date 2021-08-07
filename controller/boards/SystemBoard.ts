@@ -440,6 +440,13 @@ export class byteValueMaps {
     [2, { name: 'aquarite', desc: 'Aquarite' }],
     [3, { name: 'unknown', desc: 'unknown' }]
   ]);
+  public chlorinatorModel: byteValueMap = new byteValueMap([
+    [0, { name: 'unknown', desc: 'unknown', capacity: 0, chlorinePerDay: 0, chlorinePerSec: 0 }],
+    [1, { name: 'intellichlor-15', desc: 'IC15', capacity: 15000, chlorinePerDay: 0.60, chlorinePerSec: 0.60/86400 }],
+    [2, { name: 'intellichlor--20', desc: 'IC20', capacity: 20000, chlorinePerDay: 0.70, chlorinePerSec: 0.70/86400 }],
+    [3, { name: 'intellichlor--40', desc: 'IC40', capacity: 40000, chlorinePerDay: 1.40, chlorinePerSec: 1.4/86400 }],
+    [4, { name: 'intellichlor--60', desc: 'IC60', capacity: 60000, chlorinePerDay: 2, chlorinePerSec: 2/86400 }], 
+  ])
   public customNames: byteValueMap = new byteValueMap();
   public circuitNames: byteValueMap = new byteValueMap();
   public scheduleTypes: byteValueMap = new byteValueMap([
@@ -508,11 +515,14 @@ export class byteValueMaps {
     [2, { name: 'rate', desc: 'Rate Sensor', remAddress: true }],
     [4, { name: 'pressure', desc: 'Pressure Sensor', remAddress: true }],
   ]);
-
   public chemDosingMethods: byteValueMap = new byteValueMap([
     [0, { name: 'manual', desc: 'Manual' }],
     [1, { name: 'time', desc: 'Time' }],
     [2, { name: 'volume', desc: 'Volume' }]
+  ]);
+  public chemChlorDosingMethods: byteValueMap = new byteValueMap([
+    [0, { name: 'chlor', desc: 'Use Chlorinator Settings' }],
+    [1, { name: 'target', desc: 'Dynamic based on ORP Setpoint' }]
   ]);
   public phSupplyTypes: byteValueMap = new byteValueMap([
     [0, { name: 'base', desc: 'Base pH+' }],

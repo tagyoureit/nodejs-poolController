@@ -239,6 +239,7 @@ export class ConfigRoute {
                     phSupplyTypes: sys.board.valueMaps.phSupplyTypes.toArray(),
                     volumeUnits: sys.board.valueMaps.volumeUnits.toArray(),
                     dosingMethods: sys.board.valueMaps.chemDosingMethods.toArray(),
+                    chlorDosingMethods: sys.board.valueMaps.chemChlorDosingMethods.toArray(),
                     orpProbeTypes: sys.board.valueMaps.chemORPProbeTypes.toArray(),
                     phProbeTypes: sys.board.valueMaps.chemPhProbeTypes.toArray(),
                     flowSensorTypes: sys.board.valueMaps.flowSensorTypes.toArray(),
@@ -280,7 +281,8 @@ export class ConfigRoute {
                 types: sys.board.valueMaps.chlorinatorType.toArray(),
                 bodies: sys.board.bodies.getBodyAssociations(),
                 chlorinators: sys.chlorinators.get(),
-                maxChlorinators: sys.equipment.maxChlorinators
+                maxChlorinators: sys.equipment.maxChlorinators,
+                models: sys.board.valueMaps.chlorinatorModel.toArray()
             };
             return res.status(200).send(opts);
         });

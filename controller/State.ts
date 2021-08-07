@@ -1097,7 +1097,7 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState, IC
         if (typeof this.data.endTime === 'undefined') return undefined;
         return new Timestamp(this.data.endTime);
     }
-    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate())) : this.setDataVal('endTime', undefined); } 
+    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate())) : this.setDataVal('endTime', undefined); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get showInFeatures(): boolean { return typeof this.data.showInFeatures === 'undefined' ? true : this.data.showInFeatures; }
@@ -1170,7 +1170,7 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
         if (typeof this.data.endTime === 'undefined') return undefined;
         return new Timestamp(this.data.endTime);
     }
-    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate())) : this.setDataVal('endTime', undefined); } 
+    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate())) : this.setDataVal('endTime', undefined); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get isActive(): boolean { return this.data.isActive; }
@@ -2121,6 +2121,11 @@ export class ChemicalState extends ChildEqState {
         return this.data.doseHistory;
     }
     public set doseHistory(val: ChemicalDoseState[]) { this.setDataVal('doseHistory', val); }
+    public appendDemand(time: number, val: number) {
+        let dH = this.demandHistory;
+        dH.appendDemand(time, val);
+    }
+    public get demandHistory() { return new ChemicalDemandState(this.data, 'demandHistory', this) };
     public get enabled(): boolean { return this.data.enabled; }
     public set enabled(val: boolean) { this.data.enabled = val; }
     public get level(): number { return this.data.level; }
@@ -2152,7 +2157,7 @@ export class ChemicalState extends ChildEqState {
     public get dosingStatus(): number { return typeof (this.data.dosingStatus) !== 'undefined' ? this.data.dosingStatus.val : undefined; }
     public set dosingStatus(val: number) {
         if (this.dosingStatus !== val) {
-            logger.debug(`${this.chemType} dosing status changed from ${this.dosingStatus} to ${val}`);
+            logger.debug(`${this.chemType} dosing status changed from ${sys.board.valueMaps.chemControllerDosingStatus.getName(this.dosingStatus)} (${this.dosingStatus}) to ${sys.board.valueMaps.chemControllerDosingStatus.getName(val)}(${val})`);
             this.data.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.transform(val);
             this.hasChanged = true;
         }
@@ -2169,6 +2174,7 @@ export class ChemicalState extends ChildEqState {
     public set dailyLimitReached(val: boolean) { this.data.dailyLimitReached = val; }
     public get tank(): ChemicalTankState { return new ChemicalTankState(this.data, 'tank', this); }
     public get pump(): ChemicalPumpState { return new ChemicalPumpState(this.data, 'pump', this); }
+    public get chlor(): ChemicalChlorState { return new ChemicalChlorState(this.data, 'chlor', this); }
     public calcDemand(chem?: ChemController): number { return 0; }
     public getExtended() {
         let chem = this.get(true);
@@ -2239,6 +2245,7 @@ export class ChemicalORPState extends ChemicalState {
     public initData() {
         if (typeof this.data.probe === 'undefined') this.data.probe = {};
         if (typeof this.data.chemType === 'undefined') this.data.chemType === 'orp';
+        if (typeof this.data.useChlorinator === 'undefined') this.data.useChlorinator = false;
         super.initData();
         // Load up the 24 hours doseHistory.
         //this.doseHistory = DataLogger.readFromEnd(`chemDosage_${this.chemType}.log`, ChemicalDoseState, (lineNumber: number, entry: ChemicalDoseState): boolean => {
@@ -2251,6 +2258,8 @@ export class ChemicalORPState extends ChemicalState {
     }
     public get chemType() { return 'orp'; }
     public get probe() { return new ChemicalProbeORPState(this.data, 'probe', this); }
+    public get useChlorinator(): boolean { return utils.makeBool(this.data.useChlorinator); }
+    public set useChlorinator(val: boolean) { this.setDataVal('useChlorinator', val); }
     public get suspendDosing(): boolean {
         let cc = this.chemController;
         return cc.alarms.comms !== 0 || cc.alarms.orpProbeFault !== 0 || cc.alarms.orpPumpFault !== 0 || cc.alarms.bodyFault !== 0;
@@ -2290,6 +2299,22 @@ export class ChemicalPumpState extends ChildEqState {
         let pump = this.get(true);
         pump.type = sys.board.valueMaps.chemPumpTypes.transform(this.type);
         return pump;
+    }
+}
+export class ChemicalChlorState extends ChildEqState {
+    public initData() {
+        if (typeof this.data.isDosing === 'undefined') this.data.isDosing = false;
+    }
+    public get chemical(): ChemicalState { return this.getParent() as ChemicalState; }
+    public get chemController(): ChemControllerState {
+        let p = this.chemical;
+        return typeof p !== 'undefined' ? p.getParent() as ChemControllerState : undefined;
+    }
+    public get isDosing(): boolean { return utils.makeBool(this.data.isDosing); }
+    public set isDosing(val: boolean) { this.setDataVal('isDosing', val); }
+    public getExtended() {
+        let chlor = this.get(true);
+        return chlor;
     }
 }
 export class ChemicalProbeState extends ChildEqState {
@@ -2395,6 +2420,29 @@ export class ChemicalDoseState extends DataLoggerEntry {
     public get volumeRemaining(): number { return Math.max(0, this.volume - this.volumeDosed); }
 }
 
+export class ChemicalDemandState extends ChildEqState {
+    public initData() {
+        if (typeof this.data.time === 'undefined') this.data.time = [];
+        if (typeof this.data.value === 'undefined') this.data.value = [];
+    }
+    
+    public appendDemand(time: number, val: number) {
+        while (this.data.time.length > 99) {
+            this.data.time.pop();
+            this.data.value.pop();
+        }
+        this.data.time.unshift(Math.round(time / 1000));
+        this.data.value.unshift(val);
+        // calculate the slope with each save
+        let slope = utils.slopeOfLeastSquares(this.data.time, this.data.value);
+        this.setDataVal('slope', slope);  // will act as hasChanged=true;
+    }
+    public get demandHistory(): {} { return [this.data.time, this.data.value]; }
+    public get times(): number[] { return this.data.time; }
+    public get values(): number[] { return this.data.value; }
+    public set slope(val: number) { this.setDataVal('slope', val); }
+    public get slope():number { return this.data.slope; }
+}
 
 export class ChemControllerStateWarnings extends ChildEqState {
     ///ctor(data): ChemControllerStateWarnings { return new ChemControllerStateWarnings(data, name || 'warnings'); }

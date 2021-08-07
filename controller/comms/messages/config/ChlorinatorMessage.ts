@@ -79,6 +79,7 @@ export class ChlorinatorMessage {
                 schlor.body = chlor.body = sys.equipment.maxBodies >= 1 || sys.equipment.shared === true ? 32 : 0;
             }
             schlor.name = chlor.name = msg.extractPayloadString(6, 16);
+            if (typeof chlor.model === 'undefined') chlor.model  = schlor.name; 
             schlor.saltLevel = msg.extractPayloadByte(3) * 50 || schlor.saltLevel;
             schlor.status = msg.extractPayloadByte(4) & 0x007F; // Strip off the high bit.  The chlorinator does not actually report this.;
             // Pull the hours from the 25 message.

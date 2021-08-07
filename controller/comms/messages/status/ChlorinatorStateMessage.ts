@@ -63,7 +63,9 @@ export class ChlorinatorStateMessage {
                     //                  I   n    t    e    l    l    i    c   h    l    o    r    -   -   4   0
                     //[16, 2, 0, 3][0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 52, 48][188, 16, 3]
                     // This is the model number of the chlorinator and the address is actually the second byte.
-                    if (typeof chlor.name === 'undefined' || chlor.name === '') chlor.name = msg.extractPayloadString(1, 16);
+                    let name = msg.extractPayloadString(1, 16);
+                    chlor.model = name;
+                    if (typeof chlor.name === 'undefined' || chlor.name === '') chlor.name = name;
                     cstate.name = chlor.name;
                     cstate.isActive = chlor.isActive;
                     state.emitEquipmentChanges();
@@ -73,9 +75,12 @@ export class ChlorinatorStateMessage {
                     // If the chlorinator is no longer talking to us then clear the current output.
                     if (cstate.status === 128) cstate.currentOutput = 0;
                     cstate.targetOutput = msg.extractPayloadByte(0);
-                    if (chlor.disabled && cstate.targetOutput !== 0) {
+                    if (chlor.disabled && (cstate.targetOutput !== 0 || cstate.superChlor || cstate.superChlorHours > 0)) {
                         // Some dumbass is trying to change our output.  We need to set it back to 0.
-                        sys.board.chlorinator.setChlorAsync({ id: chlor.id, disabled: true });
+                        sys.board.chlorinator.setChlorAsync({ id: chlor.id, disabled: chlor.disabled, superChlor: false, superChlorHours: 0 });
+                    }
+                    else if (chlor.isDosing && cstate.targetOutput !== 100){
+                        sys.board.chlorinator.setChlorAsync({ id: chlor.id, isDosing: chlor.isDosing });
                     }
                     state.emitEquipmentChanges();
                     break;

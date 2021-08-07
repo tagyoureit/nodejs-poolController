@@ -2441,13 +2441,14 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         //let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
         // If this is a virtual chlorinator then go to the base class and handle it from there.
         if (chlor.master === 1) return super.setChlorAsync(obj);
-        let name = obj.name || 'IntelliChlor' + id;
+        let name = obj.name || chlor.name || 'IntelliChlor' + id;
         let poolSetpoint = parseInt(obj.poolSetpoint, 10);
         let spaSetpoint = parseInt(obj.spaSetpoint, 10);
         let superChlorHours = parseInt(obj.superChlorHours, 10);
         if (typeof obj.superChlorinate !== 'undefined') obj.superChlor = utils.makeBool(obj.superChlorinate);
         let superChlorinate = typeof obj.superChlor === 'undefined' ? undefined : utils.makeBool(obj.superChlor);
         let disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled;
+        let model = typeof obj.model !== 'undefined' ? obj.model : chlor.model;
         if (isAdd) {
             if (isNaN(poolSetpoint)) poolSetpoint = 50;
             if (isNaN(spaSetpoint)) spaSetpoint = 10;
@@ -2455,8 +2456,8 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
             if (typeof superChlorinate === 'undefined') superChlorinate = false;
         }
         else {
-            if (isNaN(poolSetpoint)) poolSetpoint = chlor.poolSetpoint;
-            if (isNaN(spaSetpoint)) spaSetpoint = chlor.spaSetpoint;
+            if (isNaN(poolSetpoint)) poolSetpoint = chlor.poolSetpoint || 0;
+            if (isNaN(spaSetpoint)) spaSetpoint = chlor.spaSetpoint || 0;
             if (isNaN(superChlorHours)) superChlorHours = chlor.superChlorHours;
             if (typeof superChlorinate === 'undefined') superChlorinate = utils.makeBool(chlor.superChlor);
         }
@@ -2480,6 +2481,8 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
                         let schlor = state.chlorinators.getItemById(id, true);
                         let cchlor = sys.chlorinators.getItemById(id, true);
                         chlor.disabled = disabled;
+                        chlor.model = model;
+                        chlor.name = schlor.name = name;
                         schlor.isActive = cchlor.isActive = true;
                         schlor.poolSetpoint = cchlor.poolSetpoint = poolSetpoint;
                         schlor.spaSetpoint = cchlor.spaSetpoint = spaSetpoint;

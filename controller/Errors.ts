@@ -114,6 +114,14 @@ export class InvalidOperationError extends ApiError {
     }
     public operation: string;
 }
+export class EquipmentTimeoutError extends ApiError {
+    constructor(message: string, operation: string) {
+        super(message, 100, 400);
+        this.name = 'TimeoutError';
+        this.operation = operation;
+    }
+    public operation: string;
+}
 export class ParameterOutOfRangeError extends InvalidOperationError {
     constructor(message: string, operation: string, parameter: string, value) {
         super(message, operation);

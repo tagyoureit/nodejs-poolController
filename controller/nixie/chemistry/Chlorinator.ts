@@ -99,6 +99,7 @@ export class NixieChlorinator extends NixieEquipment {
             let superChlor = typeof data.superChlor !== 'undefined' ? utils.makeBool(data.superChlor) : chlor.superChlor;
             let chlorType = typeof data.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(data.type) : chlor.type;
             let superChlorHours = typeof data.superChlorHours !== 'undefined' ? parseInt(data.superChlorHours, 10) : chlor.superChlorHours;
+            let model = typeof data.model !== 'undefined' ? data.model : chlor.model;
             if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chlorinator', data.body || chlor.body));
             if (isNaN(poolSetpoint)) poolSetpoint = 0;
             if (isNaN(spaSetpoint)) spaSetpoint = 0;
@@ -112,6 +113,7 @@ export class NixieChlorinator extends NixieEquipment {
             schlor.superChlorHours = chlor.superChlorHours = superChlorHours;
             schlor.type = chlor.type = chlorType;
             chlor.body = body;
+            chlor.model = model;
             schlor.body = chlor.body;
             schlor.name = chlor.name = data.name || chlor.name || `Chlorinator ${chlor.id}`;
             schlor.isActive = chlor.isActive = true;

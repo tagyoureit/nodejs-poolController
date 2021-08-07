@@ -524,7 +524,9 @@ export class SendRecieveBuffer {
             let out = conn.buffer._outBuffer[i--];
             if (typeof out === 'undefined') continue;
             let resp = out.response;
-            if (out.requiresResponse) {
+            // RG - added check for msgOut because the *Touch chlor packet 153 adds an status packet 217
+            // but if it is the only packet on the queue the outbound will have been cleared out already.
+            if (out.requiresResponse && msgOut !== null) {
                 if (resp instanceof Response && resp.isResponse(msgIn, out) && (typeof out.scope === 'undefined' || out.scope === msgOut.scope)) {
                     resp.message = msgIn;
                     if (typeof (resp.callback) === 'function' && resp.callback) callback = resp.callback;
@@ -542,6 +544,8 @@ export class SendRecieveBuffer {
         msg.timestamp = new Date();
         msg.id = Message.nextMessageId;
         conn.buffer.counter.recCollisions += msg.collisions;
+        logger.packet(msg);
+        webApp.emitToChannel('rs485PortStats', 'rs485Stats', conn.buffer.counter);
         if (msg.isValid) {
             conn.buffer.counter.recSuccess++;
             conn.buffer.counter.updatefailureRate();
@@ -554,8 +558,6 @@ export class SendRecieveBuffer {
             console.log('RS485 Stats:' + conn.buffer.counter.toLog());
             ndx = this.rewindFailedMessage(msg, ndx);
         }
-        logger.packet(msg);
-        webApp.emitToChannel('rs485PortStats', 'rs485Stats', conn.buffer.counter);
         return ndx;
     }
     private rewindFailedMessage(msg: Inbound, ndx: number): number {

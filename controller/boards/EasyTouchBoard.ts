@@ -15,15 +15,15 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as extend from 'extend';
-import { SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, PumpCommands, HeaterCommands, SystemCommands, CircuitCommands, FeatureCommands, ChlorinatorCommands, EquipmentIdRange, ScheduleCommands, ChemControllerCommands } from './SystemBoard';
-import { PoolSystem, Body, Pump, sys, ConfigVersion, Heater, Schedule, EggTimer, ICircuit, CustomNameCollection, CustomName, LightGroup, LightGroupCircuit, Feature, ChemController, Circuit, ScheduleCollection } from '../Equipment';
-import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
-import { state, ChlorinatorState, CommsState, State, ICircuitState, ICircuitGroupState, LightGroupState, BodyTempState, FilterState, ScheduleState } from '../State';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
-import { MessageError, InvalidEquipmentIdError, InvalidEquipmentDataError, InvalidOperationError } from '../Errors';
+import { Message, Outbound, Protocol, Response } from '../comms/messages/Messages';
 import { utils } from '../Constants';
+import { Body, ChemController, ConfigVersion, CustomName, EggTimer, Feature, Heater, ICircuit, LightGroup, LightGroupCircuit, PoolSystem, Pump, Schedule, sys } from '../Equipment';
+import { EquipmentTimeoutError, InvalidEquipmentDataError, InvalidEquipmentIdError } from '../Errors';
 import { ncp } from "../nixie/Nixie";
+import { BodyTempState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, state } from '../State';
+import { BodyCommands, byteValueMap, ChemControllerCommands, ChlorinatorCommands, CircuitCommands, ConfigQueue, ConfigRequest, EquipmentIdRange, FeatureCommands, HeaterCommands, PumpCommands, ScheduleCommands, SystemBoard, SystemCommands } from './SystemBoard';
 
 export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
@@ -1670,13 +1670,14 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         // If this is a virtual chlorinator then go to the base class and handle it from there.
         // RKS: I am not even sure this can be done with Touch as the master on the RS485 bus.
         if (chlor.master === 1 || isVirtual) return super.setChlorAsync(obj);
-        let name = obj.name || 'IntelliChlor' + id;
+        let name = obj.name || chlor.name || 'IntelliChlor' + id;
         let poolSetpoint = parseInt(obj.poolSetpoint, 10);
         let spaSetpoint = parseInt(obj.spaSetpoint, 10);
         let superChlorHours = parseInt(obj.superChlorHours, 10);
         if (typeof obj.superChlorinate !== 'undefined') obj.superChlor = utils.makeBool(obj.superChlorinate);
         let superChlorinate = typeof obj.superChlor === 'undefined' ? undefined : utils.makeBool(obj.superChlor);
         let disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled;
+        let model = typeof obj.model !== 'undefined' ? obj.model : chlor.model;
         if (isAdd) {
             if (isNaN(poolSetpoint)) poolSetpoint = 50;
             if (isNaN(spaSetpoint)) spaSetpoint = 10;
@@ -1684,8 +1685,8 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             if (typeof superChlorinate === 'undefined') superChlorinate = false;
         }
         else {
-            if (isNaN(poolSetpoint)) poolSetpoint = chlor.poolSetpoint;
-            if (isNaN(spaSetpoint)) spaSetpoint = chlor.spaSetpoint;
+            if (isNaN(poolSetpoint)) poolSetpoint = chlor.poolSetpoint || 0;
+            if (isNaN(spaSetpoint)) spaSetpoint = chlor.spaSetpoint || 0;
             if (isNaN(superChlorHours)) superChlorHours = chlor.superChlorHours;
             if (typeof superChlorinate === 'undefined') superChlorinate = utils.makeBool(chlor.superChlor);
         }
@@ -1701,51 +1702,65 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         if (poolSetpoint > 100 || poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
         if (spaSetpoint > 100 || spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
         if (typeof obj.ignoreSaltReading !== 'undefined') chlor.ignoreSaltReading = utils.makeBool(obj.ignoreSaltReading);
+        let _timeout: NodeJS.Timeout;
         return new Promise<ChlorinatorState>((resolve, reject) => {
-            let out = Outbound.create({
-                dest: 16,
-                action: 153,
-                payload: [disabled ? 0 : (spaSetpoint << 1) + 1, disabled ? 0 : poolSetpoint,
-                utils.makeBool(superChlorinate) && superChlorHours > 0 ? superChlorHours + 128 : 0,  // We only want to set the superChlor when the user sends superChlor = true
-                    0, 0, 0, 0, 0, 0, 0],
-                retries: 3,
-                response: true,
-                onComplete: (err) => {
-                    if (err) {
-                        logger.error(`Error setting Chlorinator values: ${err.message}`);
-                        reject(err);
-                    }
-                    let schlor = state.chlorinators.getItemById(id, true);
-                    let cchlor = sys.chlorinators.getItemById(id, true);
-                    schlor.isActive = cchlor.isActive = true;
-                    schlor.superChlor = cchlor.superChlor = superChlorinate;
-                    schlor.poolSetpoint = cchlor.poolSetpoint = poolSetpoint;
-                    schlor.spaSetpoint = cchlor.spaSetpoint = spaSetpoint;
-                    schlor.superChlorHours = cchlor.superChlorHours = superChlorHours;
-                    schlor.body = cchlor.body = body;
-                    cchlor.address = 79 + id;
-
-                    let request25Packet = Outbound.create({
-                        dest: 16,
-                        action: 217,
-                        payload: [0],
-                        retries: 3,
-                        response: true,
-                        onComplete: (err) => {
-                            if (err) {
-                                logger.error(`Error requesting chlor status: ${err.message}`);
-                                reject(err);
-                            }
-                            else
-                                resolve(state.chlorinators.getItemById(id));
-                            state.emitEquipmentChanges();
+            try {
+                let out = Outbound.create({
+                    dest: 16,
+                    action: 153,
+                    // removed disable ? 0 : (spaSetpoint << 1) + 1 because only deleteChlorAsync should remove it from the OCP
+                    payload: [(spaSetpoint << 1) + 1, disabled ? 0 : poolSetpoint,
+                    utils.makeBool(superChlorinate) && superChlorHours > 0 ? superChlorHours + 128 : 0,  // We only want to set the superChlor when the user sends superChlor = true
+                        0, 0, 0, 0, 0, 0, 0],
+                    retries: 3,
+                    response: true,
+                    // scope: Math.random(),
+                    onComplete: (err) => {
+                        if (err) {
+                            logger.error(`Error setting Chlorinator values: ${err.message}`);
+                            reject(err);
                         }
-                    });
-                    conn.queueSendMessage(request25Packet);
-                }
-            });
-            conn.queueSendMessage(out);
+                        else {
+                            let schlor = state.chlorinators.getItemById(id, true);
+                            chlor.disabled = disabled;
+                            schlor.isActive = chlor.isActive = true;
+                            schlor.superChlor = chlor.superChlor = superChlorinate;
+                            schlor.poolSetpoint = chlor.poolSetpoint = poolSetpoint;
+                            schlor.spaSetpoint = chlor.spaSetpoint = spaSetpoint;
+                            schlor.superChlorHours = chlor.superChlorHours = superChlorHours;
+                            schlor.body = chlor.body = body;
+                            chlor.address = 79 + id;
+                            chlor.name = schlor.name = name;
+                            chlor.model = model;
+                            let request25Packet = Outbound.create({
+                                dest: 16,
+                                action: 217,
+                                payload: [0],
+                                retries: 3,
+                                // scope: Math.random(),
+                                response: true,
+                                onComplete: (err) => {;
+                                    if (typeof _timeout !== 'undefined') _timeout = undefined;
+                                    if (err) {
+                                        logger.error(`Error requesting chlor status: ${err.message}`);
+                                        reject(err);
+                                    }
+                                    else
+                                        resolve(state.chlorinators.getItemById(id));
+                                    state.emitEquipmentChanges();
+                                }
+                            });
+                            setTimeout(()=>{conn.queueSendMessage(request25Packet)}, 100);
+                        }
+                    }
+                });
+                conn.queueSendMessage(out);
+            } catch (err) {
+                logger.error(`*Touch setChlorAsync Error: ${err.message}`);
+                return Promise.reject(err);
+            }
         });
+
     }
     public async deleteChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);

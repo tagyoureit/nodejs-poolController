@@ -20,7 +20,7 @@ import * as extend from "extend";
 import * as util from "util";
 import { setTimeout } from "timers";
 import { logger } from "../logger/Logger";
-import { state, CommsState } from "./State";
+import { state, CommsState, ChemicalChlorState } from "./State";
 import { Timestamp, ControllerType, utils } from "./Constants";
 export { ControllerType };
 import { webApp } from "../web/Server";
@@ -250,43 +250,43 @@ export class PoolSystem implements IPoolSystem {
                 break;
         }
     }
-   /*  public searchForAdditionalDevices() {
-        if (this.controllerType === ControllerType.Unknown || typeof this.controllerType === 'undefined' && !conn.mockPort) {
-            //logger.info("Searching chlorinators, pumps and chem controllers");
-            //EquipmentStateMessage.initVirtual();
-            //sys.board.virtualChlorinatorController.search();
-            //sys.board.virtualPumpControllers.search();
-            //sys.board.virtualChemControllers.search();
-            state.equipment.controllerType = sys.controllerType = ControllerType.Nixie;
-            let board = sys.board as NixieBoard;
-            (async () => { await board.initNixieBoard(); })();
-        }
-        else {
-            if (this.controllerType === ControllerType.Virtual) {
-                state.mode = 0;
-                state.status = 1;
-                sys.equipment.setEquipmentIds();
-                state.emitControllerChange();
-                sys.board.processStatusAsync();
-            }
-            else {
-                let board = sys.board as NixieBoard;
-                (async () => { await board.initNixieBoard(); })();
-            }
-
-            // if the app crashes while the pumps are running we need to reset the 'virtualControllerStatus' to stopped so it can start again
-            sys.board.virtualPumpControllers.softStop();
-            //sys.board.virtualChlorinatorController.stop();
-            sys.board.virtualChemControllers.stop();
-            // try to start any virtual controllers that are present irregardless of overall controller virtual status
-            sys.board.virtualPumpControllers.start();
-            //sys.board.virtualChlorinatorController.start();
-            sys.board.virtualChemControllers.start();
-            sys.board.heaters.initTempSensors();
-            sys.board.heaters.updateHeaterServices();
-            state.cleanupState();
-        }
-    } */
+    /*  public searchForAdditionalDevices() {
+         if (this.controllerType === ControllerType.Unknown || typeof this.controllerType === 'undefined' && !conn.mockPort) {
+             //logger.info("Searching chlorinators, pumps and chem controllers");
+             //EquipmentStateMessage.initVirtual();
+             //sys.board.virtualChlorinatorController.search();
+             //sys.board.virtualPumpControllers.search();
+             //sys.board.virtualChemControllers.search();
+             state.equipment.controllerType = sys.controllerType = ControllerType.Nixie;
+             let board = sys.board as NixieBoard;
+             (async () => { await board.initNixieBoard(); })();
+         }
+         else {
+             if (this.controllerType === ControllerType.Virtual) {
+                 state.mode = 0;
+                 state.status = 1;
+                 sys.equipment.setEquipmentIds();
+                 state.emitControllerChange();
+                 sys.board.processStatusAsync();
+             }
+             else {
+                 let board = sys.board as NixieBoard;
+                 (async () => { await board.initNixieBoard(); })();
+             }
+ 
+             // if the app crashes while the pumps are running we need to reset the 'virtualControllerStatus' to stopped so it can start again
+             sys.board.virtualPumpControllers.softStop();
+             //sys.board.virtualChlorinatorController.stop();
+             sys.board.virtualChemControllers.stop();
+             // try to start any virtual controllers that are present irregardless of overall controller virtual status
+             sys.board.virtualPumpControllers.start();
+             //sys.board.virtualChlorinatorController.start();
+             sys.board.virtualChemControllers.start();
+             sys.board.heaters.initTempSensors();
+             sys.board.heaters.updateHeaterServices();
+             state.cleanupState();
+         }
+     } */
     public board: SystemBoard = new SystemBoard(this);
     public ncp: NixieControlPanel = new NixieControlPanel();
     public processVersionChanges(ver: ConfigVersion) { this.board.requestConfiguration(ver); }
@@ -1388,8 +1388,12 @@ export class Chlorinator extends EqItem {
     //public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
     public get disabled(): boolean { return this.data.disabled; }
     public set disabled(val: boolean) { this.setDataVal('disabled', val); }
+    public get isDosing(): boolean { return this.data.isDosing; }
+    public set isDosing(val: boolean) { this.setDataVal('isDosing', val); }
     public get ignoreSaltReading() { return this.data.ignoreSaltReading; }
     public set ignoreSaltReading(val: boolean) { this.setDataVal('ignoreSaltReading', val); }
+    public get model() { return this.data.model; }
+    public set model(val: number | any) { this.setDataVal('model', sys.board.valueMaps.chlorinatorModel.encode(val)); }
 }
 export class ValveCollection extends EqItemCollection<Valve> {
     constructor(data: any, name?: string) { super(data, name || "valves"); }
@@ -1998,6 +2002,7 @@ export class Chemical extends ChildEqItem {
     public set startDelay(val: number) { this.setDataVal('startDelay', val); }
     public get pump(): ChemicalPump { return new ChemicalPump(this.data, 'pump', this); }
     public get tank(): ChemicalTank { return new ChemicalTank(this.data, 'tank', this); }
+    public get chlor(): ChemicalChlor { return new ChemicalChlor(this.data, 'chlor', this); }
     public get setpoint(): number { return this.data.setpoint; }
     public set setpoint(val: number) { this.setDataVal('setpoint', val); }
     public get tolerance(): AlarmSetting { return new AlarmSetting(this.data, 'tolerance', this); }
@@ -2041,6 +2046,7 @@ export class ChemicalORP extends Chemical {
         this.data.chemType = 'orp';
         if (typeof this.data.setpoint === 'undefined') this.data.setpoint = 600;
         if (typeof this.data.useChlorinator === 'undefined') this.data.useChlorinator = false;
+        if (typeof this.data.chlorDosingMethod === 'undefined') this.data.chlorDosingMethod = 0;
         if (typeof this.data.probe === 'undefined') this.data.probe = {};
         if (typeof this.data.tolerance === 'undefined') this.data.tolerance = { low: 650, high: 800, enabled: true };
         if (typeof this.data.phLockout === 'undefined') this.data.phLockout = 7.8;
@@ -2051,6 +2057,8 @@ export class ChemicalORP extends Chemical {
     public get phLockout(): number { return this.data.phLockout; }
     public set phLockout(val: number) { this.setDataVal('phLockout', val); }
     public get probe(): ChemicalORPProbe { return new ChemicalORPProbe(this.data, 'probe', this); }
+    public get chlorDosingMethod(): number | any { return this.data.chlorDosingMethod; }
+    public set chlorDosingMethod(val: number | any) { this.setDataVal('chlorDosingMethod', sys.board.valueMaps.chemChlorDosingMethods.encode(val)); }
     public getExtended() {
         let chem = super.getExtended();
         chem.probe = this.probe.getExtended();
@@ -2165,6 +2173,41 @@ export class ChemicalTank extends ChildEqItem {
         let tank = this.get(true);
         tank.units = sys.board.valueMaps.volumeUnits.transform(this.units);
         return tank;
+    }
+}
+export class ChemicalChlor extends ChildEqItem {
+    // This whole class is a reference to the first chlorinator.
+    // This may not follow a best practice
+    // and certainly won't work for multiple chlors
+    public dataName = 'chemicalChlorConfig';
+    public initData() {
+        super.initData();
+    }
+    public get enabled(): boolean { 
+        let chlor = sys.chlorinators.getItemById(1);
+        return chlor.isActive;
+    }
+    public get type(): number | any {
+        let chlor = sys.chlorinators.getItemById(1);
+        return chlor.type;
+    }
+    public get model(): number {
+        let chlor = sys.chlorinators.getItemById(1);
+        return typeof chlor.model !== 'undefined' ? chlor.model : 0;
+    }
+    public get ratedLbs(): number {
+        let model = sys.board.valueMaps.chlorinatorModel.get(this.model);
+        return typeof model.chlorinePerSec !== 'undefined' ? model.chlorinePerSec : 0;
+    }
+    public set ratedLbs(val: number) { this.setDataVal('ratedLbs', val); }
+    public get superChlor() { 
+        let chlor = sys.chlorinators.getItemById(1);
+        return typeof chlor.superChlor !== 'undefined' ? chlor.superChlor : false;
+     }
+    public getExtended() {
+        let chlor = this.get(true);
+        chlor.model = sys.board.valueMaps.chlorinatorModel.transform(this.model);
+        return chlor;
     }
 }
 export class AlarmSetting extends ChildEqItem {
