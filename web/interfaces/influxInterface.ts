@@ -175,9 +175,11 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                                 let sec = ts.getSeconds() - 1;
                                 ts.setSeconds(sec);
                                 point2.timestamp(ts);
+                                logger.silly(`Writing influx ${e.name} inverse data point ${point2.measurement}`)
                                 this.writeApi.writePoint(point2);
                             }
                             if (typeof point.toLineProtocol() !== 'undefined') {
+                                logger.silly(`Writing influx ${e.name} data point ${point2.measurement}`)
                                 this.writeApi.writePoint(point);
                                 //logger.info(`INFLUX: ${point.toLineProtocol()}`)
                             }

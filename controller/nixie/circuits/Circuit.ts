@@ -126,12 +126,26 @@ export class NixieCircuit extends NixieEquipment {
             this._sequencing = true;
             let arr = [];
             let t = typeof timeout === 'undefined' ? 100 : timeout;
-            arr.push({ isOn: true, timeout: t }); // This may not be needed but we always need to start from on.
+            arr.push({ isOn: false, timeout: t }); // This may not be needed but we always need to start from off.
             //[{ isOn: true, timeout: 1000 }, { isOn: false, timeout: 1000 }]
             for (let i = 0; i < count; i++) {
-                arr.push({ isOn: false, timeout: t });
                 arr.push({ isOn: true, timeout: t });
+                if(i < count - 1) arr.push({ isOn: false, timeout: t });
             }
+            // The documentation for IntelliBrite is incorrect.  The sequence below will give us Party mode.
+            // Party mode:2
+            // Start: Off
+            // On
+            // Off
+            // On
+            // According to the docs this is the sequence they lay out.
+            // Party mode:2
+            // Start: On
+            // Off
+            // On
+            // Off
+            // On
+
             let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, arr, 60000);
             return res;
         } catch (err) { logger.error(`Nixie: Error sending circuit sequence ${this.id}: ${count}`); }
