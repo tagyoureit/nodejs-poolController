@@ -1008,16 +1008,11 @@ class NixieChemical extends NixieChildEquipment {
             if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0) {
                 if (!this.chlor.chlor.superChlor) await this.chlor.stopDosing(schem, reason);
                 // for chlor, we want 15 minute intervals
-                // 
-                let doseHistory = schem.doseHistory;
-                // if last dose was within 15 minutes, set mix time to 15 mins-(now-lastdose)
-                // if no dose in last 15, then we should be monitoring
-                if (doseHistory.length > 0) {
-                    let lastDoseTimeDiff = new Timestamp().getTime() - doseHistory[0].start.getTime();
-                    console.log(`lastDoseTimeDiff: ${lastDoseTimeDiff}`)
-                    let mixTime: number;
-                    if (lastDoseTimeDiff < this.chlor.chlorInterval * 60) { mixTime = Math.round(this.chlor.chlorInterval * 60 - lastDoseTimeDiff); }
-                    console.log(`mixTime: ${mixTime}`)
+                if (schem.doseHistory.length) {
+                    // if last dose was within 15 minutes, set mix time to 15 mins-lastdose
+                    // if no dose in last 15, then we should be monitoring
+                    let lastDoseTime = schem.doseHistory[0].timeDosed;
+                    let mixTime = Math.min(Math.max(this.chlor.chlorInterval * 60 - lastDoseTime, 0), this.chlor.chlorInterval * 60);
                     if (schem.dosingStatus === 0) await this.mixChemicals(schem, mixTime);
                 }
                 else
@@ -1025,7 +1020,6 @@ class NixieChemical extends NixieChildEquipment {
             }
             else {
                 // Just stop the pump for now but we will do some logging later.
-                await this.chlor.stopDosing(schem, reason);
                 if (schem.dosingStatus === 0) await this.mixChemicals(schem);
             }
         } catch (err) { logger.error(`cancelDosing: ${err.message}`); return Promise.reject(err); }
@@ -1354,7 +1348,7 @@ export class NixieChemChlor extends NixieChildEquipment {
                     await this.chemical.cancelDosing(schem, 'no flow');
                 }
 
-                else if (chemController.ph.enabled && chemController.ph.pump.isDosing) {
+                else if (chemController.ph.enabled && chemController.ph.pump.isDosing && chemController.ph.dosePriority) {
                     // If ph has dose priority and is dosing, we shouldn't be continuing here
                     let chem = sys.chemControllers.getItemById(chemController.id, false);
                     if (chem.ph.dosePriority)
@@ -1825,14 +1819,11 @@ export class NixieChemicalORP extends NixieChemical {
             if (typeof sorp.useChlorinator !== 'undefined' && sorp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0) {
                 await this.chlor.stopDosing(sorp, reason);
                 // for chlor, we want 15 minute intervals
-                // 
-                let doseHistory = sorp.doseHistory;
-                // if last dose was within 15 minutes, set mix time to 15 mins-(now-lastdose)
-                // if no dose in last 15, then we should be monitoring
-                if (doseHistory.length > 0) {
-                    let lastDoseTimeDiff = (new Timestamp().getTime() - doseHistory[0].start.getTime()) / 1000;
-                    let mixTime: number;
-                    if (lastDoseTimeDiff < this.chlor.chlorInterval * 60) { mixTime = this.chlor.chlorInterval * 60 - lastDoseTimeDiff; }
+                if (sorp.doseHistory.length) {
+                    // if last dose was within 15 minutes, set mix time to 15 mins-lastdose
+                    // if no dose in last 15, then we should be monitoring
+                    let lastDoseTime = sorp.doseHistory[0].timeDosed;
+                    let mixTime = Math.min(Math.max(this.chlor.chlorInterval * 60 - lastDoseTime, 0), this.chlor.chlorInterval * 60);
                     if (sorp.dosingStatus === 0) await this.mixChemicals(sorp, mixTime);
                 }
                 else
@@ -1840,8 +1831,7 @@ export class NixieChemicalORP extends NixieChemical {
             }
             else {
                 // Just stop the pump for now but we will do some logging later.
-                if (this.orp.useChlorinator) await this.chlor.stopDosing(sorp, reason);
-                else await this.pump.stopDosing(sorp, reason);
+                await this.pump.stopDosing(sorp, reason);
             }
             if (sorp.dosingStatus === 0) {
                 await this.mixChemicals(sorp);
@@ -1870,15 +1860,15 @@ export class NixieChemicalORP extends NixieChemical {
                     }
                     else
                         if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0) {
-                            let doseHistory = schem.doseHistory;
                             // if last dose was within 15 minutes, set mix time to 15 mins-(now-lastdose)
                             // if no dose in last 15, then we should be monitoring
-                            let mixTime: number;
-                            if (doseHistory.length > 0) {
-                                let lastDoseTimeDiff = new Timestamp().getTime() - doseHistory[0].start.getTime();
-                                console.log(`lastDoseTimeDiff: ${lastDoseTimeDiff}`)
-                                if (lastDoseTimeDiff < this.chlor.chlorInterval * 60) { mixTime = Math.round(this.chlor.chlorInterval * 60 - lastDoseTimeDiff); }
-                                console.log(`mixTime: ${mixTime}`)
+                            if (schem.doseHistory.length) {
+                                // if last dose was within 15 minutes, set mix time to 15 mins-lastdose
+                                // if no dose in last 15, then we should be monitoring
+                                let lastDoseTime = schem.doseHistory[0].timeDosed;
+                                let mixTime = Math.min(Math.max(this.chlor.chlorInterval * 60 - lastDoseTime, 0), this.chlor.chlorInterval * 60);
+
+
                                 this.currentMix.set({ time: this.chemical.mixingTime, timeMixed: Math.max(0, mixTime - schem.mixTimeRemaining) });
                             }
                             else
@@ -1966,24 +1956,24 @@ export class NixieChemicalORP extends NixieChemical {
 
                     if (chem.orp.useChlorinator) {
                         /*
-Alright, here's the current thinking.
-1. If the orp setpoint is > 50mV below the current orp, the chlor will
-   be run at 100%.
-2. At the other end, if the demand is  < -20mV above the setpoint, chlor
-   will be run at 0%.
-3. This assumes a sliding scale where we will have an equilibrium point when
-   setpoint = current orp and hopefully this will be somewhere near (50-20 / 100) = ~30% of time the chlor is on
- 
-   Thoughts from @rstrouste
-   Volume -- Check
-   Delivery Rate -- IC40, IC60, IC20 and IC30 all have different production rates in pounds/day.  The pounds are Sodium Hypochlorite which translates into Hypochlorous acid (HOCl) + Hypochlorite (OCI-).  The former is stronger and the amount of this that is produced is based upon, temperature, pH, and CYA with pH within range being irrelevant (hence the reason for pH lockout).
- 
- 
-Additional future factors to consider-
-* If temp is below 65(?), the chlor won't be producing any chlorine.  Throw a warning/error?
-* If salt level is too low/high it will cause issues.  Warning/error?
-* Adjust chlor output if it is under/oversized for the total gallons
-*/
+            Alright, here's the current thinking.
+            1. If the orp setpoint is > 50mV below the current orp, the chlor will
+            be run at 100%.
+            2. At the other end, if the demand is  < -20mV above the setpoint, chlor
+            will be run at 0%.
+            3. This assumes a sliding scale where we will have an equilibrium point when
+            setpoint = current orp and hopefully this will be somewhere near (50-20 / 100) = ~30% of time the chlor is on
+             
+            Thoughts from @rstrouste
+            Volume -- Check
+            Delivery Rate -- IC40, IC60, IC20 and IC30 all have different production rates in pounds/day.  The pounds are Sodium Hypochlorite which translates into Hypochlorous acid (HOCl) + Hypochlorite (OCI-).  The former is stronger and the amount of this that is produced is based upon, temperature, pH, and CYA with pH within range being irrelevant (hence the reason for pH lockout).
+             
+             
+            Additional future factors to consider-
+            * If temp is below 65(?), the chlor won't be producing any chlorine.  Throw a warning/error?
+            * If salt level is too low/high it will cause issues.  Warning/error?
+            * Adjust chlor output if it is under/oversized for the total gallons
+            */
                         // demand in raw mV
                         sorp.demand = this.orp.setpoint - sorp.level;
                         // log the demand.  We'll store the last 100 data points.  

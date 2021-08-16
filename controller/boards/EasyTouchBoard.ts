@@ -1679,6 +1679,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         let disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled;
         let isDosing = typeof obj.isDosing !== 'undefined' ? utils.makeBool(obj.isDosing) : chlor.isDosing;
         let model = typeof obj.model !== 'undefined' ? obj.model : chlor.model;
+        let chlorType = typeof obj.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(obj.type) : chlor.type || 0;
         if (isAdd) {
             if (isNaN(poolSetpoint)) poolSetpoint = 50;
             if (isNaN(spaSetpoint)) spaSetpoint = 10;
@@ -1750,6 +1751,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             chlor.address = 79 + id;
             chlor.name = schlor.name = name;
             chlor.model = model;
+            schlor.type = chlor.type = chlorType;
             chlor.isDosing = isDosing;
 
             let request217Packet = new Promise<void>((resolve, reject) => {

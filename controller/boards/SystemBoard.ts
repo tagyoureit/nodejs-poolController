@@ -442,7 +442,7 @@ export class byteValueMaps {
   ]);
   public chlorinatorModel: byteValueMap = new byteValueMap([
     [0, { name: 'unknown', desc: 'unknown', capacity: 0, chlorinePerDay: 0, chlorinePerSec: 0 }],
-    [1, { name: 'intellichlor-15', desc: 'IC15', capacity: 15000, chlorinePerDay: 0.60, chlorinePerSec: 0.60/86400 }],
+    [1, { name: 'intellichlor--15', desc: 'IC15', capacity: 15000, chlorinePerDay: 0.60, chlorinePerSec: 0.60/86400 }],
     [2, { name: 'intellichlor--20', desc: 'IC20', capacity: 20000, chlorinePerDay: 0.70, chlorinePerSec: 0.70/86400 }],
     [3, { name: 'intellichlor--40', desc: 'IC40', capacity: 40000, chlorinePerDay: 1.40, chlorinePerSec: 1.4/86400 }],
     [4, { name: 'intellichlor--60', desc: 'IC60', capacity: 60000, chlorinePerDay: 2, chlorinePerSec: 2/86400 }], 

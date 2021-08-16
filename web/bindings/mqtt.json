@@ -263,11 +263,6 @@
           "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/targetOutput",
           "message": "{\"targetOutput\":@bind=data.targetOutput;}",
           "description": "Send targetOutput."
-        },
-        {
-          "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/virtualControllerStatus",
-          "message": "{\"virtualControllerStatus\":@bind=data.virtualControllerStatus;}",
-          "description": "Send virtualControllerStatus."
         }
       ]
     },
@@ -366,6 +361,11 @@
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orp/level",
           "message": "@bind=data.orp.level;",
+          "enabled": true
+        },
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orp/demand",
+          "message": "@bind=data.orp.demand;",
           "enabled": true
         },
         {
@@ -472,14 +472,13 @@
           "message": "@bind=vars.cfg.borates;"
         },
         {
-          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/virtualControllerStatus",
-          "message": "@bind=data.virtualControllerStatus;"
-        },
-        {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/acidDemand",
           "message": "@bind=data.ph.demand;"
         },
-
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orpDemand",
+          "message": "@bind=data.orp.demand;"
+        },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/alarms/flow",
           "message": "@bind=data.alarms.flow;"

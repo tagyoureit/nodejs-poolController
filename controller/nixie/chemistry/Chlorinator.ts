@@ -97,13 +97,14 @@ export class NixieChlorinator extends NixieEquipment {
             let spaSetpoint = typeof data.spaSetpoint !== 'undefined' ? parseInt(data.spaSetpoint, 10) : chlor.spaSetpoint;
             let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chlor.body : data.body);
             let superChlor = typeof data.superChlor !== 'undefined' ? utils.makeBool(data.superChlor) : chlor.superChlor;
-            let chlorType = typeof data.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(data.type) : chlor.type;
+            let chlorType = typeof data.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(data.type) : chlor.type || 0;
             let superChlorHours = typeof data.superChlorHours !== 'undefined' ? parseInt(data.superChlorHours, 10) : chlor.superChlorHours;
+            let disabled = typeof data.disabled !== 'undefined' ? utils.makeBool(data.disabled) : chlor.disabled;
+            let isDosing = typeof data.isDosing !== 'undefined' ? utils.makeBool(data.isDosing) : chlor.isDosing;
             let model = typeof data.model !== 'undefined' ? data.model : chlor.model;
             if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chlorinator', data.body || chlor.body));
             if (isNaN(poolSetpoint)) poolSetpoint = 0;
             if (isNaN(spaSetpoint)) spaSetpoint = 0;
-            if (isNaN(chlorType)) chlorType = sys.board.valueMaps.chlorinatorType.getValue('intellichlor');
             chlor.ignoreSaltReading = (typeof data.ignoreSaltReading !== 'undefined') ? utils.makeBool(data.ignoreSaltReading) : utils.makeBool(chlor.ignoreSaltReading);
             // Do a final validation pass so we dont send this off in a mess.
             let schlor = state.chlorinators.getItemById(chlor.id, true);
@@ -115,6 +116,8 @@ export class NixieChlorinator extends NixieEquipment {
             chlor.body = body;
             chlor.model = model;
             schlor.body = chlor.body;
+            chlor.disabled = disabled;
+            chlor.isDosing = isDosing;
             schlor.name = chlor.name = data.name || chlor.name || `Chlorinator ${chlor.id}`;
             schlor.isActive = chlor.isActive = true;
         }
