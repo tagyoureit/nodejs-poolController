@@ -165,8 +165,8 @@ export class StateRoute {
             catch (err) {next(err);}
         });    
         app.put('/state/circuit/setTheme', async (req, res, next) => {
-           try {
-               let theme = await state.circuits.setLightThemeAsync(parseInt(req.body.id, 10), parseInt(req.body.theme, 10));
+            try {
+                let theme = await state.circuits.setLightThemeAsync(parseInt(req.body.id, 10), sys.board.valueMaps.lightThemes.encode(req.body.theme));
                return res.status(200).send(theme.get(true));
             } 
             catch (err) { next(err); }

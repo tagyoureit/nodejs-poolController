@@ -412,7 +412,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                         break;
                     case 'settheme':
                         try {
-                            let theme = await state.circuits.setLightThemeAsync(parseInt(msg.id, 10), parseInt(msg.theme, 10));
+                            let theme = await state.circuits.setLightThemeAsync(parseInt(msg.id, 10), sys.board.valueMaps.lightThemes.encode(msg.theme));
                         }
                         catch (err) { logger.error(err); }
                         break;
