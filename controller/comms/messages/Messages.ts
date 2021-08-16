@@ -168,7 +168,10 @@ export class Inbound extends Message {
             return `{"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","for":${JSON.stringify(this.responseFor)},"pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${Timestamp.toISOLocal(this.timestamp)}"}`;
         return `{"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${Timestamp.toISOLocal(this.timestamp)}"}`;
     }
-    private testChlorHeader(bytes: number[], ndx: number): boolean { return (ndx + 1 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2); }
+    private testChlorHeader(bytes: number[], ndx: number): boolean { 
+        // some broadcast packets have 16,2 (eg valves=16,2,29) in them; valid chlor packets should have 16,2,0 or 16,2,[80-96];
+        // this should reduce the number of false chlor packets
+        return (ndx + 2 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2 && (bytes[ndx + 2] === 0 || (bytes[ndx + 2] >= 80 && bytes[ndx + 2] <= 96))); }
     private testBroadcastHeader(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] === 165; }
     private testUnidentifiedHeader(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] !== 165; }
     private testChlorTerm(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 2 && bytes[ndx + 1] === 16 && bytes[ndx + 2] === 3; }

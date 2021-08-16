@@ -2448,6 +2448,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         if (typeof obj.superChlorinate !== 'undefined') obj.superChlor = utils.makeBool(obj.superChlorinate);
         let superChlorinate = typeof obj.superChlor === 'undefined' ? undefined : utils.makeBool(obj.superChlor);
         let disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled;
+        let isDosing = typeof obj.isDosing !== 'undefined' ? utils.makeBool(obj.isDosing) : chlor.isDosing;
         let model = typeof obj.model !== 'undefined' ? obj.model : chlor.model;
         if (isAdd) {
             if (isNaN(poolSetpoint)) poolSetpoint = 50;
@@ -2483,6 +2484,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
                         chlor.disabled = disabled;
                         chlor.model = model;
                         chlor.name = schlor.name = name;
+                        chlor.isDosing = isDosing;
                         schlor.isActive = cchlor.isActive = true;
                         schlor.poolSetpoint = cchlor.poolSetpoint = poolSetpoint;
                         schlor.spaSetpoint = cchlor.spaSetpoint = spaSetpoint;

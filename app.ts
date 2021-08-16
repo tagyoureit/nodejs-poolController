@@ -98,4 +98,13 @@ else {
         try { return await stopAsync(); } catch (err) { console.log(`Error shutting down processes ${err.message}`); }
     });
 }
+if (typeof process === 'object') {
+    process.on('unhandledRejection', (error: Error, promise) => {
+        console.group('unhandled rejection');
+        console.error("== Node detected an unhandled rejection! ==");
+        console.error(error.message);
+        console.error(error.stack);
+        console.groupEnd();
+    });
+}
 ( async () => { await initAsync() })();

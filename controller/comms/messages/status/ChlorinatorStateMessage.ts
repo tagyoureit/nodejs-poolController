@@ -92,8 +92,12 @@ export class ChlorinatorStateMessage {
                     // The current output here is not correct.  The reason that is is because this is a request from the OCP to the Chlorinator.
                     //cstate.currentOutput = msg.action === 17 ? msg.extractPayloadByte(0) : msg.extractPayloadByte(0) / 10;
                     cstate.targetOutput = msg.extractPayloadByte(0) / 10;
-                    if (chlor.disabled && cstate.targetOutput !== 0) {
-                        sys.board.chlorinator.setChlorAsync({ id: chlor.id, disabled: true });
+                    if (chlor.disabled && (cstate.targetOutput !== 0 || cstate.superChlor || cstate.superChlorHours > 0)) {
+                        // Some dumbass is trying to change our output.  We need to set it back to 0.
+                        sys.board.chlorinator.setChlorAsync({ id: chlor.id, disabled: chlor.disabled, superChlor: false, superChlorHours: 0 });
+                    }
+                    else if (chlor.isDosing && cstate.targetOutput !== 100){
+                        sys.board.chlorinator.setChlorAsync({ id: chlor.id, isDosing: chlor.isDosing });
                     }
                     state.emitEquipmentChanges();
                     break;

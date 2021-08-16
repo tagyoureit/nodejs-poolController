@@ -1653,7 +1653,7 @@ class TouchFeatureCommands extends FeatureCommands {
 
 }
 class TouchChlorinatorCommands extends ChlorinatorCommands {
-    public setChlorAsync(obj: any): Promise<ChlorinatorState> {
+    public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);
         let isAdd = false;
         let isVirtual = false;
@@ -1677,6 +1677,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         if (typeof obj.superChlorinate !== 'undefined') obj.superChlor = utils.makeBool(obj.superChlorinate);
         let superChlorinate = typeof obj.superChlor === 'undefined' ? undefined : utils.makeBool(obj.superChlor);
         let disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled;
+        let isDosing = typeof obj.isDosing !== 'undefined' ? utils.makeBool(obj.isDosing) : chlor.isDosing;
         let model = typeof obj.model !== 'undefined' ? obj.model : chlor.model;
         if (isAdd) {
             if (isNaN(poolSetpoint)) poolSetpoint = 50;
@@ -1703,8 +1704,14 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         if (spaSetpoint > 100 || spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
         if (typeof obj.ignoreSaltReading !== 'undefined') chlor.ignoreSaltReading = utils.makeBool(obj.ignoreSaltReading);
         let _timeout: NodeJS.Timeout;
-        return new Promise<ChlorinatorState>((resolve, reject) => {
-            try {
+        try {
+            let request153packet = new Promise<void>((resolve, reject) => {
+                _timeout = setTimeout(()=>{
+                        if (typeof reject === 'undefined' || typeof resolve === 'undefined') return;
+                        reject(new EquipmentTimeoutError(`no chlor response in 7 seconds`, `chlorTimeOut`));
+                        reject = undefined;
+
+                }, 3000);
                 let out = Outbound.create({
                     dest: 16,
                     action: 153,
@@ -1713,54 +1720,73 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
                     utils.makeBool(superChlorinate) && superChlorHours > 0 ? superChlorHours + 128 : 0,  // We only want to set the superChlor when the user sends superChlor = true
                         0, 0, 0, 0, 0, 0, 0],
                     retries: 3,
-                    response: true,
+                    response: true, 
                     // scope: Math.random(),
-                    onComplete: (err) => {
+                    onComplete: (err)=>{
                         if (err) {
                             logger.error(`Error setting Chlorinator values: ${err.message}`);
-                            reject(err);
+                            // in case of race condition
+                            if (typeof reject !== 'undefined') reject(err);
+                            reject = undefined;
                         }
                         else {
-                            let schlor = state.chlorinators.getItemById(id, true);
-                            chlor.disabled = disabled;
-                            schlor.isActive = chlor.isActive = true;
-                            schlor.superChlor = chlor.superChlor = superChlorinate;
-                            schlor.poolSetpoint = chlor.poolSetpoint = poolSetpoint;
-                            schlor.spaSetpoint = chlor.spaSetpoint = spaSetpoint;
-                            schlor.superChlorHours = chlor.superChlorHours = superChlorHours;
-                            schlor.body = chlor.body = body;
-                            chlor.address = 79 + id;
-                            chlor.name = schlor.name = name;
-                            chlor.model = model;
-                            let request25Packet = Outbound.create({
-                                dest: 16,
-                                action: 217,
-                                payload: [0],
-                                retries: 3,
-                                // scope: Math.random(),
-                                response: true,
-                                onComplete: (err) => {;
-                                    if (typeof _timeout !== 'undefined') _timeout = undefined;
-                                    if (err) {
-                                        logger.error(`Error requesting chlor status: ${err.message}`);
-                                        reject(err);
-                                    }
-                                    else
-                                        resolve(state.chlorinators.getItemById(id));
-                                    state.emitEquipmentChanges();
-                                }
-                            });
-                            setTimeout(()=>{conn.queueSendMessage(request25Packet)}, 100);
+                            logger.debug(`chlor response 153`);
+                            resolve();
+                            resolve = undefined;
                         }
                     }
                 });
                 conn.queueSendMessage(out);
-            } catch (err) {
-                logger.error(`*Touch setChlorAsync Error: ${err.message}`);
-                return Promise.reject(err);
-            }
-        });
+            });
+            await request153packet;
+            let schlor = state.chlorinators.getItemById(id, true);
+            chlor.disabled = disabled;
+            schlor.isActive = chlor.isActive = true;
+            schlor.superChlor = chlor.superChlor = superChlorinate;
+            schlor.poolSetpoint = chlor.poolSetpoint = poolSetpoint;
+            schlor.spaSetpoint = chlor.spaSetpoint = spaSetpoint;
+            schlor.superChlorHours = chlor.superChlorHours = superChlorHours;
+            schlor.body = chlor.body = body;
+            chlor.address = 79 + id;
+            chlor.name = schlor.name = name;
+            chlor.model = model;
+            chlor.isDosing = isDosing;
 
+            let request217Packet = new Promise<void>((resolve, reject) => {
+                let out = Outbound.create({
+                    dest: 16,
+                    action: 217,
+                    payload: [0],
+                    retries: 3,
+                    // scope: Math.random(),
+                    response: true,
+                    onComplete: (err) => {
+                        // if (typeof reject === 'undefined') {
+                        //     logger.error(`reject chlor already called.`)
+                        // }
+                        if (err) {
+                            logger.error(`Error requesting chlor status: ${err.message}`);
+                            reject(err);
+                        }
+                        else{
+                            logger.debug(`chlor resolve 217`);
+                            resolve();
+                        }
+                    }
+                })
+                conn.queueSendMessage(out);
+            });
+            await request217Packet;
+            if (typeof _timeout !== 'undefined'){
+                clearTimeout(_timeout);
+                _timeout = undefined;
+            } 
+            state.emitEquipmentChanges();
+            return state.chlorinators.getItemById(id);
+        } catch (err) {
+            logger.error(`*Touch setChlorAsync Error: ${err.message}`);
+            return Promise.reject(err);
+        }
     }
     public async deleteChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);

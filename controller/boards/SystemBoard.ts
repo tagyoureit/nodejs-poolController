@@ -2799,7 +2799,7 @@ export class HeaterCommands extends BoardCommands {
                 if (body.id === 4) isAssociated = true;
                 break;
             }
-            logger.silly(`Heater ${heater.name} is ${isAssociated === true ? '' : 'not '}associated with ${body.name}`);
+            // logger.silly(`Heater ${heater.name} is ${isAssociated === true ? '' : 'not '}associated with ${body.name}`);
             if (isAssociated) {
               let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
               let status = sys.board.valueMaps.heatStatus.transform(body.heatStatus);
