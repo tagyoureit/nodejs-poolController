@@ -963,14 +963,16 @@ class NixieChemical extends NixieChildEquipment {
             if (this._stoppingMix) return;
             schem.chlor.isDosing = schem.pump.isDosing = false;
             if (!this.chemical.flowOnlyMixing || (schem.chemController.isBodyOn && this.chemController.flowDetected)) {
+                if (this.chemType === 'orp' && typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0){
+                    await this.chlor.stopDosing(schem, 'mixing');
+                    if (state.chlorinators.getItemById(1).currentOutput !== 0) {
+                        logger.debug(`Chem mixing ORP (chlorinator) paused  waiting for chlor current output to be 0%.  Mix time remaining: ${utils.formatDuration(schem.mixTimeRemaining)} `);
+                        return;
+                    }
+                }
                 this.currentMix.timeMixed += Math.round((dt - this.currentMix.lastChecked) / 1000);
                 // Reflect any changes to the configuration.
-                if (!this.currentMix.isManual) {
-                    if (this.chemType === 'orp' && typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0)
-                        this.currentMix.time = this.chemController.orp.chlor.chlorInterval * 60;
-                    else
-                        this.currentMix.time = this.chemical.mixingTime;
-                }
+                if (!this.currentMix.isManual) { this.currentMix.time = this.chemical.mixingTime; }
                 schem.mixTimeRemaining = Math.round(this.currentMix.timeRemaining);
                 logger.verbose(`Chem mixing ${schem.chemType} remaining: ${utils.formatDuration(schem.mixTimeRemaining)}`);
             }
@@ -984,9 +986,9 @@ class NixieChemical extends NixieChildEquipment {
             else {
                 schem.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.getValue('mixing');
             }
-            this._processingMix = false;
-        } catch (err) { this._processingMix = false; logger.error(`Error mixing chemicals: ${err.message}`); }
+        } catch (err) {  logger.error(`Error mixing chemicals: ${err.message}`); }
         finally {
+            this._processingMix = false;
             setImmediate(() => {
                 schem.chemController.emitEquipmentChange();
             });
@@ -1846,7 +1848,8 @@ export class NixieChemicalORP extends NixieChemical {
                 if (typeof mixingTime !== 'undefined') {
                     // This is a manual mix so we need to make sure the pump is not dosing.
                     logger.info(`Clearing any possible ${schem.chemType} dosing or existing mix for mixingTime: ${mixingTime}`);
-                    await this.pump.stopDosing(schem, 'mix override');
+                    if (schem.chemController.orp.useChlorinator) await this.chlor.stopDosing(schem, 'mix override');
+                    else await this.pump.stopDosing(schem, 'mix override');
                     await this.stopMixing(schem);
                 }
                 this.currentMix = new NixieChemMix();
@@ -1862,17 +1865,18 @@ export class NixieChemicalORP extends NixieChemical {
                         if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0) {
                             // if last dose was within 15 minutes, set mix time to 15 mins-(now-lastdose)
                             // if no dose in last 15, then we should be monitoring
+                            await this.chlor.stopDosing(schem, 'mix override'); // ensure chlor has stopped
                             if (schem.doseHistory.length) {
                                 // if last dose was within 15 minutes, set mix time to 15 mins-lastdose
                                 // if no dose in last 15, then we should be monitoring
                                 let lastDoseTime = schem.doseHistory[0].timeDosed;
                                 let mixTime = Math.min(Math.max(this.chlor.chlorInterval * 60 - lastDoseTime, 0), this.chlor.chlorInterval * 60);
-
-
-                                this.currentMix.set({ time: this.chemical.mixingTime, timeMixed: Math.max(0, mixTime - schem.mixTimeRemaining) });
+                                this.currentMix.set({ time: this.chlor.chlorInterval, timeMixed: Math.max(0, mixTime - schem.mixTimeRemaining) });
                             }
                             else
-                                this.currentMix.set({ time: this.chemical.mixingTime, timeMixed: Math.max(0, (this.chlor.chlorInterval * 60) - schem.mixTimeRemaining) });
+                                // if no dose history, mix for 0s
+                                // this.currentMix.set({ time: this.chemical.mixingTime, timeMixed: Math.max(0, (this.chlor.chlorInterval * 60) - schem.mixTimeRemaining) });
+                                this.currentMix.set({ time: 0, timeMixed: 0 });
                         }
                         else {
                             this.currentMix.set({ time: this.chemical.mixingTime, timeMixed: Math.max(0, this.chemical.mixingTime - schem.mixTimeRemaining) });

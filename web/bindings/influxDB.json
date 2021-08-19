@@ -467,6 +467,11 @@
               "name": "volume dosed",
               "value": "@bind=data.ph.volumeDosed;",
               "type": "int"
+            },
+            {
+              "name": "orp demand",
+              "value": "@bind=data.orp.demand;",
+              "type": "int"
             }
           ]
         },
