@@ -977,7 +977,7 @@ class NixieChemical extends NixieChildEquipment {
                 logger.verbose(`Chem mixing ${schem.chemType} remaining: ${utils.formatDuration(schem.mixTimeRemaining)}`);
             }
             else
-                logger.verbose(`Chem mixing paused because body is not on.`);
+                logger.verbose(`Chem ${schem.chemType} mixing paused because body is not on.`);
             this.currentMix.lastChecked = dt;
             if (schem.mixTimeRemaining <= 0) {
                 logger.info(`Chem Controller ${schem.chemType} mixing Complete after ${utils.formatDuration(this.currentMix.timeMixed)}`);
@@ -986,7 +986,7 @@ class NixieChemical extends NixieChildEquipment {
             else {
                 schem.dosingStatus = sys.board.valueMaps.chemControllerDosingStatus.getValue('mixing');
             }
-        } catch (err) {  logger.error(`Error mixing chemicals: ${err.message}`); }
+        } catch (err) { logger.error(`Error mixing chemicals: ${err.message}`); }
         finally {
             this._processingMix = false;
             setImmediate(() => {
@@ -1812,7 +1812,7 @@ export class NixieChemicalORP extends NixieChemical {
             if (sorp.tank.level > 0) {
                 logger.verbose(`Chem orp dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
                 await this.pump.dose(sorp);
-            }
+            } 
         }
         catch (err) { logger.error(`manualDoseAsync ORP: ${err.message}`); logger.error(err); return Promise.reject(err); }
     }
@@ -1854,7 +1854,7 @@ export class NixieChemicalORP extends NixieChemical {
                 }
                 this.currentMix = new NixieChemMix();
                 if (typeof mixingTime !== 'undefined' && !isNaN(mixingTime)) {
-                    this.currentMix.set({ time: mixingTime, timeMixed: 0, isManual: true });
+                    this.currentMix.set({ time: Math.round(mixingTime), timeMixed: 0, isManual: true });
                     schem.manualMixing = true;
                 }
                 else if (schem.mixTimeRemaining > 0) {
@@ -1899,7 +1899,14 @@ export class NixieChemicalORP extends NixieChemical {
     }
     public async checkDosing(chem: ChemController, sorp: ChemicalORPState): Promise<void> {
         try {
-            let status = sys.board.valueMaps.chemControllerDosingStatus.getName(sorp.dosingStatus);
+            let status = sys.board.valueMaps.chemControllerDosingStatus.getName(sorp.dosingStatus); 
+            if (!chem.orp.flowReadingsOnly || (chem.orp.flowReadingsOnly && sorp.chemController.flowDetected)){   
+                // demand in raw mV
+                sorp.demand = this.orp.setpoint - sorp.level;
+                // log the demand.  We'll store the last 100 data points.  
+                // With 1s intervals, this will only be 1m 40s.  Likely should consider more... and def time to move this to an external file.
+                sorp.appendDemand(new Date().valueOf(), sorp.demand);
+            }
             if (sorp.suspendDosing) {
                 // Kill off the dosing and make sure the pump isn't running.  Let's force the issue here.
                 await this.cancelDosing(sorp, 'suspended');
@@ -1978,11 +1985,6 @@ export class NixieChemicalORP extends NixieChemical {
             * If salt level is too low/high it will cause issues.  Warning/error?
             * Adjust chlor output if it is under/oversized for the total gallons
             */
-                        // demand in raw mV
-                        sorp.demand = this.orp.setpoint - sorp.level;
-                        // log the demand.  We'll store the last 100 data points.  
-                        // Assuming the default interval of 10s, we.ll have 1000s or ~16.67 mins of data.
-                        sorp.appendDemand(new Date().valueOf(), sorp.demand);
                         // if we are still mixing, return
                         if (typeof sorp.mixTimeRemaining !== 'undefined' && sorp.mixTimeRemaining > 0) {
                             await this.cancelDosing(sorp, 'still mixing');
