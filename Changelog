@@ -1,5 +1,9 @@
 # Changelog
 
+## 7.3
+1. Dynamic chlorinating % based on ORP demand for Nixie
+2. Docker creation updates
+
 ## 7.2
 1. Refactor Intellichem and Chem Controllers
 
