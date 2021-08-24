@@ -21,7 +21,7 @@ Equipment supported
 1. Chemical probes (pH, ORP, flow sensors, EC, etc.)
 
 ## Latest Changes
-See (Changelog)[https://github.com/tagyoureit/nodejs-poolController/blob/master/Changelog)
+See [Changelog](https://github.com/tagyoureit/nodejs-poolController/blob/master/Changelog)
 
 ## What's new in 7.0?
 
@@ -84,8 +84,8 @@ To do anything with this app, you need a client to connect to it.  A client can 
 * Temperature sensors (10k, NTC)
 
 ## Web Clients
-1. RECOMMENDED - [nodejs-poolController-dashPanel](https://github.com/rstrouse/nodejs-poolController-dashPanel).  Full compatibility with IntelliCenter, *Touch, REM (RelayEquipmentManager).
-1. Limited functionality - [nodejs-poolController-webClient](http://github.com/tagyoureit/nodejs-poolController-webClient).  Built primarily around EasyTouch/IntelliTouch but will work with other systems.
+1. [nodejs-poolController-dashPanel](https://github.com/rstrouse/nodejs-poolController-dashPanel).  Full compatibility with IntelliCenter, *Touch, REM (RelayEquipmentManager).
+1. Deprecated - ~~[nodejs-poolController-webClient](http://github.com/tagyoureit/nodejs-poolController-webClient).  Built primarily around EasyTouch/IntelliTouch but will work with other systems.~~
 
 * This app has the default to only listen to clients from localhost (127.0.0.1).  If you need to have clients connect from other machines you will need to change the [ip](#module_nodejs-poolController--config.json) in `config.json`.
 

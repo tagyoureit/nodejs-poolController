@@ -19,7 +19,7 @@
         "watch": "tsc -w"
     },
     "dependencies": {
-        "@influxdata/influxdb-client": "^1.12.0",
+        "@influxdata/influxdb-client": "^1.16.0",
         "eslint-config-promise": "^2.0.2",
         "express": "^4.17.1",
         "extend": "^3.0.2",

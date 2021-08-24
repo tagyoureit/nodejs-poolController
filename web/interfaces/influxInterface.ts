@@ -30,28 +30,40 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
     public events: InfluxInterfaceEvent[];
     private init = () => {
         let baseOpts = extend(true, this.cfg.options, this.context.options);
+        let url = 'http';
+        if (typeof baseOpts.protocol !== 'undefined' && baseOpts.protocol) url = baseOpts.protocol;
+        url = `${url}://${baseOpts.host}:${baseOpts.port}`;
+        let influxDB: InfluxDB;
+        let bucket;
+        let org;
         if (typeof baseOpts.host === 'undefined' || !baseOpts.host) {
             logger.warn(`Interface: ${this.cfg.name} has not resolved to a valid host.`);
             return;
         }
-        if (typeof baseOpts.database === 'undefined' || !baseOpts.database) {
-            logger.warn(`Interface: ${this.cfg.name} has not resolved to a valid database.`);
-            return;
+        if (baseOpts.version === 1) {
+            if (typeof baseOpts.database === 'undefined' || !baseOpts.database) {
+                logger.warn(`Interface: ${this.cfg.name} has not resolved to a valid database.`);
+                return;
+            }
+            bucket = `${baseOpts.database}/${baseOpts.retentionPolicy}`;
+            const clientOptions: ClientOptions = {
+                url,
+                token: `${baseOpts.username}:${baseOpts.password}`,
+            }
+            influxDB = new InfluxDB(clientOptions);
         }
-        // let opts = extend(true, baseOpts, e.options);
-        let url = 'http';
-        if (typeof baseOpts.protocol !== 'undefined' && baseOpts.protocol) url = baseOpts.protocol;
-        url = `${url}://${baseOpts.host}:${baseOpts.port}`;
-        // TODO: add username/password
-        const bucket = `${baseOpts.database}/${baseOpts.retentionPolicy}`;
-        const clientOptions: ClientOptions = {
-            url,
-            token: `${baseOpts.username}:${baseOpts.password}`,
+        else if (baseOpts.version === 2) {
+            org = baseOpts.org;
+            bucket = baseOpts.bucket;
+            const clientOptions: ClientOptions = {
+                url,
+                token: baseOpts.token,
+            }
+            influxDB = new InfluxDB(clientOptions);
         }
-        const influxDB = new InfluxDB(clientOptions);
-        this.writeApi = influxDB.getWriteApi('', bucket, 'ms' as WritePrecisionType);
-        
-       
+        this.writeApi = influxDB.getWriteApi(org, bucket, 'ms');
+
+
         // set global tags from context
         let baseTags = {}
         baseOpts.tags.forEach(tag => {
@@ -175,12 +187,14 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                                 let sec = ts.getSeconds() - 1;
                                 ts.setSeconds(sec);
                                 point2.timestamp(ts);
-                                logger.silly(`Writing influx ${e.name} inverse data point ${point2.measurement}`)
+                                logger.silly(`Writing influx ${e.name} inverse data point ${point2.toString()})`)
                                 this.writeApi.writePoint(point2);
                             }
                             if (typeof point.toLineProtocol() !== 'undefined') {
-                                logger.silly(`Writing influx ${e.name} data point ${point2.measurement}`)
+                                logger.silly(`Writing influx ${e.name} data point ${point.toString()}`)
                                 this.writeApi.writePoint(point);
+                                this.writeApi.flush()
+                                    .catch(error => { logger.error(error); });
                                 //logger.info(`INFLUX: ${point.toLineProtocol()}`)
                             }
                             else {

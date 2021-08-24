@@ -100,13 +100,29 @@
         "enabled": false,
         "fileName": "influxDB.json",
         "options": {
+          "version": 1,
           "protocol": "http",
           "host": "192.168.0.1",
-          "port": 32770,
+          "port": 9999,
           "username": "",
           "password": "",
           "database": "pool",
           "retentionPolicy": "autogen"
+        }
+      },
+      "influxDBv2": {
+        "name": "InfluxDBv2",
+        "type": "influx",
+        "enabled": false,
+        "fileName": "influxDB.json",
+        "options": {
+          "version": 2,
+          "protocol": "http",
+          "host": "192.168.0.1",
+          "port": 9999,
+          "token": "...LuyM84JJx93Qvc7tfaXPbI_mFFjRBjaA==",
+          "org": "example-org",
+          "bucket": "57ec4eed2d90a50b"
         }
       },
       "mqtt": {
