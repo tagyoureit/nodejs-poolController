@@ -794,7 +794,7 @@ export class SystemBoard {
         } catch (err) { state.status = 255; logger.error(`Error performing processStatusAsync ${err.message}`); }
         finally {
             this.suspendStatus(false);
-            if (this.statusInterval > 0) this._statusTimer = setTimeout(() => self.processStatusAsync(), this.statusInterval);
+            if (this.statusInterval > 0) this._statusTimer = setTimeout(async () => await self.processStatusAsync(), this.statusInterval);
         }
     }
   public async setControllerType(obj): Promise<Equipment> {
@@ -962,14 +962,17 @@ export class SystemCommands extends BoardCommands {
             }
             break;
           case 'waterSensor1':
-            {
-              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-              state.temps.waterSensor1 = sys.equipment.tempSensors.getCalibration('water1') + temp;
-              let body = state.temps.bodies.getItemById(1);
-              if (body.isOn) body.temp = state.temps.waterSensor1;
-
-            }
+                {
+                    let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                    if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                    state.temps.waterSensor1 = sys.equipment.tempSensors.getCalibration('water1') + temp;
+                    let body = state.temps.bodies.getItemById(1);
+                    if (body.isOn) body.temp = state.temps.waterSensor1;
+                    else if (sys.equipment.shared) {
+                        body = state.temps.bodies.getItemById(2);
+                        if (body.isOn) body.temp = state.temps.waterSensor1;
+                    }
+                }
             break;
           case 'waterSensor2':
             {
