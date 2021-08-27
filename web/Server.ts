@@ -1024,7 +1024,10 @@ export class REMInterfaceServer extends ProtoServer {
                     req = http.request(opts, (response: http.IncomingMessage) => {
                         ret.status.code = response.statusCode;
                         ret.status.message = response.statusMessage;
-                        response.on('error', (err) => { ret.error = err; resolve(); });
+                        response.on('error', (err) => {
+                            logger.error(`An error occurred with request: ${err}`);
+                            ret.error = err; resolve();
+                        });
                         response.on('data', (data) => { ret.data += data; });
                         response.on('end', () => { resolve(); });
                     });

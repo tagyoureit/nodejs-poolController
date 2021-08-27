@@ -1520,7 +1520,7 @@ export class CircuitCommands extends BoardCommands {
   public async syncCircuitRelayStates() {
     try {
       for (let i = 0; i < sys.circuits.length; i++) {
-        // Run through all the valves to see whether they should be triggered or not.
+        // Run through all the controlled circuits to see whether they should be triggered or not.
         let circ = sys.circuits.getItemByIndex(i);
         if (circ.master === 1 && circ.isActive) {
           let cstate = state.circuits.getItemById(circ.id);
