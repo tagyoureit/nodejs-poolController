@@ -1,5 +1,8 @@
 # Changelog
 
+## 7.3.1
+1. Influx 2.0 support
+
 ## 7.3
 1. Dynamic chlorinating % based on ORP demand for Nixie
 2. Docker creation updates

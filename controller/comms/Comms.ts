@@ -483,11 +483,11 @@ export class SendRecieveBuffer {
                     logger.verbose(`Wrote packet[${bytes}].Retries remaining: ${msg.remainingTries} `);
                     // We have all the success we are going to get so if the call succeeded then
                     // don't set the waiting packet when we aren't actually waiting for a response.
+                    conn.buffer.counter.sndSuccess++;
                     if (!msg.requiresResponse) {
                         // As far as we know the message made it to OCP.
                         conn.buffer._waitingPacket = null;
                         if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
-                        conn.buffer.counter.sndSuccess++;
 
                     }
                     else if (msg.remainingTries >= 0) {
