@@ -1224,8 +1224,9 @@ export class BodyCommands extends BoardCommands {
                                 logger.warn(`freezeProtectBodyOn is undefined`);
                                 this.freezeProtectBodyOn = new Date();
                             }
-                            if (new Date().getTime() - 10000 > this.freezeProtectBodyOn.getTime()) {
-                                logger.info(`Swapping bodies for freeze protection pool:${pstate.isOn} spa:${sstate.isOn}`);
+                            let dt = new Date().getTime();
+                            if (dt - 10000 > this.freezeProtectBodyOn.getTime()) {
+                                logger.info(`Swapping bodies for freeze protection pool:${pstate.isOn} spa:${sstate.isOn} interval: ${dt - this.freezeProtectBodyOn.getTime()}`);
                                 // 10 minutes has elapsed so we will be rotating to the other body.
                                 if (pstate.isOn) {
                                     // The setCircuitState method will handle turning off the pool body.
