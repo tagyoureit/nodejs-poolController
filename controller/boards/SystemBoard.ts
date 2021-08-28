@@ -1218,9 +1218,12 @@ export class BodyCommands extends BoardCommands {
                                 this.freezeProtectBodyOn = undefined;
                                 continue;
                             }
-                           
+                            
                             // One of the two bodies is on so we need to check for the rotation.  If it is time to rotate do the rotation.
-                            if (typeof this.freezeProtectBodyOn === 'undefined') this.freezeProtectBodyOn = new Date();
+                            if (typeof this.freezeProtectBodyOn === 'undefined') {
+                                logger.warn(`freezeProtectBodyOn is undefined`);
+                                this.freezeProtectBodyOn = new Date();
+                            }
                             if (new Date().getTime() - 10000 > this.freezeProtectBodyOn.getTime()) {
                                 logger.info(`Swapping bodies for freeze protection pool:${pstate.isOn} spa:${sstate.isOn}`);
                                 // 10 minutes has elapsed so we will be rotating to the other body.
