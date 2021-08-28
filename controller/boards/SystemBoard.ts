@@ -1198,7 +1198,6 @@ export class BodyCommands extends BoardCommands {
                     // Exit out of here because we already checked the body rotation.  We only want to do this once since it can be expensive turning
                     // on a particular body.
                     if (bodyRotationChecked === true) continue;
-                    bodyRotationChecked = true;
                     // These are our body circuits so we need to check to see if they need to be rotated between pool and spa.
                     let pool = circ.id === 6 ? circ : sys.circuits.getItemById(6);
                     let spa = circ.id === 1 ? circ : sys.circuits.getItemById(1);
@@ -1226,7 +1225,7 @@ export class BodyCommands extends BoardCommands {
                             }
                             let dt = new Date().getTime();
                             if (dt - 10000 > this.freezeProtectBodyOn.getTime()) {
-                                logger.info(`Swapping bodies for freeze protection pool:${pstate.isOn} spa:${sstate.isOn} interval: ${dt - this.freezeProtectBodyOn.getTime()}`);
+                                logger.info(`Swapping bodies for freeze protection pool:${pstate.isOn} spa:${sstate.isOn} interval: ${dt - this.freezeProtectBodyOn.getTime()} bodyRotationChecked: ${bodyRotationChecked}`);
                                 // 10 minutes has elapsed so we will be rotating to the other body.
                                 if (pstate.isOn) {
                                     // The setCircuitState method will handle turning off the pool body.
@@ -1243,6 +1242,7 @@ export class BodyCommands extends BoardCommands {
                                 this.freezeProtectBodyOn = new Date();
                             }
                         }
+                        bodyRotationChecked = true;
                     }
                     else {
                         // Only this circuit is selected for freeze protection so we don't need any special treatment.
