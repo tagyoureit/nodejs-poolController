@@ -200,7 +200,6 @@ export class State implements IState {
             batteryVoltage: self.data.batteryVoltage || 0,
             status: self.data.status || {},
             mode: self.data.mode || {},
-            // freeze: self.data.freeze || false,
             appVersion: sys.appVersion || '',
             appVersionState: self.appVersion.get(true) || {},
             clockMode: sys.board.valueMaps.clockModes.transform(sys.general.options.clockMode) || {},
@@ -210,7 +209,7 @@ export class State implements IState {
             sunrise: self.data.sunrise || '',
             sunset: self.data.sunset || '',
             alias: sys.general.alias,
-            freeze: utils.makeBool(state.freeze)
+            freeze: utils.makeBool(self.data.freeze)
         };
     }
     public emitAllEquipmentChanges() {
