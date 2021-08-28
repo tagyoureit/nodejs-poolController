@@ -1213,10 +1213,16 @@ export class BodyCommands extends BoardCommands {
                             await sys.board.circuits.setCircuitStateAsync(6, true);
                         }
                         else {
+                            // If neither of the bodies were turned on for freeze protection then we need to ignore this. 
+                            if (!pstate.freezeProtect && !sstate.freezeProtect) {
+                                this.freezeProtectBodyOn = undefined;
+                                continue;
+                            }
+                           
                             // One of the two bodies is on so we need to check for the rotation.  If it is time to rotate do the rotation.
                             if (typeof this.freezeProtectBodyOn === 'undefined') this.freezeProtectBodyOn = new Date();
                             if (new Date().getTime() - 10000 > this.freezeProtectBodyOn.getTime()) {
-                                logger.info(`Swapping bodies for freeze protection pool:${pstate.isOn} spa:${pstate.isOn}`);
+                                logger.info(`Swapping bodies for freeze protection pool:${pstate.isOn} spa:${sstate.isOn}`);
                                 // 10 minutes has elapsed so we will be rotating to the other body.
                                 if (pstate.isOn) {
                                     // The setCircuitState method will handle turning off the pool body.
