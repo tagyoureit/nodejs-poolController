@@ -661,6 +661,7 @@ export class General extends EqItem {
         if (master === -1)
             super.clear();
     }
+   
 }
 // Custom Names are IntelliTouch Only
 export class CustomNameCollection extends EqItemCollection<CustomName> {
@@ -729,6 +730,7 @@ export class Options extends EqItem {
         if (typeof this.data.units === 'undefined') this.data.units = 0;
         if (typeof this.data.clockMode === 'undefined') this.data.clockMode = 12;
         if (typeof this.data.adjustDST === 'undefined') this.data.adjustDST = true;
+        if (typeof this.data.freezeThreshold === 'undefined') this.data.freezeThreshold = 35;
     }
     public get clockMode(): number | any { return this.data.clockMode; }
     public set clockMode(val: number | any) { this.setDataVal('clockMode', sys.board.valueMaps.clockModes.encode(val)); }
@@ -748,6 +750,9 @@ export class Options extends EqItem {
     public set pumpDelay(val: boolean) { this.setDataVal('pumpDelay', val); }
     public get cooldownDelay(): boolean { return this.data.cooldownDelay; }
     public set cooldownDelay(val: boolean) { this.setDataVal('cooldownDelay', val); }
+    public get freezeThreshold(): number { return this.data.freezeThreshold; }
+    public set freezeThreshold(val: number) { this.data.setDataVal('freezeThreshold', val); }
+
     //public get airTempAdj(): number { return typeof this.data.airTempAdj === 'undefined' ? 0 : this.data.airTempAdj; }
     //public set airTempAdj(val: number) { this.setDataVal('airTempAdj', val); }
     //public get waterTempAdj1(): number { return typeof this.data.waterTempAdj1 === 'undefined' ? 0 : this.data.waterTempAdj1; }

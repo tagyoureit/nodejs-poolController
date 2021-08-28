@@ -1391,6 +1391,9 @@ export class FeatureStateCollection extends EqStateCollection<FeatureState> {
 
 export class FeatureState extends EqState implements ICircuitState {
     public dataName: string = 'feature';
+    public initData() {
+        if (typeof this.data.freezeProtect === 'undefined') this.data.freezeProtect = false;
+    }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -1413,6 +1416,11 @@ export class FeatureState extends EqState implements ICircuitState {
         return new Timestamp(this.data.endTime);
     }
     public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate())) : this.setDataVal('endTime', undefined); }
+    // This property will be set if the system has turn this feature on for freeze protection reasons.  We have no way of knowing when Pentair does this but
+    // need to know (so we can shut it off) if we have done this.
+    public get freezeProtect(): boolean { return this.data.freezeProtect; }
+    public set freezeProtect(val: boolean) { this.setDataVal('freezeProtect', val); }
+
 }
 export class VirtualCircuitState extends EqState implements ICircuitState {
     public dataName: string = 'virtualCircuit';
@@ -1476,6 +1484,9 @@ export class CircuitStateCollection extends EqStateCollection<CircuitState> {
 }
 export class CircuitState extends EqState implements ICircuitState {
     public dataName = 'circuit';
+    public initData() {
+        if (typeof this.data.freezeProtect === 'undefined') this.data.freezeProtect = false;
+    }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -1514,6 +1525,10 @@ export class CircuitState extends EqState implements ICircuitState {
         return new Timestamp(this.data.endTime);
     }
     public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate())) : this.setDataVal('endTime', undefined); }
+    // This property will be set if the system has turn this circuit on for freeze protection reasons.  We have no way of knowing when Pentair does this but
+    // need to know (so we can shut it off) if we have done this.
+    public get freezeProtect(): boolean { return this.data.freezeProtect; }
+    public set freezeProtect(val: boolean) { this.setDataVal('freezeProtect', val); }
 }
 export class ValveStateCollection extends EqStateCollection<ValveState> {
     public createItem(data: any): ValveState { return new ValveState(data); }
