@@ -1187,6 +1187,7 @@ export class BodyCommands extends BoardCommands {
                 }
             }
             let bodyRotationChecked = false;
+            console.log(`bodyRotationChecked: ${bodyRotationChecked}`);
             for (let i = 0; i < sys.circuits.length; i++) {
                 let circ = sys.circuits.getItemByIndex(i);
                 let cstate = state.circuits.getItemById(circ.id, true);
@@ -1197,7 +1198,8 @@ export class BodyCommands extends BoardCommands {
                 if (sys.equipment.shared && freeze && (circ.id === 1 || circ.id === 6)) {
                     // Exit out of here because we already checked the body rotation.  We only want to do this once since it can be expensive turning
                     // on a particular body.
-                    if (bodyRotationChecked === true) continue;
+                    console.log(`cont bodyRotationChecked: ${bodyRotationChecked}`);
+                    if (bodyRotationChecked) continue;
                     // These are our body circuits so we need to check to see if they need to be rotated between pool and spa.
                     let pool = circ.id === 6 ? circ : sys.circuits.getItemById(6);
                     let spa = circ.id === 1 ? circ : sys.circuits.getItemById(1);
