@@ -824,14 +824,6 @@ export class NixieCircuitCommands extends CircuitCommands {
     public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
         return sys.board.circuits.setCircuitGroupStateAsync(id, val);
     }
-    /*     public sequenceIntelliBrite(operation: string) {
-            state.intellibrite.hasChanged = true;
-            let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
-            if (nop > 0) {
-                state.intellibrite.action = nop;
-                setTimeout(function() { state.intellibrite.action = 0; state.emitEquipmentChanges(); }, 20000); // It takes 20 seconds to sequence.
-            }
-        } */
 }
 export class NixieFeatureCommands extends FeatureCommands {
     public async setFeatureAsync(obj: any): Promise<Feature> {
