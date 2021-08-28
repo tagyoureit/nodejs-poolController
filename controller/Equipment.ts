@@ -751,7 +751,7 @@ export class Options extends EqItem {
     public get cooldownDelay(): boolean { return this.data.cooldownDelay; }
     public set cooldownDelay(val: boolean) { this.setDataVal('cooldownDelay', val); }
     public get freezeThreshold(): number { return this.data.freezeThreshold; }
-    public set freezeThreshold(val: number) { this.data.setDataVal('freezeThreshold', val); }
+    public set freezeThreshold(val: number) { this.setDataVal('freezeThreshold', val); }
 
     //public get airTempAdj(): number { return typeof this.data.airTempAdj === 'undefined' ? 0 : this.data.airTempAdj; }
     //public set airTempAdj(val: number) { this.setDataVal('airTempAdj', val); }
