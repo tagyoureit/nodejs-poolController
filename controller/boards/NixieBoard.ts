@@ -478,15 +478,14 @@ export class NixieCircuitCommands extends CircuitCommands {
             else if (id === 1) state.temps.bodies.getItemById(2, true).isOn = val;
             // Let the main nixie controller set the circuit state and affect the relays if it needs to.
             await ncp.circuits.setCircuitStateAsync(circ, newState);
+            await sys.board.processStatusAsync();
             return state.circuits.getInterfaceById(circ.id);
         }
         catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
         finally {
             state.emitEquipmentChanges();
-            // sys.board.virtualPumpControllers.start();
             ncp.pumps.syncPumpStates();
             sys.board.suspendStatus(false);
-            this.board.processStatusAsync();
         }
     }
     public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
@@ -955,7 +954,7 @@ export class NixieValveCommands extends ValveCommands {
             valve.deviceBinding = typeof obj.deviceBinding !== 'undefined' ? obj.deviceBinding : valve.deviceBinding;
             valve.pinId = typeof obj.pinId !== 'undefined' ? obj.pinId : valve.pinId;
             await ncp.valves.setValveAsync(valve, obj);
-            sys.board.processStatusAsync();
+            await sys.board.syncEquipmentItems();
             return valve;
         } catch (err) { logger.error(`Nixie: Error setting valve definition. ${err.message}`); return Promise.reject(err); }
     }

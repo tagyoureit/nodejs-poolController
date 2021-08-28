@@ -1801,14 +1801,13 @@ export class CircuitCommands extends BoardCommands {
             else if (id === 1) state.temps.bodies.getItemById(2, true).isOn = val;
             // Let the main nixie controller set the circuit state and affect the relays if it needs to.
             await ncp.circuits.setCircuitStateAsync(circ, newState);
+            await sys.board.syncEquipmentItems();
             return state.circuits.getInterfaceById(circ.id);
         }
         catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
         finally {
             ncp.pumps.syncPumpStates();
             sys.board.suspendStatus(false);
-            //this.board.processStatusAsync();
-            sys.board.syncEquipmentItems();
             state.emitEquipmentChanges();
         }
     }
