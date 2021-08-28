@@ -783,12 +783,7 @@ export class SystemBoard {
             // Go through all the assigned equipment and verify the current state.
             sys.board.system.keepManualTime();
             await sys.board.bodies.syncFreezeProtection();
-            await sys.board.circuits.syncCircuitRelayStates();
-            await sys.board.features.syncGroupStates();
-            await sys.board.circuits.syncVirtualCircuitStates();
-            await sys.board.valves.syncValveStates();
-            await sys.board.filters.syncFilterStates();
-            await sys.board.heaters.syncHeaterStates();
+            await sys.board.syncEquipmentItems();
             await sys.board.schedules.syncScheduleStates();
             state.emitControllerChange();
             state.emitEquipmentChanges();
@@ -797,6 +792,17 @@ export class SystemBoard {
             this.suspendStatus(false);
             if (this.statusInterval > 0) this._statusTimer = setTimeout(async () => await self.processStatusAsync(), this.statusInterval);
         }
+    }
+    public async syncEquipmentItems() {
+        try {
+            await sys.board.circuits.syncCircuitRelayStates();
+            await sys.board.features.syncGroupStates();
+            await sys.board.circuits.syncVirtualCircuitStates();
+            await sys.board.valves.syncValveStates();
+            await sys.board.filters.syncFilterStates();
+            await sys.board.heaters.syncHeaterStates();
+        }
+        catch (err) { logger.error(`Error synchronizing equipment items: ${err.message}`); }
     }
   public async setControllerType(obj): Promise<Equipment> {
     try {
@@ -1221,10 +1227,7 @@ export class BodyCommands extends BoardCommands {
                             }
                             
                             // One of the two bodies is on so we need to check for the rotation.  If it is time to rotate do the rotation.
-                            if (typeof this.freezeProtectBodyOn === 'undefined') {
-                                logger.warn(`freezeProtectBodyOn is undefined`);
-                                this.freezeProtectBodyOn = new Date();
-                            }
+                            if (typeof this.freezeProtectBodyOn === 'undefined') this.freezeProtectBodyOn = new Date();
                             let dt = new Date().getTime();
                             if (dt - 10000 > this.freezeProtectBodyOn.getTime()) {
                                 logger.info(`Swapping bodies for freeze protection pool:${pstate.isOn} spa:${sstate.isOn} interval: ${dt - this.freezeProtectBodyOn.getTime()} bodyRotationChecked: ${bodyRotationChecked}`);
@@ -1802,10 +1805,10 @@ export class CircuitCommands extends BoardCommands {
         }
         catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
         finally {
-            // sys.board.virtualPumpControllers.start();
             ncp.pumps.syncPumpStates();
             sys.board.suspendStatus(false);
-            this.board.processStatusAsync();
+            //this.board.processStatusAsync();
+            sys.board.syncEquipmentItems();
             state.emitEquipmentChanges();
         }
     }

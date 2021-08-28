@@ -250,43 +250,6 @@ export class PoolSystem implements IPoolSystem {
                 break;
         }
     }
-    /*  public searchForAdditionalDevices() {
-         if (this.controllerType === ControllerType.Unknown || typeof this.controllerType === 'undefined' && !conn.mockPort) {
-             //logger.info("Searching chlorinators, pumps and chem controllers");
-             //EquipmentStateMessage.initVirtual();
-             //sys.board.virtualChlorinatorController.search();
-             //sys.board.virtualPumpControllers.search();
-             //sys.board.virtualChemControllers.search();
-             state.equipment.controllerType = sys.controllerType = ControllerType.Nixie;
-             let board = sys.board as NixieBoard;
-             (async () => { await board.initNixieBoard(); })();
-         }
-         else {
-             if (this.controllerType === ControllerType.Virtual) {
-                 state.mode = 0;
-                 state.status = 1;
-                 sys.equipment.setEquipmentIds();
-                 state.emitControllerChange();
-                 sys.board.processStatusAsync();
-             }
-             else {
-                 let board = sys.board as NixieBoard;
-                 (async () => { await board.initNixieBoard(); })();
-             }
- 
-             // if the app crashes while the pumps are running we need to reset the 'virtualControllerStatus' to stopped so it can start again
-             sys.board.virtualPumpControllers.softStop();
-             //sys.board.virtualChlorinatorController.stop();
-             sys.board.virtualChemControllers.stop();
-             // try to start any virtual controllers that are present irregardless of overall controller virtual status
-             sys.board.virtualPumpControllers.start();
-             //sys.board.virtualChlorinatorController.start();
-             sys.board.virtualChemControllers.start();
-             sys.board.heaters.initTempSensors();
-             sys.board.heaters.updateHeaterServices();
-             state.cleanupState();
-         }
-     } */
     public board: SystemBoard = new SystemBoard(this);
     public ncp: NixieControlPanel = new NixieControlPanel();
     public processVersionChanges(ver: ConfigVersion) { this.board.requestConfiguration(ver); }
