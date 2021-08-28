@@ -1156,9 +1156,12 @@ export class BodyCommands extends BoardCommands {
             // do not create features beyond those controlled by the OCP so we don't need to check these in that condition.  That is
             // why it first checks the controller type.
             let freeze = utils.makeBool(state.freeze);
+            logger.info(`Synchronizing Freeze Protection: ${sys.controllerType} air: ${state.temps.air} threshold: ${sys.general.options.freezeThreshold}`);
             if (sys.controllerType === ControllerType.Nixie) {
                 // If we are a Nixie controller we need to evaluate the current freeze settings against the air temperature.
-                freeze = state.temps.air <= sys.general.options.freezeThreshold;
+                if (typeof state.temps.air !== 'undefined') freeze = state.temps.air <= sys.general.options.freezeThreshold;
+                else freeze = false;
+
 
                 // We need to know when we first turned the freeze protection on. This is because we will be rotating between pool and spa
                 // on shared body systems when both pool and spa have freeze protection checked.
