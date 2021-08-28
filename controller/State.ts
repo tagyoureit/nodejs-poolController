@@ -209,7 +209,8 @@ export class State implements IState {
             model: sys.equipment.model,
             sunrise: self.data.sunrise || '',
             sunset: self.data.sunset || '',
-            alias: sys.general.alias
+            alias: sys.general.alias,
+            freeze: utils.makeBool(state.freeze)
         };
     }
     public emitAllEquipmentChanges() {
