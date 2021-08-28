@@ -1242,13 +1242,13 @@ export class BodyCommands extends BoardCommands {
                                 this.freezeProtectBodyOn = new Date();
                             }
                         }
-                        bodyRotationChecked = true;
                     }
                     else {
                         // Only this circuit is selected for freeze protection so we don't need any special treatment.
                         cstate.freezeProtect = true;
-                        await sys.board.features.setFeatureStateAsync(circ.id, true);
+                        if (!cstate.isOn) await sys.board.circuits.setCircuitStateAsync(circ.id, true);
                     }
+                    bodyRotationChecked = true;
                 }
                 else if (freeze && !cstate.isOn) {
                     // This circuit should be on because we are freezing.
