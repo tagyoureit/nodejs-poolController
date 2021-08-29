@@ -1071,6 +1071,13 @@ export class CircuitCollection extends EqItemCollection<Circuit> {
 }
 export class Circuit extends EqItem implements ICircuit {
     public dataName = 'circuitConfig';
+    public initData() {
+        if (typeof this.data.freeze === 'undefined') this.data.freeze = false;
+        if (typeof this.data.type === 'undefined') this.data.type = 0;
+        if (typeof this.data.isActive === 'undefined') this.data.isActive = true;
+        if (typeof this.data.eggTimer === 'undefined') this.data.eggTimer = 720;
+        if (typeof this.data.showInFeatures === 'undefined') this.data.showInFeatures = true;
+    }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
@@ -1162,7 +1169,7 @@ export interface ICircuit {
     //showInCircuits?: boolean;
     showInFeatures?: boolean;
     macro?: boolean;
-    getLightThemes?: () => {};
+    getLightThemes?: (type?:number) => {};
     get(copy?: boolean);
     master: number;
 }

@@ -50,7 +50,8 @@ export class NixieBoard extends SystemBoard {
             [10, { name: 'colorcascade', desc: 'ColorCascade', isLight: true }],
             [11, { name: 'mastercleaner2', desc: 'Master Cleaner 2' }],
             [12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
-            [13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
+            [13, { name: 'spa', desc: 'Spa', hasHeatSource: true }],
+            [14, { name: 'colorlogic', desc: 'ColorLogic', isLight:true }]
         ]);
         this.valueMaps.pumpTypes = new byteValueMap([
             [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true, maxRelays: 1 }],
@@ -126,7 +127,9 @@ export class NixieBoard extends SystemBoard {
             [1, { name: 'sunrise', desc: 'Sunrise' }],
             [2, { name: 'sunset', desc: 'Sunset' }]
         ]);
+
         this.valueMaps.lightThemes = new byteValueMap([
+            // IntelliBrite Themes
             [0, { name: 'white', desc: 'White', type: 'intellibrite', sequence: 11 }],
             [1, { name: 'green', desc: 'Green', type: 'intellibrite', sequence: 9 }],
             [2, { name: 'blue', desc: 'Blue', type: 'intellibrite', sequence: 8 }],
@@ -139,6 +142,24 @@ export class NixieBoard extends SystemBoard {
             [9, { name: 'american', desc: 'American', type: 'intellibrite', sequence: 5 }],
             [10, { name: 'sunset', desc: 'Sunset', type: 'intellibrite', sequence: 6 }],
             [11, { name: 'royal', desc: 'Royal', type: 'intellibrite', sequence: 7 }],
+            // ColorLogic Themes
+            [20, { name: 'cloudwhite', desc: 'Cloud White', type: 'colorlogic', sequence: 7 }],
+            [21, { name: 'deepsea', desc: 'Deep Sea', type: 'colorlogic', sequence: 2 }],
+            [22, { name: 'royalblue', desc: 'Royal Blue', type: 'colorlogic', sequence: 3 }],
+            [23, { name: 'afternoonskies', desc: 'Afternoon Skies', type: 'colorlogic', sequence: 4 }],
+            [24, { name: 'aquagreen', desc: 'Aqua Green', type: 'colorlogic', sequence: 5 }],
+            [25, { name: 'emerald', desc: 'Emerald', type: 'colorlogic', sequence: 6 }],
+            [26, { name: 'warmred', desc: 'Warm Red', type: 'colorlogic', sequence: 8 }],
+            [27, { name: 'flamingo', desc: 'Flamingo', type: 'colorlogic', sequence: 9 }],
+            [28, { name: 'vividviolet', desc: 'Vivid Violet', type: 'colorlogic', sequence: 10 }],
+            [29, { name: 'sangria', desc: 'Sangria', type: 'colorlogic', sequence: 11 }],
+            [30, { name: 'twilight', desc: 'Twilight', type: 'colorlogic', sequence: 12 }],
+            [31, { name: 'tranquility', desc: 'Tranquility', type: 'colorlogic', sequence: 13 }],
+            [32, { name: 'gemstone', desc: 'Gemstone', type: 'colorlogic', sequence: 14 }],
+            [33, { name: 'usa', desc: 'USA', type: 'colorlogic', sequence: 15 }],
+            [34, { name: 'mardigras', desc: 'Mardi Gras', type: 'colorlogic', sequence: 16 }],
+            [35, { name: 'coolcabaret', desc: 'Cabaret', type: 'colorlogic', sequence: 17 }],
+
             [255, { name: 'none', desc: 'None' }]
         ]);
         this.valueMaps.lightColors = new byteValueMap([
@@ -557,7 +578,15 @@ export class NixieCircuitCommands extends CircuitCommands {
         }
         return arrRefs;
     }
-    public getLightThemes(type?: number) { return sys.board.valueMaps.lightThemes.toArray(); }
+    public getLightThemes(type?: number) {
+        let tobj = (typeof type === 'undefined') ? sys.board.valueMaps.circuitFunctions.transformByName('intellibrite') : sys.board.valueMaps.circuitFunctions.transform(type);
+        let arrThemes = sys.board.valueMaps.lightThemes.toArray();
+        let arr = [];
+        for (let i = 0; i < arrThemes.length; i++) {
+            if (tobj.name === arrThemes[i].type) arr.push(arrThemes[i]);
+        }
+        return arr;
+    }
     public getCircuitFunctions() { return sys.board.valueMaps.circuitFunctions.toArray(); }
     public getCircuitNames() {
         return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()];
@@ -573,6 +602,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             let circuit = sys.circuits.getItemById(id, true);
             let scircuit = state.circuits.getItemById(id, true);
             circuit.isActive = true;
+            circuit.master = 1;
             scircuit.isOn = false;
             if (data.name) circuit.name = scircuit.name = data.name;
             else if (!circuit.name && !data.name) circuit.name = scircuit.name = Circuit.getIdName(id);
@@ -704,24 +734,30 @@ export class NixieCircuitCommands extends CircuitCommands {
             return Promise.reject(new InvalidEquipmentIdError('Group id has not been defined', id, 'LightGroup'));
     }
     public async deleteCircuitAsync(data: any): Promise<ICircuit> {
-        if (typeof data.id === 'undefined') return Promise.reject(new InvalidEquipmentIdError('You must provide an id to delete a circuit', data.id, 'Circuit'));
-        let circuit = sys.circuits.getInterfaceById(data.id);
+        let id = parseInt(data.id, 10);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit'));
+        if (!sys.board.equipmentIds.circuits.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit'));
+        let circuit = sys.circuits.getInterfaceById(id);
+        let cstate = state.circuits.getInterfaceById(id);
         if (circuit instanceof Circuit) {
-            sys.circuits.removeItemById(data.id);
-            state.circuits.removeItemById(data.id);
+            sys.circuits.removeItemById(circuit.id);
+            state.circuits.removeItemById(circuit.id);
+            cstate.isActive = circuit.isActive = false;
         }
         if (circuit instanceof Feature) {
-            sys.features.removeItemById(data.id);
-            state.features.removeItemById(data.id);
+            sys.features.removeItemById(circuit.id);
+            state.features.removeItemById(circuit.id);
+            cstate.isActive = circuit.isActive = false;
         }
+        cstate.emitEquipmentChange();
         return new Promise<ICircuit>((resolve, reject) => { resolve(circuit); });
     }
     public deleteCircuit(data: any) {
         if (typeof data.id !== 'undefined') {
             let circuit = sys.circuits.getInterfaceById(data.id);
             if (circuit instanceof Circuit) {
-                sys.circuits.removeItemById(data.id);
-                state.circuits.removeItemById(data.id);
+                sys.circuits.removeItemById(circuit.id);
+                state.circuits.removeItemById(circuit.id);
                 return;
             }
             if (circuit instanceof Feature) {
@@ -864,6 +900,7 @@ export class NixieFeatureCommands extends FeatureCommands {
             feature.isActive = false;
             sfeature.isOn = false;
             sfeature.showInFeatures = false;
+            sfeature.isActive = false;
             sfeature.emitEquipmentChange();
             return new Promise<Feature>((resolve, reject) => { resolve(feature); });
         }

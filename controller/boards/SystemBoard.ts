@@ -287,6 +287,26 @@ export class byteValueMaps {
     [254, { name: 'unknown', desc: 'unknown' }],
     [255, { name: 'none', desc: 'None' }]
   ]);
+    public colorLogicThemes = new byteValueMap([
+        [0, { name: 'cloudwhite', desc: 'Cloud White', type: 'colorlogic', sequence: 7 }],
+        [1, { name: 'deepsea', desc: 'Deep Sea', type: 'colorlogic', sequence: 2 }],
+        [2, { name: 'royalblue', desc: 'Royal Blue', type: 'colorlogic', sequence: 3 }],
+        [3, { name: 'afernoonskies', desc: 'Afternoon Skies', type: 'colorlogic', sequence: 4 }],
+        [4, { name: 'aquagreen', desc: 'Aqua Green', type: 'colorlogic', sequence: 5 }],
+        [5, { name: 'emerald', desc: 'Emerald', type: 'colorlogic', sequence: 6 }],
+        [6, { name: 'warmred', desc: 'Warm Red', type: 'colorlogic', sequence: 8 }],
+        [7, { name: 'flamingo', desc: 'Flamingo', type: 'colorlogic', sequence: 9 }],
+        [8, { name: 'vividviolet', desc: 'Vivid Violet', type: 'colorlogic', sequence: 10 }],
+        [9, { name: 'sangria', desc: 'Sangria', type: 'colorlogic', sequence: 11 }],
+        [10, { name: 'twilight', desc: 'Twilight', type: 'colorlogic', sequence: 12 }],
+        [11, { name: 'tranquility', desc: 'Tranquility', type: 'colorlogic', sequence: 13 }],
+        [12, { name: 'gemstone', desc: 'Gemstone', type: 'colorlogic', sequence: 14 }],
+        [13, { name: 'usa', desc: 'USA', type: 'colorlogic', sequence: 15 }],
+        [14, { name: 'mardigras', desc: 'Mardi Gras', type: 'colorlogic', sequence: 16 }],
+        [15, { name: 'cabaret', desc: 'Cabaret', type: 'colorlogic', sequence: 17 }],
+        [255, { name: 'none', desc: 'None' }]
+    ]);
+
   public lightColors: byteValueMap = new byteValueMap([
     [0, { name: 'white', desc: 'White' }],
     [2, { name: 'lightgreen', desc: 'Light Green' }],

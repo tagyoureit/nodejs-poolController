@@ -472,6 +472,7 @@ export interface ICircuitState {
     emitEquipmentChange();
     get(bCopy?: boolean);
     showInFeatures?: boolean;
+    isActive?: boolean;
 }
 
 interface IEqStateCreator<T> { ctor(data: any, name: string, parent?): T; }
@@ -1121,6 +1122,14 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState, IC
             state._dirtyList.removeEqState(this);
         }
     }
+    public get(bcopy?: boolean): any {
+        let d = super.get(bcopy);
+        let cg = sys.circuitGroups.getItemById(this.id);
+        if (!cg.isActive) d.isActive = false;
+        else d.isActive = undefined;
+        return d;
+    }
+
 }
 export class LightGroupStateCollection extends EqStateCollection<LightGroupState> {
     public createItem(data: any): LightGroupState { return new LightGroupState(data); }
@@ -1420,7 +1429,8 @@ export class FeatureState extends EqState implements ICircuitState {
     // need to know (so we can shut it off) if we have done this.
     public get freezeProtect(): boolean { return this.data.freezeProtect; }
     public set freezeProtect(val: boolean) { this.setDataVal('freezeProtect', val); }
-
+    public get isActive(): boolean { return this.data.isActive; }
+    public set isActive(val: boolean) { this.setDataVal('isActive', val); }
 }
 export class VirtualCircuitState extends EqState implements ICircuitState {
     public dataName: string = 'virtualCircuit';
@@ -1529,6 +1539,8 @@ export class CircuitState extends EqState implements ICircuitState {
     // need to know (so we can shut it off) if we have done this.
     public get freezeProtect(): boolean { return this.data.freezeProtect; }
     public set freezeProtect(val: boolean) { this.setDataVal('freezeProtect', val); }
+    public get isActive(): boolean { return this.data.isActive; }
+    public set isActive(val: boolean) { this.setDataVal('isActive', val); }
 }
 export class ValveStateCollection extends EqStateCollection<ValveState> {
     public createItem(data: any): ValveState { return new ValveState(data); }

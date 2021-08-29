@@ -589,7 +589,7 @@ export class ConfigRoute {
         });
         app.get('/config/circuit/:id/lightThemes', (req, res) => {
             let circuit = sys.circuits.getInterfaceById(parseInt(req.params.id, 10));
-            let themes = typeof circuit !== 'undefined' && typeof circuit.getLightThemes === 'function' ? circuit.getLightThemes() : [];
+            let themes = typeof circuit !== 'undefined' && typeof circuit.getLightThemes === 'function' ? circuit.getLightThemes(circuit.type) : [];
             return res.status(200).send(themes);
         });
         app.get('/config/chlorinator/:id', (req, res) => {
