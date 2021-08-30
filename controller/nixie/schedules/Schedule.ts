@@ -141,8 +141,9 @@ export class NixieSchedule extends NixieEquipment {
                 let body = sys.bodies.find(elem => elem.circuit === circuit.id);
                 if (typeof body !== 'undefined') {
                     let heatSource = sys.board.valueMaps.heatSources.transform(this.schedule.heatSource);
-                    if (heatSource !== 'nochange') {
+                    if (heatSource.name !== 'nochange') {
                         switch (heatSource.name) {
+                            case 'nochange':
                             case 'dontchange':
                                 break;
                             case 'off':
