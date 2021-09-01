@@ -2692,10 +2692,22 @@ export class FilterState extends EqState {
             this.hasChanged = true;
         }
     }
+    public get pressureUnits(): number { return typeof this.data.pressureUnits !== 'undefined' ? this.data.pressureUnits : 0; }
+    public set pressureUnits(val: number) {
+        if (this.pressureUnits !== val) {
+            this.setDataVal('pressureUnits', sys.board.valueMaps.pressureUnits.transform(val));
+        }
+    }
+    public get pressure(): number { return this.data.pressure; }
+    public set pressure(val: number) { this.setDataVal('pressure', val); }
+    public get cleanPercentage(): number { return this.data.cleanPercentage; }
+    public set cleanPercentage(val: number) { this.setDataVal('cleanPercentage', val); }
+
     public get psi(): number { return this.data.psi; }
     public set psi(val: number) { this.setDataVal('psi', val); }
     public get filterPsi(): number { return this.data.filterPsi; } // do not exceed value.  
     public set filterPsi(val: number) { this.setDataVal('filterPsi', val); }
+
     public get lastCleanDate(): Timestamp { return this.data.lastCleanDate; }
     public set lastCleanDate(val: Timestamp) { this.setDataVal('lastCleanDate', val); }
     public get needsCleaning(): number { return this.data.needsCleaning; }

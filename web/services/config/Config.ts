@@ -332,6 +332,7 @@ export class ConfigRoute {
                     bodies: sys.board.bodies.getBodyAssociations(),
                     filters: sys.filters.get(),
                     areaUnits: sys.board.valueMaps.areaUnits.toArray(),
+                    pressureUnits: sys.board.valueMaps.pressureUnits.toArray(),
                     servers: []
                 };
                 if (sys.controllerType === ControllerType.Nixie) opts.servers = await sys.ncp.getREMServers();

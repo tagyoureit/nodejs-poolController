@@ -558,6 +558,14 @@ export class byteValueMaps {
     [6, { name: 'qt', desc: 'Quarts' }],
     [7, { name: 'pt', desc: 'Pints' }]
   ]);
+    public pressureUnits: byteValueMap = new byteValueMap([
+        [0, { name: 'psi', desc: 'Pounds per Sqare Inch' }],
+        [1, { name: 'Pa', desc: 'Pascal' }],
+        [2, { name: 'kPa', desc: 'Kilo-pascals' }],
+        [3, { name: 'atm', desc: 'Atmospheres' }],
+        [4, { name: 'bar', desc: 'Barometric' }]
+    ]);
+
   public areaUnits: byteValueMap = new byteValueMap([
     [0, { name: '', desc: 'No Units' }],
     [1, { name: 'sqft', desc: 'Square Feet' }],

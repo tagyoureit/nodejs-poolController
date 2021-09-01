@@ -74,6 +74,7 @@ export class StateSocket {
             }
             catch (err) { logger.error(err); }
         });
+        
         sock.on('/chlorinator', async (data: any) => {
             try {
                 data = JSON.parse(data);
@@ -98,6 +99,23 @@ export class StateSocket {
                 }
             }
             catch (err) { logger.error(err); }
+        });
+        sock.on('/filter', async (data: any) => {
+            try {
+                data = JSON.parse(data);
+                let id = parseInt(data.id, 10);
+                let filter = sys.filters.find(elem => elem.id === id);
+                if (typeof filter !== 'undefined' && filter.isActive) {
+                    let sfilter = state.filters.getItemById(filter.id, filter.isActive)
+                    let pu = sys.board.valueMaps.pressureUnits.transform(filter.pressureUnits);
+                    if (typeof data.pressure !== 'undefined')
+                        sfilter.pressure = utils.convert.pressure.convertUnits(data.pressure, data.pressureUnits || pu.name, pu.name);
+
+                    sfilter.emitEquipmentChange();
+                }
+
+                
+            } catch (err) { logger.error(err); }
         });
         sock.on('/chemController', async (data: any) => {
             try {

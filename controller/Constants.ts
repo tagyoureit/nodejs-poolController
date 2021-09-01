@@ -368,6 +368,94 @@ export class Utils {
                 if (typeof fn !== 'undefined' && typeof fn[to.toLowerCase()] === 'function') return fn[to.toLowerCase()](val);
             }
         },
+        pressure: {
+            bar: {
+                kpa: (val) => { return val * 100; },
+                kilopascal: (val) => { return val * 100; },
+                pa: (val) => { return val * 100000; },
+                pascal: (val) => { return val * 100000; },
+                atm: (val) => { return val * 0.986923; },
+                atmosphere: (val) => { return val * 0.986923; },
+                psi: (val) => { return val * 14.5038; },
+                bar: (val) => { return val; }
+            },
+            kpa: {
+                kpa: (val) => { return val; },
+                kilopascal: (val) => { return val; },
+                pa: (val) => { return val * 1000; },
+                pascal: (val) => { return val * 1000; },
+                atm: (val) => { return val / 101.325; },
+                atmosphere: (val) => { return val / 101.325; },
+                psi: (val) => { return val * 0.145038; },
+                bar: (val) => { return val * .01; }
+            },
+            kilopascal: {
+                kpa: (val) => { return val; },
+                kilopascal: (val) => { return val; },
+                pa: (val) => { return val * 1000; },
+                pascal: (val) => { return val * 1000; },
+                atm: (val) => { return val / 101.325; },
+                atmosphere: (val) => { return val / 101.325; },
+                psi: (val) => { return val * 0.145038; },
+                bar: (val) => { return val * .01; }
+            },
+            pa: {
+                kpa: (val) => { return val / 1000; },
+                kilopascal: (val) => { return val / 1000; },
+                pa: (val) => { return val; },
+                pascal: (val) => { return val; },
+                atm: (val) => { return val / 101325; },
+                atmosphere: (val) => { return val / 101325; },
+                psi: (val) => { return val * 0.000145038; },
+                bar: (val) => { return val / 100000; }
+            },
+            pascal: {
+                kpa: (val) => { return val / 1000; },
+                kilopascal: (val) => { return val / 1000; },
+                pa: (val) => { return val; },
+                pascal: (val) => { return val; },
+                atm: (val) => { return val / 101325; },
+                atmosphere: (val) => { return val / 101325; },
+                psi: (val) => { return val * 0.000145038; },
+                bar: (val) => { return val / 100000; }
+            },
+            atm: {
+                kpa: (val) => { return val * 101.325; },
+                kilopascal: (val) => { return val * 101.325; },
+                pa: (val) => { return val * 101325; },
+                pascal: (val) => { return val * 101325; },
+                atm: (val) => { return val; },
+                atmosphere: (val) => { return val; },
+                psi: (val) => { return val * 14.6959; },
+                bar: (val) => { return val * 1.01325; }
+            },
+            atmosphere: {
+                kpa: (val) => { return val * 101.325; },
+                kilopascal: (val) => { return val * 101.325; },
+                pa: (val) => { return val * 101325; },
+                pascal: (val) => { return val * 101325; },
+                atm: (val) => { return val; },
+                atmosphere: (val) => { return val; },
+                psi: (val) => { return val * 14.6959; },
+                bar: (val) => { return val * 1.01325; }
+            },
+            psi: {
+                kpa: (val) => { return val * 6.89476; },
+                kilopascal: (val) => { return val * 6.89476; },
+                pa: (val) => { return val * 6894.76; },
+                pascal: (val) => { return val * 6894.76; },
+                atm: (val) => { return val * 0.068046; },
+                atmosphere: (val) => { return 0.068046; },
+                psi: (val) => { return val; },
+                bar: (val) => { return val * 0.0689476; }
+            },
+            convertUnits: (val: number, from: string, to: string) => {
+                if (typeof val !== 'number') return null;
+                let fn = this.convert.pressure[from.toLowerCase()];
+                if (typeof fn !== 'undefined' && typeof fn[to.toLowerCase()] === 'function') return fn[to.toLowerCase()](val);
+            }
+
+        },
         volume: {
             gal: {
                 l: (val) => { return val * 3.78541; },

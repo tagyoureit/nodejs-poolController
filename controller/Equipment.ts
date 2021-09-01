@@ -2050,6 +2050,11 @@ export class Filter extends EqItem {
         if (typeof this.data.filterType === 'undefined') this.data.filterType = 3;
         if (typeof this.data.capacity === 'undefined') this.data.capacity = 0;
         if (typeof this.data.capacityUnits === 'undefined') this.data.capacityUnits = 0;
+        if (typeof this.data.cleanPressure === 'undefined') this.data.cleanPressure = 0;
+        if (typeof this.data.dirtyPressure === 'undefined') this.data.dirtyPressure = 0;
+        if (typeof this.data.pressureUnits === 'undefined') this.data.pressureUnits = 0;
+        // Start this out at pool and let the user switch it around if necessary.
+        if (typeof this.data.pressureCircuitId === 'undefined') this.data.pressureCircuitId = 6;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
@@ -2065,10 +2070,21 @@ export class Filter extends EqItem {
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
+
     public get lastCleanDate(): Timestamp { return this.data.lastCleanDate; }
     public set lastCleanDate(val: Timestamp) { this.setDataVal('lastCleanDate', val); }
     public get needsCleaning(): number { return this.data.needsCleaning; }
     public set needsCleaning(val: number) { this.setDataVal('needsCleaning', val); }
+    public get pressureUnits(): number { return this.data.pressureUnits; }
+    public set pressureUnits(val: number) { this.setDataVal('pressureUnits', val); }
+    public get pressureCircuitId(): number { return this.data.pressureCircuitId; }
+    public set pressureCircuitId(val: number) { this.setDataVal('pressureCircuitId', val); }
+
+    public get cleanPressure(): number { return this.data.cleanPressure; }
+    public set cleanPressure(val: number) { this.setDataVal('cleanPressure', val); }
+
+    public get dirtyPressure(): number { return this.data.dirtyPressure; }
+    public set dirtyPressure(val: number) { this.setDataVal('dirtyPressure', val); }
     public get connectionId(): string { return this.data.connectionId; }
     public set connectionId(val: string) { this.setDataVal('connectionId', val); }
     public get deviceBinding(): string { return this.data.deviceBinding; }
