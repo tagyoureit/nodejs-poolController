@@ -2131,7 +2131,9 @@ export class CircuitCommands extends BoardCommands {
         await sys.board.circuits.setCircuitStateAsync(c.circuit, false);
       else if (!cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) !== 'off') await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
     }
-    sgrp.isOn = sys.board.valueMaps.lightThemes.getName(theme) === 'off' ? false : true;
+    let isOn = sys.board.valueMaps.lightThemes.getName(theme) === 'off' ? false : true;
+    sys.board.circuits.setEndTime(grp, sgrp, isOn);
+    sgrp.isOn = isOn;
     // If we truly want to support themes in lightGroups we probably need to program
     // the specific on/off toggles to enable that.  For now this will go through the motions but it's just a pretender.
     switch (theme) {
@@ -2571,7 +2573,7 @@ export class ScheduleCommands extends BoardCommands {
     sched.startMonth = startDate.getMonth() + 1;
     sched.startDay = startDate.getDate();
     sched.isActive = sched.startTime !== 0;
-    
+
     ssched.display = sched.display = display;
     if (typeof sched.startDate === 'undefined')
       sched.master = 1;

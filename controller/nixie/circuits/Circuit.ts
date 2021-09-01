@@ -163,12 +163,14 @@ export class NixieCircuit extends NixieEquipment {
                 // Check to see if we should be on by poking the schedules.
             }
             if (utils.isNullOrEmpty(this.circuit.connectionId) || utils.isNullOrEmpty(this.circuit.deviceBinding)) {
+                sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(cstate.id), cstate, val);
                 cstate.isOn = val;
                 return new InterfaceServerResponse(200, 'Success');
             }
             if (this._sequencing) return new InterfaceServerResponse(200, 'Success');
             let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, { isOn: val, latch: val ? 10000 : undefined });
             if (res.status.code === 200) {
+                sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(cstate.id), cstate, val);
                 cstate.isOn = val;
                 // Set this up so we can process our egg timer.
                 if (!cstate.isOn && val) { this.timeOn = new Timestamp(); }
