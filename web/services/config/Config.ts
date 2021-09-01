@@ -333,6 +333,7 @@ export class ConfigRoute {
                     filters: sys.filters.get(),
                     areaUnits: sys.board.valueMaps.areaUnits.toArray(),
                     pressureUnits: sys.board.valueMaps.pressureUnits.toArray(),
+                    circuits: sys.board.circuits.getCircuitReferences(true, true, true, false),
                     servers: []
                 };
                 if (sys.controllerType === ControllerType.Nixie) opts.servers = await sys.ncp.getREMServers();
@@ -363,7 +364,7 @@ export class ConfigRoute {
         });
         app.put('/config/filter', async (req, res, next) => {
             try {
-                let sfilter = sys.board.filters.setFilter(req.body);
+                let sfilter = await sys.board.filters.setFilter(req.body);
                 return res.status(200).send(sfilter.get(true));
             }
             catch (err) { next(err); }

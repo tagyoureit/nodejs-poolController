@@ -2071,6 +2071,8 @@ export class Filter extends EqItem {
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
 
+    public get showPressure(): boolean { return this.data.showPressure; }
+    public set showPressure(val: boolean) { this.setDataVal('showPressure', val); }
     public get lastCleanDate(): Timestamp { return this.data.lastCleanDate; }
     public set lastCleanDate(val: Timestamp) { this.setDataVal('lastCleanDate', val); }
     public get needsCleaning(): number { return this.data.needsCleaning; }
@@ -2079,12 +2081,11 @@ export class Filter extends EqItem {
     public set pressureUnits(val: number) { this.setDataVal('pressureUnits', val); }
     public get pressureCircuitId(): number { return this.data.pressureCircuitId; }
     public set pressureCircuitId(val: number) { this.setDataVal('pressureCircuitId', val); }
-
     public get cleanPressure(): number { return this.data.cleanPressure; }
     public set cleanPressure(val: number) { this.setDataVal('cleanPressure', val); }
-
     public get dirtyPressure(): number { return this.data.dirtyPressure; }
     public set dirtyPressure(val: number) { this.setDataVal('dirtyPressure', val); }
+
     public get connectionId(): string { return this.data.connectionId; }
     public set connectionId(val: string) { this.setDataVal('connectionId', val); }
     public get deviceBinding(): string { return this.data.deviceBinding; }

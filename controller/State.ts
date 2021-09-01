@@ -2700,6 +2700,14 @@ export class FilterState extends EqState {
     }
     public get pressure(): number { return this.data.pressure; }
     public set pressure(val: number) { this.setDataVal('pressure', val); }
+    public get refPressure(): number { return this.data.refPressure; }
+    public set refPressure(val: number) {
+        if (val !== this.refPressure) {
+            this.setDataVal('refPressure', val);
+            this.calcCleanPercentage();
+        }
+        else { this.setDataVal('refPressure', val); }
+    }
     public get cleanPercentage(): number { return this.data.cleanPercentage; }
     public set cleanPercentage(val: number) { this.setDataVal('cleanPercentage', val); }
 
@@ -2714,5 +2722,14 @@ export class FilterState extends EqState {
     public set needsCleaning(val: number) { this.setDataVal('needsCleaning', val); }
     public get isOn(): boolean { return utils.makeBool(this.data.isOn); }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
+    public calcCleanPercentage() {
+        if (typeof this.refPressure === 'undefined') return;
+        let filter = sys.filters.find(elem => elem.id == this.id);
+        // 8 to 10
+        let cp = filter.cleanPressure || 0;
+        let dp = filter.dirtyPressure || 1;
+        let delta = Math.max(dp - cp, 0);
+        this.cleanPercentage = (cp - dp != 0) ? Math.max(0, (1 - (this.refPressure - cp) / (dp - cp)) * 100) : 0;
+    }
 }
 export var state = new State();

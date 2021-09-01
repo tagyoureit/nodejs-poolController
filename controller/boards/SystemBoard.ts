@@ -3283,73 +3283,122 @@ export class ChemControllerCommands extends BoardCommands {
   }
 }
 export class FilterCommands extends BoardCommands {
-  public async syncFilterStates() {
-    try {
-      for (let i = 0; i < sys.filters.length; i++) {
-        // Run through all the valves to see whether they should be triggered or not.
-        let filter = sys.filters.getItemByIndex(i);
-        if (filter.isActive) {
-          let fstate = state.filters.getItemById(filter.id, true);
-          // Check to see if the associated body is on.
-          await sys.board.filters.setFilterStateAsync(filter, fstate, sys.board.bodies.isBodyOn(filter.body));
-        }
-      }
-    } catch (err) { logger.error(`syncFilterStates: Error synchronizing filters ${err.message}`); }
-  }
-  public async setFilterStateAsync(filter: Filter, fstate: FilterState, isOn: boolean) { fstate.isOn = isOn; }
-  public setFilter(data: any): any {
-    let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-    if (id <= 0) id = sys.filters.length + 1; // set max filters?
-    if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid filter id: ${data.id}`, data.id, 'Filter'));
-    let filter = sys.filters.getItemById(id, id > 0);
-    let sfilter = state.filters.getItemById(id, id > 0);
-    let filterType = typeof data.filterType !== 'undefined' ? parseInt(data.filterType, 10) : filter.filterType;
-    if (typeof filterType === 'undefined') filterType = sys.board.valueMaps.filterTypes.getValue('unknown');
+    public async syncFilterStates() {
+        try {
+            for (let i = 0; i < sys.filters.length; i++) {
+                // Run through all the valves to see whether they should be triggered or not.
+                let filter = sys.filters.getItemByIndex(i);
+                if (filter.isActive) {
+                    let fstate = state.filters.getItemById(filter.id, true);
+                    // Check to see if the associated body is on.
+                    await sys.board.filters.setFilterStateAsync(filter, fstate, sys.board.bodies.isBodyOn(filter.body));
+                }
+            }
+        } catch (err) { logger.error(`syncFilterStates: Error synchronizing filters ${err.message}`); }
+    }
+    public async setFilterPressure(id: number, pressure: number, units?: string) {
+        try {
+            let filter = sys.filters.find(elem => elem.id === id);
+            if (typeof filter === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`setFilterPressure: Invalid equipmentId ${id}`, id, 'Filter'));
+            if (isNaN(pressure)) return Promise.reject(new InvalidEquipmentDataError(`setFilterPressure: Invalid filter pressure ${pressure} for ${filter.name}`, 'Filter', pressure));
 
-    if (typeof data.isActive !== 'undefined') {
-      if (utils.makeBool(data.isActive) === false) {
-        sys.filters.removeItemById(id);
-        state.filters.removeItemById(id);
-        return;
-      }
+            let sfilter = state.filters.getItemById(filter.id, true);
+            // Convert the pressure to the units that we have set on the filter for the pressure units.
+            let pu = sys.board.valueMaps.pressureUnits.transform(filter.pressureUnits || 0);
+            if (typeof units === 'undefined' || units === '') units = pu.name;
+            sfilter.pressureUnits = filter.pressureUnits;
+            sfilter.pressure = Math.round(pressure * 1000) / 1000; // Round this to 3 decimal places just in case we are getting stupid scales.
+            // Check to see if our circuit is the only thing on.  If it is then we will be setting our current clean pressure to the incoming pressure and calculating a percentage.
+            // Rules for the circuit.
+            // 1. The assigned circuit must be on.
+            // 2. There must not be a current freeze condition
+            // 3. No heaters can be on.
+            // 4. The assigned circuit must be on exclusively but we will be ignoring any of the light circuit types for the exclusivity.
+            let cstate = state.circuits.getInterfaceById(filter.pressureCircuitId);
+            if (cstate.isActive === true && cstate.isOn && state.freeze !== true) {
+                // Ok so our circuit is on.  We need to check to see if any other circuits are on.  This includes heaters.  The reason for this is that even with
+                // a gas heater there may be a heater bypass that will screw up our numbers.  Certainly reflow on a solar heater will skew the numbers.
+                let hon = state.heaters.find(elem => elem.isOn == true);
+                if (typeof hon === 'undefined') {
+                    // Put together the circuit types that could be lights.  We don't want these.
+                    let ctypes = [];
+                    let funcs = sys.board.valueMaps.circuitFunctions.toArray();
+                    for (let i = 0; i < funcs.length; i++) {
+                        let f = funcs[i];
+                        if (f.isLight) ctypes.push(f.val);
+                    }
+                    let con = state.circuits.find(elem => elem.isOn === true && elem.id !== filter.pressureCircuitId && elem.id !== 1 && elem.id !== 6 && !ctypes.includes(elem.type));
+                    if (typeof con === 'undefined') {
+                        // This check is the one that will be the most problematic.  For this reason we are only going to check features that are not generic.  If they are spillway
+                        // it definitely has to be off.
+                        let feats = state.features.toArray();
+                        let fon = false;
+                        for (let i = 0; i < feats.length && fon === false; i++) {
+                            let f = feats[i];
+                            if (!f.isOn) continue;
+                            if (f.id === filter.pressureCircuitId) continue;
+                            if (f.type != 0) fon = true;
+                            // Check to see if this feature is used on a valve.  This will make it
+                            // us not include this either.  We do not care whether the valve is diverted or not.
+                            if (typeof state.valves.find(elem => elem.circuitId === f.id) !== 'undefined') fon = true;
+                        }
+                        if (!fon) {
+                            // Finally we have a value we can believe in.
+                            sfilter.refPressure = pressure;
+                        }
+                    }
+                }
+            }
+            sfilter.emitEquipmentChange();
+        }
+        catch (err) { logger.error(`setFilterPressure: Error setting filter #${id} pressure to ${pressure}${units || ''}`); }
+    }
+    public async setFilterStateAsync(filter: Filter, fstate: FilterState, isOn: boolean) { fstate.isOn = isOn; }
+    public async setFilterAsync(data: any): any {
+        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+        if (id <= 0) id = sys.filters.length + 1; // set max filters?
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid filter id: ${data.id}`, data.id, 'Filter'));
+        let filter = sys.filters.getItemById(id, id > 0);
+        let sfilter = state.filters.getItemById(id, id > 0);
+        let filterType = typeof data.filterType !== 'undefined' ? parseInt(data.filterType, 10) : filter.filterType;
+        if (typeof filterType === 'undefined') filterType = sys.board.valueMaps.filterTypes.getValue('unknown');
+
+        if (typeof data.isActive !== 'undefined') {
+            if (utils.makeBool(data.isActive) === false) {
+                sys.filters.removeItemById(id);
+                state.filters.removeItemById(id);
+                return;
+            }
+        }
+
+        let body = typeof data.body !== 'undefined' ? data.body : filter.body;
+        let name = typeof data.name !== 'undefined' ? data.name : filter.name;
+        if (typeof body === 'undefined') body = 32;
+        // At this point we should have all the data.  Validate it.
+        if (!sys.board.valueMaps.filterTypes.valExists(filterType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid filter type; ${filterType}`, 'Filter', filterType));
+
+        filter.pressureUnits = data.pressureUnits || filter.pressureUnits || 0;
+        filter.pressureCircuitId = parseInt(data.pressureCicuitId || filter.pressureCircuitId || 6, 10);
+        filter.cleanPressure = parseFloat(data.cleanPressure || filter.cleanPressure || 0);
+        filter.dirtyPressure = parseFloat(data.dirtyPressure || filter.dirtyPressure || 0);
+        sfilter.calcCleanPercentage();
+
+        filter.filterType = sfilter.filterType = filterType;
+        filter.body = sfilter.body = body;
+        filter.name = sfilter.name = name;
+        filter.capacity = typeof data.capacity === 'number' ? data.capacity : filter.capacity;
+        filter.capacityUnits = typeof data.capacityUnits !== 'undefined' ? data.capacityUnits : filter.capacity;
+        filter.connectionId = typeof data.connectionId !== 'undefined' ? data.connectionId : filter.connectionId;
+        filter.deviceBinding = typeof data.deviceBinding !== 'undefined' ? data.deviceBinding : filter.deviceBinding;
+        sfilter.emitEquipmentChange();
+        return filter; // Always return the config when we are dealing with the config not state.
     }
 
-    let body = typeof data.body !== 'undefined' ? data.body : filter.body;
-    let name = typeof data.name !== 'undefined' ? data.name : filter.name;
-
-    let psi = typeof data.psi !== 'undefined' ? parseFloat(data.psi) : sfilter.psi;
-    let lastCleanDate = typeof data.lastCleanDate !== 'undefined' ? data.lastCleanDate : sfilter.lastCleanDate;
-    let filterPsi = typeof data.filterPsi !== 'undefined' ? parseInt(data.filterPsi, 10) : sfilter.filterPsi;
-    let needsCleaning = typeof data.needsCleaning !== 'undefined' ? data.needsCleaning : sfilter.needsCleaning;
-
-    // Ensure all the defaults.
-    if (isNaN(psi)) psi = 0;
-    if (typeof body === 'undefined') body = 32;
-
-    // At this point we should have all the data.  Validate it.
-    if (!sys.board.valueMaps.filterTypes.valExists(filterType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid filter type; ${filterType}`, 'Filter', filterType));
-
-    filter.filterType = sfilter.filterType = filterType;
-    filter.body = sfilter.body = body;
-    filter.filterType = sfilter.filterType = filterType;
-    filter.name = sfilter.name = name;
-    filter.capacity = typeof data.capacity === 'number' ? data.capacity : filter.capacity;
-    filter.capacityUnits = typeof data.capacityUnits !== 'undefined' ? data.capacityUnits : filter.capacity;
-    sfilter.psi = psi;
-    sfilter.filterPsi = filterPsi;
-    filter.needsCleaning = sfilter.needsCleaning = needsCleaning;
-    filter.lastCleanDate = sfilter.lastCleanDate = lastCleanDate;
-    filter.connectionId = typeof data.connectionId !== 'undefined' ? data.connectionId : filter.connectionId;
-    filter.deviceBinding = typeof data.deviceBinding !== 'undefined' ? data.deviceBinding : filter.deviceBinding;
-    sfilter.emitEquipmentChange();
-    return filter; // Always return the config when we are dealing with the config not state.
-  }
-
-  public deleteFilter(data: any): any {
-    let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-    if (isNaN(id)) return;
-    sys.filters.removeItemById(id);
-    state.filters.removeItemById(id);
-    return state.filters.getItemById(id);
-  }
+    public deleteFilter(data: any): any {
+        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+        if (isNaN(id)) return;
+        sys.filters.removeItemById(id);
+        state.filters.removeItemById(id);
+        return state.filters.getItemById(id);
+    }
 }
