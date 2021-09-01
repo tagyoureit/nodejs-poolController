@@ -2570,7 +2570,8 @@ export class ScheduleCommands extends BoardCommands {
     sched.startYear = startDate.getFullYear();
     sched.startMonth = startDate.getMonth() + 1;
     sched.startDay = startDate.getDate();
-
+    sched.isActive = sched.startTime !== 0;
+    
     ssched.display = sched.display = display;
     if (typeof sched.startDate === 'undefined')
       sched.master = 1;
