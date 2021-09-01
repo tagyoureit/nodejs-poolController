@@ -163,8 +163,8 @@ export class EquipmentStateMessage {
                     // 1. IntelliCenter has "manual" time set (Internet will automatically adjust) and autoAdjustDST is enabled
                     // 2. *Touch is "manual" (only option) and autoAdjustDST is enabled - (same as #1)
                     // 3. clock source is "server" isn't an OCP option but can be enabled on the clients 
-                    if (dt.getMinutes() % 5 === 0 && sys.general.options.clockSource === 'server') {
-                        if ((Math.abs(dt.getTime() - state.time.getTime()) > 60 * 5 * 1000) && !state.time.isUpdating) {
+                    if (dt.getMinutes() % 5 === 0 && dt.getSeconds() <= 10 && sys.general.options.clockSource === 'server') {
+                        if ((Math.abs(dt.getTime() - state.time.getTime()) > 60 * 2 * 1000) && !state.time.isUpdating) {
                             state.time.isUpdating = true;
                             sys.board.system.setDateTimeAsync({ dt, dst: sys.general.options.adjustDST || 0, })
                                 .then(() => {
