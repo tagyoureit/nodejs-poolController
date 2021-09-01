@@ -2332,7 +2332,6 @@ export class FeatureCommands extends BoardCommands {
       sys.board.circuits.setEndTime(feature, fstate, val);
       fstate.isOn = val;
       sys.board.valves.syncValveStates();
-      // sys.board.virtualPumpControllers.start();
       ncp.pumps.syncPumpStates();
       state.emitEquipmentChanges();
       return fstate;

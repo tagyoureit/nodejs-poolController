@@ -926,9 +926,9 @@ export class NixieFeatureCommands extends FeatureCommands {
             if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
             let feature = sys.features.getItemById(id);
             let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
+            sys.board.circuits.setEndTime(feature, fstate, val);
             fstate.isOn = val;
             sys.board.valves.syncValveStates();
-            // sys.board.virtualPumpControllers.start();
             ncp.pumps.syncPumpStates();
             state.emitEquipmentChanges();
             return fstate;
