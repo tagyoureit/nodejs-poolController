@@ -1291,6 +1291,7 @@ export class TouchCircuitCommands extends CircuitCommands {
                             circuit.type = cstate.type = typeByte;
                             circuit.eggTimer = typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer || 720;
                             circuit.dontStop = (typeof data.dontStop !== 'undefined') ? utils.makeBool(data.dontStop) : circuit.eggTimer === 1620;
+                            cstate.isActive = circuit.isActive = true;
                             let eggTimer = sys.eggTimers.find(elem => elem.circuit === parseInt(data.id, 10));
                             try {
                                 if (circuit.eggTimer === 720) {

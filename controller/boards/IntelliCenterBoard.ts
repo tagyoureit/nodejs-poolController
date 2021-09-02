@@ -1419,14 +1419,16 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
+                        let scircuit = state.circuits.getItemById(circuit.id, true);
                         circuit.eggTimer = eggTimer;
                         circuit.dontStop = data.dontStop;
                         circuit.freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze);
                         circuit.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures);
-                        if (type === 9) circuit.level = theme;
-                        else circuit.lightingTheme = theme;
-                        circuit.name = typeof data.name !== 'undefined' ? data.name.toString().substring(0, 16) : circuit.name;
-                        circuit.type = type;
+                        if (type === 9) scircuit.level = circuit.level = theme;
+                        else scircuit.lightingTheme = circuit.lightingTheme = theme;
+                        scircuit.lightingTheme = circuit.name = typeof data.name !== 'undefined' ? data.name.toString().substring(0, 16) : circuit.name;
+                        scircuit.type = circuit.type = type;
+                        scircuit.isActive = circuit.isActive = true;
                         resolve(circuit);
                     }
                 }

@@ -615,9 +615,8 @@ export class NixieCircuitCommands extends CircuitCommands {
             if (isNaN(id) || !sys.board.equipmentIds.circuits.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit'));
             let circuit = sys.circuits.getItemById(id, true);
             let scircuit = state.circuits.getItemById(id, true);
-            circuit.isActive = true;
+            scircuit.isActive = circuit.isActive = true;
             circuit.master = 1;
-            scircuit.isOn = false;
             if (data.name) circuit.name = scircuit.name = data.name;
             else if (!circuit.name && !data.name) circuit.name = scircuit.name = Circuit.getIdName(id);
             if (typeof data.type !== 'undefined' || typeof circuit.type === 'undefined') circuit.type = scircuit.type = parseInt(data.type, 10) || 0;
