@@ -109,8 +109,7 @@ export class StateSocket {
                     let sfilter = state.filters.getItemById(filter.id, filter.isActive)
                     let pu = sys.board.valueMaps.pressureUnits.transform(filter.pressureUnits);
                     if (typeof data.pressure !== 'undefined')
-                        sfilter.pressure = utils.convert.pressure.convertUnits(data.pressure, data.pressureUnits || pu.name, pu.name);
-
+                        await sys.board.filters.setFilterPressure(filter.id, data.pressure, data.pressureUnits || pu.name);
                     sfilter.emitEquipmentChange();
                 }
 

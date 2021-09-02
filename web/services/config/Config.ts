@@ -364,7 +364,7 @@ export class ConfigRoute {
         });
         app.put('/config/filter', async (req, res, next) => {
             try {
-                let sfilter = await sys.board.filters.setFilter(req.body);
+                let sfilter = await sys.board.filters.setFilterAsync(req.body);
                 return res.status(200).send(sfilter.get(true));
             }
             catch (err) { next(err); }
@@ -377,7 +377,7 @@ export class ConfigRoute {
         });
         app.delete('/config/filter', async (req, res, next) => {
             try {
-                let sfilter = sys.board.filters.deleteFilter(req.body);
+                let sfilter = await sys.board.filters.deleteFilterAsync(req.body);
                 return res.status(200).send(sfilter.get(true));
             }
             catch (err) { next(err); }

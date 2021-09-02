@@ -2692,7 +2692,7 @@ export class FilterState extends EqState {
             this.hasChanged = true;
         }
     }
-    public get pressureUnits(): number { return typeof this.data.pressureUnits !== 'undefined' ? this.data.pressureUnits : 0; }
+    public get pressureUnits(): number { return this.data.pressureUnits; }
     public set pressureUnits(val: number) {
         if (this.pressureUnits !== val) {
             this.setDataVal('pressureUnits', sys.board.valueMaps.pressureUnits.transform(val));
@@ -2710,16 +2710,8 @@ export class FilterState extends EqState {
     }
     public get cleanPercentage(): number { return this.data.cleanPercentage; }
     public set cleanPercentage(val: number) { this.setDataVal('cleanPercentage', val); }
-
-    public get psi(): number { return this.data.psi; }
-    public set psi(val: number) { this.setDataVal('psi', val); }
-    public get filterPsi(): number { return this.data.filterPsi; } // do not exceed value.  
-    public set filterPsi(val: number) { this.setDataVal('filterPsi', val); }
-
     public get lastCleanDate(): Timestamp { return this.data.lastCleanDate; }
     public set lastCleanDate(val: Timestamp) { this.setDataVal('lastCleanDate', val); }
-    public get needsCleaning(): number { return this.data.needsCleaning; }
-    public set needsCleaning(val: number) { this.setDataVal('needsCleaning', val); }
     public get isOn(): boolean { return utils.makeBool(this.data.isOn); }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public calcCleanPercentage() {
@@ -2728,8 +2720,7 @@ export class FilterState extends EqState {
         // 8 to 10
         let cp = filter.cleanPressure || 0;
         let dp = filter.dirtyPressure || 1;
-        let delta = Math.max(dp - cp, 0);
-        this.cleanPercentage = (cp - dp != 0) ? Math.max(0, (1 - (this.refPressure - cp) / (dp - cp)) * 100) : 0;
+        this.cleanPercentage = (cp - dp != 0) ? Math.round(Math.max(0, (1 - (this.refPressure - cp) / (dp - cp)) * 100) * 100)/100 : 0;
     }
 }
 export var state = new State();

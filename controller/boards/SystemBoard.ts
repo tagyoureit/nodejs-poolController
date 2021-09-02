@@ -3315,7 +3315,7 @@ export class FilterCommands extends BoardCommands {
             // 3. No heaters can be on.
             // 4. The assigned circuit must be on exclusively but we will be ignoring any of the light circuit types for the exclusivity.
             let cstate = state.circuits.getInterfaceById(filter.pressureCircuitId);
-            if (cstate.isActive === true && cstate.isOn && state.freeze !== true) {
+            if (cstate.isOn && state.freeze !== true) {
                 // Ok so our circuit is on.  We need to check to see if any other circuits are on.  This includes heaters.  The reason for this is that even with
                 // a gas heater there may be a heater bypass that will screw up our numbers.  Certainly reflow on a solar heater will skew the numbers.
                 let hon = state.heaters.find(elem => elem.isOn == true);
@@ -3346,15 +3346,23 @@ export class FilterCommands extends BoardCommands {
                             // Finally we have a value we can believe in.
                             sfilter.refPressure = pressure;
                         }
+                        else
+                            console.log('Features caused it to not set')
+
                     }
+                    else
+                        console.log(`Circuits caused it to not set ${con.name}`);
                 }
+            }
+            else {
+                console.log(`Couldn't find the circuit trigger state`);
             }
             sfilter.emitEquipmentChange();
         }
         catch (err) { logger.error(`setFilterPressure: Error setting filter #${id} pressure to ${pressure}${units || ''}`); }
     }
     public async setFilterStateAsync(filter: Filter, fstate: FilterState, isOn: boolean) { fstate.isOn = isOn; }
-    public async setFilterAsync(data: any): any {
+    public async setFilterAsync(data: any): Promise<Filter> {
         let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
         if (id <= 0) id = sys.filters.length + 1; // set max filters?
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid filter id: ${data.id}`, data.id, 'Filter'));
@@ -3363,13 +3371,14 @@ export class FilterCommands extends BoardCommands {
         let filterType = typeof data.filterType !== 'undefined' ? parseInt(data.filterType, 10) : filter.filterType;
         if (typeof filterType === 'undefined') filterType = sys.board.valueMaps.filterTypes.getValue('unknown');
 
-        if (typeof data.isActive !== 'undefined') {
-            if (utils.makeBool(data.isActive) === false) {
-                sys.filters.removeItemById(id);
-                state.filters.removeItemById(id);
-                return;
-            }
-        }
+        // The only way to delete a filter is to call deleteFilterAsync.
+        //if (typeof data.isActive !== 'undefined') {
+        //    if (utils.makeBool(data.isActive) === false) {
+        //        sys.filters.removeItemById(id);
+        //        state.filters.removeItemById(id);
+        //        return;
+        //    }
+        //}
 
         let body = typeof data.body !== 'undefined' ? data.body : filter.body;
         let name = typeof data.name !== 'undefined' ? data.name : filter.name;
@@ -3377,11 +3386,10 @@ export class FilterCommands extends BoardCommands {
         // At this point we should have all the data.  Validate it.
         if (!sys.board.valueMaps.filterTypes.valExists(filterType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid filter type; ${filterType}`, 'Filter', filterType));
 
-        filter.pressureUnits = data.pressureUnits || filter.pressureUnits || 0;
+        filter.pressureUnits = typeof data.pressureUnits !== 'undefined' ? data.pressureUnits || 0 : filter.pressureUnits || 0;
         filter.pressureCircuitId = parseInt(data.pressureCicuitId || filter.pressureCircuitId || 6, 10);
         filter.cleanPressure = parseFloat(data.cleanPressure || filter.cleanPressure || 0);
         filter.dirtyPressure = parseFloat(data.dirtyPressure || filter.dirtyPressure || 0);
-        sfilter.calcCleanPercentage();
 
         filter.filterType = sfilter.filterType = filterType;
         filter.body = sfilter.body = body;
@@ -3390,15 +3398,21 @@ export class FilterCommands extends BoardCommands {
         filter.capacityUnits = typeof data.capacityUnits !== 'undefined' ? data.capacityUnits : filter.capacity;
         filter.connectionId = typeof data.connectionId !== 'undefined' ? data.connectionId : filter.connectionId;
         filter.deviceBinding = typeof data.deviceBinding !== 'undefined' ? data.deviceBinding : filter.deviceBinding;
+        sfilter.pressureUnits = filter.pressureUnits;
+        sfilter.calcCleanPercentage();
         sfilter.emitEquipmentChange();
         return filter; // Always return the config when we are dealing with the config not state.
     }
-
-    public deleteFilter(data: any): any {
-        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-        if (isNaN(id)) return;
-        sys.filters.removeItemById(id);
-        state.filters.removeItemById(id);
-        return state.filters.getItemById(id);
+    public async deleteFilterAsync(data: any): Promise<Filter> {
+        try {
+            let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+            let filter = sys.filters.getItemById(id);
+            let sfilter = state.filters.getItemById(filter.id);
+            filter.isActive = false;
+            sys.filters.removeItemById(id);
+            state.filters.removeItemById(id);
+            sfilter.emitEquipmentChange();
+            return filter;
+        } catch (err) { logger.error(`deleteFilterAsync: Error deleting filter ${err.message}`); }
     }
 }
