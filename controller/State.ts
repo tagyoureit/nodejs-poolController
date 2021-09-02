@@ -332,6 +332,20 @@ export class State implements IState {
         console.log(`Init state for Pool Controller`);
         var state = this.loadFile(this.statePath, {});
         state = extend(true, { mode: { val: -1 }, temps: { units: { val: 0, name: 'F', desc: 'Fahrenheit' } } }, state);
+        if(typeof state.temps !== 'undefined' && typeof state.temps.bodies !== 'undefined') EqStateCollection.removeNullIds(state.temps.bodies);
+        EqStateCollection.removeNullIds(state.schedules);
+        EqStateCollection.removeNullIds(state.features);
+        EqStateCollection.removeNullIds(state.circuits);
+        EqStateCollection.removeNullIds(state.pumps);
+        EqStateCollection.removeNullIds(state.chlorinators);
+        EqStateCollection.removeNullIds(state.valves);
+        EqStateCollection.removeNullIds(state.heaters);
+        EqStateCollection.removeNullIds(state.covers);
+        EqStateCollection.removeNullIds(state.circuitGroups);
+        EqStateCollection.removeNullIds(state.lightGroups);
+        EqStateCollection.removeNullIds(state.remotes);
+        EqStateCollection.removeNullIds(state.chemControllers);
+        EqStateCollection.removeNullIds(state.filters);
         var self = this;
         let pnlTime = typeof state.time !== 'undefined' ? new Date(state.time) : new Date();
         if (isNaN(pnlTime.getTime())) pnlTime = new Date();
@@ -571,6 +585,14 @@ class EqStateCollection<T> {
     constructor(data: [], name: string) {
         if (typeof (data[name]) === 'undefined') data[name] = [];
         this.data = data[name];
+    }
+    public static removeNullIds(data: any) {
+        if (typeof data !== 'undefined' && Array.isArray(data) && typeof data.length === 'number') {
+            for (let i = data.length - 1; i >= 0; i--) {
+                if (typeof data[i].id !== 'number') data.splice(i, 1);
+                else if (typeof data[i].id === 'undefined' || isNaN(data[i].id)) data.splice(i, 1);
+            }
+        }
     }
     public getItemById(id: number, add?: boolean, data?: any): T {
         for (let i = 0; i < this.data.length; i++)
@@ -828,7 +850,10 @@ export class PumpStateCollection extends EqStateCollection<PumpState> {
     }
     public cleanupState() {
         for (let i = this.data.length - 1; i >= 0; i--) {
-            if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            if (isNaN(this.data[i].id)) this.data.splice(i, 1);
+            else {
+                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            }
         }
         let cfg = sys.pumps.toArray();
         for (let i = 0; i < cfg.length; i++) {
@@ -1062,7 +1087,10 @@ export class CircuitGroupStateCollection extends EqStateCollection<CircuitGroupS
     }
     public cleanupState() {
         for (let i = this.data.length - 1; i >= 0; i--) {
-            if (typeof sys.circuitGroups.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            if (isNaN(this.data[i].id)) this.data.splice(i, 1);
+            else {
+                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            }
         }
         let cfg = sys.circuitGroups.toArray();
         for (let i = 0; i < cfg.length; i++) {
@@ -1135,7 +1163,10 @@ export class LightGroupStateCollection extends EqStateCollection<LightGroupState
     public createItem(data: any): LightGroupState { return new LightGroupState(data); }
     public cleanupState() {
         for (let i = this.data.length - 1; i >= 0; i--) {
-            if (typeof sys.lightGroups.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            if (isNaN(this.data[i].id)) this.data.splice(i, 1);
+            else {
+                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            }
         }
         let cfg = sys.lightGroups.toArray();
         for (let i = 0; i < cfg.length; i++) {
@@ -1216,7 +1247,10 @@ export class BodyTempStateCollection extends EqStateCollection<BodyTempState> {
     }
     public cleanupState() {
         for (let i = this.data.length - 1; i >= 0; i--) {
-            if (typeof sys.bodies.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            if (isNaN(this.data[i].id)) this.data.splice(i, 1);
+            else {
+                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            }
         }
     }
 
@@ -1340,7 +1374,13 @@ export class HeaterStateCollection extends EqStateCollection<HeaterState> {
     public createItem(data: any): HeaterState { return new HeaterState(data); }
     public cleanupState() {
         for (let i = this.data.length - 1; i >= 0; i--) {
-            if (typeof sys.heaters.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            if (isNaN(this.data[i].id)) {
+                logger.info(`Removed Invalid Heater ${this.data[i].id}-${this.data[i].name}`);
+                this.data.splice(i, 1);
+            }
+            else {
+                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            }
         }
         let cfg = sys.heaters.toArray();
         for (let i = 0; i < cfg.length; i++) {
@@ -1384,7 +1424,10 @@ export class FeatureStateCollection extends EqStateCollection<FeatureState> {
     public async toggleFeatureStateAsync(id: number) { return sys.board.features.toggleFeatureStateAsync(id); }
     public cleanupState() {
         for (let i = this.data.length - 1; i >= 0; i--) {
-            if (typeof sys.features.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            if (isNaN(this.data[i].id)) this.data.splice(i, 1);
+            else {
+                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            }
         }
         let cfg = sys.features.toArray();
         for (let i = 0; i < cfg.length; i++) {
@@ -1478,7 +1521,10 @@ export class CircuitStateCollection extends EqStateCollection<CircuitState> {
     }
     public cleanupState() {
         for (let i = this.data.length - 1; i >= 0; i--) {
-            if (typeof sys.circuits.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            if (isNaN(this.data[i].id)) this.data.splice(i, 1);
+            else {
+                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            }
         }
         let cfg = sys.circuits.toArray();
         for (let i = 0; i < cfg.length; i++) {
@@ -1546,7 +1592,10 @@ export class ValveStateCollection extends EqStateCollection<ValveState> {
     public createItem(data: any): ValveState { return new ValveState(data); }
     public cleanupState() {
         for (let i = this.data.length - 1; i >= 0; i--) {
-            if (typeof sys.valves.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            if (isNaN(this.data[i].id)) this.data.splice(i, 1);
+            else {
+                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            }
         }
         let cfg = sys.valves.toArray();
         for (let i = 0; i < cfg.length; i++) {
@@ -1616,7 +1665,10 @@ export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorSta
     public lastDispatchSuperChlor: number = 0;
     public cleanupState() {
         for (let i = this.data.length - 1; i >= 0; i--) {
-            if (typeof sys.chlorinators.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            if (isNaN(this.data[i].id)) this.data.splice(i, 1);
+            else {
+                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            }
         }
         let cfg = sys.chlorinators.toArray();
         for (let i = 0; i < cfg.length; i++) {
@@ -1770,7 +1822,10 @@ export class ChemControllerStateCollection extends EqStateCollection<ChemControl
     public createItem(data: any): ChemControllerState { return new ChemControllerState(data); }
     public cleanupState() {
         for (let i = this.data.length - 1; i >= 0; i--) {
-            if (typeof sys.chemControllers.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            if (isNaN(this.data[i].id)) this.data.splice(i, 1);
+            else {
+                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+            }
         }
         // Make sure we have at least the items that exist in the config.
         let cfg = sys.chemControllers.toArray();

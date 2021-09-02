@@ -3289,7 +3289,7 @@ export class FilterCommands extends BoardCommands {
             for (let i = 0; i < sys.filters.length; i++) {
                 // Run through all the valves to see whether they should be triggered or not.
                 let filter = sys.filters.getItemByIndex(i);
-                if (filter.isActive) {
+                if (filter.isActive && !isNaN(filter.id)) {
                     let fstate = state.filters.getItemById(filter.id, true);
                     // Check to see if the associated body is on.
                     await sys.board.filters.setFilterStateAsync(filter, fstate, sys.board.bodies.isBodyOn(filter.body));
@@ -3300,7 +3300,7 @@ export class FilterCommands extends BoardCommands {
     public async setFilterPressure(id: number, pressure: number, units?: string) {
         try {
             let filter = sys.filters.find(elem => elem.id === id);
-            if (typeof filter === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`setFilterPressure: Invalid equipmentId ${id}`, id, 'Filter'));
+            if (typeof filter === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`setFilterPressure: Invalid equipmentId ${id}`, id, 'Filter'));
             if (isNaN(pressure)) return Promise.reject(new InvalidEquipmentDataError(`setFilterPressure: Invalid filter pressure ${pressure} for ${filter.name}`, 'Filter', pressure));
             let sfilter = state.filters.getItemById(filter.id, true);
             // Convert the pressure to the units that we have set on the filter for the pressure units.

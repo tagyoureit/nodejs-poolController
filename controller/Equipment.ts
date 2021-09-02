@@ -140,6 +140,21 @@ export class PoolSystem implements IPoolSystem {
         let cfg = this.loadConfigFile(this.cfgPath, {});
         let cfgDefault = this.loadConfigFile(path.posix.join(process.cwd(), '/defaultPool.json'), {});
         cfg = extend(true, {}, cfgDefault, cfg);
+        // First lets remove all the null ids.
+        EqItemCollection.removeNullIds(cfg.bodies);
+        EqItemCollection.removeNullIds(cfg.schedules);
+        EqItemCollection.removeNullIds(cfg.features);
+        EqItemCollection.removeNullIds(cfg.circuits);
+        EqItemCollection.removeNullIds(cfg.pumps);
+        EqItemCollection.removeNullIds(cfg.chlorinators);
+        EqItemCollection.removeNullIds(cfg.valves);
+        EqItemCollection.removeNullIds(cfg.heaters);
+        EqItemCollection.removeNullIds(cfg.covers);
+        EqItemCollection.removeNullIds(cfg.circuitGroups);
+        EqItemCollection.removeNullIds(cfg.lightGroups);
+        EqItemCollection.removeNullIds(cfg.remotes);
+        EqItemCollection.removeNullIds(cfg.chemControllers);
+        EqItemCollection.removeNullIds(cfg.filters);
         this.data = this.onchange(cfg, function() { sys.dirty = true; });
         this.general = new General(this.data, 'pool');
         this.equipment = new Equipment(this.data, 'equipment');
@@ -498,6 +513,14 @@ class EqItemCollection<T> implements IEqItemCollection {
             if (typeof data[name] === "undefined") data[name] = [];
             this.data = data[name];
             this.name = name;
+        }
+    }
+    public static removeNullIds(data: any) {
+        if (typeof data !== 'undefined' && Array.isArray(data) && typeof data.length === 'number')  {
+            for (let i = data.length - 1; i >= 0; i--) {
+                if (typeof data[i].id !== 'number') data.splice(i, 1);
+                else if (typeof data[i].id === 'undefined' || isNaN(data[i].id)) data.splice(i, 1);
+            }
         }
     }
     public getItemByIndex(ndx: number, add?: boolean, data?: any): T {

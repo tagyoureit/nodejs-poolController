@@ -105,7 +105,7 @@ export class StateSocket {
                 data = JSON.parse(data);
                 let id = parseInt(data.id, 10);
                 let filter = sys.filters.find(elem => elem.id === id);
-                if (typeof filter !== 'undefined' && filter.isActive) {
+                if (typeof filter !== 'undefined' && filter.isActive && !isNaN(filter.id)) {
                     let sfilter = state.filters.getItemById(filter.id, filter.isActive)
                     let pu = sys.board.valueMaps.pressureUnits.transform(filter.pressureUnits);
                     if (typeof data.pressure !== 'undefined')
