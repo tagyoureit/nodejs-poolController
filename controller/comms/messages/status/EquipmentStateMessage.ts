@@ -390,6 +390,7 @@ export class EquipmentStateMessage {
                                 sys.board.circuits.syncCircuitRelayStates();
                                 sys.board.circuits.syncVirtualCircuitStates();
                                 sys.board.valves.syncValveStates();
+                                sys.board.filters.syncFilterStates();
                                 state.emitControllerChange();
                                 state.emitEquipmentChanges();
                                 sys.board.heaters.syncHeaterStates();
@@ -405,6 +406,7 @@ export class EquipmentStateMessage {
                                 sys.board.features.syncGroupStates();
                                 sys.board.circuits.syncVirtualCircuitStates();
                                 sys.board.valves.syncValveStates();
+                                sys.board.filters.syncFilterStates();
                                 state.emitControllerChange();
                                 state.emitEquipmentChanges();
                                 sys.board.heaters.syncHeaterStates();
