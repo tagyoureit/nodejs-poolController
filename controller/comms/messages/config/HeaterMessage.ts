@@ -107,6 +107,7 @@ export class HeaterMessage {
                             catch (err) { logger.error(`Error with OCP reclaiming control over gas heater: ${err}`) }
                         })();
                     }
+                    heater.master = 0;
                     sys.heaters.getItemById(2).isActive = false;
                     sys.heaters.getItemById(3).isActive = false;
                     sys.heaters.getItemById(4).isActive = false;
@@ -133,6 +134,7 @@ export class HeaterMessage {
                             catch (err) { logger.error(`Error with OCP reclaiming control over Ultratemp: ${err}`) }
                         })();
                     }
+                    heatPump.master = 0;
                     heatPump.name = 'Ultratemp';
                     heatPump.body = 32;
                     heatPump.type = 4;
@@ -158,6 +160,7 @@ export class HeaterMessage {
                             catch (err) { logger.error(`Error with OCP reclaiming control over heat pump: ${err}`) }
                         })();
                     }
+                    heatPump.master = 0;
                     heatPump.name = 'Heat Pump';
                     heatPump.body = 32;
                     heatPump.type = 3;
@@ -184,6 +187,7 @@ export class HeaterMessage {
                             catch (err) { logger.error(`Error with OCP reclaiming control over solar heater: ${err}`) }
                         })();
                     }
+                    solar.master = 0;
                     solar.name = 'Solar Heater';
                     solar.type = 2;
                     solar.isActive = true;
@@ -293,6 +297,7 @@ export class HeaterMessage {
                         catch (err) { logger.error(`Error with OCP reclaiming control over heater: ${err}`) }
                     })();
                 }
+                heater.master = 0;
                 let hstate = state.heaters.getItemById(i);
                 // hstate.isVirtual = false;
                 hstate.name = heater.name;
