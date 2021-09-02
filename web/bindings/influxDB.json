@@ -83,7 +83,9 @@
         {
           "measurement": "chemicalDose",
           "description": "Active doses recorded by chemical dosed",
-          "series": { "value": "@bind=data.start;" },
+          "series": {
+            "value": "@bind=data.start;"
+          },
           "tags": [
             {
               "name": "chemical",
@@ -95,7 +97,6 @@
               "name": "volumeDosed",
               "value": "@bind=data.volumeDosed;",
               "type": "float"
-
             },
             {
               "name": "timeDosed",
@@ -125,7 +126,7 @@
             {
               "name": "status",
               "value": "@bind=data.status;",
-              "type":  "string"
+              "type": "string"
             },
             {
               "name": "end",
@@ -186,7 +187,7 @@
             },
             {
               "name": "pump is dosing",
-              "value": "@bind=data.ph.pump.isDosing?1:0;",
+              "value": "@bind=typeof data.ph.pump.isDosing !== 'undefined'?data.ph.pump.isDosing?1:0:0;",
               "type": "int"
             },
             {
@@ -350,7 +351,7 @@
             },
             {
               "name": "pump is dosing",
-              "value": "@bind=data.orp.pump.isDosing?1:0;",
+              "value": "@bind=typeof data.orp.pump.isDosing !=== 'undefined'?data.orp.pump.isDosing?1:0:0;",
               "type": "int"
             },
             {
@@ -606,8 +607,6 @@
         }
       ]
     },
-
-
     {
       "name": "circuit",
       "description": "Bind circuit emit",
@@ -889,6 +888,55 @@
       "name": "config",
       "description": "Not used for updates",
       "enabled": false
+    },
+    {
+      "name": "filter",
+      "description": "Bind filter to measurements",
+      "points": [
+        {
+          "measurement": "filter",
+          "tags": [
+            {
+              "name": "units",
+              "value": "@bind=data.pressureUnits.desc;"
+            },
+            {
+              "name": "filterType",
+              "value": "@bind=data.filterType.desc;"
+            },
+            {
+              "name": "body",
+              "value": "@bind=data.body.desc;"
+            },
+            {
+              "name": "name",
+              "value": "@bind=data.name;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "isOn",
+              "value": "@bind=data.isOn;",
+              "type": "boolean"
+            },
+            {
+              "name": "isOnVal",
+              "value": "@bind=data.isOn?1:0;",
+              "type": "integer"
+            },
+            {
+              "name": "pressure",
+              "value": "@bind=data.pressure;",
+              "type": "float"
+            },
+            {
+              "name": "referencePressure",
+              "value": "@bind=data.refPressure;",
+              "type": "float"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
