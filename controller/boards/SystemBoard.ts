@@ -3325,7 +3325,7 @@ export class FilterCommands extends BoardCommands {
                     let funcs = sys.board.valueMaps.circuitFunctions.toArray();
                     for (let i = 0; i < funcs.length; i++) {
                         let f = funcs[i];
-                        if (!f.isLight) ctypes.push(f.val);
+                        if (f.isLight) ctypes.push(f.val);
                     }
                     let con = state.circuits.find(elem => elem.isOn === true && elem.id !== filter.pressureCircuitId && elem.id !== 1 && elem.id !== 6 && !ctypes.includes(elem.type));
                     if (typeof con === 'undefined') {
