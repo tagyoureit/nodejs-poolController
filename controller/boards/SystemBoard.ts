@@ -3302,7 +3302,6 @@ export class FilterCommands extends BoardCommands {
             let filter = sys.filters.find(elem => elem.id === id);
             if (typeof filter === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`setFilterPressure: Invalid equipmentId ${id}`, id, 'Filter'));
             if (isNaN(pressure)) return Promise.reject(new InvalidEquipmentDataError(`setFilterPressure: Invalid filter pressure ${pressure} for ${filter.name}`, 'Filter', pressure));
-
             let sfilter = state.filters.getItemById(filter.id, true);
             // Convert the pressure to the units that we have set on the filter for the pressure units.
             let pu = sys.board.valueMaps.pressureUnits.transform(filter.pressureUnits || 0);
@@ -3347,16 +3346,8 @@ export class FilterCommands extends BoardCommands {
                             // Finally we have a value we can believe in.
                             sfilter.refPressure = pressure;
                         }
-                        else
-                            console.log('Features caused it to not set')
-
                     }
-                    else
-                        console.log(`Circuits caused it to not set ${con.name}`);
                 }
-            }
-            else {
-                console.log(`Couldn't find the circuit trigger state`);
             }
             sfilter.emitEquipmentChange();
         }
