@@ -330,28 +330,30 @@ export class State implements IState {
     public get isInitialized(): boolean { return typeof (this.data.status) !== 'undefined' && this.data.status.val !== 0; }
     public init() {
         console.log(`Init state for Pool Controller`);
-        var state = this.loadFile(this.statePath, {});
-        state = extend(true, { mode: { val: -1 }, temps: { units: { val: 0, name: 'F', desc: 'Fahrenheit' } } }, state);
-        if(typeof state.temps !== 'undefined' && typeof state.temps.bodies !== 'undefined') EqStateCollection.removeNullIds(state.temps.bodies);
-        EqStateCollection.removeNullIds(state.schedules);
-        EqStateCollection.removeNullIds(state.features);
-        EqStateCollection.removeNullIds(state.circuits);
-        EqStateCollection.removeNullIds(state.pumps);
-        EqStateCollection.removeNullIds(state.chlorinators);
-        EqStateCollection.removeNullIds(state.valves);
-        EqStateCollection.removeNullIds(state.heaters);
-        EqStateCollection.removeNullIds(state.covers);
-        EqStateCollection.removeNullIds(state.circuitGroups);
-        EqStateCollection.removeNullIds(state.lightGroups);
-        EqStateCollection.removeNullIds(state.remotes);
-        EqStateCollection.removeNullIds(state.chemControllers);
-        EqStateCollection.removeNullIds(state.filters);
+        var sdata = this.loadFile(this.statePath, {});
+        sdata = extend(true, { mode: { val: -1 }, temps: { units: { val: 0, name: 'F', desc: 'Fahrenheit' } } }, sdata);
+        if (typeof sdata.temps !== 'undefined' && typeof sdata.temps.bodies !== 'undefined') {
+            EqStateCollection.removeNullIds(sdata.temps.bodies);
+        }
+        EqStateCollection.removeNullIds(sdata.schedules);
+        EqStateCollection.removeNullIds(sdata.features);
+        EqStateCollection.removeNullIds(sdata.circuits);
+        EqStateCollection.removeNullIds(sdata.pumps);
+        EqStateCollection.removeNullIds(sdata.chlorinators);
+        EqStateCollection.removeNullIds(sdata.valves);
+        EqStateCollection.removeNullIds(sdata.heaters);
+        EqStateCollection.removeNullIds(sdata.covers);
+        EqStateCollection.removeNullIds(sdata.circuitGroups);
+        EqStateCollection.removeNullIds(sdata.lightGroups);
+        EqStateCollection.removeNullIds(sdata.remotes);
+        EqStateCollection.removeNullIds(sdata.chemControllers);
+        EqStateCollection.removeNullIds(sdata.filters);
         var self = this;
-        let pnlTime = typeof state.time !== 'undefined' ? new Date(state.time) : new Date();
+        let pnlTime = typeof sdata.time !== 'undefined' ? new Date(sdata.time) : new Date();
         if (isNaN(pnlTime.getTime())) pnlTime = new Date();
         this._dt = new Timestamp(pnlTime);
         this._dt.milliseconds = 0;
-        this.data = state;
+        this.data = sdata;
         //this.onchange(state, function () { self.dirty = true; });
         this._dt.emitter.on('change', function () {
             self.data.time = self._dt.format();
@@ -589,8 +591,14 @@ class EqStateCollection<T> {
     public static removeNullIds(data: any) {
         if (typeof data !== 'undefined' && Array.isArray(data) && typeof data.length === 'number') {
             for (let i = data.length - 1; i >= 0; i--) {
-                if (typeof data[i].id !== 'number') data.splice(i, 1);
-                else if (typeof data[i].id === 'undefined' || isNaN(data[i].id)) data.splice(i, 1);
+                if (typeof data[i].id !== 'number') {
+                    console.log(`Removing ${data[i].id}-${data[i].name}`);
+                    data.splice(i, 1);
+                }
+                else if (typeof data[i].id === 'undefined' || isNaN(data[i].id)) {
+                    console.log(`Removing isNaN ${data[i].id}-${data[i].name}`);
+                    data.splice(i, 1);
+                }
             }
         }
     }
@@ -1249,9 +1257,10 @@ export class BodyTempStateCollection extends EqStateCollection<BodyTempState> {
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (isNaN(this.data[i].id)) this.data.splice(i, 1);
             else {
-                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+                if (typeof sys.bodies.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
             }
         }
+        this.sortById();
     }
 
 }

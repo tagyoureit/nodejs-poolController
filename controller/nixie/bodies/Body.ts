@@ -34,7 +34,7 @@ export class NixieBodyCollection extends NixieEquipmentCollection<NixieBody> {
                 let body = bodies.getItemByIndex(i);
                 if (body.master === 1) {
                     if (typeof this.find(elem => elem.id === body.id) === 'undefined') {
-                        logger.info(`Initializing body ${body.name}`);
+                        logger.info(`Initializing Nixie body ${body.name}`);
                         let nbody = new NixieBody(this.controlPanel, body);
                         this.push(nbody);
                     }
