@@ -566,6 +566,52 @@
       ]
     },
     {
+      "name": "filter",
+      "description": "Populate the filter topic",
+      "topics": [
+        {
+          "topic": "state/filters/@bind=data.id;/name",
+          "message": "@bind=data.name;",
+          "description": "Bind the name topic."
+        },
+        {
+          "topic": "state/filters/@bind=data.id;/isOn",
+          "message": "@bind=data.currentOutput > 0;",
+          "description": "Bind 'on'/'off' as a message to the state topic."
+        },
+        {
+          "topic": "state/filters/@bind=data.id;/body",
+          "message": "@bind=data.body.desc;",
+          "description": "Send body description."
+        },
+        {
+          "topic": "state/filters/@bind=data.id;/cleanPercentage",
+          "message": "@bind=data.cleanPercentage;",
+          "description": "Send clean percentage."
+        },
+        {
+          "topic": "state/filters/@bind=data.id;/filterType",
+          "message": "@bind=data.filterType.desc;",
+          "description": "Send filter type."
+        },
+        {
+          "topic": "state/filters/@bind=data.id;/pressure",
+          "message": "@bind=data.pressure;",
+          "description": "Send pressure."
+        },
+        {
+          "topic": "state/filters/@bind=data.id;/pressureUnits",
+          "message": "@bind=data.pressureUnits.desc;",
+          "description": "Send pressure units."
+        },
+        {
+          "topic": "state/filters/@bind=data.id;/refPressure",
+          "message": "@bind=data.refPressure;",
+          "description": "Send reference pressure."
+        }
+      ]
+    },
+    {
       "name": "*",
       "description": "DEFAULT: Sends the entire emitted response.",
       "body": "@bind=data;",

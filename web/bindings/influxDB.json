@@ -933,6 +933,11 @@
               "name": "referencePressure",
               "value": "@bind=data.refPressure;",
               "type": "float"
+            },
+            {
+              "name": "cleanPercentage",
+              "value": "@bind=data.cleanPercentage;",
+              "type": "float"
             }
           ]
         }

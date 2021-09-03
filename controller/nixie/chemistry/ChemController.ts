@@ -194,7 +194,7 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
             }
         }
         catch (err) { logger.error(`Error polling IntelliChem Controller - ${err}`); return Promise.reject(err); }
-        finally { this.suspendPolling = false; if (!this.closing) this._pollTimer = setTimeout(async () => { try { await self.pollEquipmentAsync() } catch (err) { return Promise.reject(err); } }, this.pollingInterval || 10000); }
+        finally { this.suspendPolling = false; if (!this.closing) this._pollTimer = setTimeout(() => { self.pollEquipmentAsync();}, this.pollingInterval || 10000); }
     }
     public async setControllerAsync(data: any) {
         try {

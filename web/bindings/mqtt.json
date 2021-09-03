@@ -535,6 +535,47 @@
       ]
     },
     {
+      "name": "filter",
+      "description": "Populate the filter topic",
+      "topics": [
+        {
+          "topic": "state/filters/@bind=data.id;/@bind=data.name;",
+          "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
+          "description": "Bind 'on'/'off' as a message to the state topic."
+        },
+        {
+          "topic": "state/filters/@bind=data.id;/@bind=data.name;/pressure",
+          "message": "{\"pressure\":@bind=data.pressure;}",
+          "description": "Send current pressure."
+        },
+        {
+          "topic": "state/filters/@bind=data.id;/@bind=data.name;/refPressure",
+          "message": "{\"refPressure\":@bind=data.refPressure;}",
+          "description": "Send reference pressure (when circuits are on)."
+        },
+        {
+          "topic": "state/filters/@bind=data.id;/@bind=data.name;/body",
+          "message": "{\"body\":@bind=data.body.desc;}",
+          "description": "Send associated body."
+        },
+        {
+          "topic": "state/filters/@bind=data.id;/@bind=data.name;/filterType",
+          "message": "{\"filterType\":@bind=data.filterType.desc;}",
+          "description": "Send filter type."
+        },
+        {
+          "topic": "state/filters/@bind=data.id;/@bind=data.name;/pressureUnits",
+          "message": "{\"pressureUnits\":@bind=data.pressureUnits.desc;}",
+          "description": "Send pressureUnits."
+        },
+        {
+          "topic": "state/filters/@bind=data.id;/@bind=data.name;/cleanPercentage",
+          "message": "{\"cleanPercentage\":@bind=data.cleanPercentage;}",
+          "description": "Send cleanPercentage."
+        }
+      ]
+    },
+    {
       "name": "*",
       "description": "DEFAULT: Sends the entire emitted response.",
       "body": "@bind=data;",
