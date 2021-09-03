@@ -144,7 +144,7 @@ export class NixieHeaterBase extends NixieEquipment {
 }
 export class NixieGasHeater extends NixieHeaterBase {
     public pollingInterval: number = 10000;
-    public heater: Heater;
+    declare heater: Heater;
     constructor(ncp: INixieControlPanel, heater: Heater) {
         super(ncp, heater);
         this.heater = heater;
@@ -219,7 +219,7 @@ export class NixieGasHeater extends NixieHeaterBase {
 }
 export class NixieSolarHeater extends NixieHeaterBase {
     public pollingInterval: number = 10000;
-    public heater: Heater;
+    declare heater: Heater;
     constructor(ncp: INixieControlPanel, heater: Heater) {
         super(ncp, heater);
         this.heater = heater;

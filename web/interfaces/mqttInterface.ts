@@ -36,7 +36,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
     }
     private client: MqttClient;
     private topics: string[] = [];
-    public events: MqttInterfaceEvent[];
+    declare events: MqttInterfaceEvent[];
     private subscribed: boolean; // subscribed to events or not
     private sentInitialMessages = false;
     private init = () => {

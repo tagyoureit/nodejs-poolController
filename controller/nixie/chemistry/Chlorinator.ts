@@ -274,6 +274,8 @@ export class NixieChlorinator extends NixieEquipment {
                         }
                     }
                 });
+                // #338
+                if (setpoint === 16) { out.appendPayloadByte(0); }
                 conn.queueSendMessage(out);
             });
 

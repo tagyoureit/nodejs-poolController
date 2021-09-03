@@ -25,9 +25,9 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
         super(cfg);
     }
     private writeApi: WriteApi;
-    public context: InterfaceContext;
-    public cfg;
-    public events: InfluxInterfaceEvent[];
+    declare context: InterfaceContext;
+    declare cfg;
+    declare events: InfluxInterfaceEvent[];
     private init = () => {
         let baseOpts = extend(true, this.cfg.options, this.context.options);
         let url = 'http';

@@ -729,7 +729,7 @@ export class ConfigRoute {
             // RSG: is this and /config/circuit/:id/lightThemes both needed?
 
             // if (sys.controllerType === ControllerType.IntelliCenter) {
-            let grp = sys.lightGroups.getItemById(parseInt(req.params.id, 10));
+            let grp = sys.lightGroups.getItemById(parseInt(req.body.id, 10));
             return res.status(200).send(grp.getLightThemes());
             // }
             // else

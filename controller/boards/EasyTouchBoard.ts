@@ -454,8 +454,8 @@ export class TouchConfigRequest extends ConfigRequest {
         if (typeof items !== 'undefined') this.items.push(...items);
         this.oncomplete = oncomplete;
     }
-    public category: TouchConfigCategories;
-    public setcategory: GetTouchConfigCategories;
+    declare category: TouchConfigCategories;
+    declare setcategory: GetTouchConfigCategories;
 }
 export class TouchConfigQueue extends ConfigQueue {
     //protected _configQueueTimer: NodeJS.Timeout;
@@ -1708,17 +1708,11 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         let _timeout: NodeJS.Timeout;
         try {
             let request153packet = new Promise<void>((resolve, reject) => {
-                _timeout = setTimeout(()=>{
-                        if (typeof reject === 'undefined' || typeof resolve === 'undefined') return;
-                        reject(new EquipmentTimeoutError(`no chlor response in 7 seconds`, `chlorTimeOut`));
-                        reject = undefined;
-
-                }, 3000);
                 let out = Outbound.create({
                     dest: 16,
                     action: 153,
                     // removed disable ? 0 : (spaSetpoint << 1) + 1 because only deleteChlorAsync should remove it from the OCP
-                    payload: [(spaSetpoint << 1) + 1, disabled ? 0 : poolSetpoint,
+                    payload: [(disabled ? 0 : isDosing ? 100 << 1: spaSetpoint << 1) + 1, disabled ? 0 : isDosing ? 100 : poolSetpoint,
                     utils.makeBool(superChlorinate) && superChlorHours > 0 ? superChlorHours + 128 : 0,  // We only want to set the superChlor when the user sends superChlor = true
                         0, 0, 0, 0, 0, 0, 0],
                     retries: 3,
@@ -1739,6 +1733,12 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
                     }
                 });
                 conn.queueSendMessage(out);
+                _timeout = setTimeout(()=>{
+                    if (typeof reject === 'undefined' || typeof resolve === 'undefined') return;
+                    reject(new EquipmentTimeoutError(`no chlor response in 7 seconds`, `chlorTimeOut`));
+                    reject = undefined;
+                    
+                }, 3000);
             });
             await request153packet;
             let schlor = state.chlorinators.getItemById(id, true);

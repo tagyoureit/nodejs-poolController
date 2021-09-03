@@ -2097,7 +2097,7 @@ export class ChemControllerState extends EqState {
 export class ChemicalState extends ChildEqState {
     public initData() {
         if (typeof this.data.probe === 'undefined') this.data.probe = {};
-        if (typeof this.data.tank == 'undefined') this.data.tank = { capacity: 0, level: 0, units: 0 };
+        if (typeof this.data.tank === 'undefined') this.data.tank = { capacity: 0, level: 0, units: 0 };
         if (typeof this.data.pump === 'undefined') this.data.pump = { isDosing: false };
         if (typeof this.data.dosingTimeRemaining === 'undefined') this.data.dosingTimeRemaining = 0;
         if (typeof this.data.delayTimeRemaining === 'undefined') this.data.delayTimeRemaining = 0;
@@ -2105,7 +2105,7 @@ export class ChemicalState extends ChildEqState {
         if (typeof this.data.doseVolume === 'undefined') this.data.doseVolume = 0;
         if (typeof this.data.doseTime === 'undefined') this.data.doseTime = 0;
         if (typeof this.data.lockout === 'undefined') this.data.lockout = false;
-        if (typeof this.data.level == 'undefined') this.data.level = 0;
+        if (typeof this.data.level === 'undefined') this.data.level = 0;
         if (typeof this.data.mixTimeRemaining === 'undefined') this.data.mixTimeRemaining = 0;
         if (typeof this.data.dailyLimitReached === 'undefined') this.data.dailyLimitReached = false;
         if (typeof this.data.manualDosing === 'undefined') this.data.manualDosing = false;

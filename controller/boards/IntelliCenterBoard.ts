@@ -572,7 +572,7 @@ class IntelliCenterConfigRequest extends ConfigRequest {
         if (typeof items !== 'undefined') this.items.push(...items);
         this.oncomplete = oncomplete;
     }
-    public category: ConfigCategories;
+    declare category: ConfigCategories;
 }
 class IntelliCenterConfigQueue extends ConfigQueue {
     public _processing: boolean = false;
@@ -1388,7 +1388,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
     }
 }
 class IntelliCenterCircuitCommands extends CircuitCommands {
-    public board: IntelliCenterBoard;
+    declare board: IntelliCenterBoard;
     public async setCircuitAsync(data: any): Promise<ICircuit> {
         let id = parseInt(data.id, 10);
         let circuit = sys.circuits.getItemById(id, false);
@@ -2342,7 +2342,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
     }
 }
 class IntelliCenterFeatureCommands extends FeatureCommands {
-    public board: IntelliCenterBoard;
+    declare board: IntelliCenterBoard;
     public async setFeatureStateAsync(id, val): Promise<ICircuitState> { return sys.board.circuits.setCircuitStateAsync(id, val); }
     public async toggleFeatureStateAsync(id): Promise<ICircuitState> { return sys.board.circuits.toggleCircuitStateAsync(id); }
     public syncGroupStates() { } // Do nothing and let IntelliCenter do it.
@@ -2476,7 +2476,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         return new Promise<ChlorinatorState>((resolve, reject) => {
             let out = Outbound.create({
                 action: 168,
-                payload: [7, 0, id - 1, body.val, 1, disabled ? 0 : poolSetpoint, disabled ? 0 : spaSetpoint, superChlorinate ? 1 : 0, superChlorHours, 0, 1],
+                payload: [7, 0, id - 1, body.val, 1, disabled ? 0 : isDosing ? 100 : poolSetpoint, disabled ? 0 : isDosing ? 100 : spaSetpoint, superChlorinate ? 1 : 0, superChlorHours, 0, 1],
                 response: IntelliCenterBoard.getAckResponse(168),
                 retries: 5,
                 onComplete: (err, msg) => {

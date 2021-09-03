@@ -451,7 +451,7 @@ export class HttpServer extends ProtoServer {
     }
 }
 export class HttpsServer extends HttpServer {
-    public server: https.Server;
+    declare server: https.Server;
 
     public async init(cfg) {
         // const auth = require('http-auth');
