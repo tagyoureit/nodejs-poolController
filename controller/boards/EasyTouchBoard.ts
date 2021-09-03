@@ -374,7 +374,7 @@ export class EasyTouchBoard extends SystemBoard {
         let md = mod.get();
         eq.maxBodies = md.bodies = typeof mt.bodies !== 'undefined' ? mt.bodies : mt.shared ? 2 : 1;
         eq.maxCircuits = md.circuits = typeof mt.circuits !== 'undefined' ? mt.circuits : 8;
-        eq.maxFeatures = md.features = typeof mt.features !== 'undefined' ? mt.features : 10
+        eq.maxFeatures = md.features = typeof mt.features !== 'undefined' ? mt.features : 8;
         eq.maxValves = md.valves = typeof mt.valves !== 'undefined' ? mt.valves : mt.shared ? 4 : 2;
         eq.maxPumps = md.maxPumps = typeof mt.pumps !== 'undefined' ? mt.pumps : 2;
         eq.shared = mt.shared;
