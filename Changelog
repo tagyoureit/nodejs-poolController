@@ -1,5 +1,8 @@
 # Changelog
 
+## 7.4
+1. Filter object, emit, monitoring
+
 ## 7.3.1
 1. Influx 2.0 support
 
