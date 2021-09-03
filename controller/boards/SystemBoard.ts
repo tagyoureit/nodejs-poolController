@@ -3341,7 +3341,7 @@ export class FilterCommands extends BoardCommands {
             if (cstate.isOn && state.freeze !== true) {
                 // Ok so our circuit is on.  We need to check to see if any other circuits are on.  This includes heaters.  The reason for this is that even with
                 // a gas heater there may be a heater bypass that will screw up our numbers.  Certainly reflow on a solar heater will skew the numbers.
-                let hon = state.temps.bodies.find(elem => (elem.heatStatus || 0) !== 0);
+                let hon = state.temps.bodies.toArray().find(elem => elem.isOn && (elem.heatStatus || 0) !== 0);
                 if (typeof hon === 'undefined') {
                     // Put together the circuit types that could be lights.  We don't want these.
                     let ctypes = [];

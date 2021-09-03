@@ -2098,6 +2098,7 @@ export class ChemicalState extends ChildEqState {
     public initData() {
         if (typeof this.data.probe === 'undefined') this.data.probe = {};
         if (typeof this.data.tank == 'undefined') this.data.tank = { capacity: 0, level: 0, units: 0 };
+        if (typeof this.data.pump === 'undefined') this.data.pump = { isDosing: false };
         if (typeof this.data.dosingTimeRemaining === 'undefined') this.data.dosingTimeRemaining = 0;
         if (typeof this.data.delayTimeRemaining === 'undefined') this.data.delayTimeRemaining = 0;
         if (typeof this.data.dosingVolumeRemaining === 'undefined') this.data.dosingVolumeRemaining = 0;
