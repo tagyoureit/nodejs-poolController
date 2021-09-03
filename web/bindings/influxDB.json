@@ -351,7 +351,7 @@
             },
             {
               "name": "pump is dosing",
-              "value": "@bind=typeof data.orp.pump.isDosing !=== 'undefined'?data.orp.pump.isDosing?1:0:0;",
+              "value": "@bind=typeof data.orp.pump.isDosing !== 'undefined'?data.orp.pump.isDosing?1:0:0;",
               "type": "int"
             },
             {
