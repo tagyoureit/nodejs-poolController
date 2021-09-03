@@ -3370,6 +3370,12 @@ export class FilterCommands extends BoardCommands {
                             sfilter.refPressure = pressure;
                         }
                     }
+                    else {
+                        logger.info(`Circuit ${con.id}-${con.name} is currently on filter pressure for cleaning ignored.`);
+                    }
+                }
+                else {
+                    logger.info(`Heater for body ${hon.name} is currently on filter pressure for cleaning skipped.`);
                 }
             }
             sfilter.emitEquipmentChange();
