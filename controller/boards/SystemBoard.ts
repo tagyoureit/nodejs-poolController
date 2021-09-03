@@ -3375,7 +3375,7 @@ export class FilterCommands extends BoardCommands {
                     }
                 }
                 else {
-                    logger.info(`Heater for body ${hon.name} is currently on filter pressure for cleaning skipped.`);
+                    logger.info(`Heater for body ${hon.name} is currently on ${hon.heatStatus} filter pressure for cleaning skipped.`);
                 }
             }
             sfilter.emitEquipmentChange();
