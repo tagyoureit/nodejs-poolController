@@ -1031,12 +1031,12 @@ export class Schedule extends EqItem {
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get startMonth(): number { return this._startDate.getMonth() + 1; }
-    public set startMonth(val: number) { this._startDate.setMonth(val - 1); this._saveStartDate(); }
-    public get startDay(): number { return this._startDate.getDate(); }
-    public set startDay(val: number) { this._startDate.setDate(val); this._saveStartDate(); }
-    public get startYear(): number { return this._startDate.getFullYear(); }
-    public set startYear(val: number) { this._startDate.setFullYear(val < 100 ? val + 2000 : val); this._saveStartDate(); }
-    public get startDate(): Date { return this._startDate; }
+    public set startMonth(val: number) { if (typeof this._startDate === 'undefined') this._startDate = new Date(); this._startDate.setMonth(val - 1); this._saveStartDate(); }
+    public get startDay(): number { if (typeof this._startDate === 'undefined') this._startDate = new Date(); return this._startDate.getDate(); }
+    public set startDay(val: number) { if (typeof this._startDate === 'undefined') this._startDate = new Date(); this._startDate.setDate(val); this._saveStartDate(); }
+    public get startYear(): number { if (typeof this._startDate === 'undefined') this._startDate = new Date(); return this._startDate.getFullYear(); }
+    public set startYear(val: number) { if (typeof this._startDate === 'undefined') this._startDate = new Date(); this._startDate.setFullYear(val < 100 ? val + 2000 : val); this._saveStartDate(); }
+    public get startDate(): Date { return typeof this._startDate === 'undefined' ? this._startDate = new Date() : this._startDate; }
     public set startDate(val: Date) { this._startDate = val; }
     public get scheduleType(): number | any { return this.data.scheduleType; }
     public set scheduleType(val: number | any) { this.setDataVal('scheduleType', sys.board.valueMaps.scheduleTypes.encode(val)); }
