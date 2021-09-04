@@ -991,6 +991,7 @@ export class ScheduleState extends EqState {
     public get startDate(): Date { return this._startDate; }
     public set startDate(val: Date) { this._startDate = val; this._saveStartDate(); }
     private _saveStartDate() {
+        if (typeof this._startDate === 'undefined') this._startDate = new Date();
         this.startDate.setHours(0, 0, 0, 0);
         this.setDataVal('startDate', Timestamp.toISOLocal(this.startDate));
     }
