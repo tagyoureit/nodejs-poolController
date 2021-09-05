@@ -52,6 +52,7 @@
     "interfaces": {
       "smartThings": {
         "name": "SmartThings",
+        "type": "rest",
         "enabled": false,
         "fileName": "smartThings-Hubitat.json",
         "globals": {},
@@ -62,6 +63,7 @@
       },
       "hubitat": {
         "name": "Hubitat",
+        "type": "rest",
         "enabled": false,
         "fileName": "smartThings-Hubitat.json",
         "globals": {},
@@ -72,6 +74,7 @@
       },
       "vera": {
         "name": "Vera",
+        "type": "rest",
         "enabled": false,
         "fileName": "vera.json",
         "vars": {
@@ -83,6 +86,7 @@
         }
       },
       "valveRelay": {
+        "type": "rest",
         "name": "Valve Relays",
         "enabled": false,
         "fileName": "valveRelays.json",

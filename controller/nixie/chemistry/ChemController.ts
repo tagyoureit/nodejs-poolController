@@ -2216,7 +2216,7 @@ export class NixieChemProbePh extends NixieChemProbe {
                 deviceBinding: this.probe.deviceBinding,
                 eventName: "chemController",
                 property: "pHLevel",
-                sendValue: 'pH',
+                sendValue: 'all',
                 isActive: data.remFeedEnabled,
                 sampling: 1,
                 changesOnly: false,

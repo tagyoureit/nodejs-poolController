@@ -16,6 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as path from "path";
 import * as fs from "fs";
+import * as dns from "dns";
 import express = require('express');
 import { utils } from "../controller/Constants";
 import { config } from "../config/Config";
@@ -101,6 +102,7 @@ export class WebServer {
                 let type = c.type || 'http';
                 logger.info(`Init ${type} interface: ${c.name}`);
                 switch (type) {
+                    case 'rest':
                     case 'http':
                         int = new HttpInterfaceServer(c.name, type);
                         int.init(c);
@@ -182,7 +184,7 @@ export class WebServer {
             if (this._servers[i].uuid === uuid) this._servers.splice(i, 1);
         }
     }
-    public async updateServerInterface(obj: any) {
+    public async updateServerInterface(obj: any): Promise<any> {
         let int = config.setInterface(obj);
         let srv = this.findServerByGuid(obj.uuid);
         // if server is not enabled; stop & remove it from local storage
@@ -197,6 +199,7 @@ export class WebServer {
             }
             else srv.init(obj);
         }
+        return config.getInterfaceByUuid(obj.uuid);
     }
 }
 class ProtoServer {
@@ -935,16 +938,21 @@ export class REMInterfaceServer extends ProtoServer {
                 // First, send the connection info for njsPC and see if a connection exists.
                 let url = '/config/checkconnection/';
                 // can & should extend for https/username-password/ssl
-                let data: any = { type: "njspc", isActive: true, id: null, name: "njsPC - automatic", protocol: "http:", ipAddress: webApp.ip(), port: config.getSection('web').servers.http.port || 4200, userName: "", password: "", sslKeyFile: "", sslCertFile: "" }
+                let data: any = { type: "njspc", isActive: true, id: null, name: "njsPC - automatic", protocol: "http:", ipAddress: webApp.ip(), port: config.getSection('web').servers.http.port || 4200, userName: "", password: "", sslKeyFile: "", sslCertFile: "", hostnames: [] }
+                logger.info(`Checking REM Connection ${data.name} ${data.ipAddress}:${data.port}`);
+                try {
+                    data.hostnames = await dns.promises.reverse(data.ipAddress);
+                } catch (err) { logger.error(`Error getting hostnames for njsPC REM connection`); }
                 let result = await this.putApiService(url, data, 5000);
                 // If the result code is > 200 we have an issue. (-1 is for timeout)
                 if (result.status.code > 200 || result.status.code < 0) return reject(new Error(`initConnection: ${result.error.message}`));
-                else { this.remoteConnectionId = result.obj.id };
+                else {
+                    this.remoteConnectionId = result.obj.id;
+                };
 
                 // The passed connection has been setup/verified; now test for emit
                 // if this fails, it could be because the remote connection is disabled.  We will not 
                 // automatically re-enable it
-
                 url = '/config/checkemit'
                 data = { eventName: "checkemit", property: "result", value: 'success', connectionId: result.obj.id }
                 // wait for REM server to finish resetting
@@ -957,14 +965,14 @@ export class REMInterfaceServer extends ProtoServer {
                             // console.log(data);
                             clearTimeout(_tmr);
                             logger.info(`REM bi-directional communications established.`)
-                            return resolve();
+                            resolve();
                         });
                         result = await self.putApiService(url, data);
                         // If the result code is > 200 or -1 we have an issue.
                         if (result.status.code > 200 || result.status.code === -1) return reject(new Error(`initConnection: ${result.error.message}`));
                         else {
                             clearTimeout(_tmr);
-                            return resolve();
+                            resolve();
                         }
                     }
                     catch (err) { reject(new Error(`initConnection setTimeout: ${result.error.message}`)); }

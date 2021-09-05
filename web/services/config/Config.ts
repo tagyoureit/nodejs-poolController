@@ -307,13 +307,16 @@ export class ConfigRoute {
             let opts = {
                 interfaces: config.getSection('web.interfaces'),
                 types: [
-                    {name: 'rem', desc: 'Relay Equipment Manager'},
-                    {name: 'mqtt', desc: 'MQTT'}
+                    { name: 'rest', desc: 'Rest' },
+                    { name: 'http', desc: 'Http' },
+                    { name: 'rem', desc: 'Relay Equipment Manager' },
+                    { name: 'mqtt', desc: 'MQTT' },
+                    { name: 'influx', desc: 'InfluxDB' }
                 ],
                 protocols: [
                     { val: 0, name: 'http://', desc: 'http://' },
                     { val: 1, name: 'https://', desc: 'https://' },
-                    { val: 2, name: 'mqtt://', desc: 'mqtt://' },
+                    { val: 2, name: 'mqtt://', desc: 'mqtt://' }
                 ]
             }
             return res.status(200).send(opts);
@@ -831,8 +834,8 @@ export class ConfigRoute {
         });
         app.put('/app/interface', async (req, res, next) => {
            try{
-            await webApp.updateServerInterface(req.body);
-            return res.status(200).send('OK');
+            let iface = await webApp.updateServerInterface(req.body);
+            return res.status(200).send(iface);
         }
         catch (err) {next(err);}
         });
