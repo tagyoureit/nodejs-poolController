@@ -30,9 +30,10 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
     declare events: InfluxInterfaceEvent[];
     private init = () => {
         let baseOpts = extend(true, this.cfg.options, this.context.options);
-        let url = 'http';
+        let url = 'http://';
         if (typeof baseOpts.protocol !== 'undefined' && baseOpts.protocol) url = baseOpts.protocol;
-        url = `${url}://${baseOpts.host}:${baseOpts.port}`;
+        if (!url.endsWith('://')) url += '://';
+        url = `${url}${baseOpts.host}:${baseOpts.port}`;
         let influxDB: InfluxDB;
         let bucket;
         let org;
