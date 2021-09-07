@@ -168,12 +168,13 @@ export class Inbound extends Message {
             return `{"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","for":${JSON.stringify(this.responseFor)},"pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${Timestamp.toISOLocal(this.timestamp)}"}`;
         return `{"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${Timestamp.toISOLocal(this.timestamp)}"}`;
     }
-    private testChlorHeader(bytes: number[], ndx: number): boolean { 
+    private testChlorHeader(bytes: number[], ndx: number): boolean {
         // if packets have 16,2 (eg status=16,2,29) in them and they come as partial packets, they would have
         // prev been detected as chlor packets;
         // valid chlor packets should have 16,2,0 or 16,2,[80-96];
         // this should reduce the number of false chlor packets
-        return (ndx + 2 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2 && (bytes[ndx + 2] === 0 || (bytes[ndx + 2] >= 80 && bytes[ndx + 2] <= 96))); }
+        return (ndx + 2 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2 && (bytes[ndx + 2] === 0 || (bytes[ndx + 2] >= 80 && bytes[ndx + 2] <= 96)))
+    }
     private testBroadcastHeader(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] === 165; }
     private testUnidentifiedHeader(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] !== 165; }
     private testChlorTerm(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 2 && bytes[ndx + 1] === 16 && bytes[ndx + 2] === 3; }
@@ -500,17 +501,20 @@ export class Inbound extends Message {
                     case 9:
                     case 16:
                     case 34:
-                    case 114:
                     case 137:
                     case 144:
                     case 162:
                         HeaterMessage.process(this);
                         break;
+                    case 114:
+                    case 115:
+                        HeaterStateMessage.process(this);
+                        break
                     case 147:
                         IntellichemMessage.process(this);
                         break;
                     default:
-                        // take these out...
+                        1                        // take these out...
                         if (this.action === 109 && this.payload[1] === 3) break;
                         if (this.source === 17 && this.payload[0] === 109) break;
                         logger.debug(`Packet not processed: ${this.toPacket()}`);

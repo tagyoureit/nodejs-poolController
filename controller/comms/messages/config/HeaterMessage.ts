@@ -220,13 +220,7 @@ export class HeaterMessage {
                 sys.board.heaters.syncHeaterStates();
                 sys.equipment.setEquipmentIds();
                 break;
-            case 114:
-                // something to do with heat pumps... need equipment or other packets to decipher
-                // [ 255, 0, 255], [165, 0, 112, 16, 114, 10], [144, 2, 0, 0, 0, 0, 0, 0, 0, 0], [2, 51 ]heat + cool
-                // [165,0,112,16,114,10][144,0,0,0,0,0,0,0,0,0][2,49] == no Heater, no cool
-                // [165,0,112,16,114,10][144,2,0,0,0,0,0,0,0,0][2,51] == no heat, cooling
-                // this might be heatStatus not heatMode?
-                break;
+
             case 168:
                 {
                     // IntelliChem Installed
