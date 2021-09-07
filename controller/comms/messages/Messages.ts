@@ -514,7 +514,6 @@ export class Inbound extends Message {
                         IntellichemMessage.process(this);
                         break;
                     default:
-                        1                        // take these out...
                         if (this.action === 109 && this.payload[1] === 3) break;
                         if (this.source === 17 && this.payload[0] === 109) break;
                         logger.debug(`Packet not processed: ${this.toPacket()}`);
