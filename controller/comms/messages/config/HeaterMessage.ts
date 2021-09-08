@@ -220,7 +220,6 @@ export class HeaterMessage {
                 sys.board.heaters.syncHeaterStates();
                 sys.equipment.setEquipmentIds();
                 break;
-
             case 168:
                 {
                     // IntelliChem Installed
