@@ -54,7 +54,7 @@ class VersionCheck {
             }
         }
         catch (err) {
-            logger.error(`Unable to retrieve local git branch.  ${err}`);
+            logger.warn(`Unable to retrieve local git branch.  ${err}`);
         }
         try {
             let res = execSync('git rev-parse HEAD');
@@ -69,7 +69,7 @@ class VersionCheck {
                     state.appVersion.gitLocalCommit = out;
             }
         }
-        catch (err) { logger.error(`Unable to retrieve local git commit.  ${err}`); }
+        catch (err) { logger.warn(`Unable to retrieve local git commit.  ${err}`); }
     }
     private checkAll() {
         try {

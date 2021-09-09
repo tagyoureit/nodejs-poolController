@@ -959,9 +959,8 @@ class NixieChemical extends NixieChildEquipment {
             schem.chlor.isDosing = schem.pump.isDosing = false;
             if (!this.chemical.flowOnlyMixing || (schem.chemController.isBodyOn && this.chemController.flowDetected)) {
                 if (this.chemType === 'orp' && typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0) {
-                    await this.chlor.stopDosing(schem, 'mixing');
                     if (state.chlorinators.getItemById(1).currentOutput !== 0) {
-                        logger.debug(`Chem mixing ORP (chlorinator) paused  waiting for chlor current output to be 0%.  Mix time remaining: ${utils.formatDuration(schem.mixTimeRemaining)} `);
+                        logger.debug(`Chem mixing ORP (chlorinator) paused waiting for chlor current output to be 0%.  Mix time remaining: ${utils.formatDuration(schem.mixTimeRemaining)} `);
                         return;
                     }
                 }
@@ -1360,7 +1359,7 @@ export class NixieChemChlor extends NixieChildEquipment {
                     try {
                         await this.turnOn(schem);
                         if (schlor.currentOutput !== 100) {
-                            logger.error(`Chlor dose not added because current output is not 100%`);
+                            logger.warn(`Chlor dose not added because current output is not 100%`);
                         }
                         else {
                             if (typeof dose._lastLatch !== 'undefined') {
@@ -1413,7 +1412,7 @@ export class NixieChemChlor extends NixieChildEquipment {
         try {
             let chlor = sys.chlorinators.getItemById(1);
             let schlor = state.chlorinators.getItemById(1);
-            if (schlor.currentOutput === 0 && schlor.targetOutput === 0 && !schlor.superChlor && chlor.disabled && schlor.poolSetpoint === 0 && schlor.spaSetpoint === 0 && !chlor.isDosing) {
+            if (schlor.currentOutput === 0 && schlor.targetOutput === 0 && !schlor.superChlor && chlor.disabled && !chlor.isDosing) {
                 this.isOn = schem.chlor.isDosing = false;
                 return schlor;
             }
@@ -1431,11 +1430,7 @@ export class NixieChemChlor extends NixieChildEquipment {
         try {
             let chlor = sys.chlorinators.getItemById(1);
             let schlor = state.chlorinators.getItemById(1);
-            let chem = schem.chemController;
-            let poolSetpoint: number = 0, spaSetpoint: number = 0;
-            if (chem.body === 0 || chem.body === 32) poolSetpoint = 100;
-            if (chem.body === 1 || chem.body === 32) spaSetpoint = 100;
-            if (schlor.currentOutput === 100 && schlor.targetOutput === 100 && !schlor.superChlor && !chlor.disabled && schlor.poolSetpoint === poolSetpoint && schlor.spaSetpoint === spaSetpoint && chlor.isDosing) {
+            if (schlor.currentOutput === 100 && schlor.targetOutput === 100 && !schlor.superChlor && !chlor.disabled && chlor.isDosing) {
                 this.isOn = schem.chlor.isDosing = true;
                 return schlor;
             }

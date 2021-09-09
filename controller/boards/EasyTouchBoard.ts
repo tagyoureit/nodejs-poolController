@@ -1672,13 +1672,13 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         // RKS: I am not even sure this can be done with Touch as the master on the RS485 bus.
         if (chlor.master === 1 || isVirtual) return super.setChlorAsync(obj);
         let name = obj.name || chlor.name || 'IntelliChlor' + id;
-        let poolSetpoint = parseInt(obj.poolSetpoint, 10);
-        let spaSetpoint = parseInt(obj.spaSetpoint, 10);
         let superChlorHours = parseInt(obj.superChlorHours, 10);
         if (typeof obj.superChlorinate !== 'undefined') obj.superChlor = utils.makeBool(obj.superChlorinate);
         let superChlorinate = typeof obj.superChlor === 'undefined' ? undefined : utils.makeBool(obj.superChlor);
-        let disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled;
         let isDosing = typeof obj.isDosing !== 'undefined' ? utils.makeBool(obj.isDosing) : chlor.isDosing;
+        let disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled;
+        let poolSetpoint = isDosing ? 100 : disabled ? 0 : parseInt(obj.poolSetpoint, 10);
+        let spaSetpoint = isDosing ? 100 : disabled ? 0 : parseInt(obj.spaSetpoint, 10);
         let model = typeof obj.model !== 'undefined' ? obj.model : chlor.model;
         let chlorType = typeof obj.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(obj.type) : chlor.type || 0;
         if (isAdd) {
