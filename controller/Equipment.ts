@@ -935,7 +935,6 @@ export class ConfigVersion extends EqItem {
             if (prop === 'lastUpdated') continue;
             this.data[prop] = 0;
         }
-
     }
 }
 
@@ -959,6 +958,9 @@ export class BodyCollection extends EqItemCollection<Body> {
 }
 export class Body extends EqItem {
     public dataName = 'bodyConfig';
+    public initData() {
+        if (typeof this.data.capacityUnits === 'undefined') this.data.capacityUnits = 1;
+    }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
@@ -983,7 +985,14 @@ export class Body extends EqItem {
     public set heatSetpoint(val: number) { this.setDataVal('setPoint', val); }
     public get coolSetpoint(): number { return this.data.coolSetpoint; }
     public set coolSetpoint(val: number) { this.setDataVal('coolSetpoint', val); }
+    public get capacityUnits(): number | any { return this.data.capacityUnits; }
+    public set capacityUnits(val: number | any) { this.setDataVal('capacityUnits', sys.board.valueMaps.volumeUnits.encode(val)); }
     public getHeatModes() { return sys.board.bodies.getHeatModes(this.id); }
+    public getExtended() {
+        let body = this.get(true);
+        body.capacityUnits = sys.board.valueMaps.volumeUnits.transform(this.capacityUnits || 1);
+        return body;
+    }
 }
 export class ScheduleCollection extends EqItemCollection<Schedule> {
     constructor(data: any, name?: string) { super(data, name || "schedules"); }

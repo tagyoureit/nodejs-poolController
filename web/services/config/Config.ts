@@ -115,7 +115,8 @@ export class ConfigRoute {
             let opts = {
                 maxBodies: sys.equipment.maxBodies,
                 bodyTypes: sys.board.valueMaps.bodies.toArray(),
-                bodies: sys.bodies.get()
+                bodies: sys.bodies.get(),
+                capacityUnits: sys.board.valueMaps.volumeUnits.toArray()
             };
             return res.status(200).send(opts);
         });
