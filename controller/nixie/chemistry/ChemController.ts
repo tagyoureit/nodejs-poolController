@@ -596,15 +596,10 @@ export class NixieChemController extends NixieChemControllerBase {
             }
             this._ispolling = false;
         }
-        catch (err) { this._ispolling = false; logger.error(`Error polling Chem Controller - ${err}`); return Promise.reject(err); }
+        catch (err) { this._ispolling = false; logger.error(`Error polling Chem Controller - ${err}`); }
         finally {
             if (!this.closing && !this._ispolling)
-                this._pollTimer = setTimeout(async () => {
-                    try { await self.pollEquipmentAsync() } catch (err) {
-                        //return Promise.reject(err); 
-                        logger.error(err);
-                    }
-                }, this.pollingInterval || 10000);
+                this._pollTimer = setTimeout(() => { self.pollEquipmentAsync(); }, this.pollingInterval || 10000);
             logger.verbose(`End polling Chem Controller ${this.id}`);
         }
     }
@@ -2224,7 +2219,7 @@ export class NixieChemProbePh extends NixieChemProbe {
             }
             let res = await NixieChemController.putDeviceService(this.probe.connectionId, '/config/feed', d);
             if (res.status.code === 200) { this.probe.remFeedEnabled = data.remFeedEnabled; }
-            else { logger.warn(`setRemoteREMFeed: Cannot set remote feed. Message:${JSON.stringify(res.status)} for feed: ${JSON.stringify(d)}.`); return Promise.reject(`Cannot set REM feed for pH probe: ${JSON.stringify(res)}.`); }
+            else { logger.warn(`setRemoteREMFeed: Cannot set remote feed. Message:${JSON.stringify(res.status)} for feed: ${JSON.stringify(d)}.`); }
         }
         catch (err) { logger.error(`setRemoteREMFeed: ${err.message}`); return Promise.reject(err); }
     }
@@ -2307,11 +2302,15 @@ export class NixieChemProbeORP extends NixieChemProbe {
             }
             let res = await NixieChemController.putDeviceService(this.probe.connectionId, '/config/feed', d);
             if (res.status.code === 200) { this.probe.remFeedEnabled = data.remFeedEnabled; }
-            else { logger.warn(`setRemoteREMFeed: Cannot set remote feed. Message:${JSON.stringify(res.status)} for feed: ${JSON.stringify(d)}.`); return Promise.reject(new InvalidOperationError(`Nixie could not set remote REM feed for the ORP probe.`, this.probe.dataName)); }
+            else {
+                logger.warn(`setRemoteREMFeed: Cannot set remote feed. Message:${JSON.stringify(res.status)} for feed: ${JSON.stringify(d)}.`);
+                // return Promise.reject(new InvalidOperationError(`Nixie could not set remote REM feed for the ORP probe.`, this.probe.dataName));
+            }
         }
-        catch (err) { logger.error(`setRemoteREMFeed: ${err.message}`); 
-        //return Promise.reject(err); // don't muck up chem controller if we can't set the feeds.
-    }
+        catch (err) {
+            logger.error(`setRemoteREMFeed: ${err.message}`);
+            //return Promise.reject(err); // don't muck up chem controller if we can't set the feeds.
+        }
     }
     public syncRemoteREMFeeds(chem: ChemController, servers) {
         // match any feeds and store the id/statusf

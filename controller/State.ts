@@ -1098,7 +1098,7 @@ export class CircuitGroupStateCollection extends EqStateCollection<CircuitGroupS
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (isNaN(this.data[i].id)) this.data.splice(i, 1);
             else {
-                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+                if (typeof sys.circuitGroups.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
             }
         }
         let cfg = sys.circuitGroups.toArray();
@@ -1174,7 +1174,7 @@ export class LightGroupStateCollection extends EqStateCollection<LightGroupState
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (isNaN(this.data[i].id)) this.data.splice(i, 1);
             else {
-                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+                if (typeof sys.lightGroups.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
             }
         }
         let cfg = sys.lightGroups.toArray();
@@ -1389,7 +1389,7 @@ export class HeaterStateCollection extends EqStateCollection<HeaterState> {
                 this.data.splice(i, 1);
             }
             else {
-                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+                if (typeof sys.heaters.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
             }
         }
         let cfg = sys.heaters.toArray();
@@ -1436,7 +1436,7 @@ export class FeatureStateCollection extends EqStateCollection<FeatureState> {
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (isNaN(this.data[i].id)) this.data.splice(i, 1);
             else {
-                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+                if (typeof sys.features.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
             }
         }
         let cfg = sys.features.toArray();
@@ -1533,7 +1533,7 @@ export class CircuitStateCollection extends EqStateCollection<CircuitState> {
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (isNaN(this.data[i].id)) this.data.splice(i, 1);
             else {
-                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+                if (typeof sys.circuits.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
             }
         }
         let cfg = sys.circuits.toArray();
@@ -1604,7 +1604,7 @@ export class ValveStateCollection extends EqStateCollection<ValveState> {
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (isNaN(this.data[i].id)) this.data.splice(i, 1);
             else {
-                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+                if (typeof sys.valves.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
             }
         }
         let cfg = sys.valves.toArray();
@@ -1677,7 +1677,7 @@ export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorSta
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (isNaN(this.data[i].id)) this.data.splice(i, 1);
             else {
-                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+                if (typeof sys.chlorinators.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
             }
         }
         let cfg = sys.chlorinators.toArray();
@@ -1834,7 +1834,7 @@ export class ChemControllerStateCollection extends EqStateCollection<ChemControl
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (isNaN(this.data[i].id)) this.data.splice(i, 1);
             else {
-                if (typeof sys.pumps.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
+                if (typeof sys.chemControllers.find(elem => elem.id === this.data[i].id) === 'undefined') this.removeItemById(this.data[i].id);
             }
         }
         // Make sure we have at least the items that exist in the config.
@@ -2114,7 +2114,6 @@ export class ChemicalState extends ChildEqState {
         if (typeof this.data.flowDelay === 'undefined') this.data.flowDelay = false;
         if (typeof this.data.dosingStatus === 'undefined') this.dosingStatus = 2;
         if (typeof this.data.enabled === 'undefined') this.data.enabled = true;
-        if (typeof this.data.level === 'undefined') this.data.level = 0;
     }
     public getConfig(): Chemical { return; }
     public calcDoseHistory(): number {

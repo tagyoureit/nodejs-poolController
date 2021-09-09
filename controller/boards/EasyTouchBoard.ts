@@ -1726,7 +1726,6 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
                             reject = undefined;
                         }
                         else {
-                            logger.debug(`chlor response 153`);
                             resolve();
                             resolve = undefined;
                         }
@@ -1772,7 +1771,6 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
                             reject(err);
                         }
                         else{
-                            logger.debug(`chlor resolve 217`);
                             resolve();
                         }
                     }
