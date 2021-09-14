@@ -64,6 +64,10 @@
         {
           "topic": "state/mode",
           "message": "@bind=data.mode;"
+        },
+        {
+          "topic": "state/startTime",
+          "message":  "@bind=data.startTime;"
         }
       ]
     },

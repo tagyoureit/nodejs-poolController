@@ -36,6 +36,7 @@ export class State implements IState {
     private _isDirty: boolean;
     private _timerDirty: NodeJS.Timeout;
     protected _dt: Timestamp;
+    protected _startTime: Timestamp;
     protected _controllerType: ControllerType;
     protected onchange = (obj, fn) => {
         const handler = {
@@ -191,6 +192,7 @@ export class State implements IState {
     public get controllerState() {
         var self = this;
         return {
+            startTime: self.data.startTime || '',
             time: self.data.time || '',
             // body: self.data.body || {},
             valve: self.data.valve || 0,
@@ -386,6 +388,7 @@ export class State implements IState {
         this.comms = new CommsState();
         this.heliotrope = new Heliotrope();
         this.appVersion = new AppVersionState(this.data, 'appVersion');
+        this.data.startTime = Timestamp.toISOLocal(new Date());
         versionCheck.checkGitLocal();
     }
     public resetData() {
