@@ -52,7 +52,8 @@ export class ConfigRoute {
                 clockSources: sys.board.valueMaps.clockSources.toArray(),
                 clockModes: sys.board.valueMaps.clockModes.toArray(),
                 pool: sys.general.get(true),
-                sensors: sys.board.system.getSensors()
+                sensors: sys.board.system.getSensors(),
+                systemUnits: sys.board.valueMaps.systemUnits.toArray()
             };
             return res.status(200).send(opts);
         });

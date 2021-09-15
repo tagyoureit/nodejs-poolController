@@ -260,7 +260,8 @@ export class NixieBoard extends SystemBoard {
             sys.equipment.maxCustomNames = 0;
             state.equipment.model = type.desc;
             state.equipment.maxBodies = sys.equipment.maxBodies = type.bodies;
-            
+            let bodyUnits = sys.general.options.units === 0 ? 1 : 2;
+
             if (typeof state.temps.units === 'undefined' || state.temps.units < 0) state.temps.units = sys.general.options.units;
             if (type.bodies > 0) {
                 let pool = sys.bodies.getItemById(1, true);
@@ -272,6 +273,7 @@ export class NixieBoard extends SystemBoard {
                 pool.circuit = 6;
                 pool.isActive = true;
                 pool.master = 1;
+                pool.capacityUnits = bodyUnits;
                 sbody.name = pool.name;
                 sbody.setPoint = pool.setPoint;
                 sbody.circuit = pool.circuit;
@@ -307,6 +309,7 @@ export class NixieBoard extends SystemBoard {
                     sbody.setPoint = spa.setPoint;
                     sbody.circuit = spa.circuit;
                     sbody.type = spa.type;
+                    spa.capacityUnits = bodyUnits;
                     scirc = state.circuits.getItemById(1, true);
                     scirc.showInFeatures = circ.showInFeatures;
                     scirc.type = circ.type;
@@ -330,6 +333,7 @@ export class NixieBoard extends SystemBoard {
                 sys.circuits.removeItemById(6);
                 state.circuits.removeItemById(6);
             }
+            
             sys.equipment.setEquipmentIds();
             sys.board.bodies.initFilters();
             state.status = sys.board.valueMaps.controllerStatus.transform(2, 0);

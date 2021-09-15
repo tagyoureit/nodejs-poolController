@@ -721,7 +721,7 @@ export class Options extends EqItem {
     public get clockMode(): number | any { return this.data.clockMode; }
     public set clockMode(val: number | any) { this.setDataVal('clockMode', sys.board.valueMaps.clockModes.encode(val)); }
     public get units(): number | any { return this.data.units; }
-    public set units(val: number | any) { this.setDataVal('units', sys.board.valueMaps.tempUnits.encode(val)); }
+    public set units(val: number | any) { this.setDataVal('units', sys.board.valueMaps.systemUnits.encode(val)); }
     public get clockSource(): string { return this.data.clockSource; }
     public set clockSource(val: string) { this.setDataVal('clockSource', val); }
     public get adjustDST(): boolean { return this.data.adjustDST; }

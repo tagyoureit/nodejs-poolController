@@ -483,6 +483,10 @@ export class byteValueMaps {
     [0, { name: 'off', desc: 'Off' }],
     [1, { name: 'on', desc: 'On' }]
   ]);
+    public systemUnits: byteValueMap = new byteValueMap([
+        [0, { name: 'english', desc: 'English' }],
+        [4, { name: 'metric', desc: 'Metric' }]
+    ]);
   public tempUnits: byteValueMap = new byteValueMap([
     [0, { name: 'F', desc: 'Fahrenheit' }],
     [4, { name: 'C', desc: 'Celsius' }]
@@ -973,6 +977,9 @@ export class SystemCommands extends BoardCommands {
         if (obj.clockSource === 'server') sys.board.system.setTZ();
         sys.board.system.setTempSensorsAsync(obj);
         sys.general.options.set(obj);
+        let bodyUnits = sys.general.options.units === 0 ? 1 : 2;
+        for (let i = 0; i < sys.bodies.length; i++) sys.bodies.getItemByIndex(i).capacityUnits = bodyUnits;
+        state.temps.units = sys.general.options.units === 0 ? 1 : 4;
         return new Promise<Options>(function (resolve, reject) { resolve(sys.general.options); });
     }
     public async setLocationAsync(obj: any): Promise<Location> {
@@ -1251,7 +1258,7 @@ export class BodyCommands extends BoardCommands {
                                 this.freezeProtectBodyOn = undefined;
                                 continue;
                             }
-                            
+
                             // One of the two bodies is on so we need to check for the rotation.  If it is time to rotate do the rotation.
                             if (typeof this.freezeProtectBodyOn === 'undefined') this.freezeProtectBodyOn = new Date();
                             let dt = new Date().getTime();
@@ -1296,254 +1303,254 @@ export class BodyCommands extends BoardCommands {
         catch (err) { logger.error(`syncFreezeProtection: Error synchronizing freeze protection states`); }
     }
 
-  public async initFilters() {
-    try {
-      let filter: Filter;
-      let sFilter: FilterState;
-      if (sys.equipment.maxBodies > 0) {
-        filter = sys.filters.getItemById(1, true, { filterType: 3, name: sys.equipment.shared ? 'Filter' : 'Filter 1' });
-        sFilter = state.filters.getItemById(1, true, { id: 1,  name: filter.name });
-        filter.isActive = true;
-        filter.master = sys.board.equipmentMaster;
-        filter.body = sys.equipment.shared ? sys.board.valueMaps.bodies.transformByName('poolspa') : 0;
-        //sFilter = state.filters.getItemById(1, true);
-        sFilter.body = filter.body;
-        sFilter.filterType = filter.filterType;
-        sFilter.name = filter.name;
-        if (sys.equipment.dual) {
-          filter = sys.filters.getItemById(2, true, { filterType: 3, name: 'Filter 2' });
-          filter.isActive = true;
-          filter.master = sys.board.equipmentMaster;
-          filter.body = 1;
-          sFilter = state.filters.getItemById(2, true);
-          sFilter.body = filter.body;
-          sFilter.filterType = filter.filterType;
-          sFilter.name = filter.name;
+    public async initFilters() {
+        try {
+            let filter: Filter;
+            let sFilter: FilterState;
+            if (sys.equipment.maxBodies > 0) {
+                filter = sys.filters.getItemById(1, true, { filterType: 3, name: sys.equipment.shared ? 'Filter' : 'Filter 1' });
+                sFilter = state.filters.getItemById(1, true, { id: 1, name: filter.name });
+                filter.isActive = true;
+                filter.master = sys.board.equipmentMaster;
+                filter.body = sys.equipment.shared ? sys.board.valueMaps.bodies.transformByName('poolspa') : 0;
+                //sFilter = state.filters.getItemById(1, true);
+                sFilter.body = filter.body;
+                sFilter.filterType = filter.filterType;
+                sFilter.name = filter.name;
+                if (sys.equipment.dual) {
+                    filter = sys.filters.getItemById(2, true, { filterType: 3, name: 'Filter 2' });
+                    filter.isActive = true;
+                    filter.master = sys.board.equipmentMaster;
+                    filter.body = 1;
+                    sFilter = state.filters.getItemById(2, true);
+                    sFilter.body = filter.body;
+                    sFilter.filterType = filter.filterType;
+                    sFilter.name = filter.name;
 
+                }
+                else {
+                    sys.filters.removeItemById(2);
+                    state.filters.removeItemById(2);
+                }
+            }
+            else {
+                sys.filters.removeItemById(1);
+                state.filters.removeItemById(1);
+                sys.filters.removeItemById(2);
+                state.filters.removeItemById(2);
+            }
+        } catch (err) { logger.error(`Error initializing filters`); }
+    }
+    public async setBodyAsync(obj: any): Promise<Body> {
+        return new Promise<Body>(function (resolve, reject) {
+            let id = parseInt(obj.id, 10); 1
+            if (isNaN(id)) reject(new InvalidEquipmentIdError('Body Id has not been defined', obj.id, 'Body'));
+            let body = sys.bodies.getItemById(id, false);
+            body.set(obj);
+            resolve(body);
+        });
+    }
+    public mapBodyAssociation(val: any): any {
+        if (typeof val === 'undefined') return;
+        let ass = sys.board.bodies.getBodyAssociations();
+        let nval = parseInt(val, 10);
+        if (!isNaN(nval)) {
+            return ass.find(elem => elem.val === nval);
         }
-        else {
-          sys.filters.removeItemById(2);
-          state.filters.removeItemById(2);
+        else if (typeof val === 'string') return ass.find(elem => elem.name === val);
+        else if (typeof val.val !== 'undefined') {
+            nval = parseInt(val.val);
+            return ass.find(elem => elem.val === val) !== undefined;
         }
-      }
-      else {
-        sys.filters.removeItemById(1);
-        state.filters.removeItemById(1);
-        sys.filters.removeItemById(2);
-        state.filters.removeItemById(2);
-      }
-    } catch (err) { logger.error(`Error initializing filters`); }
-  }
-  public async setBodyAsync(obj: any): Promise<Body> {
-    return new Promise<Body>(function (resolve, reject) {
-      let id = parseInt(obj.id, 10); 1
-      if (isNaN(id)) reject(new InvalidEquipmentIdError('Body Id has not been defined', obj.id, 'Body'));
-      let body = sys.bodies.getItemById(id, false);
-      body.set(obj);
-      resolve(body);
-    });
-  }
-  public mapBodyAssociation(val: any): any {
-    if (typeof val === 'undefined') return;
-    let ass = sys.board.bodies.getBodyAssociations();
-    let nval = parseInt(val, 10);
-    if (!isNaN(nval)) {
-      return ass.find(elem => elem.val === nval);
+        else if (typeof val.name !== 'undefined') return ass.find(elem => elem.name === val.name);
     }
-    else if (typeof val === 'string') return ass.find(elem => elem.name === val);
-    else if (typeof val.val !== 'undefined') {
-      nval = parseInt(val.val);
-      return ass.find(elem => elem.val === val) !== undefined;
-    }
-    else if (typeof val.name !== 'undefined') return ass.find(elem => elem.name === val.name);
-  }
-  // This method provides a list of enumerated values for configuring associations
-  // tied to the current configuration.  It is used to supply only the valid values
-  // for tying things like heaters, chem controllers, ss & ds pumps to a particular body within
-  // the plumbing.
-  public getBodyAssociations() {
-    let ass = [];
-    let assoc = sys.board.valueMaps.bodies.toArray();
-    for (let i = 0; i < assoc.length; i++) {
-      let body;
-      let code = assoc[i];
-      switch (code.name) {
-        case 'body1':
-        case 'pool':
-          body = sys.bodies.getItemById(1);
-          code.desc = body.name;
-          ass.push(code);
-          break;
-        case 'body2':
-        case 'spa':
-          if (sys.equipment.maxBodies >= 2) {
-            body = sys.bodies.getItemById(2);
-            code.desc = body.name;
-            ass.push(code);
-          }
-          break;
-        case 'body3':
-          if (sys.equipment.maxBodies >= 3) {
-            body = sys.bodies.getItemById(3);
-            code.desc = body.name;
-            ass.push(code);
-          }
-          break;
-        case 'body4':
-          if (sys.equipment.maxBodies >= 4) {
-            body = sys.bodies.getItemById(3);
-            code.desc = body.name;
-            ass.push(code);
-          }
-          break;
-        case 'poolspa':
-          if (sys.equipment.shared && sys.equipment.maxBodies >= 2) {
-            body = sys.bodies.getItemById(1);
-            let body2 = sys.bodies.getItemById(2);
-            code.desc = `${body.name}/${body2.name}`;
-            ass.push(code);
-          }
-          break;
-      }
-    }
-    return ass;
-  }
-  public async setHeatModeAsync(body: Body, mode: number): Promise<BodyTempState> {
-    let bdy = sys.bodies.getItemById(body.id);
-    let bstate = state.temps.bodies.getItemById(body.id);
-    bdy.heatMode = bstate.heatMode = mode;
-    sys.board.heaters.syncHeaterStates();
-    state.emitEquipmentChanges();
-    return Promise.resolve(bstate);
-  }
-  public async setHeatSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
-    let bdy = sys.bodies.getItemById(body.id);
-    let bstate = state.temps.bodies.getItemById(body.id);
-    bdy.setPoint = bstate.setPoint = setPoint;
-    state.emitEquipmentChanges();
-    sys.board.heaters.syncHeaterStates();
-    return Promise.resolve(bstate);
-  }
-  public async setCoolSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
-    let bdy = sys.bodies.getItemById(body.id);
-    let bstate = state.temps.bodies.getItemById(body.id);
-    bdy.coolSetpoint = bstate.coolSetpoint = setPoint;
-    state.emitEquipmentChanges();
-    sys.board.heaters.syncHeaterStates();
-    return Promise.resolve(bstate);
-  }
-  public getHeatSources(bodyId: number) {
-    let heatSources = [];
-    let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
-    heatSources.push(this.board.valueMaps.heatSources.transformByName('nochange'));
-    if (heatTypes.total > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('off'));
-    if (heatTypes.gas > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('heater'));
-    if (heatTypes.solar > 0) {
-      let hm = this.board.valueMaps.heatSources.transformByName('solar');
-      heatSources.push(hm);
-      if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('solarpref'));
-    }
-    if (heatTypes.heatpump > 0) {
-      let hm = this.board.valueMaps.heatSources.transformByName('heatpump');
-      heatSources.push(hm);
-      if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('heatpumppref'));
-    }
-    if (heatTypes.ultratemp > 0) {
-      let hm = this.board.valueMaps.heatSources.transformByName('ultratemp');
-      heatSources.push(hm);
-      if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('ultratemppref'));
-    }
-    return heatSources;
-  }
-  public getHeatModes(bodyId: number) {
-    let heatModes = [];
-    // RKS: 09-26-20 This will need to be overloaded in IntelliCenterBoard when the other heater types are identified. (e.g. ultratemp, hybrid, maxetherm, and mastertemp)
-    heatModes.push(this.board.valueMaps.heatModes.transformByName('off')); // In IC fw 1.047 off is no longer 0.
-    let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
-    if (heatTypes.gas > 0)
-      heatModes.push(this.board.valueMaps.heatModes.transformByName('heater'));
-    if (heatTypes.solar > 0) {
-      let hm = this.board.valueMaps.heatModes.transformByName('solar');
-      heatModes.push(hm);
-      if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('solarpref'));
-    }
-    if (heatTypes.heatpump > 0) {
-      let hm = this.board.valueMaps.heatModes.transformByName('heatpump');
-      heatModes.push(hm);
-      if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('heatpumppref'));
-    }
-    if (heatTypes.ultratemp > 0) {
-      let hm = this.board.valueMaps.heatModes.transformByName('ultratemp');
-      heatModes.push(hm);
-      if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('ultratemppref'));
-    }
-    return heatModes;
-  }
-  public getPoolStates(): BodyTempState[] {
-    let arrPools = [];
-    for (let i = 0; i < state.temps.bodies.length; i++) {
-      let bstate = state.temps.bodies.getItemByIndex(i);
-      if (bstate.circuit === 6)
-        arrPools.push(bstate);
-    }
-    return arrPools;
-  }
-  public getSpaStates(): BodyTempState[] {
-    let arrSpas = [];
-    for (let i = 0; i < state.temps.bodies.length; i++) {
-      let bstate = state.temps.bodies.getItemByIndex(i);
-      if (bstate.circuit === 1) {
-        arrSpas.push(bstate);
-      }
-    }
-    return arrSpas;
-  }
-  public getBodyState(bodyCode: number): BodyTempState {
-    let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
-    switch (assoc.name) {
-      case 'body1':
-      case 'pool':
-        return state.temps.bodies.getItemById(1);
-      case 'body2':
-      case 'spa':
-        return state.temps.bodies.getItemById(2);
-      case 'body3':
-        return state.temps.bodies.getItemById(3);
-      case 'body4':
-        return state.temps.bodies.getItemById(4);
-      case 'poolspa':
-        if (sys.equipment.shared && sys.equipment.maxBodies >= 2) {
-          let body = state.temps.bodies.getItemById(1);
-          if (body.isOn) return body;
-          body = state.temps.bodies.getItemById(2);
-          if (body.isOn) return body;
-          return state.temps.bodies.getItemById(1);
+    // This method provides a list of enumerated values for configuring associations
+    // tied to the current configuration.  It is used to supply only the valid values
+    // for tying things like heaters, chem controllers, ss & ds pumps to a particular body within
+    // the plumbing.
+    public getBodyAssociations() {
+        let ass = [];
+        let assoc = sys.board.valueMaps.bodies.toArray();
+        for (let i = 0; i < assoc.length; i++) {
+            let body;
+            let code = assoc[i];
+            switch (code.name) {
+                case 'body1':
+                case 'pool':
+                    body = sys.bodies.getItemById(1);
+                    code.desc = body.name;
+                    ass.push(code);
+                    break;
+                case 'body2':
+                case 'spa':
+                    if (sys.equipment.maxBodies >= 2) {
+                        body = sys.bodies.getItemById(2);
+                        code.desc = body.name;
+                        ass.push(code);
+                    }
+                    break;
+                case 'body3':
+                    if (sys.equipment.maxBodies >= 3) {
+                        body = sys.bodies.getItemById(3);
+                        code.desc = body.name;
+                        ass.push(code);
+                    }
+                    break;
+                case 'body4':
+                    if (sys.equipment.maxBodies >= 4) {
+                        body = sys.bodies.getItemById(3);
+                        code.desc = body.name;
+                        ass.push(code);
+                    }
+                    break;
+                case 'poolspa':
+                    if (sys.equipment.shared && sys.equipment.maxBodies >= 2) {
+                        body = sys.bodies.getItemById(1);
+                        let body2 = sys.bodies.getItemById(2);
+                        code.desc = `${body.name}/${body2.name}`;
+                        ass.push(code);
+                    }
+                    break;
+            }
         }
-        else
-          return state.temps.bodies.getItemById(1);
+        return ass;
     }
-  }
-  public isBodyOn(bodyCode: number): boolean {
-    let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
-    switch (assoc.name) {
-      case 'body1':
-      case 'pool':
-        return state.temps.bodies.getItemById(1).isOn;
-      case 'body2':
-      case 'spa':
-        return state.temps.bodies.getItemById(2).isOn;
-      case 'body3':
-        return state.temps.bodies.getItemById(3).isOn;
-      case 'body4':
-        return state.temps.bodies.getItemById(4).isOn;
-      case 'poolspa':
-        if (sys.equipment.shared && sys.equipment.maxBodies >= 2)
-          return state.temps.bodies.getItemById(1).isOn || state.temps.bodies.getItemById(2).isOn;
-        else
-          return state.temps.bodies.getItemById(1).isOn;
+    public async setHeatModeAsync(body: Body, mode: number): Promise<BodyTempState> {
+        let bdy = sys.bodies.getItemById(body.id);
+        let bstate = state.temps.bodies.getItemById(body.id);
+        bdy.heatMode = bstate.heatMode = mode;
+        sys.board.heaters.syncHeaterStates();
+        state.emitEquipmentChanges();
+        return Promise.resolve(bstate);
     }
-    return false;
-  }
+    public async setHeatSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
+        let bdy = sys.bodies.getItemById(body.id);
+        let bstate = state.temps.bodies.getItemById(body.id);
+        bdy.setPoint = bstate.setPoint = setPoint;
+        state.emitEquipmentChanges();
+        sys.board.heaters.syncHeaterStates();
+        return Promise.resolve(bstate);
+    }
+    public async setCoolSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
+        let bdy = sys.bodies.getItemById(body.id);
+        let bstate = state.temps.bodies.getItemById(body.id);
+        bdy.coolSetpoint = bstate.coolSetpoint = setPoint;
+        state.emitEquipmentChanges();
+        sys.board.heaters.syncHeaterStates();
+        return Promise.resolve(bstate);
+    }
+    public getHeatSources(bodyId: number) {
+        let heatSources = [];
+        let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
+        heatSources.push(this.board.valueMaps.heatSources.transformByName('nochange'));
+        if (heatTypes.total > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('off'));
+        if (heatTypes.gas > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('heater'));
+        if (heatTypes.solar > 0) {
+            let hm = this.board.valueMaps.heatSources.transformByName('solar');
+            heatSources.push(hm);
+            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('solarpref'));
+        }
+        if (heatTypes.heatpump > 0) {
+            let hm = this.board.valueMaps.heatSources.transformByName('heatpump');
+            heatSources.push(hm);
+            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('heatpumppref'));
+        }
+        if (heatTypes.ultratemp > 0) {
+            let hm = this.board.valueMaps.heatSources.transformByName('ultratemp');
+            heatSources.push(hm);
+            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('ultratemppref'));
+        }
+        return heatSources;
+    }
+    public getHeatModes(bodyId: number) {
+        let heatModes = [];
+        // RKS: 09-26-20 This will need to be overloaded in IntelliCenterBoard when the other heater types are identified. (e.g. ultratemp, hybrid, maxetherm, and mastertemp)
+        heatModes.push(this.board.valueMaps.heatModes.transformByName('off')); // In IC fw 1.047 off is no longer 0.
+        let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
+        if (heatTypes.gas > 0)
+            heatModes.push(this.board.valueMaps.heatModes.transformByName('heater'));
+        if (heatTypes.solar > 0) {
+            let hm = this.board.valueMaps.heatModes.transformByName('solar');
+            heatModes.push(hm);
+            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('solarpref'));
+        }
+        if (heatTypes.heatpump > 0) {
+            let hm = this.board.valueMaps.heatModes.transformByName('heatpump');
+            heatModes.push(hm);
+            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('heatpumppref'));
+        }
+        if (heatTypes.ultratemp > 0) {
+            let hm = this.board.valueMaps.heatModes.transformByName('ultratemp');
+            heatModes.push(hm);
+            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('ultratemppref'));
+        }
+        return heatModes;
+    }
+    public getPoolStates(): BodyTempState[] {
+        let arrPools = [];
+        for (let i = 0; i < state.temps.bodies.length; i++) {
+            let bstate = state.temps.bodies.getItemByIndex(i);
+            if (bstate.circuit === 6)
+                arrPools.push(bstate);
+        }
+        return arrPools;
+    }
+    public getSpaStates(): BodyTempState[] {
+        let arrSpas = [];
+        for (let i = 0; i < state.temps.bodies.length; i++) {
+            let bstate = state.temps.bodies.getItemByIndex(i);
+            if (bstate.circuit === 1) {
+                arrSpas.push(bstate);
+            }
+        }
+        return arrSpas;
+    }
+    public getBodyState(bodyCode: number): BodyTempState {
+        let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
+        switch (assoc.name) {
+            case 'body1':
+            case 'pool':
+                return state.temps.bodies.getItemById(1);
+            case 'body2':
+            case 'spa':
+                return state.temps.bodies.getItemById(2);
+            case 'body3':
+                return state.temps.bodies.getItemById(3);
+            case 'body4':
+                return state.temps.bodies.getItemById(4);
+            case 'poolspa':
+                if (sys.equipment.shared && sys.equipment.maxBodies >= 2) {
+                    let body = state.temps.bodies.getItemById(1);
+                    if (body.isOn) return body;
+                    body = state.temps.bodies.getItemById(2);
+                    if (body.isOn) return body;
+                    return state.temps.bodies.getItemById(1);
+                }
+                else
+                    return state.temps.bodies.getItemById(1);
+        }
+    }
+    public isBodyOn(bodyCode: number): boolean {
+        let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
+        switch (assoc.name) {
+            case 'body1':
+            case 'pool':
+                return state.temps.bodies.getItemById(1).isOn;
+            case 'body2':
+            case 'spa':
+                return state.temps.bodies.getItemById(2).isOn;
+            case 'body3':
+                return state.temps.bodies.getItemById(3).isOn;
+            case 'body4':
+                return state.temps.bodies.getItemById(4).isOn;
+            case 'poolspa':
+                if (sys.equipment.shared && sys.equipment.maxBodies >= 2)
+                    return state.temps.bodies.getItemById(1).isOn || state.temps.bodies.getItemById(2).isOn;
+                else
+                    return state.temps.bodies.getItemById(1).isOn;
+        }
+        return false;
+    }
 }
 export class PumpCommands extends BoardCommands {
   public getPumpTypes() { return this.board.valueMaps.pumpTypes.toArray(); }

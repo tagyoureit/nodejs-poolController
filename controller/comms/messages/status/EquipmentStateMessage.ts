@@ -152,6 +152,9 @@ export class EquipmentStateMessage {
                     state.time.minutes = msg.extractPayloadByte(1);
                     state.time.seconds = dt.getSeconds();
                     state.mode = msg.extractPayloadByte(9) & 0x81;
+                    // RKS: The units have been normalized for English and Metric for the overall panel.  It is important that the val numbers match for at least the temp units since
+                    // the only unit of measure native to the Touch controllers is temperature they chose to name these C or F.  However, with the njsPC extensions this is non-semantic
+                    // since pressure, volume, and length have been introduced.
                     sys.general.options.units = state.temps.units = msg.extractPayloadByte(9) & 0x04;
                     state.valve = msg.extractPayloadByte(10);
 

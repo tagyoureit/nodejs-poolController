@@ -2180,7 +2180,7 @@ export class NixieChemProbePh extends NixieChemProbe {
                     // Set the current body so that it references the temperature of the current running body.
                     let body = sys.board.bodies.getBodyState(this.chemical.chemController.chem.body);
                     if (typeof body !== 'undefined' && body.isOn) {
-                        let units = sys.board.valueMaps.tempUnits.transform(sys.general.options.units);
+                        let units = sys.board.valueMaps.tempUnits.transform(state.temps.units);
                         let obj = {};
                         obj[`temp${units.name.toUpperCase()}`] = body.temp;
                         sprobe.tempUnits = units.val;

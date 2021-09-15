@@ -192,6 +192,7 @@ export class State implements IState {
     public get controllerState() {
         var self = this;
         return {
+            systemUnits: sys.board.valueMaps.systemUnits.transform(sys.general.options.units),
             startTime: self.data.startTime || '',
             time: self.data.time || '',
             // body: self.data.body || {},
@@ -307,7 +308,6 @@ export class State implements IState {
                 this.hasChanged = true;
             }
         }
-
     }
     public get valve(): number { return this.data.valve; }
     public set valve(val: number) {
