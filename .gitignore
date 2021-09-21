@@ -20,6 +20,7 @@ replay/
 config.json
 # data files
 data/
+backups/
 poolConfig.json
 poolState.json
 *.crt

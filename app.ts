@@ -35,6 +35,7 @@ export async function initAsync() {
         await state.init();
         await webApp.init();
         await sys.start();
+        await webApp.initAutoBackup();
     } catch (err) { console.log(`Error Initializing nodejs-PoolController ${err.message}`);  }
     //return Promise.resolve()
     //    .then(function () { config.init(); })
@@ -70,6 +71,7 @@ export async function stopAsync(): Promise<void> {
     try {
         console.log('Shutting down open processes');
         // await sys.board.virtualPumpControllers.stopAsync();
+        await webApp.stopAutoBackup();
         await sys.stopAsync();
         await state.stopAsync();
         await conn.stopAsync();

@@ -50,8 +50,11 @@ import { ConfigSocket } from "./services/config/ConfigSocket";
 // This class serves data and pages for
 // external interfaces as well as an internal dashboard.
 export class WebServer {
+    public autoBackup = false;
+    public lastBackup;
     private _servers: ProtoServer[] = [];
     private family = 'IPv4';
+    private _autoBackupTimer: NodeJS.Timeout;
     constructor() { }
     public async init() {
         try {
@@ -87,6 +90,7 @@ export class WebServer {
                 }
             }
             this.initInterfaces(cfg.interfaces);
+
         } catch (err) { logger.error(`Error initializing web server ${err.message}`) }
     }
     public async initInterfaces(interfaces: any) {
@@ -200,6 +204,155 @@ export class WebServer {
             else srv.init(obj);
         }
         return config.getInterfaceByUuid(obj.uuid);
+    }
+    public async initAutoBackup() {
+        try {
+            let bu = config.getSection('controller.backups');
+            this.autoBackup = false;
+            // These will be returned in reverse order with the newest backup first.
+            let files = await this.readBackupFiles();
+            let afiles = files.filter(elem => elem.options.automatic === true);
+            this.lastBackup = (afiles.length > 0) ? Date.parse(afiles[0].options.backupDate) || 0 : 0;
+            // Set the last backup date.
+            this.autoBackup = utils.makeBool(bu.automatic);
+            logger.info(`Auto-backup initialized Last Backup: ${Timestamp.toISOLocal(new Date(this.lastBackup))}`);
+            // Lets wait a good 20 seconds before we auto-backup anything.  Now that we are initialized let the OCP have its way with everything.
+            setTimeout(() => { this.checkAutoBackup(); }, 20000);
+        }
+        catch (err) { logger.error(`Error initializing auto-backup: ${err.message}`); }
+    }
+    public async stopAutoBackup() {
+        this.autoBackup = false;
+        if (typeof this._autoBackupTimer !== 'undefined' || this._autoBackupTimer) clearTimeout(this._autoBackupTimer);
+    }
+    public async readBackupFiles(): Promise<{ file: string, options: any }[]> {
+        try {
+            let backupDir = path.join(process.cwd(), 'backups');
+            let files = fs.readdirSync(backupDir);
+            let backups = [];
+            for (let i = 0; i < files.length; i++) {
+                let file = files[i];
+                if (path.extname(file) === '.zip') {
+                    let name = path.parse(file).name;
+                    if (name.length === 19) {
+                        // Extract the options from the file.
+                        let opts = await this.extractBackupOptions(path.join(backupDir, file));
+                        if (typeof opts !== 'undefined') {
+                            backups.push(opts);
+                        }
+                    }
+                }
+            }
+            backups.sort((a, b) => { return Date.parse(b.options.backupDate) - Date.parse(a.options.backupDate) });
+            return backups;
+        }
+        catch (err) { logger.error(`Error reading backup file directory: ${err.message}`); }
+    }
+    protected async extractBackupOptions(file: string | Buffer): Promise<{ file: string, options: any }> {
+        try {
+            let opts = { file: Buffer.isBuffer(file) ? 'Buffer' : file, options: {} as any };
+            let jszip = require("jszip");
+            let buff = Buffer.isBuffer(file) ? file : fs.readFileSync(file);
+            await jszip.loadAsync(buff).then(async (zip) => {
+                await zip.file('options.json').async('string').then((data) => {
+                    opts.options = JSON.parse(data);
+                    if (typeof opts.options.backupDate === 'undefined' && typeof file === 'string') {
+                        let name = path.parse(file).name;
+                        if (name.length === 19) {
+                            let date = name.substring(0, 10).replace(/-/g, '/');
+                            let time = name.substring(11).replace(/-/g, ':');
+                            let dt = Date.parse(`${date} ${time}`);
+                            if (!isNaN(dt)) opts.options.backupDate = Timestamp.toISOLocal(new Date(dt));
+                        }
+                    }
+                });
+            });
+            return opts;
+        } catch (err) { logger.error(`Error extracting backup options from ${file}: ${err.message}`); }
+    }
+    public async pruneAutoBackups(keepCount: number) {
+        try {
+            // We only automatically prune backups that njsPC put there in the first place so only
+            // look at auto-backup files.
+            let files = await this.readBackupFiles();
+            let afiles = files.filter(elem => elem.options.automatic === true);
+            if (afiles.length > keepCount) {
+                // Prune off the oldest backups until we get to our keep count.  When we read in the files
+                // these were sorted newest first.
+                while (afiles.length > keepCount) {
+                    let afile = afiles.pop();
+                    logger.info(`Pruning auto-backup file: ${afile.file}`);
+                    try {
+                        fs.unlinkSync(afile.file);
+                    } catch (err) { logger.error(`Error deleting auto-backup file: ${afile.file}`); }
+                }
+            }
+        } catch (err) { logger.error(`Error pruning auto-backups: ${err.message}`); }
+    }
+    public async backupServer(opts: any): Promise<{ file: string, options: any }> {
+        let ret = { file: '', options: extend(true, {}, opts, { version: 1.0, errors: [] }) };
+        let jszip = require("jszip");
+        function pad(n) { return (n < 10 ? '0' : '') + n; }
+        let zip = new jszip();
+        let ts = new Date();
+        let baseDir = process.cwd();
+        let zipPath = path.join(baseDir, 'backups', ts.getFullYear() + '-' + pad(ts.getMonth() + 1) + '-' + pad(ts.getDate()) + '_' + pad(ts.getHours()) + '-' + pad(ts.getMinutes()) + '-' + pad(ts.getSeconds()) + '.zip');
+        if (opts.njsPC === true) {
+            zip.folder('njsPC');
+            zip.folder('njsPC/data');
+            // Create the backup file and copy it into it.
+            zip.file('njsPC/config.json', fs.readFileSync(path.join(baseDir, 'config.json')));
+            zip.file('njsPC/data/poolConfig.json', fs.readFileSync(path.join(baseDir, 'data', 'poolConfig.json')));
+            zip.file('njsPC/data/poolState.json', fs.readFileSync(path.join(baseDir, 'data', 'poolState.json')));
+        }
+        if (typeof opts.servers !== 'undefined' && opts.servers.length > 0) {
+            // Back up all our servers.
+            for (let i = 0; i < opts.servers.length; i++) {
+                if (opts.servers[i].backup === false) continue;
+                let server = this.findServerByGuid(opts.servers[i].uuid) as REMInterfaceServer;
+                if (typeof server === 'undefined') ret.options.errors.push(`Could not find server ${opts.servers[i].name} : ${opts.servers[i].uuid}`);
+                else if (!server.isConnected) ret.options.errors.push(`Server ${opts.servers[i].name} : ${opts.servers[i].uuid} not connected cannot back up`);
+                else {
+                    // Try to get the data from the server.
+                    zip.folder(server.name);
+                    zip.file(`${server.name}/serverConfig.json`, JSON.stringify(server.cfg));
+                    zip.folder(`${server.name}/data`);
+                    let ccfg = await server.getControllerConfig();
+                    zip.file(`${server.name}/data/controllerConfig.json`, JSON.stringify(ccfg));
+                }
+            }
+        }
+        ret.options.backupDate = Timestamp.toISOLocal(ts);
+        zip.file('options.json', JSON.stringify(ret.options));
+        await zip.generateAsync({ type: 'nodebuffer' }).then(content => {
+            fs.writeFileSync(zipPath, content);
+            this.lastBackup = ts.valueOf();
+        });
+        ret.file = zipPath;
+        return ret;
+    }
+    public async checkAutoBackup() {
+        if (typeof this._autoBackupTimer !== 'undefined' || this._autoBackupTimer) clearTimeout(this._autoBackupTimer);
+        this._autoBackupTimer = undefined;
+        let bu = config.getSection('controller.backups');
+        if (bu.automatic === true) {
+            if (typeof this.lastBackup === 'undefined' ||
+                (this.lastBackup < new Date().valueOf() - (bu.interval.days * 86400000) - (bu.interval.hours * 3600000))) {
+                bu.name = 'Automatic Backup';
+                await this.backupServer(bu);
+            }
+        }
+        else this.autoBackup = false;
+        if (this.autoBackup) {
+            await this.pruneAutoBackups(bu.keepCount);
+            let nextBackup = this.lastBackup + (bu.interval.days * 86400000) + (bu.interval.hours * 3600000);
+            setTimeout(async () => {
+                try {
+                    await this.checkAutoBackup();
+                } catch (err) { logger.error(`Error checking auto-backup: ${err.message}`); }
+            }, nextBackup -= new Date().valueOf());
+            logger.info(`Next auto-backup ${Timestamp.toISOLocal(new Date(nextBackup))}`);
+        }
     }
 }
 class ProtoServer {
@@ -929,6 +1082,12 @@ export class REMInterfaceServer extends ProtoServer {
                 }
             }, 5000);
         }
+    }
+    public async getControllerConfig() {
+        try {
+            let response = await this.sendClientRequest('GET', '/config/backup/controller', undefined, 10000);
+            return (response.status.code === 200) ? JSON.parse(response.data) : {};
+        } catch (err) { logger.error(err); }
     }
     private async initConnection() {
         try {

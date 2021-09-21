@@ -574,7 +574,7 @@ export class ConfigRoute {
         });
 
         /***** END OF ENDPOINTS FOR MODIFYINC THE OUTDOOR CONTROL PANEL SETTINGS *****/
-
+       
 
 
         app.get('/config/circuits/names', (req, res) => {
@@ -865,6 +865,38 @@ export class ConfigRoute {
         });
         app.get('/app/config/:section', (req, res) => {
             return res.status(200).send(config.getSection(req.params.section));
+        });
+        app.get('/app/config/options/backup', async (req, res, next) => {
+            try {
+                let opts = config.getSection('controller.backups', { automatic: false, interval: { days: 30, hours: 0, keepCount: 5, servers: [] } });
+                let servers = await sys.ncp.getREMServers();
+                for (let i = 0; i < servers.length; i++) {
+                    let srv = servers[i];
+                    if (typeof opts.servers.find(elem => elem.uuid === srv.uuid) === 'undefined') opts.servers.push({ name: srv.name, uuid: srv.uuid, backup: false });
+                }
+                for (let i = opts.servers.length - 1; i >= 0; i--) {
+                    let srv = opts.servers[i];
+                    if (typeof servers.find(elem => elem.uuid === srv.uuid) === 'undefined') opts.servers.splice(i, 1);
+                }
+                return res.status(200).send(opts);
+            } catch (err) { next(err); }
+        });
+        app.put('/app/config/options/backup', async (req, res, next) => {
+            try {
+                config.setSection('controller.backups', req.body);
+                let opts = config.getSection('controller.backups', { automatic: false, interval: { days: 30, hours: 0, keepCount: 5, servers: [] } });
+                webApp.autoBackup = utils.makeBool(opts.automatic);
+                await webApp.checkAutoBackup();
+                return res.status(200).send(opts);
+            } catch (err) { next(err); }
+
+        });
+        app.put('/app/config/createBackup', async (req, res, next) => {
+            try {
+                let ret = await webApp.backupServer(req.body);
+                res.download(ret.file);
+            }
+            catch (err) { next(err); }
         });
     }
 }

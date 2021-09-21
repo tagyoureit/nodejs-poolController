@@ -100,6 +100,8 @@ class Config {
         c[section] = val;
         this.update();
     }
+    // RKS: 09-21-21 - We are counting on the return from this being immutable.  A copy of the data
+    // should always be returned here.
     public getSection(section?: string, opts?: any): any {
         if (typeof section === 'undefined') return this._cfg;
         let c: any = this._cfg;
@@ -118,6 +120,7 @@ class Config {
         let baseDir = process.cwd();
         this.ensurePath(baseDir + '/logs/');
         this.ensurePath(baseDir + '/data/');
+        this.ensurePath(baseDir + '/backups/');
         // this.ensurePath(baseDir + '/replay/');
         //setTimeout(() => { config.update(); }, 100);
     }

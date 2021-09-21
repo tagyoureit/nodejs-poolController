@@ -17,7 +17,18 @@
         "autoOpen": false,
         "lock": false
       }
+    },
+    "backups": {
+      "automatic": false,
+      "interval": {
+        "days": 30,
+        "hours": 0
+      },
+      "keepCount": 5,
+      "njsPC":  true,
+      "servers": []
     }
+
   },
   "web": {
     "servers": {
