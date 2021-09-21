@@ -305,20 +305,44 @@ export class WebServer {
             zip.file('njsPC/data/poolConfig.json', fs.readFileSync(path.join(baseDir, 'data', 'poolConfig.json')));
             zip.file('njsPC/data/poolState.json', fs.readFileSync(path.join(baseDir, 'data', 'poolState.json')));
         }
-        if (typeof opts.servers !== 'undefined' && opts.servers.length > 0) {
+        if (typeof ret.options.servers !== 'undefined' && ret.options.servers.length > 0) {
             // Back up all our servers.
-            for (let i = 0; i < opts.servers.length; i++) {
-                if (opts.servers[i].backup === false) continue;
-                let server = this.findServerByGuid(opts.servers[i].uuid) as REMInterfaceServer;
-                if (typeof server === 'undefined') ret.options.errors.push(`Could not find server ${opts.servers[i].name} : ${opts.servers[i].uuid}`);
-                else if (!server.isConnected) ret.options.errors.push(`Server ${opts.servers[i].name} : ${opts.servers[i].uuid} not connected cannot back up`);
+            for (let i = 0; i < ret.options.servers.length; i++) {
+                let srv = ret.options.servers[i];
+                if (typeof srv.errors === 'undefined') srv.errors = [];
+                if (srv.backup === false) continue;
+                let server = this.findServerByGuid(srv.uuid) as REMInterfaceServer;
+                if (typeof server === 'undefined') {
+                    srv.errors.push(`Could not find server ${srv.name} : ${srv.uuid}`);
+                    srv.success = false;
+                }
+                else if (!server.isConnected) {
+                    srv.success = false;
+                    srv.errors.push(`Server ${srv.name} : ${srv.uuid} not connected cannot back up`);
+                }
                 else {
                     // Try to get the data from the server.
                     zip.folder(server.name);
                     zip.file(`${server.name}/serverConfig.json`, JSON.stringify(server.cfg));
                     zip.folder(`${server.name}/data`);
-                    let ccfg = await server.getControllerConfig();
-                    zip.file(`${server.name}/data/controllerConfig.json`, JSON.stringify(ccfg));
+                    try {
+                        let resp = await server.getControllerConfig();
+                        if (typeof resp !== 'undefined') {
+                            if (resp.status.code === 200 && typeof resp.data !== 'undefined') {
+                                let ccfg = JSON.parse(resp.data);
+                                zip.file(`${server.name}/data/controllerConfig.json`, JSON.stringify(ccfg));
+                                srv.success = true;
+                            }
+                            else {
+                                srv.errors.push(`Error getting controller configuration: ${resp.error.message}`);
+                                srv.success = false;
+                            }
+                        }
+                        else {
+                            srv.success = false;
+                            srv.errors.push(`No response from server`);
+                        }
+                    } catch (err) { srv.success = false; srv.errors.push(`Could not obtain server configuration`); }
                 }
             }
         }
@@ -1083,10 +1107,10 @@ export class REMInterfaceServer extends ProtoServer {
             }, 5000);
         }
     }
-    public async getControllerConfig() {
+    public async getControllerConfig() : Promise<InterfaceServerResponse> {
         try {
             let response = await this.sendClientRequest('GET', '/config/backup/controller', undefined, 10000);
-            return (response.status.code === 200) ? JSON.parse(response.data) : {};
+            return response;
         } catch (err) { logger.error(err); }
     }
     private async initConnection() {

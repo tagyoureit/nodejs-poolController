@@ -14,6 +14,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+import * as fs from "fs";
 import * as express from "express";
 import * as extend from 'extend';
 import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup, CustomNameCollection, Schedule, Chlorinator, Heater } from "../../../controller/Equipment";
@@ -24,6 +25,7 @@ import { state } from "../../../controller/State";
 import { stopPacketCaptureAsync, startPacketCapture } from '../../../app';
 import { conn } from "../../../controller/comms/Comms";
 import { webApp } from "../../Server";
+import { release } from "os";
 
 export class ConfigRoute {
     public static initRoutes(app: express.Application) {
@@ -347,14 +349,14 @@ export class ConfigRoute {
         });
         /******* END OF CONFIGURATION PICK LISTS/REFERENCES AND VALIDATION ***********/
         /******* ENDPOINTS FOR MODIFYING THE OUTDOOR CONTROL PANEL SETTINGS **********/
-        app.put('/config/rem', async (req, res, next)=>{
+        app.put('/config/rem', async (req, res, next) => {
             try {
                 // RSG: this is problematic because we now enable multiple rem type interfaces that may not be called REM. 
                 // This is now also a dupe of PUT /app/interface and should be consolidated
                 // config.setSection('web.interfaces.rem', req.body);
                 config.setInterface(req.body);
             }
-            catch (err) {next(err);}
+            catch (err) { next(err); }
         })
         app.put('/config/tempSensors', async (req, res, next) => {
             try {
@@ -574,7 +576,7 @@ export class ConfigRoute {
         });
 
         /***** END OF ENDPOINTS FOR MODIFYINC THE OUTDOOR CONTROL PANEL SETTINGS *****/
-       
+
 
 
         app.get('/config/circuits/names', (req, res) => {
@@ -767,16 +769,16 @@ export class ConfigRoute {
             let grp = sys.circuitGroups.getItemById(parseInt(req.params.id, 10));
             return res.status(200).send(grp.getExtended());
         });
-/*         app.get('/config/chemController/search', async (req, res, next) => {
-            // Change the options for the pool.
-            try {
-                let result = await sys.board.virtualChemControllers.search();
-                return res.status(200).send(result);
-            }
-            catch (err) {
-                next(err);
-            }
-        }); */
+        /*         app.get('/config/chemController/search', async (req, res, next) => {
+                    // Change the options for the pool.
+                    try {
+                        let result = await sys.board.virtualChemControllers.search();
+                        return res.status(200).send(result);
+                    }
+                    catch (err) {
+                        next(err);
+                    }
+                }); */
         app.put('/config/chemController', async (req, res, next) => {
             try {
                 let chem = await sys.board.chemControllers.setChemControllerAsync(req.body);
@@ -799,17 +801,17 @@ export class ConfigRoute {
             catch (err) { next(err); }
 
         });
-/*         app.get('/config/intellibrite', (req, res) => {
-            return res.status(200).send(sys.intellibrite.getExtended());
-        });
-        app.get('/config/intellibrite/colors', (req, res) => {
-            return res.status(200).send(sys.board.valueMaps.lightColors.toArray());
-        });
-        app.put('/config/intellibrite/setColors', (req, res) => {
-            let grp = extend(true, { id: 0 }, req.body);
-            sys.board.circuits.setIntelliBriteColors(new LightGroup(grp));
-            return res.status(200).send('OK');
-        }); */
+        /*         app.get('/config/intellibrite', (req, res) => {
+                    return res.status(200).send(sys.intellibrite.getExtended());
+                });
+                app.get('/config/intellibrite/colors', (req, res) => {
+                    return res.status(200).send(sys.board.valueMaps.lightColors.toArray());
+                });
+                app.put('/config/intellibrite/setColors', (req, res) => {
+                    let grp = extend(true, { id: 0 }, req.body);
+                    sys.board.circuits.setIntelliBriteColors(new LightGroup(grp));
+                    return res.status(200).send('OK');
+                }); */
         app.get('/config', (req, res) => {
             return res.status(200).send(sys.getSection('all'));
         });
@@ -835,11 +837,11 @@ export class ConfigRoute {
             return res.status(200).send('OK');
         });
         app.put('/app/interface', async (req, res, next) => {
-           try{
-            let iface = await webApp.updateServerInterface(req.body);
-            return res.status(200).send(iface);
-        }
-        catch (err) {next(err);}
+            try {
+                let iface = await webApp.updateServerInterface(req.body);
+                return res.status(200).send(iface);
+            }
+            catch (err) { next(err); }
         });
         app.put('/app/rs485Port', async (req, res, next) => {
             try {
@@ -856,12 +858,12 @@ export class ConfigRoute {
             startPacketCapture(false);
             return res.status(200).send('OK');
         });
-        app.get('/app/config/stopPacketCapture', async (req, res,next) => {
+        app.get('/app/config/stopPacketCapture', async (req, res, next) => {
             try {
                 let file = await stopPacketCaptureAsync();
                 res.download(file);
             }
-            catch (err) {next(err);}
+            catch (err) { next(err); }
         });
         app.get('/app/config/:section', (req, res) => {
             return res.status(200).send(config.getSection(req.params.section));
@@ -881,6 +883,23 @@ export class ConfigRoute {
                 return res.status(200).send(opts);
             } catch (err) { next(err); }
         });
+        app.get('/app/config/options/restore', async (req, res, next) => {
+            try {
+                let opts = config.getSection('controller.backups', { automatic: false, interval: { days: 30, hours: 0, keepCount: 5, servers: [], backupFiles:[] } });
+                let servers = await sys.ncp.getREMServers();
+                for (let i = 0; i < servers.length; i++) {
+                    let srv = servers[i];
+                    if (typeof opts.servers.find(elem => elem.uuid === srv.uuid) === 'undefined') opts.servers.push({ name: srv.name, uuid: srv.uuid, backup: false });
+                }
+                for (let i = opts.servers.length - 1; i >= 0; i--) {
+                    let srv = opts.servers[i];
+                    if (typeof servers.find(elem => elem.uuid === srv.uuid) === 'undefined') opts.servers.splice(i, 1);
+                }
+                opts.backupFiles = await webApp.readBackupFiles();
+                return res.status(200).send(opts);
+            } catch (err) { next(err); }
+
+        });
         app.put('/app/config/options/backup', async (req, res, next) => {
             try {
                 config.setSection('controller.backups', req.body);
@@ -895,6 +914,14 @@ export class ConfigRoute {
             try {
                 let ret = await webApp.backupServer(req.body);
                 res.download(ret.file);
+            }
+            catch (err) { next(err); }
+        });
+        app.delete('/app/backup/file', async (req, res, next) => {
+            try {
+                let opts = req.body;
+                fs.unlinkSync(opts.file);
+                return res.status(200).send(opts);
             }
             catch (err) { next(err); }
         });
