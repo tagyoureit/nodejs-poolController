@@ -3186,6 +3186,8 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
                 out.retries = 5;
                 out.onComplete = (err, msg) => {
                     if (!err) {
+                        sched = sys.schedules.getItemById(id, true);
+                        ssched = state.schedules.getItemById(id, true);
                         sched.circuit = ssched.circuit = circuit;
                         sched.scheduleDays = ssched.scheduleDays = schedDays;
                         sched.scheduleType = ssched.scheduleType = schedType;
