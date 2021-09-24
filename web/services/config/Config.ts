@@ -17,14 +17,17 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import * as fs from "fs";
 import * as express from "express";
 import * as extend from 'extend';
+import * as multer from 'multer';
+import * as path from "path";
 import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup, CustomNameCollection, Schedule, Chlorinator, Heater } from "../../../controller/Equipment";
 import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
+import { ServiceProcessError } from "../../../controller/Errors";
 import { state } from "../../../controller/State";
 import { stopPacketCaptureAsync, startPacketCapture } from '../../../app';
 import { conn } from "../../../controller/comms/Comms";
-import { webApp } from "../../Server";
+import { webApp, BackupFile, RestoreFile } from "../../Server";
 import { release } from "os";
 
 export class ConfigRoute {
@@ -913,17 +916,67 @@ export class ConfigRoute {
         app.put('/app/config/createBackup', async (req, res, next) => {
             try {
                 let ret = await webApp.backupServer(req.body);
-                res.download(ret.file);
+                res.download(ret.filePath);
             }
             catch (err) { next(err); }
         });
         app.delete('/app/backup/file', async (req, res, next) => {
             try {
                 let opts = req.body;
-                fs.unlinkSync(opts.file);
+                fs.unlinkSync(opts.filePath);
                 return res.status(200).send(opts);
             }
             catch (err) { next(err); }
+        });
+        app.post('/app/backup/file', async (req, res, next) => {
+            try {
+                let file = multer({
+                    limits: { fileSize: 1000000  },
+                    storage: multer.memoryStorage()
+                }).single('backupFile');
+                file(req, res, async (err) => {
+                    try {
+                        if (err) { next(err); }
+                        else {
+                            // Validate the incoming data and save it off only if it is valid.
+                            let bf = await BackupFile.fromBuffer(req.file.originalname, req.file.buffer);
+                            if (typeof bf === 'undefined') {
+                                err = new ServiceProcessError(`Invalid backup file: ${req.file.originalname}`, 'POST: app/backup/file', 'extractBackupOptions');
+                                next(err);
+                            }
+                            else {
+                                if (fs.existsSync(bf.filePath))
+                                    return next(new ServiceProcessError(`File already exists ${req.file.originalname}`, 'POST: app/backup/file', 'writeFile'));
+                                else {
+                                    try {
+                                        fs.writeFileSync(bf.filePath, req.file.buffer);
+                                    } catch (e) { logger.error(`Error writing backup file ${e.message}`); }
+                                }
+                                return res.status(200).send(bf);
+                            }
+                        }
+                    } catch (e) {
+                        err = new ServiceProcessError(`Error uploading file: ${e.message}`, 'POST: app/backup/file', 'uploadFile');
+                        next(err);
+                        logger.error(e);
+                    }
+                });
+            } catch (err) { next(err); }
+        });
+        app.put('/app/restore/validate', async (req, res, next) => {
+            try {
+                // Validate all the restore options.
+                let opts = req.body;
+                let ctx = await webApp.validateRestore(opts);
+                return res.status(200).send(ctx);
+            } catch (err) { next(err); }
+        });
+        app.put('/app/restore/file', async (req, res, next) => {
+            try {
+                let opts = req.body;
+                let results = await webApp.restoreServers(opts);
+                return res.status(200).send(results);
+            } catch (err) { next(err); }
         });
     }
 }

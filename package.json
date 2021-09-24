@@ -25,6 +25,7 @@
         "extend": "^3.0.2",
         "jszip": "^3.7.1",
         "mqtt": "^4.2.8",
+        "multer": "^1.4.3",
         "multicast-dns": "^7.2.3",
         "node-ssdp": "^4.0.1",
         "serialport": "^9.2.1",
@@ -36,6 +37,7 @@
     "devDependencies": {
         "@types/express": "^4.17.13",
         "@types/extend": "^3.0.1",
+        "@types/multer": "^1.4.7",
         "@types/node": "^12.20.23",
         "@typescript-eslint/eslint-plugin": "^4.30.0",
         "@typescript-eslint/parser": "^4.30.0",

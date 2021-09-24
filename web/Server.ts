@@ -225,7 +225,7 @@ export class WebServer {
         this.autoBackup = false;
         if (typeof this._autoBackupTimer !== 'undefined' || this._autoBackupTimer) clearTimeout(this._autoBackupTimer);
     }
-    public async readBackupFiles(): Promise<{ file: string, options: any }[]> {
+    public async readBackupFiles(): Promise<BackupFile[]> {
         try {
             let backupDir = path.join(process.cwd(), 'backups');
             let files = fs.readdirSync(backupDir);
@@ -233,14 +233,8 @@ export class WebServer {
             for (let i = 0; i < files.length; i++) {
                 let file = files[i];
                 if (path.extname(file) === '.zip') {
-                    let name = path.parse(file).name;
-                    if (name.length === 19) {
-                        // Extract the options from the file.
-                        let opts = await this.extractBackupOptions(path.join(backupDir, file));
-                        if (typeof opts !== 'undefined') {
-                            backups.push(opts);
-                        }
-                    }
+                    let bf = await BackupFile.fromFile(path.join(backupDir, file));
+                    if (typeof bf !== 'undefined') backups.push(bf);
                 }
             }
             backups.sort((a, b) => { return Date.parse(b.options.backupDate) - Date.parse(a.options.backupDate) });
@@ -281,22 +275,25 @@ export class WebServer {
                 // these were sorted newest first.
                 while (afiles.length > keepCount) {
                     let afile = afiles.pop();
-                    logger.info(`Pruning auto-backup file: ${afile.file}`);
+                    logger.info(`Pruning auto-backup file: ${afile.filePath}`);
                     try {
-                        fs.unlinkSync(afile.file);
-                    } catch (err) { logger.error(`Error deleting auto-backup file: ${afile.file}`); }
+                        fs.unlinkSync(afile.filePath);
+                    } catch (err) { logger.error(`Error deleting auto-backup file: ${afile.filePath}`); }
                 }
             }
         } catch (err) { logger.error(`Error pruning auto-backups: ${err.message}`); }
     }
-    public async backupServer(opts: any): Promise<{ file: string, options: any }> {
-        let ret = { file: '', options: extend(true, {}, opts, { version: 1.0, errors: [] }) };
+    public async backupServer(opts: any): Promise<BackupFile> {
+        let ret = new BackupFile();
+        ret.options = extend(true, {}, opts, { version: 1.0, errors: [] });
+        //{ file: '', options: extend(true, {}, opts, { version: 1.0, errors: [] }) };
         let jszip = require("jszip");
         function pad(n) { return (n < 10 ? '0' : '') + n; }
         let zip = new jszip();
         let ts = new Date();
         let baseDir = process.cwd();
-        let zipPath = path.join(baseDir, 'backups', ts.getFullYear() + '-' + pad(ts.getMonth() + 1) + '-' + pad(ts.getDate()) + '_' + pad(ts.getHours()) + '-' + pad(ts.getMinutes()) + '-' + pad(ts.getSeconds()) + '.zip');
+        ret.filename = ts.getFullYear() + '-' + pad(ts.getMonth() + 1) + '-' + pad(ts.getDate()) + '_' + pad(ts.getHours()) + '-' + pad(ts.getMinutes()) + '-' + pad(ts.getSeconds()) + '.zip';
+        ret.filePath = path.join(baseDir, 'backups', ret.filename);
         if (opts.njsPC === true) {
             zip.folder('njsPC');
             zip.folder('njsPC/data');
@@ -349,10 +346,9 @@ export class WebServer {
         ret.options.backupDate = Timestamp.toISOLocal(ts);
         zip.file('options.json', JSON.stringify(ret.options));
         await zip.generateAsync({ type: 'nodebuffer' }).then(content => {
-            fs.writeFileSync(zipPath, content);
+            fs.writeFileSync(ret.filePath, content);
             this.lastBackup = ts.valueOf();
         });
-        ret.file = zipPath;
         return ret;
     }
     public async checkAutoBackup() {
@@ -377,6 +373,98 @@ export class WebServer {
             }, nextBackup -= new Date().valueOf());
             logger.info(`Next auto-backup ${Timestamp.toISOLocal(new Date(nextBackup))}`);
         }
+    }
+    public async validateRestore(opts): Promise<any> {
+        try {
+            let stats = { njsPC: {}, servers: [] };
+            // Step 1: Extract all the files from the zip file.
+            let rest = await RestoreFile.fromFile(opts.filePath);
+            // Step 2: Validate the njsPC data against the board. The return
+            // from here shoudld give a very detailed view of what it is about to do.
+            if (opts.options.njsPC === true) {
+                stats.njsPC = await sys.board.system.validateRestore(rest.njsPC);
+            }
+            // Step 3: For each REM server we need to validate the restore
+            // file.
+            if (typeof opts.options.servers !== 'undefined' && opts.options.servers.length > 0) {
+                for (let i = 0; i < opts.options.servers.length; i++) {
+                    let s = opts.options.servers[i];
+                    if (s.restore) {
+                        // Check to see if the server is on-line.
+                        let srv = this.findServerByGuid(s.uuid) as REMInterfaceServer;
+                        let cfg = rest.servers.find(elem => elem.uuid === s.uuid);
+                        let ctx: any = { server: { uuid: s.uuid, name: s.name, errors: [], warnings: [] } };
+                        stats.servers.push(ctx);
+                        if (typeof cfg === 'undefined' || typeof cfg.controllerConfig === 'undefined') ctx.server.errors.push(`Server configuration not found in zip file`);
+                        else if (typeof srv === 'undefined') ctx.server.errors.push(`Server ${s.name} is not enabled in njsPC cannot restore.`);
+                        else if (!srv.isConnected) ctx.server.errors.push(`Server ${s.name} is not connected cannot restore.`);
+                        else {
+                            let resp = await srv.validateRestore(cfg.controllerConfig);
+                            if (typeof resp !== 'undefined') {
+                                if (resp.status.code === 200 && typeof resp.data !== 'undefined') {
+                                    let cctx = JSON.parse(resp.data);
+                                    ctx = extend(true, ctx, cctx);
+                                }
+                                else
+                                    ctx.server.errors.push(`Error validating controller configuration: ${resp.error.message}`);
+                            }
+                            else 
+                                ctx.server.errors.push(`No response from server`);
+                        }
+                    }
+
+                }
+            }
+           
+            return stats;
+        } catch (err) { logger.error(`Error validating restore options: ${err.message}`); }
+    }
+    public async restoreServers(opts): Promise<any> {
+        try {
+            let stats = { njsPC: {}, servers: [] };
+            // Step 1: Extract all the files from the zip file.
+            let rest = await RestoreFile.fromFile(opts.filePath);
+            // Step 2: Validate the njsPC data against the board. The return
+            // from here shoudld give a very detailed view of what it is about to do.
+            if (opts.options.njsPC === true) {
+                logger.info(`Begin Restore njsPC`);
+                stats.njsPC = await sys.board.system.restore(rest.njsPC);
+                logger.info(`End Restore njsPC`);
+            }
+            // Step 3: For each REM server we need to validate the restore
+            // file.
+            if (typeof opts.options.servers !== 'undefined' && opts.options.servers.length > 0) {
+                for (let i = 0; i < opts.options.servers.length; i++) {
+                    let s = opts.options.servers[i];
+                    if (s.restore) {
+                        // Check to see if the server is on-line.
+                        let srv = this.findServerByGuid(s.uuid) as REMInterfaceServer;
+                        let cfg = rest.servers.find(elem => elem.uuid === s.uuid);
+                        let ctx: any = { server: { uuid: s.uuid, name: s.name, errors: [], warnings: [] } };
+                        stats.servers.push(ctx);
+                        if (typeof cfg === 'undefined' || typeof cfg.controllerConfig === 'undefined') ctx.server.errors.push(`Server configuration not found in zip file`);
+                        else if (typeof srv === 'undefined') ctx.server.errors.push(`Server ${s.name} is not enabled in njsPC cannot restore.`);
+                        else if (!srv.isConnected) ctx.server.errors.push(`Server ${s.name} is not connected cannot restore.`);
+                        else {
+                            let resp = await srv.validateRestore(cfg.controllerConfig);
+                            if (typeof resp !== 'undefined') {
+                                if (resp.status.code === 200 && typeof resp.data !== 'undefined') {
+                                    let cctx = JSON.parse(resp.data);
+                                    ctx = extend(true, ctx, cctx);
+                                }
+                                else
+                                    ctx.server.errors.push(`Error validating controller configuration: ${resp.error.message}`);
+                            }
+                            else
+                                ctx.server.errors.push(`No response from server`);
+                        }
+                    }
+
+                }
+            }
+
+            return stats;
+        } catch (err) { logger.error(`Error validating restore options: ${err.message}`); }
     }
 }
 class ProtoServer {
@@ -1113,6 +1201,12 @@ export class REMInterfaceServer extends ProtoServer {
             return response;
         } catch (err) { logger.error(err); }
     }
+    public async validateRestore(cfg): Promise<InterfaceServerResponse> {
+        try {
+            let response = await this.sendClientRequest('PUT', '/config/restore/validate', cfg, 10000);
+            return response;
+        } catch (err) { logger.error(err); }
+    }
     private async initConnection() {
         try {
             // find HTTP server
@@ -1312,6 +1406,101 @@ export class REMInterfaceServer extends ProtoServer {
             return (response.status.code === 200) ? JSON.parse(response.data) : [];
         }
         catch (err) { logger.error(err); }
+    }
+}
+export class BackupFile {
+    public static async fromBuffer(filename: string, buff: Buffer) {
+        try {
+            let bf = new BackupFile();
+            bf.filename = filename;
+            bf.filePath = path.join(process.cwd(), 'backups', bf.filename);
+            await bf.extractBackupOptions(buff);
+            return typeof bf.options !== 'undefined' ? bf : undefined;
+        } catch (err) { logger.error(`Error creating buffered backup file: ${filename}`); }
+    }
+    public static async fromFile(filePath: string) {
+        try {
+            let bf = new BackupFile();
+            bf.filePath = filePath;
+            bf.filename = path.parse(filePath).base;
+            await bf.extractBackupOptions(filePath);
+            return typeof bf.options !== 'undefined' ? bf : undefined;
+        } catch (err) { logger.error(`Error creating backup file from file ${filePath}`); }
+    }
+    public options: any;
+    public filename: string;
+    public filePath: string;
+    public errors = [];
+    protected async extractBackupOptions(file: string | Buffer) {
+        try {
+            let jszip = require("jszip");
+            let buff = Buffer.isBuffer(file) ? file : fs.readFileSync(file);
+            let zip = await jszip.loadAsync(buff);
+            await zip.file('options.json').async('string').then((data) => {
+                this.options = JSON.parse(data);
+                if (typeof this.options.backupDate === 'undefined' && typeof file === 'string') {
+                    let name = path.parse(file).name;
+                    name = name.indexOf('(') !== -1 ? name.substring(0, name.indexOf('(')) : name;
+                    if (name.length === 19) {
+                        let date = name.substring(0, 10).replace(/-/g, '/');
+                        let time = name.substring(11).replace(/-/g, ':');
+                        let dt = Date.parse(`${date} ${time}`);
+                        if (!isNaN(dt)) this.options.backupDate = Timestamp.toISOLocal(new Date(dt));
+                    }
+                }
+            });
+        } catch (err) { this.errors.push(err); logger.error(`Error extracting backup options from ${file}: ${err.message}`); }
+    }
+}
+export class RestoreFile {
+    public static async fromFile(filePath: string) {
+        try {
+            let rf = new RestoreFile();
+            rf.filePath = filePath;
+            rf.filename = path.parse(filePath).base;
+            await rf.extractRestoreOptions(filePath);
+            return rf;
+        } catch (err) { logger.error(`Error created restore file options`); }
+    }
+    public filename: string;
+    public filePath: string;
+    public njsPC: { config:any, poolConfig: any, poolState: any };
+    public servers: { name: string, uuid: string, serverConfig: any, controllerConfig: any }[] = [];
+    public options: any;
+    public errors = [];
+    protected async extractFile(zip, path): Promise<any> {
+        try {
+            let obj;
+            await zip.file(path).async('string').then((data) => { obj = JSON.parse(data); });
+            return obj;
+        } catch (err) { logger.error(`Error extracting restore data from ${this.filename}[${path}]: ${err.message}`); }
+    }
+    protected async extractRestoreOptions(file: string | Buffer) {
+        try {
+            let jszip = require("jszip");
+            let buff = Buffer.isBuffer(file) ? file : fs.readFileSync(file);
+            let zip = await jszip.loadAsync(buff);
+            this.options = await this.extractFile(zip, 'options.json');
+            // Now we need to extract all the servers from the file.
+            if (this.options.njsPC) {
+                this.njsPC = { config: {}, poolConfig: {}, poolState: {} };
+                this.njsPC.config = await this.extractFile(zip, 'njsPC/config.json');
+                this.njsPC.poolConfig = await this.extractFile(zip, 'njsPC/data/poolConfig.json');
+                this.njsPC.poolState = await this.extractFile(zip, 'njsPC/data/poolState.json');
+            }
+            for (let i = 0; i < this.options.servers.length; i++) {
+                // Extract each server from the file.
+                let srv = this.options.servers[i];
+                if (srv.backup && srv.success) {
+                    this.servers.push({
+                        name: srv.name,
+                        uuid: srv.uuid,
+                        serverConfig: await this.extractFile(zip, `${srv.name}/serverConfig.json`),
+                        controllerConfig: await this.extractFile(zip, `${srv.name}/data/controllerConfig.json`)
+                    });
+                }
+            }
+        } catch(err) { this.errors.push(err); logger.error(`Error extracting restore options from ${file}: ${err.message}`); }
     }
 }
 export const webApp = new WebServer();

@@ -14,6 +14,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+import { log } from 'console';
 import * as extend from 'extend';
 import { logger } from '../../logger/Logger';
 import { Message, Outbound } from '../comms/messages/Messages';
@@ -913,6 +914,53 @@ export class BoardCommands {
   constructor(parent: SystemBoard) { this.board = parent; }
 }
 export class SystemCommands extends BoardCommands {
+    public async restore(rest: { poolConfig: any, poolState: any }): Promise<any> {
+        try {
+            let ctx = await sys.board.system.validateRestore(rest);
+            // Restore the general stuff.
+            if (ctx.general.update.length > 0) await sys.board.system.setGeneralAsync(ctx.general.upadate[0]);
+            await sys.board.bodies.restore(rest, ctx);
+            await sys.board.filters.restore(rest, ctx);
+            await sys.board.circuits.restore(rest, ctx);
+            await sys.board.heaters.restore(rest, ctx);
+            await sys.board.features.restore(rest, ctx);
+            await sys.board.pumps.restore(rest, ctx);
+            await sys.board.valves.restore(rest, ctx);
+            await sys.board.chlorinator.restore(rest, ctx);
+            await sys.board.chemControllers.restore(rest, ctx);
+            await sys.board.schedules.restore(rest, ctx);
+            //await sys.board.covers.restore(rest, ctx);
+        } catch (err) { logger.error(`Error restoring njsPC server: ${err.message}`); }
+    }
+    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<any> {
+        try {
+            let ctx: any = { board: { errors: [], warnings: [] } };
+
+            // Step 1 - Verify that the boards are the same.  For instance you do not want to restore an IntelliTouch to an IntelliCenter.
+            let cfg = rest.poolConfig;
+            if (sys.controllerType === cfg.controllerType) {
+                ctx.general = { errors: [], warnings: [], add: [], update: [], remove: [] };
+                if (JSON.stringify(sys.general.get()) !== JSON.stringify(cfg.pool)) ctx.general.update(cfg.pool);
+                ctx.bodies = await sys.board.bodies.validateRestore(rest);
+                ctx.pumps = await sys.board.pumps.validateRestore(rest);
+                await sys.board.circuits.validateRestore(rest, ctx);
+                ctx.features = await sys.board.features.validateRestore(rest);
+                ctx.chlorinators = await sys.board.chlorinator.validateRestore(rest);
+                ctx.heaters = await sys.board.heaters.validateRestore(rest);
+                ctx.valves = await sys.board.valves.validateRestore(rest);
+               
+                //ctx.covers = await sys.board.covers.validateRestore(rest);
+                ctx.chemControllers = await sys.board.chemControllers.validateRestore(rest);
+                ctx.filters = await sys.board.filters.validateRestore(rest);
+                ctx.schedules = await sys.board.schedules.validateRestore(rest);
+            }
+            else ctx.board.errors.push(`Panel Types do not match cannot restore bakup from ${sys.controllerType} to ${rest.poolConfig.controllerType}`);
+            
+            return ctx;
+           
+        } catch (err) { logger.error(`Error validating restore file: ${err.message}`); }
+
+    }
     public cancelDelay(): Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay); }
     public setDateTimeAsync(obj: any): Promise<any> { return Promise.resolve(); }
     public keepManualTime() {
@@ -1186,6 +1234,43 @@ export class SystemCommands extends BoardCommands {
     }
 }
 export class BodyCommands extends BoardCommands {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+        try {
+            // First delete the bodies that should be removed.
+            for (let i = 0; i < ctx.bodies.remove.length; i++) {
+                sys.bodies.removeItemById(ctx.bodies.remove[i].id);
+                state.temps.bodies.removeItemById(ctx.bodies.remove[i].id);
+            }
+            for (let i = 0; i < ctx.bodies.update.length; i++) {
+                await sys.board.bodies.setBodyAsync(ctx.bodies.update[i]);
+            }
+            for (let i = 0; i < ctx.bodies.add.length; i++) {
+                // pull a little trick to first add the data then perform the update.
+                sys.bodies.getItemById(ctx.bodies.add[i].id, true);
+                await sys.board.bodies.setBodyAsync(ctx.bodies.add[i]);
+            }
+            return true;
+        } catch (err) { logger.error(`Error restoring bodies: ${err.message}`); return false; }
+    }
+    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any}> {
+        try {
+            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            // Look at bodies.
+            let cfg = rest.poolConfig;
+            for (let i = 0; i < cfg.bodies.length; i++) {
+                let r = cfg.bodies[i];
+                let c = sys.bodies.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.bodies.length; i++) {
+                let c = sys.bodies.getItemByIndex(i);
+                let r = cfg.bodies.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            return ctx;
+        } catch (err) { logger.error(`Error validating bodies for restore: ${err.message}`); }
+    }
     public freezeProtectBodyOn: Date;
     public freezeProtectStart: Date;
     public async syncFreezeProtection() {
@@ -1553,6 +1638,45 @@ export class BodyCommands extends BoardCommands {
     }
 }
 export class PumpCommands extends BoardCommands {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+        try {
+            // First delete the pumps that should be removed.
+            for (let i = 0; i < ctx.pumps.remove.length; i++) {
+                await sys.board.pumps.deletePumpAsync(ctx.pumps.remove[i]);
+            }
+            for (let i = 0; i < ctx.pumps.update.length; i++) {
+                await sys.board.pumps.setPumpAsync(ctx.pumps.update[i]);
+            }
+            for (let i = 0; i < ctx.pumps.add.length; i++) {
+                // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                // it won't error out.
+                sys.pumps.getItemById(ctx.pumps.add[i].id, true);
+                await sys.board.pumps.setPumpAsync(ctx.pumps.add[i]);
+            }
+            return true;
+        } catch (err) { logger.error(`Error restoring pumps: ${err.message}`); return false; }
+    }
+
+    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+        try {
+            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            // Look at pumps.
+            let cfg = rest.poolConfig;
+            for (let i = 0; i < cfg.pumps.length; i++) {
+                let r = cfg.pumps[i];
+                let c = sys.pumps.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.pumps.length; i++) {
+                let c = sys.pumps.getItemByIndex(i);
+                let r = cfg.pumps.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            return ctx;
+        } catch (err) { logger.error(`Error validating pumps for restore: ${err.message}`); }
+    }
+
   public getPumpTypes() { return this.board.valueMaps.pumpTypes.toArray(); }
   public getCircuitUnits(pump?: Pump) {
     if (typeof pump === 'undefined')
@@ -1676,6 +1800,85 @@ export class PumpCommands extends BoardCommands {
   }
 }
 export class CircuitCommands extends BoardCommands {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+        try {
+            // First delete the circuit/lightGroups that should be removed.
+            for (let i = 0; i < ctx.circuitGroups.remove.length; i++) {
+                await sys.board.circuits.deleteCircuitGroupAsync(ctx.circuitGroups.remove[i]);
+            }
+            for (let i = 0; i < ctx.lightGroups.remove.length; i++) {
+                await sys.board.circuits.deleteLightGroupAsync(ctx.lightGroups.remove[i]);
+            }
+            for (let i = 0; i < ctx.circuits.remove.length; i++) {
+                await sys.board.circuits.deleteCircuitAsync(ctx.circuits.remove[i]);
+            }
+            for (let i = 0; i < ctx.circuits.add.length; i++) {
+                await sys.board.circuits.setCircuitAsync(ctx.circuits.add[i]);
+            }
+            for (let i = 0; i < ctx.circuitGroups.add.length; i++) {
+                await sys.board.circuits.setCircuitGroupAsync(ctx.circuitGroups.add[i]);
+            }
+            for (let i = 0; i < ctx.lightGroups.add.length; i++) {
+                await sys.board.circuits.setCircuitGroupAsync(ctx.lightGroups.add[i]);
+            }
+            for (let i = 0; i < ctx.circuits.update.length; i++) {
+                await sys.board.circuits.setCircuitAsync(ctx.circuits.update[i]);
+            }
+            for (let i = 0; i < ctx.circuitGroups.update.length; i++) {
+                await sys.board.circuits.setCircuitGroupAsync(ctx.circuitGroups.update[i]);
+            }
+            for (let i = 0; i < ctx.lightGroups.update.length; i++) {
+                await sys.board.circuits.setCircuitGroupAsync(ctx.lightGroups.update[i]);
+            }
+            return true;
+        } catch (err) { logger.error(`Error restoring circuits: ${err.message}`); return false; }
+    }
+    public async validateRestore(rest: { poolConfig: any, poolState: any }, ctxRoot): Promise<boolean> {
+        try {
+            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            // Look at circuits.
+            let cfg = rest.poolConfig;
+            for (let i = 0; i < cfg.circuits.length; i++) {
+                let r = cfg.circuits[i];
+                let c = sys.circuits.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.circuits.length; i++) {
+                let c = sys.circuits.getItemByIndex(i);
+                let r = cfg.circuits.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            ctxRoot.circuits = ctx;
+            ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            for (let i = 0; i < cfg.circuitGroups.length; i++) {
+                let r = cfg.circuitGroups[i];
+                let c = sys.circuitGroups.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.circuitGroups.length; i++) {
+                let c = sys.circuitGroups.getItemByIndex(i);
+                let r = cfg.circuitGroups.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            ctxRoot.circuitGroups = ctx;
+            ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            for (let i = 0; i < cfg.lightGroups.length; i++) {
+                let r = cfg.lightGroups[i];
+                let c = sys.lightGroups.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.lightGroups.length; i++) {
+                let c = sys.lightGroups.getItemByIndex(i);
+                let r = cfg.lightGroups.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            ctxRoot.lightGroups = ctx;
+            return true;
+        } catch (err) { logger.error(`Error validating circuits for restore: ${err.message}`); }
+    }
     public async syncCircuitRelayStates() {
         try {
             for (let i = 0; i < sys.circuits.length; i++) {
@@ -2295,6 +2498,45 @@ export class CircuitCommands extends BoardCommands {
   }
 }
 export class FeatureCommands extends BoardCommands {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+        try {
+            // First delete the features that should be removed.
+            for (let i = 0; i < ctx.features.remove.length; i++) {
+                await sys.board.features.deleteFeatureAsync(ctx.features.remove[i]);
+            }
+            for (let i = 0; i < ctx.features.update.length; i++) {
+                await sys.board.features.setFeatureAsync(ctx.features.update[i]);
+            }
+            for (let i = 0; i < ctx.features.add.length; i++) {
+                // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                // it won't error out.
+                sys.features.getItemById(ctx.features.add[i].id, true);
+                await sys.board.features.setFeatureAsync(ctx.features.add[i]);
+            }
+            return true;
+        } catch (err) { logger.error(`Error restoring features: ${err.message}`); return false; }
+    }
+
+    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+        try {
+            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            // Look at features.
+            let cfg = rest.poolConfig;
+            for (let i = 0; i < cfg.features.length; i++) {
+                let r = cfg.features[i];
+                let c = sys.features.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.features.length; i++) {
+                let c = sys.features.getItemByIndex(i);
+                let r = cfg.features.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            return ctx;
+        } catch (err) { logger.error(`Error validating features for restore: ${err.message}`); }
+    }
+
   public async setFeatureAsync(obj: any): Promise<Feature> {
     let id = parseInt(obj.id, 10);
     if (id <= 0 || isNaN(id)) {
@@ -2410,6 +2652,45 @@ export class FeatureCommands extends BoardCommands {
   }
 }
 export class ChlorinatorCommands extends BoardCommands {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+        try {
+            // First delete the chlorinators that should be removed.
+            for (let i = 0; i < ctx.chlorinators.remove.length; i++) {
+                await sys.board.chlorinator.deleteChlorAsync(ctx.chlorinators.remove[i]);
+            }
+            for (let i = 0; i < ctx.chlorinators.update.length; i++) {
+                await sys.board.chlorinator.setChlorAsync(ctx.chlorinators.update[i]);
+            }
+            for (let i = 0; i < ctx.chlorinators.add.length; i++) {
+                // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                // it won't error out.
+                sys.chlorinators.getItemById(ctx.chlorinators.add[i].id, true);
+                await sys.board.chlorinator.setChlorAsync(ctx.chlorinators.add[i]);
+            }
+            return true;
+        } catch (err) { logger.error(`Error restoring chlorinators: ${err.message}`); return false; }
+    }
+
+    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+        try {
+            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            // Look at chlorinators.
+            let cfg = rest.poolConfig;
+            for (let i = 0; i < cfg.chlorinators.length; i++) {
+                let r = cfg.chlorinators[i];
+                let c = sys.chlorinators.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.chlorinators.length; i++) {
+                let c = sys.chlorinators.getItemByIndex(i);
+                let r = cfg.chlorinators.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            return ctx;
+        } catch (err) { logger.error(`Error validating chlorinators for restore: ${err.message}`); }
+    }
+
   public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
     try {
       let id = parseInt(obj.id, 10);
@@ -2452,6 +2733,44 @@ export class ChlorinatorCommands extends BoardCommands {
   }
 }
 export class ScheduleCommands extends BoardCommands {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+        try {
+            // First delete the schedules that should be removed.
+            for (let i = 0; i < ctx.schedules.remove.length; i++) {
+                await sys.board.schedules.deleteScheduleAsync(ctx.schedules.remove[i]);
+            }
+            for (let i = 0; i < ctx.schedules.update.length; i++) {
+                await sys.board.schedules.setScheduleAsync(ctx.schedules.update[i]);
+            }
+            for (let i = 0; i < ctx.schedules.add.length; i++) {
+                // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                // it won't error out.
+                sys.schedules.getItemById(ctx.schedules.add[i].id, true);
+                await sys.board.schedules.setScheduleAsync(ctx.schedules.add[i]);
+            }
+            return true;
+        } catch (err) { logger.error(`Error restoring bodies: ${err.message}`); return false; }
+    }
+    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+        try {
+            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            // Look at schedules.
+            let cfg = rest.poolConfig;
+            for (let i = 0; i < cfg.schedules.length; i++) {
+                let r = cfg.schedules[i];
+                let c = sys.schedules.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.schedules.length; i++) {
+                let c = sys.schedules.getItemByIndex(i);
+                let r = cfg.schedules.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            return ctx;
+        } catch (err) { logger.error(`Error validating schedules for restore: ${err.message}`); }
+    }
+
   public transformDays(val: any): number {
     if (typeof val === 'number') return val;
     let edays = sys.board.valueMaps.scheduleDays.toArray();
@@ -2683,6 +3002,44 @@ export class ScheduleCommands extends BoardCommands {
   }
 }
 export class HeaterCommands extends BoardCommands {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+        try {
+            // First delete the heaters that should be removed.
+            for (let i = 0; i < ctx.heaters.remove.length; i++) {
+                await sys.board.heaters.deleteHeaterAsync(ctx.heaters.remove[i]);
+            }
+            for (let i = 0; i < ctx.heaters.update.length; i++) {
+                await sys.board.heaters.setHeaterAsync(ctx.heaters.update[i]);
+            }
+            for (let i = 0; i < ctx.heaters.add.length; i++) {
+                // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                // it won't error out.
+                sys.heaters.getItemById(ctx.heaters.add[i].id, true);
+                await sys.board.heaters.setHeaterAsync(ctx.heaters.add[i]);
+            }
+            return true;
+        } catch (err) { logger.error(`Error restoring bodies: ${err.message}`); return false; }
+    }
+    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+        try {
+            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            // Look at heaters.
+            let cfg = rest.poolConfig;
+            for (let i = 0; i < cfg.heaters.length; i++) {
+                let r = cfg.heaters[i];
+                let c = sys.heaters.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.heaters.length; i++) {
+                let c = sys.heaters.getItemByIndex(i);
+                let r = cfg.heaters.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            return ctx;
+        } catch (err) { logger.error(`Error validating heaters for restore: ${err.message}`); }
+    }
+
     public getInstalledHeaterTypes(body?: number): any {
         let heaters = sys.heaters.get();
         let types = sys.board.valueMaps.heaterTypes.toArray();
@@ -3099,6 +3456,45 @@ export class HeaterCommands extends BoardCommands {
     }
 }
 export class ValveCommands extends BoardCommands {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+        try {
+            // First delete the valves that should be removed.
+            for (let i = 0; i < ctx.valves.remove.length; i++) {
+                await sys.board.valves.deleteValveAsync(ctx.valves.remove[i]);
+            }
+            for (let i = 0; i < ctx.valves.update.length; i++) {
+                await sys.board.valves.setValveAsync(ctx.valves.update[i]);
+            }
+            for (let i = 0; i < ctx.valves.add.length; i++) {
+                // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                // it won't error out.
+                sys.valves.getItemById(ctx.valves.add[i].id, true);
+                await sys.board.valves.setValveAsync(ctx.valves.add[i]);
+            }
+            return true;
+        } catch (err) { logger.error(`Error restoring valves: ${err.message}`); return false; }
+    }
+
+    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+        try {
+            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            // Look at valves.
+            let cfg = rest.poolConfig;
+            for (let i = 0; i < cfg.valves.length; i++) {
+                let r = cfg.valves[i];
+                let c = sys.valves.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.valves.length; i++) {
+                let c = sys.valves.getItemByIndex(i);
+                let r = cfg.valves.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            return ctx;
+        } catch (err) { logger.error(`Error validating valves for restore: ${err.message}`); }
+    }
+
   public async setValveStateAsync(valve: Valve, vstate: ValveState, isDiverted: boolean) {
     if (valve.master === 1) await ncp.valves.setValveStateAsync(vstate, isDiverted);
     else
@@ -3176,6 +3572,44 @@ export class ValveCommands extends BoardCommands {
   }
 }
 export class ChemControllerCommands extends BoardCommands {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+        try {
+            // First delete the chemControllers that should be removed.
+            for (let i = 0; i < ctx.chemControllers.remove.length; i++) {
+                await sys.board.chemControllers.deleteChemControllerAsync(ctx.chemControllers.remove[i]);
+            }
+            for (let i = 0; i < ctx.chemControllers.update.length; i++) {
+                await sys.board.chemControllers.setChemControllerAsync(ctx.chemControllers.update[i]);
+            }
+            for (let i = 0; i < ctx.chemControllers.add.length; i++) {
+                // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                // it won't error out.
+                sys.chemControllers.getItemById(ctx.chemControllers.add[i].id, true);
+                await sys.board.chemControllers.setChemControllerAsync(ctx.chemControllers.add[i]);
+            }
+            return true;
+        } catch (err) { logger.error(`Error restoring chemControllers: ${err.message}`); return false; }
+    }
+    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+        try {
+            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            // Look at chemControllers.
+            let cfg = rest.poolConfig;
+            for (let i = 0; i < cfg.chemControllers.length; i++) {
+                let r = cfg.chemControllers[i];
+                let c = sys.chemControllers.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.chemControllers.length; i++) {
+                let c = sys.chemControllers.getItemByIndex(i);
+                let r = cfg.chemControllers.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            return ctx;
+        } catch (err) { logger.error(`Error validating chemControllers for restore: ${err.message}`); }
+    }
+
   public async deleteChemControllerAsync(data: any): Promise<ChemController> {
     try {
       let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
@@ -3314,6 +3748,44 @@ export class ChemControllerCommands extends BoardCommands {
   }
 }
 export class FilterCommands extends BoardCommands {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+        try {
+            // First delete the filters that should be removed.
+            for (let i = 0; i < ctx.filters.remove.length; i++) {
+                sys.filters.removeItemById(ctx.filters[i].id);
+                state.filters.removeItemById(ctx.filters[i].id);
+            }
+            for (let i = 0; i < ctx.filters.update.length; i++) {
+                await sys.board.filters.setFilterAsync(ctx.filters.update[i]);
+            }
+            for (let i = 0; i < ctx.filters.add.length; i++) {
+                // pull a little trick to first add the data then perform the update.
+                sys.filters.getItemById(ctx.filters.add[i].id, true);
+                await sys.board.filters.setFilterAsync(ctx.filters.add[i]);
+            }
+            return true;
+        } catch (err) { logger.error(`Error restoring filters: ${err.message}`); return false; }
+    }
+    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+        try {
+            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            // Look at filters.
+            let cfg = rest.poolConfig;
+            for (let i = 0; i < cfg.filters.length; i++) {
+                let r = cfg.filters[i];
+                let c = sys.filters.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.filters.length; i++) {
+                let c = sys.filters.getItemByIndex(i);
+                let r = cfg.filters.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            return ctx;
+        } catch (err) { logger.error(`Error validating filters for restore: ${err.message}`); }
+    }
+
     public async syncFilterStates() {
         try {
             for (let i = 0; i < sys.filters.length; i++) {
@@ -3415,7 +3887,7 @@ export class FilterCommands extends BoardCommands {
         if (!sys.board.valueMaps.filterTypes.valExists(filterType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid filter type; ${filterType}`, 'Filter', filterType));
 
         filter.pressureUnits = typeof data.pressureUnits !== 'undefined' ? data.pressureUnits || 0 : filter.pressureUnits || 0;
-        filter.pressureCircuitId = parseInt(data.pressureCicuitId || filter.pressureCircuitId || 6, 10);
+        filter.pressureCircuitId = parseInt(data.pressureCircuitId || filter.pressureCircuitId || 6, 10);
         filter.cleanPressure = parseFloat(data.cleanPressure || filter.cleanPressure || 0);
         filter.dirtyPressure = parseFloat(data.dirtyPressure || filter.dirtyPressure || 0);
 
