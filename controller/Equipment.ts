@@ -1509,6 +1509,10 @@ export class Cover extends EqItem {
     public set normallyOn(val: boolean) { this.setDataVal('normallyOn', val); }
     public get circuits(): number[] { return this.data.circuits; }
     public set circuits(val: number[]) { this.setDataVal('circuits', val); }
+    public get chlorActive(): boolean { return this.data.chlorActive; }
+    public set chlorActive(val: boolean) { this.setDataVal('chlorActive', val); }
+    public get chlorOutput(): boolean { return this.data.chlorOutput; }
+    public set chlorOutput(val: boolean) { this.setDataVal('chlorOutput', val); }
 }
 export interface ICircuitGroup {
     id: number;

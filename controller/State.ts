@@ -1283,6 +1283,7 @@ export class BodyTempState extends EqState {
     public dataName = 'bodyTempState';
     public initData() {
         if (typeof this.data.heaterOptions === 'undefined') this.data.heaterOptions = { total: 0 };
+        if (typeof this.data.isCovered === 'undefined') this.data.isCovered = false;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
@@ -1321,6 +1322,8 @@ export class BodyTempState extends EqState {
     public set coolSetpoint(val: number) { this.setDataVal('coolSetpoint', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
+    public get isCovered(): boolean { return this.data.isCovered; }
+    public set isCovered(val: boolean) { this.setDataVal('isCovered', val); }
     public emitData(name: string, data: any) { webApp.emitToClients('body', this.data); }
     // RKS: This is a very interesting object because we have a varied object.  Type safety rules should not apply
     // here as the heater types are specific to the installed equipment.  The reason is because it has no meaning without the body and the calculation of it should
@@ -1665,12 +1668,15 @@ export class CoverStateCollection extends EqStateCollection<CoverState> {
 }
 export class CoverState extends EqState {
     public dataName: string = 'cover';
+    public initData() {
+        if (typeof this.data.isClosed === 'undefined') this.data.isClosed = true;
+    }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
-    public get isOpen(): boolean { return this.data.isOpen; }
-    public set isOpen(val: boolean) { this.setDataVal('isOpen', val); }
+    public get isClosed(): boolean { return this.data.isClosed; }
+    public set isClosed(val: boolean) { this.setDataVal('isClosed', val); }
 }
 export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorState> {
     public createItem(data: any): ChlorinatorState { return new ChlorinatorState(data); }

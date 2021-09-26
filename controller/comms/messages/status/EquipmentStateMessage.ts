@@ -514,9 +514,18 @@ export class EquipmentStateMessage {
                     }
                 }
                 ExternalMessage.processFeatureState(9, msg);
+                let cover1 = state.covers.getItemById(1, false);
+                cover1.isClosed = (msg.extractPayloadByte(30) & 0x0001) > 0;
+                state.temps.bodies.getItemById(1).isCovered = cover1.isClosed;
+                if (sys.bodies.length > 1) {
+                    let cover2 = state.covers.getItemById(2, false);
+                    state.temps.bodies.getItemById(2).isCovered = cover2.isClosed;
+                }
+
+                //let cover2 = state.covers.getItemById(2);
                 msg.isProcessed = true;
                 // state.emitControllerChange();
-                // state.emitEquipmentChanges();
+                state.emitEquipmentChanges();
                 break;
         }
     }
