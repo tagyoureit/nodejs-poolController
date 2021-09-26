@@ -1819,7 +1819,7 @@ export class CircuitCommands extends BoardCommands {
                 await sys.board.circuits.setCircuitGroupAsync(ctx.circuitGroups.add[i]);
             }
             for (let i = 0; i < ctx.lightGroups.add.length; i++) {
-                await sys.board.circuits.setCircuitGroupAsync(ctx.lightGroups.add[i]);
+                await sys.board.circuits.setLightGroupAsync(ctx.lightGroups.add[i]);
             }
             for (let i = 0; i < ctx.circuits.update.length; i++) {
                 await sys.board.circuits.setCircuitAsync(ctx.circuits.update[i]);
@@ -1828,7 +1828,7 @@ export class CircuitCommands extends BoardCommands {
                 await sys.board.circuits.setCircuitGroupAsync(ctx.circuitGroups.update[i]);
             }
             for (let i = 0; i < ctx.lightGroups.update.length; i++) {
-                await sys.board.circuits.setCircuitGroupAsync(ctx.lightGroups.update[i]);
+                await sys.board.circuits.setLightGroupAsync(ctx.lightGroups.update[i]);
             }
             return true;
         } catch (err) { logger.error(`Error restoring circuits: ${err.message}`); return false; }
