@@ -1669,7 +1669,7 @@ export class CoverStateCollection extends EqStateCollection<CoverState> {
 export class CoverState extends EqState {
     public dataName: string = 'cover';
     public initData() {
-        if (typeof this.data.isClosed === 'undefined') this.data.isClosed = true;
+        if (typeof this.data.isClosed === 'undefined') this.data.isClosed = false;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
