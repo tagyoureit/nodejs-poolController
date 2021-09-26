@@ -2241,30 +2241,31 @@ export class CircuitCommands extends BoardCommands {
     }
     if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit light group id exceeded`, id, 'LightGroup'));
     if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'LightGroup'));
-    group = sys.lightGroups.getItemById(id, true);
-    return new Promise<LightGroup>((resolve, reject) => {
-      if (typeof obj.name !== 'undefined') group.name = obj.name;
-      if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
-      if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
-      group.dontStop = group.eggTimer === 1440;
-      group.isActive = true;
-      if (typeof obj.circuits !== 'undefined') {
-        for (let i = 0; i < obj.circuits.length; i++) {
-          let cobj = obj.circuits[i];
-          let c: LightGroupCircuit;
-          if (typeof cobj.id !== 'undefined') c = group.circuits.getItemById(parseInt(cobj.id, 10), true);
-          else if (typeof cobj.circuit !== 'undefined') c = group.circuits.getItemByCircuitId(parseInt(cobj.circuit, 10), true);
-          else c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
-          if (typeof cobj.circuit !== 'undefined') c.circuit = cobj.circuit;
-          if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10);
-          if (typeof cobj.color !== 'undefined') c.color = parseInt(cobj.color, 10);
-          if (typeof cobj.swimDelay !== 'undefined') c.swimDelay = parseInt(cobj.swimDelay, 10);
-          if (typeof cobj.position !== 'undefined') c.position = parseInt(cobj.position, 10);
-        }
-        // group.circuits.length = obj.circuits.length; // RSG - removed as this will delete circuits that were not changed
-      }
-      resolve(group);
-    });
+      group = sys.lightGroups.getItemById(id, true);
+      let sgroup = state.lightGroups.getItemById(id, true);
+      return new Promise<LightGroup>((resolve, reject) => {
+          if (typeof obj.name !== 'undefined') sgroup.name = group.name = obj.name;
+          if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
+          if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
+          group.dontStop = group.eggTimer === 1440;
+          group.isActive = true;
+          if (typeof obj.circuits !== 'undefined') {
+              for (let i = 0; i < obj.circuits.length; i++) {
+                  let cobj = obj.circuits[i];
+                  let c: LightGroupCircuit;
+                  if (typeof cobj.id !== 'undefined') c = group.circuits.getItemById(parseInt(cobj.id, 10), true);
+                  else if (typeof cobj.circuit !== 'undefined') c = group.circuits.getItemByCircuitId(parseInt(cobj.circuit, 10), true);
+                  else c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
+                  if (typeof cobj.circuit !== 'undefined') c.circuit = cobj.circuit;
+                  if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10);
+                  if (typeof cobj.color !== 'undefined') c.color = parseInt(cobj.color, 10);
+                  if (typeof cobj.swimDelay !== 'undefined') c.swimDelay = parseInt(cobj.swimDelay, 10);
+                  if (typeof cobj.position !== 'undefined') c.position = parseInt(cobj.position, 10);
+              }
+              // group.circuits.length = obj.circuits.length; // RSG - removed as this will delete circuits that were not changed
+          }
+          resolve(group);
+      });
   }
   public async deleteCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
     let id = parseInt(obj.id, 10);
