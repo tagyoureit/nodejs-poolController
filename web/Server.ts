@@ -212,10 +212,15 @@ export class WebServer {
             // These will be returned in reverse order with the newest backup first.
             let files = await this.readBackupFiles();
             let afiles = files.filter(elem => elem.options.automatic === true);
-            this.lastBackup = (afiles.length > 0) ? Date.parse(afiles[0].options.backupDate) || 0 : 0;
+            this.lastBackup = (afiles.length > 0) ? Date.parse(afiles[0].options.backupDate).valueOf() || 0 : 0;
             // Set the last backup date.
             this.autoBackup = utils.makeBool(bu.automatic);
-            logger.info(`Auto-backup initialized Last Backup: ${Timestamp.toISOLocal(new Date(this.lastBackup))}`);
+            if (this.autoBackup) {
+                let nextBackup = this.lastBackup + (bu.interval.days * 86400000) + (bu.interval.hours * 3600000);
+                logger.info(`Auto-backup initialized Last Backup: ${Timestamp.toISOLocal(new Date(this.lastBackup))} Next Backup: ${Timestamp.toISOLocal(new Date(nextBackup))}`);
+            }
+            else
+                logger.info(`Auto-backup initialized Last Backup: ${Timestamp.toISOLocal(new Date(this.lastBackup))}`);
             // Lets wait a good 20 seconds before we auto-backup anything.  Now that we are initialized let the OCP have its way with everything.
             setTimeout(() => { this.checkAutoBackup(); }, 20000);
         }
@@ -370,8 +375,8 @@ export class WebServer {
                 try {
                     await this.checkAutoBackup();
                 } catch (err) { logger.error(`Error checking auto-backup: ${err.message}`); }
-            }, nextBackup -= new Date().valueOf());
-            logger.info(`Next auto-backup ${Timestamp.toISOLocal(new Date(nextBackup))}`);
+            }, Math.max(Math.min(nextBackup - new Date().valueOf(), 2147483647), 60000));
+            logger.info(`Last auto-backup ${Timestamp.toISOLocal(new Date(this.lastBackup))} Next auto - backup ${Timestamp.toISOLocal(new Date(nextBackup))}`);
         }
     }
     public async validateRestore(opts): Promise<any> {
@@ -451,6 +456,7 @@ export class WebServer {
                                 if (resp.status.code === 200 && typeof resp.data !== 'undefined') {
                                     let cctx = JSON.parse(resp.data);
                                     ctx = extend(true, ctx, cctx);
+                                    // Ok so now here we are ready to restore the data.
                                 }
                                 else
                                     ctx.server.errors.push(`Error validating controller configuration: ${resp.error.message}`);
