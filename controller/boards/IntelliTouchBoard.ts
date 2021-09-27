@@ -14,16 +14,18 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import {byteValueMap} from './SystemBoard';
-import {logger} from '../../logger/Logger';
+import { byteValueMap } from './SystemBoard';
+import { logger } from '../../logger/Logger';
 import { EasyTouchBoard, TouchConfigQueue, GetTouchConfigCategories, TouchCircuitCommands } from './EasyTouchBoard';
 import { state, ICircuitGroupState } from '../State';
-import { PoolSystem, sys, ExpansionPanel, ExpansionModule } from '../Equipment';
+import { PoolSystem, sys, ExpansionPanel, ExpansionModule, Equipment } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 
-import {conn} from '../comms/Comms';
+import { conn } from '../comms/Comms';
+import { InvalidEquipmentDataError } from '../Errors';
+import { type } from 'os';
 export class IntelliTouchBoard extends EasyTouchBoard {
-    constructor (system: PoolSystem){
+    constructor(system: PoolSystem) {
         super(system);
         this.equipmentIds.features.start = 41;
         this.equipmentIds.features.end = 50;
@@ -35,8 +37,15 @@ export class IntelliTouchBoard extends EasyTouchBoard {
             [3, { name: 'IT5S', part: 'i5+3S', desc: 'IntelliTouch i5+3S', circuits: 5, shared: false }],
             [4, { name: 'IT9S', part: 'i9+3S', desc: 'IntelliTouch i9+3S', circuits: 9, shared: false }],
             [5, { name: 'IT10D', part: 'i10D', desc: 'IntelliTouch i10D', circuits: 10, shared: false, dual: true }],
-            [32, { name: 'IT10X', part: 'i10X', desc: 'IntelliTouch i10X', circuits: 10, shared: false }]
+            [32, { name: 'IT5X', part: 'i5X', desc: 'IntelliTouch i5X', circuits: 5, shared: false }],
+            [33, { name: 'IT10X', part: 'i10X', desc: 'IntelliTouch i10X', circuits: 10, shared: false }]
         ]);
+        this.valueMaps.panelModes = new byteValueMap([
+            [0, { val: 0, name: 'auto', desc: 'Auto' }],
+            [1, { val: 1, name: 'service', desc: 'Service' }],
+            [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
+            [255, { name: 'error', desc: 'System Error' }]
+          ]);
     }
     public initExpansionModules(byte1: number, byte2: number) {
         console.log(`Pentair IntelliTouch System Detected!`);
@@ -74,26 +83,42 @@ export class IntelliTouchBoard extends EasyTouchBoard {
             if (i > eq.maxCircuits) sys.board.equipmentIds.invalidIds.merge([i]);
         }
         // This code should be repeated if we ever see a panel with more than one expansion panel.
-        let pnl: ExpansionPanel;
-        pnl = sys.equipment.expansions.getItemById(1, true);
-        pnl.type = byte2 & 0x20;
-        pnl.name = pnl.type === 32 ? 'i10X' : 'none';
-        pnl.isActive = pnl.type !== 0;
-        // if type is i9 or i10 we can have up to 3 expansion boards.  These expansion boards only add
-        // circuits.
-        if (pnl.isActive) {
-            let emt = this.valueMaps.expansionBoards.transform(pnl.type);
-            let emd = pnl.modules.getItemById(1, true).get();
-            eq.maxCircuits += emd.circuits = typeof emt.circuits !== 'undefined' ? emt.circuits : 0;
+        let pnl1: ExpansionPanel;
+        if ((byte2 & 0x40) === 64) {
+            // 64 indicates one expansion panel; SL defaults to i10x but it could also be i5x until we know better
+            pnl1 = sys.equipment.expansions.getItemById(1, true);
+            pnl1.type = 32;
+            let emt = this.valueMaps.expansionBoards.transform(pnl1.type);
+            pnl1.name = emt.desc;
+            pnl1.isActive = true;
+            eq.maxCircuits += emt.circuits;
         }
-        else pnl.modules.removeItemById(1);
-
+        else sys.equipment.expansions.removeItemById(1);
+        let pnl2: ExpansionPanel;
+        if ((byte2 & 0x80) === 128) {
+            // SL defaults to i5x but it could also be i10x until we know better
+            pnl2 = sys.equipment.expansions.getItemById(2, true);
+            pnl2.type = 32;
+            let emt = this.valueMaps.expansionBoards.transform(pnl2.type);
+            pnl2.name = emt.desc;
+            pnl2.isActive = true;
+            eq.maxCircuits += emt.circuits;
+        }
+        else sys.equipment.expansions.removeItemById(2);
+        let pnl3: ExpansionPanel;
+        if ((byte2 & 0xC0) === 192) {
+            // SL defaults to i5x but it could also be i10x until we know better
+            pnl3 = sys.equipment.expansions.getItemById(3, true);
+            pnl3.type = 32;
+            let emt = this.valueMaps.expansionBoards.transform(pnl3.type);
+            pnl3.name = emt.desc;
+            pnl3.isActive = true;
+            eq.maxCircuits += emt.circuits;
+        }
+        else sys.equipment.expansions.removeItemById(3);
         if (byte1 !== 14) sys.board.equipmentIds.invalidIds.merge([10, 19]);
         state.equipment.model = sys.equipment.model = mt.desc;
         state.equipment.controllerType = 'intellitouch';
-        // The code above should be repeated if we ever see a panel with more than one expansion panel.
-        sys.equipment.expansions.getItemById(2, true).isActive = false;
-        sys.equipment.expansions.getItemById(3, true).isActive = false;
         sys.equipment.shared ? sys.board.equipmentIds.circuits.start = 1 : sys.board.equipmentIds.circuits.start = 2;
         this.initBodyDefaults();
         this.initHeaterDefaults();
@@ -117,6 +142,59 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         state.emitControllerChange();
     }
     public circuits: ITTouchCircuitCommands = new ITTouchCircuitCommands(this);
+    public async setControllerType(obj): Promise<Equipment> {
+        try {
+            if (obj.controllerType !== sys.controllerType){
+                return Promise.reject(new InvalidEquipmentDataError(`You may not change the controller type data for ${sys.controllerType} controllers`, 'controllerType', obj.controllerType));
+            }
+                
+            let mod  = sys.equipment.modules.getItemById(0);
+            let mt = this.valueMaps.expansionBoards.get(mod.type);
+            let _circuits = mt.circuits;
+            let pnl1 = sys.equipment.expansions.getItemById(1);
+            if (typeof obj.expansion1 !== 'undefined' && obj.expansion1 !== pnl1.type) {
+                let emt = this.valueMaps.expansionBoards.transform(obj.expansion1);
+                logger.info(`Changing expansion 1 to ${emt.desc}.`);
+                pnl1.type = emt.val;
+                pnl1.name = emt.desc;
+                pnl1.isActive = true;
+            }
+            let pnl2 = sys.equipment.expansions.getItemById(2);
+            if (typeof obj.expansion2 !== 'undefined' && obj.expansion2 !== pnl2.type) {
+                let emt = this.valueMaps.expansionBoards.transform(obj.expansion2);
+                logger.info(`Changing expansion 2 to ${emt.desc}.`);
+                pnl2.type = emt.val;
+                pnl2.name = emt.desc;
+                pnl2.isActive = true;
+            }
+            let pnl3 = sys.equipment.expansions.getItemById(3);
+            if (typeof obj.expansion3 !== 'undefined' && obj.expansion3 !== pnl3.type) {
+                let emt = this.valueMaps.expansionBoards.transform(obj.expansion3);
+                logger.info(`Changing expansion 3 to ${emt.desc}.`);
+                pnl3.type = emt.val;
+                pnl3.name = emt.desc;
+                pnl3.isActive = true;
+            }
+            let prevMaxCircuits = sys.equipment.maxCircuits;
+            if (pnl1.isActive) _circuits += this.valueMaps.expansionBoards.get(pnl1.type).circuits;
+            if (pnl2.isActive) _circuits += this.valueMaps.expansionBoards.get(pnl2.type).circuits;
+            if (pnl3.isActive) _circuits += this.valueMaps.expansionBoards.get(pnl3.type).circuits;
+            if (_circuits < prevMaxCircuits) {
+                // if we downsize expansions, remove circuits
+                for (let i = _circuits + 1; i <= prevMaxCircuits; i++) {
+                    sys.circuits.removeItemById(i);
+                    state.circuits.removeItemById(i);
+                }
+            }
+            else if (_circuits > prevMaxCircuits) {
+                this._configQueue.queueChanges();
+            }
+            sys.equipment.maxCircuits = _circuits;
+            return sys.equipment;
+        } catch (err) {
+            logger.error(`Error setting expansion panels: ${err.message}`);
+        }
+    }
 }
 class ITTouchConfigQueue extends TouchConfigQueue {
     public queueChanges() {
@@ -148,7 +226,7 @@ class ITTouchConfigQueue extends TouchConfigQueue {
         }
         if (this.remainingItems > 0) {
             var self = this;
-            setTimeout(() => {self.processNext();}, 50);
+            setTimeout(() => { self.processNext(); }, 50);
         } else state.status = 1;
         state.emitControllerChange();
     }
@@ -164,5 +242,5 @@ class ITTouchCircuitCommands extends TouchCircuitCommands {
             }
             catch (err) { reject(err); }
         });
-    } 
+    }
 }

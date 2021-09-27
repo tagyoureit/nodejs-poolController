@@ -400,8 +400,8 @@ export class EquipmentStateMessage {
                                 sys.board.heaters.syncHeaterStates();
                                 break;
                             }
-                        case ControllerType.IntelliCom:
                         case ControllerType.EasyTouch:
+                        case ControllerType.IntelliCom:
                         case ControllerType.IntelliTouch:
                             {
                                 EquipmentStateMessage.processTouchCircuits(msg);

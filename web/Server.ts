@@ -14,37 +14,36 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import * as path from "path";
-import * as fs from "fs";
 import * as dns from "dns";
-import express = require('express');
-import { utils } from "../controller/Constants";
-import { config } from "../config/Config";
-import { logger } from "../logger/Logger";
-import { Namespace, RemoteSocket, Server as SocketIoServer, Socket } from "socket.io";
-import { io as sockClient } from "socket.io-client";
-import { ConfigRoute } from "./services/config/Config";
-import { StateRoute } from "./services/state/State";
-import { StateSocket } from "./services/state/StateSocket";
-import { UtilitiesRoute } from "./services/utilities/Utilities";
-import * as http2 from "http2";
-import * as http from "http";
-import * as https from "https";
-import { state } from "../controller/State";
-import { conn } from "../controller/comms/Comms";
-import { Inbound, Outbound } from "../controller/comms/messages/Messages";
 import { EventEmitter } from 'events';
-import { sys } from '../controller/Equipment';
+import * as fs from "fs";
+import * as http from "http";
+import * as http2 from "http2";
+import * as https from "https";
 import * as multicastdns from 'multicast-dns';
 import * as ssdp from 'node-ssdp';
 import * as os from 'os';
+import * as path from "path";
+import { RemoteSocket, Server as SocketIoServer, Socket } from "socket.io";
+import { io as sockClient } from "socket.io-client";
 import { URL } from "url";
+import { config } from "../config/Config";
+import { conn } from "../controller/comms/Comms";
+import { Inbound, Outbound } from "../controller/comms/messages/Messages";
+import { Timestamp, utils } from "../controller/Constants";
+import { sys } from '../controller/Equipment';
+import { state } from "../controller/State";
+import { logger } from "../logger/Logger";
 import { HttpInterfaceBindings } from './interfaces/httpInterface';
 import { InfluxInterfaceBindings } from './interfaces/influxInterface';
 import { MqttInterfaceBindings } from './interfaces/mqttInterface';
-import { Timestamp } from '../controller/Constants';
-import extend = require("extend");
+import { ConfigRoute } from "./services/config/Config";
 import { ConfigSocket } from "./services/config/ConfigSocket";
+import { StateRoute } from "./services/state/State";
+import { StateSocket } from "./services/state/StateSocket";
+import { UtilitiesRoute } from "./services/utilities/Utilities";
+import express = require('express');
+import extend = require("extend");
 
 
 // This class serves data and pages for
@@ -572,7 +571,7 @@ export class HttpServer extends ProtoServer {
             self._sockets = await self.sockServer.fetchSockets();
         });
         sock.on('echo', (msg) => { sock.emit('echo', msg); });
-        sock.on('receivePacketRaw', function (incomingPacket: any[]) {
+/*         sock.on('receivePacketRaw', function (incomingPacket: any[]) {
             //var str = 'Add packet(s) to incoming buffer: ';
             logger.silly('User request (replay.html) to RECEIVE packet: %s', JSON.stringify(incomingPacket));
             for (var i = 0; i < incomingPacket.length; i++) {
@@ -607,13 +606,29 @@ export class HttpServer extends ProtoServer {
                 conn.queueSendMessage(out);
             } while (bytesToProcessArr.length > 0);
 
-        });
+        }); */
         sock.on('sendOutboundMessage', (mdata) => {
             let msg: Outbound = Outbound.create({});
             Object.assign(msg, mdata);
             msg.calcChecksum();
             logger.silly(`sendOutboundMessage ${msg.toLog()}`);
             conn.queueSendMessage(msg);
+        });
+        sock.on('sendInboundMessage', (mdata) => {
+            try {
+
+                let msg: Inbound = new Inbound();
+                msg.direction = mdata.direction;
+                msg.header = mdata.header;
+                msg.payload = mdata.payload;
+                msg.preamble = mdata.preamble;
+                msg.protocol = mdata.protocol;
+                msg.term = mdata.term;
+                if (msg.isValid) msg.process();
+            }
+            catch (err){
+                logger.error(`Error replaying packet: ${err.message}`);
+            }
         });
         sock.on('sendLogMessages', function (sendMessages: boolean) {
             console.log(`sendLogMessages set to ${sendMessages}`);

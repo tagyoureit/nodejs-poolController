@@ -306,6 +306,14 @@ export class EasyTouchBoard extends SystemBoard {
                 return extend(true, {}, { val: byte, desc: customName.name, name: customName.name });
             }
         };
+        this.valueMaps.panelModes = new byteValueMap([
+            [0, { val: 0, name: 'auto', desc: 'Auto' }],
+            [1, { val: 1, name: 'service', desc: 'Service' }],
+            [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
+            [128, { val: 128, name: 'timeout', desc: 'Timeout' }],
+            [129, { val: 129, name: 'service-timeout', desc: 'Service/Timeout' }],
+            [255, { name: 'error', desc: 'System Error' }]
+          ]);
         this.valueMaps.expansionBoards = new byteValueMap([
             [0, { name: 'ET28', part: 'ET2-8', desc: 'EasyTouch2 8', circuits: 8, shared: true }],
             [1, { name: 'ET28P', part: 'ET2-8P', desc: 'EasyTouch2 8P', circuits: 8, shared: false }],

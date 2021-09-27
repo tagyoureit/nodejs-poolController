@@ -217,10 +217,10 @@ export class byteValueMaps {
   ]);
   public panelModes: byteValueMap = new byteValueMap([
     [0, { val: 0, name: 'auto', desc: 'Auto' }],
-    [1, { val: 1, name: 'service', desc: 'Service' }],
-    [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
-    [128, { val: 128, name: 'timeout', desc: 'Timeout' }],
-    [129, { val: 129, name: 'service-timeout', desc: 'Service/Timeout' }],
+    // [1, { val: 1, name: 'service', desc: 'Service' }],
+    // [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
+    // [128, { val: 128, name: 'timeout', desc: 'Timeout' }],
+    // [129, { val: 129, name: 'service-timeout', desc: 'Service/Timeout' }],
     [255, { name: 'error', desc: 'System Error' }]
   ]);
   public controllerStatus: byteValueMap = new byteValueMap([

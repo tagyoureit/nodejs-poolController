@@ -68,7 +68,7 @@ interface IPoolSystem {
 }
 
 export class PoolSystem implements IPoolSystem {
-    public _hasChanged: boolean=false;
+    public _hasChanged: boolean = false;
     constructor() {
         this.cfgPath = path.posix.join(process.cwd(), '/data/poolConfig.json');
     }
@@ -99,7 +99,12 @@ export class PoolSystem implements IPoolSystem {
                 { val: 3, name: 'IT5S', part: 'i5+3S', desc: 'IntelliTouch i5+3S', bodies: 1, circuits: 6, shared: false },
                 { val: 4, name: 'IT9S', part: 'i9+3S', desc: 'IntelliTouch i9+3S', bodies: 1, circuits: 9, shared: false },
                 { val: 5, name: 'IT10D', part: 'i10D', desc: 'IntelliTouch i10D', bodies: 1, circuits: 10, shared: false, dual: true }
+            ],
+            expansionCards: [
+                { val: 32, name: 'IT5X', part: 'i5X', desc: 'IntelliTouch i5X', circuits: 5, shared: false },
+                { val: 33, name: 'IT10X', part: 'i10X', desc: 'IntelliTouch i10X', circuits: 10, shared: false }
             ]
+
         });
         arr.push({
             type: 'intellicenter', name: 'IntelliCenter',
@@ -155,7 +160,7 @@ export class PoolSystem implements IPoolSystem {
         EqItemCollection.removeNullIds(cfg.remotes);
         EqItemCollection.removeNullIds(cfg.chemControllers);
         EqItemCollection.removeNullIds(cfg.filters);
-        this.data = this.onchange(cfg, function() { sys.dirty = true; });
+        this.data = this.onchange(cfg, function () { sys.dirty = true; });
         this.general = new General(this.data, 'pool');
         this.equipment = new Equipment(this.data, 'equipment');
         this.configVersion = new ConfigVersion(this.data, 'configVersion');
@@ -516,7 +521,7 @@ class EqItemCollection<T> implements IEqItemCollection {
         }
     }
     public static removeNullIds(data: any) {
-        if (typeof data !== 'undefined' && Array.isArray(data) && typeof data.length === 'number')  {
+        if (typeof data !== 'undefined' && Array.isArray(data) && typeof data.length === 'number') {
             for (let i = data.length - 1; i >= 0; i--) {
                 if (typeof data[i].id !== 'number') data.splice(i, 1);
                 else if (typeof data[i].id === 'undefined' || isNaN(data[i].id)) data.splice(i, 1);
@@ -606,7 +611,7 @@ class EqItemCollection<T> implements IEqItemCollection {
     }
     public sort(fn: (a, b) => number) { this.data.sort(fn); }
     public count(fn: () => boolean): number { return this.data.filter(fn).length; }
-    public getNextEquipmentId(range: EquipmentIdRange, exclude?:number[]): number {
+    public getNextEquipmentId(range: EquipmentIdRange, exclude?: number[]): number {
         for (let i = range.start; i <= range.end; i++) {
             let eq = this.data.find(elem => elem.id === i);
             if (typeof eq === 'undefined') {
@@ -647,7 +652,7 @@ export class General extends EqItem {
         if (master === -1)
             super.clear();
     }
-   
+
 }
 // Custom Names are IntelliTouch Only
 export class CustomNameCollection extends EqItemCollection<CustomName> {
@@ -1201,7 +1206,7 @@ export interface ICircuit {
     //showInCircuits?: boolean;
     showInFeatures?: boolean;
     macro?: boolean;
-    getLightThemes?: (type?:number) => {};
+    getLightThemes?: (type?: number) => {};
     get(copy?: boolean);
     master: number;
 }
@@ -2211,7 +2216,7 @@ export class ChemicalChlor extends ChildEqItem {
     public initData() {
         super.initData();
     }
-    public get enabled(): boolean { 
+    public get enabled(): boolean {
         let chlor = sys.chlorinators.getItemById(1);
         return chlor.isActive;
     }
@@ -2228,10 +2233,10 @@ export class ChemicalChlor extends ChildEqItem {
         return typeof model.chlorinePerSec !== 'undefined' ? model.chlorinePerSec : 0;
     }
     public set ratedLbs(val: number) { this.setDataVal('ratedLbs', val); }
-    public get superChlor() { 
+    public get superChlor() {
         let chlor = sys.chlorinators.getItemById(1);
         return typeof chlor.superChlor !== 'undefined' ? chlor.superChlor : false;
-     }
+    }
     public getExtended() {
         let chlor = this.get(true);
         chlor.model = sys.board.valueMaps.chlorinatorModel.transform(this.model);
