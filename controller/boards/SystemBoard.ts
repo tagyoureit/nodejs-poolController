@@ -462,11 +462,17 @@ export class byteValueMaps {
     [3, { name: 'unknown', desc: 'unknown' }]
   ]);
   public chlorinatorModel: byteValueMap = new byteValueMap([
-    [0, { name: 'unknown', desc: 'unknown', capacity: 0, chlorinePerDay: 0, chlorinePerSec: 0 }],
-    [1, { name: 'intellichlor--15', desc: 'IC15', capacity: 15000, chlorinePerDay: 0.60, chlorinePerSec: 0.60/86400 }],
-    [2, { name: 'intellichlor--20', desc: 'IC20', capacity: 20000, chlorinePerDay: 0.70, chlorinePerSec: 0.70/86400 }],
-    [3, { name: 'intellichlor--40', desc: 'IC40', capacity: 40000, chlorinePerDay: 1.40, chlorinePerSec: 1.4/86400 }],
-    [4, { name: 'intellichlor--60', desc: 'IC60', capacity: 60000, chlorinePerDay: 2, chlorinePerSec: 2/86400 }], 
+      [0, { name: 'unknown', desc: 'unknown', capacity: 0, chlorinePerDay: 0, chlorinePerSec: 0 }],
+      [1, { name: 'intellichlor--15', desc: 'IntelliChlor IC15', capacity: 15000, chlorinePerDay: 0.60, chlorinePerSec: 0.60 / 86400 }],
+      [2, { name: 'intellichlor--20', desc: 'IntelliChlor IC20', capacity: 20000, chlorinePerDay: 0.70, chlorinePerSec: 0.70 / 86400 }],
+      [3, { name: 'intellichlor--40', desc: 'IntelliChlor IC40', capacity: 40000, chlorinePerDay: 1.40, chlorinePerSec: 1.4 / 86400 }],
+      [4, { name: 'intellichlor--60', desc: 'IntelliChlor IC60', capacity: 60000, chlorinePerDay: 2, chlorinePerSec: 2 / 86400 }],
+      [5, { name: 'aquarite-t15', desc: 'AquaRite T15', capacity: 40000, chlorinePerDay: 1.47, chlorinePerSec: 1.47 / 86400 }],
+      [6, { name: 'aquarite-t9', desc: 'AquaRite T9', capacity: 30000, chlorinePerDay: 0.98, chlorinePerSec: 0.98 / 86400 }],
+      [7, { name: 'aquarite-t5', desc: 'AquaRite T5', capacity: 20000, chlorinePerDay: 0.735, chlorinePerSec: 0.735 / 86400 }],
+      [8, { name: 'aquarite-t3', desc: 'AquaRite T3', capacity: 15000, chlorinePerDay: 0.53, chlorinePerSec: 0.53 / 86400 }],
+      [9, { name: 'aquarite-925', desc: 'AquaRite 925', capacity: 25000, chlorinePerDay: 0.98, chlorinePerSec: 0.98 / 86400 }],
+      [10, { name: 'aquarite-940', desc: 'AquaRite 940', capacity: 40000, chlorinePerDay: 1.47, chlorinePerSec: 1.47 / 86400 }]
   ])
   public customNames: byteValueMap = new byteValueMap();
   public circuitNames: byteValueMap = new byteValueMap();
