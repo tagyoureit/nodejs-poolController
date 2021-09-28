@@ -456,6 +456,8 @@ export class WebServer {
                                     let cctx = JSON.parse(resp.data);
                                     ctx = extend(true, ctx, cctx);
                                     // Ok so now here we are ready to restore the data.
+                                    let r = await srv.restoreConfig(cfg.controllerConfig);
+
                                 }
                                 else
                                     ctx.server.errors.push(`Error validating controller configuration: ${resp.error.message}`);
@@ -1226,6 +1228,11 @@ export class REMInterfaceServer extends ProtoServer {
         try {
             let response = await this.sendClientRequest('PUT', '/config/restore/validate', cfg, 10000);
             return response;
+        } catch (err) { logger.error(err); }
+    }
+    public async restoreConfig(cfg): Promise<InterfaceServerResponse> {
+        try {
+            return await this.sendClientRequest('PUT', '/config/restore/file', cfg, 20000);
         } catch (err) { logger.error(err); }
     }
     private async initConnection() {
