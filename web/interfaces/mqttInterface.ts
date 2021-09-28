@@ -370,7 +370,18 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                                     logger.error(new ServiceParameterError(`Cannot set body setPoint.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', msg.id));
                                     return;
                                 }
-                                let tbody = await sys.board.bodies.setHeatSetpointAsync(body, parseInt(msg.setPoint, 10));
+                                if (typeof msg.setPoint !== 'undefined' || typeof msg.heatSetpoint !== 'undefined'){
+                                    let setPoint = parseInt(msg.setPoint, 10) || parseInt(msg.heatSetpoint, 10);
+                                    if (!isNaN(setPoint)){
+                                        let tbody = await sys.board.bodies.setHeatSetpointAsync(body, setPoint);
+                                    }
+                                }
+                                else if (typeof msg.setPoint !== 'undefined' || typeof msg.heatSetpoint !== 'undefined'){
+                                    let setPoint = parseInt(msg.coolSetpoint, 10);
+                                    if (!isNaN(setPoint)){
+                                        let tbody = await sys.board.bodies.setCoolSetpointAsync(body, setPoint);
+                                    }
+                                } 
                             }
                         }
                         catch (err) { logger.error(err); }
