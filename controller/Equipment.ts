@@ -100,7 +100,7 @@ export class PoolSystem implements IPoolSystem {
                 { val: 4, name: 'IT9S', part: 'i9+3S', desc: 'IntelliTouch i9+3S', bodies: 1, circuits: 9, shared: false },
                 { val: 5, name: 'IT10D', part: 'i10D', desc: 'IntelliTouch i10D', bodies: 1, circuits: 10, shared: false, dual: true }
             ],
-            expansionCards: [
+            expansionModules: [
                 { val: 32, name: 'IT5X', part: 'i5X', desc: 'IntelliTouch i5X', circuits: 5, shared: false },
                 { val: 33, name: 'IT10X', part: 'i10X', desc: 'IntelliTouch i10X', circuits: 10, shared: false }
             ]
