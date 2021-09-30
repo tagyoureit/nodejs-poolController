@@ -2449,8 +2449,12 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         let superChlorinate = typeof obj.superChlor === 'undefined' ? undefined : utils.makeBool(obj.superChlor);
         let isDosing = typeof obj.isDosing !== 'undefined' ? utils.makeBool(obj.isDosing) : chlor.isDosing;
         let disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled;
-        let poolSetpoint = isDosing ? 100 : disabled ? 0 : parseInt(obj.poolSetpoint, 10);
-        let spaSetpoint = isDosing ? 100 : disabled ? 0 : parseInt(obj.spaSetpoint, 10);
+        // This should never never never modify the setpoints based upon the disabled or isDosing flags.
+        //let poolSetpoint = isDosing ? 100 : disabled ? 0 : parseInt(obj.poolSetpoint, 10);
+        //let spaSetpoint = isDosing ? 100 : disabled ? 0 : parseInt(obj.spaSetpoint, 10);
+        let poolSetpoint = typeof obj.poolSetpoint !== 'undefined' ? parseInt(obj.poolSetpoint, 10) : chlor.poolSetpoint;
+        let spaSetpoint = typeof obj.spaSetpoint !== 'undefined' ? parseInt(obj.spaSetpoint, 10) : chlor.spaSetpoint;
+
         let model = typeof obj.model !== 'undefined' ? obj.model : chlor.model;
         let chlorType = typeof obj.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(obj.type) : chlor.type || 0;
         if (isAdd) {
@@ -2476,7 +2480,10 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         return new Promise<ChlorinatorState>((resolve, reject) => {
             let out = Outbound.create({
                 action: 168,
-                payload: [7, 0, id - 1, body.val, 1, disabled ? 0 : isDosing ? 100 : poolSetpoint, disabled ? 0 : isDosing ? 100 : spaSetpoint, superChlorinate ? 1 : 0, superChlorHours, 0, 1],
+                payload: [7, 0, id - 1, body.val, 1,
+                    disabled ? 0 : isDosing ? 100 : poolSetpoint,
+                    disabled ? 0 : isDosing ? 100 : spaSetpoint,
+                    superChlorinate ? 1 : 0, superChlorHours, 0, 1],
                 response: IntelliCenterBoard.getAckResponse(168),
                 retries: 5,
                 onComplete: (err, msg) => {
