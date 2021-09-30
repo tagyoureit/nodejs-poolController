@@ -424,10 +424,11 @@ export class WebServer {
         } catch (err) { logger.error(`Error validating restore options: ${err.message}`); }
     }
     public async restoreServers(opts): Promise<any> {
+        let stats: { backupOptions?: any, njsPC?: RestoreResults, servers: any[] } = { servers: [] };
         try {
-            let stats = { njsPC: {}, servers: [] };
             // Step 1: Extract all the files from the zip file.
             let rest = await RestoreFile.fromFile(opts.filePath);
+            stats.backupOptions = rest.options;
             // Step 2: Validate the njsPC data against the board. The return
             // from here shoudld give a very detailed view of what it is about to do.
             if (opts.options.njsPC === true) {
@@ -472,6 +473,16 @@ export class WebServer {
 
             return stats;
         } catch (err) { logger.error(`Error validating restore options: ${err.message}`); }
+        finally {
+            try {
+                let baseDir = process.cwd();
+                let ts = new Date();
+                function pad(n) { return (n < 10 ? '0' : '') + n; }
+                let filename = 'restoreLog(' + ts.getFullYear() + '-' + pad(ts.getMonth() + 1) + '-' + pad(ts.getDate()) + '_' + pad(ts.getHours()) + '-' + pad(ts.getMinutes()) + '-' + pad(ts.getSeconds()) + ').log';
+                let filePath = path.join(baseDir, 'logs', filename);
+                fs.writeFileSync(filePath, JSON.stringify(stats, undefined, 3));
+            } catch (err) { logger.error(`Error writing restore log ${err.message}`); }
+        }
     }
 }
 class ProtoServer {
@@ -1529,6 +1540,41 @@ export class RestoreFile {
                 }
             }
         } catch(err) { this.errors.push(err); logger.error(`Error extracting restore options from ${file}: ${err.message}`); }
+    }
+}
+export class RestoreResults {
+    public errors = [];
+    public warnings = [];
+    public success = [];
+    public modules: { name: string, errors: any[], warnings: any[], success:any[], restored: number, ignored: number }[] = [];
+    protected getModule(name: string): { name: string, errors: any[], warnings: any[], success:any[], restored: number, ignored: number } {
+        let mod = this.modules.find(elem => name === elem.name);
+        if (typeof mod === 'undefined') {
+            mod = { name: name, errors: [], warnings: [], success: [], restored: 0, ignored: 0 };
+            this.modules.push(mod);
+        }
+        return mod;
+    }
+    public addModuleError(name: string, err: any): { name: string, errors: any[], warnings: any[], success:any[], restored: number, ignored: number } {
+        let mod = this.getModule(name);
+        mod.errors.push(err);
+        mod.ignored++;
+        logger.error(`Restore ${name} -> ${err}`);
+        return mod;
+    }
+    public addModuleWarning(name: string, warn: any): { name: string, errors: any[], warnings: any[], success:any[], restored: number, ignored: number }  {
+        let mod = this.getModule(name);
+        mod.warnings.push(warn);
+        mod.restored++;
+        logger.warn(`Restore ${name} -> ${warn}`);
+        return mod;
+    }
+    public addModuleSuccess(name: string, success: any): { name: string, errors: any[], warnings: any[], success: any[], restored: number, ignored: number } {
+        let mod = this.getModule(name);
+        mod.success.push(success);
+        mod.restored++;
+        logger.info(`Restore ${name} -> ${success}`);
+        return mod;
     }
 }
 export const webApp = new WebServer();

@@ -23,6 +23,8 @@ import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupC
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError } from '../Errors';
 import { ncp } from "../nixie/Nixie";
 import { BodyTempState, ChemControllerState, ChlorinatorState, CircuitGroupState, FilterState, ICircuitGroupState, ICircuitState, LightGroupState, ScheduleState, state, TemperatureState, ValveState, VirtualCircuitState } from '../State';
+import { RestoreResults } from '../../web/Server';
+
 
 export class byteValueMap extends Map<number, any> {
   public transform(byte: number, ext?: number) { return extend(true, { val: byte || 0 }, this.get(byte) || this.get(0)); }
@@ -920,23 +922,39 @@ export class BoardCommands {
   constructor(parent: SystemBoard) { this.board = parent; }
 }
 export class SystemCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }): Promise<any> {
+    public async restore(rest: { poolConfig: any, poolState: any }): Promise<RestoreResults> {
+        let res = new RestoreResults();
         try {
             let ctx = await sys.board.system.validateRestore(rest);
             // Restore the general stuff.
             if (ctx.general.update.length > 0) await sys.board.system.setGeneralAsync(ctx.general.upadate[0]);
-            await sys.board.bodies.restore(rest, ctx);
-            await sys.board.filters.restore(rest, ctx);
-            await sys.board.circuits.restore(rest, ctx);
-            await sys.board.heaters.restore(rest, ctx);
-            await sys.board.features.restore(rest, ctx);
-            await sys.board.pumps.restore(rest, ctx);
-            await sys.board.valves.restore(rest, ctx);
-            await sys.board.chlorinator.restore(rest, ctx);
-            await sys.board.chemControllers.restore(rest, ctx);
-            await sys.board.schedules.restore(rest, ctx);
+            for (let i = 0; i < ctx.customNames.update.length; i++) {
+                let cn = ctx.customNames.update[i];
+                try {
+                    await sys.board.system.setCustomNameAsync(cn);
+                    res.addModuleSuccess('customName', `Update: ${cn.id}-${cn.name}`);
+                } catch (err) { res.addModuleError('customName', `Update: ${cn.id}-${cn.name}: ${err.message}`); }
+            }
+            for (let i = 0; i < ctx.customNames.add.length; i++) {
+                let cn = ctx.customNames.add[i];
+                try {
+                    await sys.board.system.setCustomNameAsync(cn);
+                    res.addModuleSuccess('customName', `Add: ${cn.id}-${cn.name}`);
+                } catch (err) { res.addModuleError('customName', `Add: ${cn.id}-${cn.name}: ${err.message}`); }
+            }
+            await sys.board.bodies.restore(rest, ctx, res);
+            await sys.board.filters.restore(rest, ctx, res);
+            await sys.board.circuits.restore(rest, ctx, res);
+            await sys.board.heaters.restore(rest, ctx, res);
+            await sys.board.features.restore(rest, ctx, res);
+            await sys.board.pumps.restore(rest, ctx, res);
+            await sys.board.valves.restore(rest, ctx, res);
+            await sys.board.chlorinator.restore(rest, ctx, res);
+            await sys.board.chemControllers.restore(rest, ctx, res);
+            await sys.board.schedules.restore(rest, ctx, res);
+            return res;
             //await sys.board.covers.restore(rest, ctx);
-        } catch (err) { logger.error(`Error restoring njsPC server: ${err.message}`); }
+        } catch (err) { logger.error(`Error restoring njsPC server: ${err.message}`); res.addModuleError('system', err.message); }
     }
     public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<any> {
         try {
@@ -945,6 +963,13 @@ export class SystemCommands extends BoardCommands {
             // Step 1 - Verify that the boards are the same.  For instance you do not want to restore an IntelliTouch to an IntelliCenter.
             let cfg = rest.poolConfig;
             if (sys.controllerType === cfg.controllerType) {
+                ctx.customNames = { errors: [], warnings: [], add: [], update: [], remove: [] };
+                let customNames = sys.customNames.get();
+                for (let i = 0; i < rest.poolConfig.customNames.length; i++) {
+                    let cn = customNames.find(elem => elem.id === rest.poolConfig.customNames[i].id);
+                    if (typeof cn === 'undefined') ctx.customNames.add.push(rest.poolConfig.customNames[i]);
+                    else if (JSON.stringify(rest.poolConfig.customNames[i]) !== JSON.stringify(cn)) ctx.customNames.update.push(cn);
+                }
                 ctx.general = { errors: [], warnings: [], add: [], update: [], remove: [] };
                 if (JSON.stringify(sys.general.get()) !== JSON.stringify(cfg.pool)) ctx.general.update(cfg.pool);
                 ctx.bodies = await sys.board.bodies.validateRestore(rest);
@@ -1240,23 +1265,34 @@ export class SystemCommands extends BoardCommands {
     }
 }
 export class BodyCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
         try {
             // First delete the bodies that should be removed.
             for (let i = 0; i < ctx.bodies.remove.length; i++) {
-                sys.bodies.removeItemById(ctx.bodies.remove[i].id);
-                state.temps.bodies.removeItemById(ctx.bodies.remove[i].id);
+                let body = ctx.bodies.remove[i];
+                try {
+                    sys.bodies.removeItemById(body.id);
+                    state.temps.bodies.removeItemById(body.id);
+                    res.addModuleSuccess('body', `Remove: ${body.id}-${body.name}`);
+                } catch (err) { res.addModuleError('body', `Remove: ${body.id}-${body.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.bodies.update.length; i++) {
-                await sys.board.bodies.setBodyAsync(ctx.bodies.update[i]);
+                let body = ctx.bodies.update[i];
+                try {
+                    await sys.board.bodies.setBodyAsync(body);
+                    res.addModuleSuccess('body', `Update: ${body.id}-${body.name}`);
+                } catch (err) { res.addModuleError('body', `Update: ${body.id}-${body.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.bodies.add.length; i++) {
-                // pull a little trick to first add the data then perform the update.
-                sys.bodies.getItemById(ctx.bodies.add[i].id, true);
-                await sys.board.bodies.setBodyAsync(ctx.bodies.add[i]);
+                let body = ctx.bodies.add[i];
+                try {
+                    // pull a little trick to first add the data then perform the update.
+                    sys.bodies.getItemById(body.id, true);
+                    await sys.board.bodies.setBodyAsync(body);
+                } catch (err) { res.addModuleError('body', `Add: ${body.id}-${body.name}: ${err.message}`); }
             }
             return true;
-        } catch (err) { logger.error(`Error restoring bodies: ${err.message}`); return false; }
+        } catch (err) { logger.error(`Error restoring bodies: ${err.message}`); res.addModuleError('system', `Error restoring bodies: ${err.message}`); return false; }
     }
     public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any}> {
         try {
@@ -1644,25 +1680,36 @@ export class BodyCommands extends BoardCommands {
     }
 }
 export class PumpCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
         try {
             // First delete the pumps that should be removed.
             for (let i = 0; i < ctx.pumps.remove.length; i++) {
-                await sys.board.pumps.deletePumpAsync(ctx.pumps.remove[i]);
+                let p = ctx.pumps.remove[i];
+                try {
+                    await sys.board.pumps.deletePumpAsync(p);
+                    res.addModuleSuccess('pump', `Remove: ${p.id}-${p.name}`);
+                } catch (err) { res.addModuleError('pump', `Remove: ${p.id}-${p.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.pumps.update.length; i++) {
-                await sys.board.pumps.setPumpAsync(ctx.pumps.update[i]);
+                let p = ctx.pumps.update[i];
+                try {
+                    await sys.board.pumps.setPumpAsync(p);
+                    res.addModuleSuccess('pump', `Update: ${p.id}-${p.name}`);
+                } catch (err) { res.addModuleError('pump', `Update: ${p.id}-${p.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.pumps.add.length; i++) {
-                // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-                // it won't error out.
-                sys.pumps.getItemById(ctx.pumps.add[i].id, true);
-                await sys.board.pumps.setPumpAsync(ctx.pumps.add[i]);
+                let p = ctx.pumps.add[i];
+                try {
+                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                    // it won't error out.
+                    sys.pumps.getItemById(p, true);
+                    await sys.board.pumps.setPumpAsync(p);
+                    res.addModuleSuccess('pump', `Add: ${p.id}-${p.name}`);
+                } catch (err) { res.addModuleError('pump', `Add: ${p.id}-${p.name}: ${err.message}`); }
             }
             return true;
-        } catch (err) { logger.error(`Error restoring pumps: ${err.message}`); return false; }
+        } catch (err) { logger.error(`Error restoring pumps: ${err.message}`); res.addModuleError('system', `Error restoring pumps: ${err.message}`); return false; }
     }
-
     public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
         try {
             let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
@@ -1806,38 +1853,74 @@ export class PumpCommands extends BoardCommands {
   }
 }
 export class CircuitCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
         try {
             // First delete the circuit/lightGroups that should be removed.
             for (let i = 0; i < ctx.circuitGroups.remove.length; i++) {
-                await sys.board.circuits.deleteCircuitGroupAsync(ctx.circuitGroups.remove[i]);
+                let c = ctx.circuitGroups.remove[i];
+                try {
+                    await sys.board.circuits.deleteCircuitGroupAsync(c);
+                    res.addModuleSuccess('circuitGroup', `Remove: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('circuitGroup', `Remove: ${c.id}-${c.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.lightGroups.remove.length; i++) {
-                await sys.board.circuits.deleteLightGroupAsync(ctx.lightGroups.remove[i]);
+                let c = ctx.lightGroups.remove[i];
+                try {
+                    await sys.board.circuits.deleteLightGroupAsync(c);
+                    res.addModuleSuccess('lightGroup', `Remove: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('lightGroup', `Remove: ${c.id}-${c.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.circuits.remove.length; i++) {
-                await sys.board.circuits.deleteCircuitAsync(ctx.circuits.remove[i]);
+                let c = ctx.circuits.remove[i];
+                try {
+                    await sys.board.circuits.deleteCircuitAsync(c);
+                    res.addModuleSuccess('circuit', `Remove: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('circuit', `Remove: ${c.id}-${c.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.circuits.add.length; i++) {
-                await sys.board.circuits.setCircuitAsync(ctx.circuits.add[i]);
+                let c = ctx.circuits.add[i];
+                try {
+                    await sys.board.circuits.setCircuitAsync(c);
+                    res.addModuleSuccess('circuit', `Add: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('circuit', `Add: ${c.id}-${c.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.circuitGroups.add.length; i++) {
-                await sys.board.circuits.setCircuitGroupAsync(ctx.circuitGroups.add[i]);
+                let c = ctx.circuitGroups.add[i];
+                try {
+                    await sys.board.circuits.setCircuitGroupAsync(c);
+                    res.addModuleSuccess('circuitGroup', `Add: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('circuitGroup', `Add: ${c.id}-${c.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.lightGroups.add.length; i++) {
-                await sys.board.circuits.setLightGroupAsync(ctx.lightGroups.add[i]);
+                let c = ctx.lightGroups.add[i];
+                try {
+                    await sys.board.circuits.setLightGroupAsync(c);
+                    res.addModuleSuccess('lightGroup', `Add: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('lightGroup', `Add: ${c.id}-${c.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.circuits.update.length; i++) {
-                await sys.board.circuits.setCircuitAsync(ctx.circuits.update[i]);
+                let c = ctx.circuits.update[i];
+                try {
+                    await sys.board.circuits.setCircuitAsync(c);
+                    res.addModuleSuccess('circuit', `Update: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('circuit', `Update: ${c.id}-${c.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.circuitGroups.update.length; i++) {
-                await sys.board.circuits.setCircuitGroupAsync(ctx.circuitGroups.update[i]);
+                let c = ctx.circuitGroups.update[i];
+                try {
+                    await sys.board.circuits.setCircuitGroupAsync(c);
+                    res.addModuleSuccess('circuitGroup', `Update: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('circuitGroup', `Update: ${c.id}-${c.name}: ${err.message}`); }
             }
-            for (let i = 0; i < ctx.lightGroups.update.length; i++) {
-                await sys.board.circuits.setLightGroupAsync(ctx.lightGroups.update[i]);
+            for (let i = 0; i < ctx.lightGroups.add.length; i++) {
+                let c = ctx.lightGroups.update[i];
+                try {
+                    await sys.board.circuits.setLightGroupAsync(c);
+                    res.addModuleSuccess('lightGroup', `Update: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('lightGroup', `Update: ${c.id}-${c.name}: ${err.message}`); }
             }
             return true;
-        } catch (err) { logger.error(`Error restoring circuits: ${err.message}`); return false; }
+        } catch (err) { logger.error(`Error restoring circuits: ${err.message}`); res.addModuleError('system', `Error restoring circuits/features: ${err.message}`); return false; }
     }
     public async validateRestore(rest: { poolConfig: any, poolState: any }, ctxRoot): Promise<boolean> {
         try {
@@ -2505,25 +2588,36 @@ export class CircuitCommands extends BoardCommands {
   }
 }
 export class FeatureCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
         try {
             // First delete the features that should be removed.
             for (let i = 0; i < ctx.features.remove.length; i++) {
-                await sys.board.features.deleteFeatureAsync(ctx.features.remove[i]);
+                let f = ctx.features.remove[i];
+                try {
+                    await sys.board.features.deleteFeatureAsync(f);
+                    res.addModuleSuccess('feature', `Remove: ${f.id}-${f.name}`);
+                } catch (err) { res.addModuleError('feature', `Remove: ${f.id}-${f.name}: ${err.message}`) }
             }
             for (let i = 0; i < ctx.features.update.length; i++) {
-                await sys.board.features.setFeatureAsync(ctx.features.update[i]);
+                let f = ctx.features.update[i];
+                try {
+                    await sys.board.features.setFeatureAsync(f);
+                    res.addModuleSuccess('feature', `Update: ${f.id}-${f.name}`);
+                } catch (err) { res.addModuleError('feature', `Update: ${f.id}-${f.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.features.add.length; i++) {
                 // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
                 // it won't error out.
-                sys.features.getItemById(ctx.features.add[i].id, true);
-                await sys.board.features.setFeatureAsync(ctx.features.add[i]);
+                let f = ctx.features.add[i];
+                try {
+                    sys.features.getItemById(f, true);
+                    await sys.board.features.setFeatureAsync(f);
+                    res.addModuleSuccess('feature', `Add: ${f.id}-${f.name}`);
+                } catch (err) { res.addModuleError('feature', `Add: ${f.id}-${f.name}: ${err.message}`) }
             }
             return true;
-        } catch (err) { logger.error(`Error restoring features: ${err.message}`); return false; }
+        } catch (err) { logger.error(`Error restoring features: ${err.message}`); res.addModuleError('system', `Error restoring features: ${err.message}`); return false; }
     }
-
     public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
         try {
             let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
@@ -2659,23 +2753,35 @@ export class FeatureCommands extends BoardCommands {
   }
 }
 export class ChlorinatorCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
         try {
             // First delete the chlorinators that should be removed.
             for (let i = 0; i < ctx.chlorinators.remove.length; i++) {
-                await sys.board.chlorinator.deleteChlorAsync(ctx.chlorinators.remove[i]);
+                let c = ctx.chlorinators.remove[i];
+                try {
+                    await sys.board.chlorinator.deleteChlorAsync(c);
+                    res.addModuleSuccess('chlorinator', `Remove: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('chlorinator', `Remove: ${c.id}-${c.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.chlorinators.update.length; i++) {
-                await sys.board.chlorinator.setChlorAsync(ctx.chlorinators.update[i]);
+                let c = ctx.chlorinators.update[i];
+                try {
+                    await sys.board.chlorinator.setChlorAsync(c);
+                    res.addModuleSuccess('chlorinator', `Update: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('chlorinator', `Update: ${c.id}-${c.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.chlorinators.add.length; i++) {
-                // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-                // it won't error out.
-                sys.chlorinators.getItemById(ctx.chlorinators.add[i].id, true);
-                await sys.board.chlorinator.setChlorAsync(ctx.chlorinators.add[i]);
+                let c = ctx.chlorinators.add[i];
+                try {
+                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                    // it won't error out.
+                    sys.chlorinators.getItemById(c.id, true);
+                    await sys.board.chlorinator.setChlorAsync(c);
+                    res.addModuleSuccess('chlorinator', `Add: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('chlorinator', `Add: ${c.id}-${c.name}: ${err.message}`); }
             }
             return true;
-        } catch (err) { logger.error(`Error restoring chlorinators: ${err.message}`); return false; }
+        } catch (err) { logger.error(`Error restoring chlorinators: ${err.message}`); res.addModuleError('system', `Error restoring chlorinators: ${err.message}`); return false; }
     }
 
     public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
@@ -2740,23 +2846,35 @@ export class ChlorinatorCommands extends BoardCommands {
   }
 }
 export class ScheduleCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
         try {
             // First delete the schedules that should be removed.
             for (let i = 0; i < ctx.schedules.remove.length; i++) {
-                await sys.board.schedules.deleteScheduleAsync(ctx.schedules.remove[i]);
+                let s = ctx.schedules.remove[i];
+                try {
+                    await sys.board.schedules.deleteScheduleAsync(ctx.schedules.remove[i]);
+                    res.addModuleSuccess('schedule', `Remove: ${s.id}-${s.circiutId}`);
+                } catch (err) { res.addModuleError('schedule', `Remove: ${s.id}-${s.circuitId} ${err.message}`); }
             }
             for (let i = 0; i < ctx.schedules.update.length; i++) {
-                await sys.board.schedules.setScheduleAsync(ctx.schedules.update[i]);
+                let s = ctx.schedules.update[i];
+                try {
+                    await sys.board.schedules.setScheduleAsync(s);
+                    res.addModuleSuccess('schedule', `Update: ${s.id}-${s.circiutId}`);
+                } catch (err) { res.addModuleError('schedule', `Update: ${s.id}-${s.circuitId} ${err.message}`); }
             }
             for (let i = 0; i < ctx.schedules.add.length; i++) {
-                // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-                // it won't error out.
-                sys.schedules.getItemById(ctx.schedules.add[i].id, true);
-                await sys.board.schedules.setScheduleAsync(ctx.schedules.add[i]);
+                let s = ctx.schedules.add[i];
+                try {
+                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                    // it won't error out.
+                    sys.schedules.getItemById(s.id, true);
+                    await sys.board.schedules.setScheduleAsync(s);
+                    res.addModuleSuccess('schedule', `Add: ${s.id}-${s.circiutId}`);
+                } catch (err) { res.addModuleError('schedule', `Add: ${s.id}-${s.circuitId} ${err.message}`); }
             }
             return true;
-        } catch (err) { logger.error(`Error restoring bodies: ${err.message}`); return false; }
+        } catch (err) { logger.error(`Error restoring schedules: ${err.message}`); res.addModuleError('system', `Error restoring schedules: ${err.message}`); return false; }
     }
     public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
         try {
@@ -3012,23 +3130,35 @@ export class ScheduleCommands extends BoardCommands {
   }
 }
 export class HeaterCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
         try {
             // First delete the heaters that should be removed.
             for (let i = 0; i < ctx.heaters.remove.length; i++) {
-                await sys.board.heaters.deleteHeaterAsync(ctx.heaters.remove[i]);
+                let h = ctx.heaters.remove[i];
+                try {
+                    await sys.board.heaters.deleteHeaterAsync(h);
+                    res.addModuleSuccess('heater', `Remove: ${h.id}-${h.name}`);
+                } catch (err) { res.addModuleError('heater', `Remove: ${h.id}-${h.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.heaters.update.length; i++) {
-                await sys.board.heaters.setHeaterAsync(ctx.heaters.update[i]);
+                let h = ctx.heaters.update[i];
+                try {
+                    await sys.board.heaters.setHeaterAsync(h);
+                    res.addModuleSuccess('heater', `Update: ${h.id}-${h.name}`);
+                } catch (err) { res.addModuleError('heater', `Update: ${h.id}-${h.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.heaters.add.length; i++) {
-                // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-                // it won't error out.
-                sys.heaters.getItemById(ctx.heaters.add[i].id, true);
-                await sys.board.heaters.setHeaterAsync(ctx.heaters.add[i]);
+                let h = ctx.heaters.add[i];
+                try {
+                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                    // it won't error out.
+                    sys.heaters.getItemById(h, true);
+                    await sys.board.heaters.setHeaterAsync(h);
+                    res.addModuleSuccess('heater', `Add: ${h.id}-${h.name}`);
+                } catch (err) { res.addModuleError('heater', `Add: ${h.id}-${h.name}: ${err.message}`); }
             }
             return true;
-        } catch (err) { logger.error(`Error restoring bodies: ${err.message}`); return false; }
+        } catch (err) {  logger.error(`Error restoring heaters: ${err.message}`); res.addModuleError('system', `Error restoring heaters: ${err.message}`); return false; }
     }
     public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
         try {
@@ -3466,23 +3596,35 @@ export class HeaterCommands extends BoardCommands {
     }
 }
 export class ValveCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
         try {
             // First delete the valves that should be removed.
             for (let i = 0; i < ctx.valves.remove.length; i++) {
-                await sys.board.valves.deleteValveAsync(ctx.valves.remove[i]);
+                let v = ctx.valves.remove[i];
+                try {
+                    await sys.board.valves.deleteValveAsync(v);
+                    res.addModuleSuccess('valve', `Remove: ${v.id}-${v.name}`);
+                } catch (err) { res.addModuleError('valve', `Remove: ${v.id}-${v.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.valves.update.length; i++) {
-                await sys.board.valves.setValveAsync(ctx.valves.update[i]);
+                let v = ctx.valves.update[i];
+                try {
+                    await sys.board.valves.setValveAsync(v);
+                    res.addModuleSuccess('valve', `Update: ${v.id}-${v.name}`);
+                } catch (err) { res.addModuleError('valve', `Update: ${v.id}-${v.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.valves.add.length; i++) {
-                // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-                // it won't error out.
-                sys.valves.getItemById(ctx.valves.add[i].id, true);
-                await sys.board.valves.setValveAsync(ctx.valves.add[i]);
+                let v = ctx.valves.add[i];
+                try {
+                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                    // it won't error out.
+                    sys.valves.getItemById(ctx.valves.add[i].id, true);
+                    await sys.board.valves.setValveAsync(v);
+                    res.addModuleSuccess('valve', `Add: ${v.id}-${v.name}`);
+                } catch (err) { res.addModuleError('valve', `Add: ${v.id}-${v.name}: ${err.message}`); }
             }
             return true;
-        } catch (err) { logger.error(`Error restoring valves: ${err.message}`); return false; }
+        } catch (err) { logger.error(`Error restoring valves: ${err.message}`); res.addModuleError('system', `Error restoring valves: ${err.message}`); return false; }
     }
 
     public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
@@ -3582,23 +3724,35 @@ export class ValveCommands extends BoardCommands {
   }
 }
 export class ChemControllerCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
         try {
             // First delete the chemControllers that should be removed.
             for (let i = 0; i < ctx.chemControllers.remove.length; i++) {
-                await sys.board.chemControllers.deleteChemControllerAsync(ctx.chemControllers.remove[i]);
+                let c = ctx.chemControllers.remove[i];
+                try {
+                    await sys.board.chemControllers.deleteChemControllerAsync(c);
+                    res.addModuleSuccess('chemController', `Remove: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('chemController', `Remove: ${c.id}-${c.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.chemControllers.update.length; i++) {
-                await sys.board.chemControllers.setChemControllerAsync(ctx.chemControllers.update[i]);
+                let c = ctx.chemControllers.update[i];
+                try {
+                    await sys.board.chemControllers.setChemControllerAsync(c);
+                    res.addModuleSuccess('chemController', `Update: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('chemController', `Update: ${c.id}-${c.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.chemControllers.add.length; i++) {
-                // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-                // it won't error out.
-                sys.chemControllers.getItemById(ctx.chemControllers.add[i].id, true);
-                await sys.board.chemControllers.setChemControllerAsync(ctx.chemControllers.add[i]);
+                let c = ctx.chemControllers.add[i];
+                try {
+                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                    // it won't error out.
+                    sys.chemControllers.getItemById(c, true);
+                    await sys.board.chemControllers.setChemControllerAsync(c);
+                    res.addModuleSuccess('chemController', `Add: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('chemController', `Add: ${c.id}-${c.name}: ${err.message}`); }
             }
             return true;
-        } catch (err) { logger.error(`Error restoring chemControllers: ${err.message}`); return false; }
+        } catch (err) { logger.error(`Error restoring chemControllers: ${err.message}`); res.addModuleError('system', `Error restoring chemControllers: ${err.message}`); return false; }
     }
     public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
         try {
@@ -3758,23 +3912,35 @@ export class ChemControllerCommands extends BoardCommands {
   }
 }
 export class FilterCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any): Promise<boolean> {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
         try {
             // First delete the filters that should be removed.
             for (let i = 0; i < ctx.filters.remove.length; i++) {
-                sys.filters.removeItemById(ctx.filters[i].id);
-                state.filters.removeItemById(ctx.filters[i].id);
+                let filter = ctx.filters.remove[i];
+                try {
+                    sys.filters.removeItemById(filter.id);
+                    state.filters.removeItemById(filter.id);
+                    res.addModuleSuccess('filter', `Remove: ${filter.id}-${filter.name}`);
+                } catch (err) { res.addModuleError('filter', `Remove: ${filter.id}-${filter.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.filters.update.length; i++) {
-                await sys.board.filters.setFilterAsync(ctx.filters.update[i]);
+                let filter = ctx.filters.update[i];
+                try {
+                    await sys.board.filters.setFilterAsync(filter);
+                    res.addModuleSuccess('filter', `Update: ${filter.id}-${filter.name}`);
+                } catch (err) { res.addModuleError('filter', `Update: ${filter.id}-${filter.name}: ${err.message}`); }
             }
             for (let i = 0; i < ctx.filters.add.length; i++) {
-                // pull a little trick to first add the data then perform the update.
-                sys.filters.getItemById(ctx.filters.add[i].id, true);
-                await sys.board.filters.setFilterAsync(ctx.filters.add[i]);
+                let filter = ctx.filters.add[i];
+                try {
+                    // pull a little trick to first add the data then perform the update.
+                    sys.filters.getItemById(filter.id, true);
+                    await sys.board.filters.setFilterAsync(filter);
+                    res.addModuleSuccess('filter', `Add: ${filter.id}-${filter.name}`);
+                } catch (err) { res.addModuleError('filter', `Add: ${filter.id}-${filter.name}: ${err.message}`); }
             }
             return true;
-        } catch (err) { logger.error(`Error restoring filters: ${err.message}`); return false; }
+        } catch (err) { logger.error(`Error restoring filters: ${err.message}`); res.addModuleError('system', `Error restoring filters: ${err.message}`); return false; }
     }
     public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
         try {

@@ -33,7 +33,7 @@ export class ChlorinatorMessage {
                         chlor.isActive = schlor.isActive = true;
                         chlor.body = msg.extractPayloadByte(i + 2);
                         chlor.type = msg.extractPayloadByte(i + 6);
-                        if (!chlor.disabled) {
+                        if (!chlor.disabled && !chlor.isDosing) {
                             // RKS: We don't want to change the setpoints if our chem controller disabled
                             // the chlorinator.  These should be 0.
                             chlor.poolSetpoint = msg.extractPayloadByte(i + 10);

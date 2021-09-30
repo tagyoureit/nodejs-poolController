@@ -875,6 +875,8 @@ export class ConfigRoute {
             try {
                 let opts = config.getSection('controller.backups', { automatic: false, interval: { days: 30, hours: 0, keepCount: 5, servers: [] } });
                 let servers = await sys.ncp.getREMServers();
+                // Just in case somebody deletes the backup section and doesn't put it back properly.
+                if (typeof opts.servers === 'undefined') opts.servers = [];
                 for (let i = 0; i < servers.length; i++) {
                     let srv = servers[i];
                     if (typeof opts.servers.find(elem => elem.uuid === srv.uuid) === 'undefined') opts.servers.push({ name: srv.name, uuid: srv.uuid, backup: false });
