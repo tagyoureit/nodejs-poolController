@@ -229,7 +229,7 @@ export class StateRoute {
                 if (typeof req.body.heatSetpoint !== 'undefined' && !isNaN(parseInt(req.body.heatSetpoint, 10)))
                     await sys.board.bodies.setHeatSetpointAsync(body, parseInt(req.body.heatSetpoint, 10));
                 else if (typeof req.body.setPoint !== 'undefined' && !isNaN(parseInt(req.body.setPoint, 10)))
-                    await sys.board.bodies.setHeatSetpointAsync(body, parseInt(req.body.heatSetpoint, 10));
+                    await sys.board.bodies.setHeatSetpointAsync(body, parseInt(req.body.setpoint, 10));
                 let tbody = state.temps.bodies.getItemById(body.id);
                 return res.status(200).send(tbody.get(true));
             } catch (err) { next(err); }
