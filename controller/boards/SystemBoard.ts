@@ -4015,10 +4015,24 @@ export class FilterCommands extends BoardCommands {
                             let f = feats[i];
                             if (!f.isOn) continue;
                             if (f.id === filter.pressureCircuitId) continue;
-                            if (f.type != 0) fon = true;
+                            if (f.type !== 0) fon = true;
                             // Check to see if this feature is used on a valve.  This will make it
-                            // us not include this either.  We do not care whether the valve is diverted or not.
-                            if (typeof state.valves.find(elem => elem.circuitId === f.id) !== 'undefined') fon = true;
+                            // not include this pressure either.  We do not care whether the valve is diverted or not.
+                            if (typeof sys.valves.find(elem => elem.circuitId === f.id) !== 'undefined')
+                                fon = true;
+                            else {
+                                // Finally if the feature happens to be used on a pump then we don't want it either.
+                                let pumps = sys.pumps.get();
+                                for (let j = 0; j < pumps.length; j++) {
+                                    let pmp = pumps[j];
+                                    if (typeof pmp.circuits !== 'undefined') {
+                                        if (typeof pmp.circuits.find(elem => elem.circuit === f.id) !== 'undefined') {
+                                            fon = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
                         }
                         if (!fon) {
                             // Finally we have a value we can believe in.
