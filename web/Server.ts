@@ -234,11 +234,13 @@ export class WebServer {
             let backupDir = path.join(process.cwd(), 'backups');
             let files = fs.readdirSync(backupDir);
             let backups = [];
-            for (let i = 0; i < files.length; i++) {
-                let file = files[i];
-                if (path.extname(file) === '.zip') {
-                    let bf = await BackupFile.fromFile(path.join(backupDir, file));
-                    if (typeof bf !== 'undefined') backups.push(bf);
+            if (typeof files !== 'undefined') {
+                for (let i = 0; i < files.length; i++) {
+                    let file = files[i];
+                    if (path.extname(file) === '.zip') {
+                        let bf = await BackupFile.fromFile(path.join(backupDir, file));
+                        if (typeof bf !== 'undefined') backups.push(bf);
+                    }
                 }
             }
             backups.sort((a, b) => { return Date.parse(b.options.backupDate) - Date.parse(a.options.backupDate) });
