@@ -313,6 +313,11 @@
           "description": "Setpoint."
         },
         {
+          "topic": "state/temps/bodies/@bind=data.id;/coolSetpoint",
+          "message": "@bind=data.coolSetpoint;",
+          "description": "Cool setpoint."
+        },
+        {
           "topic": "state/temps/bodies/@bind=data.id;/temp",
           "message": "@bind=data.temp;",
           "description": "Body Temp."
