@@ -65,8 +65,7 @@ export class ChlorinatorStateMessage {
                     // This is the model number of the chlorinator and the address is actually the second byte.
                     let name = msg.extractPayloadString(1, 16);
                     if (typeof chlor.model === 'undefined') chlor.model = name.toLowerCase();
-                    if (typeof chlor.name === 'undefined' || chlor.name === '') chlor.name = name;
-                    cstate.name = chlor.name;
+                    if (typeof chlor.name === 'undefined' || chlor.name === '') chlor.name = cstate.name = name;
                     cstate.isActive = chlor.isActive;
                     state.emitEquipmentChanges();
                     break;

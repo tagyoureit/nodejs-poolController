@@ -1839,7 +1839,7 @@ export class ChemController extends EqItem {
         //var chemController = {
         //    id: 'number',               // Id of the controller
         //    name: 'string',             // Name assigned to the controller
-        //    type: 'valueMap',           // intellichem, homegrown, rem -- There is an unknown but that should probably go away.
+        //    type: 'valueMap',           // intellichem, rem -- There is an unknown but that should probably go away.
         //    body: 'valueMap',           // Body assigned to the chem controller.
         //    address: 'number',          // Address for IntelliChem controller only.
         //    isActive: 'booean',

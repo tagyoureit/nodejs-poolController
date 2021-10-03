@@ -9,6 +9,7 @@ import { EquipmentNotFoundError, EquipmentTimeoutError, InvalidEquipmentDataErro
 import { ChemControllerState, ChemicalChlorState, ChemicalDoseState, ChemicalORPState, ChemicalPhState, ChemicalProbeORPState, ChemicalProbePHState, ChemicalProbeState, ChemicalPumpState, ChemicalState, ChemicalTankState, ChlorinatorState, state } from "../../State";
 import { ncp } from '../Nixie';
 import { INixieControlPanel, NixieChildEquipment, NixieEquipment, NixieEquipmentCollection } from "../NixieEquipment";
+import { NixieChlorinator } from './Chlorinator';
 
 
 export class NixieChemControllerCollection extends NixieEquipmentCollection<NixieChemControllerBase> {
@@ -98,6 +99,19 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
 
         } catch (err) { } // Don't bail if we have an error
     }
+    public async deleteChlorAsync(chlor: NixieChlorinator) {
+        // if we delete the chlor, make sure it is removed from all REM Chem Controllers
+        try {
+            for (let i = this.length - 1; i >= 0; i--) {
+                try {
+                    let ncc = this[i] as NixieChemControllerBase;;
+                    ncc.orp.deleteChlorAsync(chlor);
+                } catch (err) { logger.error(`Error deleting chlor from Nixie Chem Controller ${err}`); return Promise.reject(err); }
+            }
+
+        }
+        catch (err) { logger.error(`ncp.deleteChlorAsync: ${err.message}`); return Promise.reject(err); }
+    }
     // This is currently not used for anything.
     /*     public async searchIntelliChem(): Promise<number[]> {
             let arr = [];
@@ -145,12 +159,10 @@ export class NixieChemControllerBase extends NixieEquipment {
     public chem: ChemController;
     public syncRemoteREMFeeds(servers) { }
     public static create(ncp: INixieControlPanel, chem: ChemController): NixieChemControllerBase {
-        // RKS: 06-25-21 - Keeping the homegrown around for now but I don't really know why we care.
         let type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
         switch (type.name) {
             case 'intellichem':
                 return new NixieIntelliChemController(ncp, chem);
-            case 'homegrown':
             case 'rem':
                 return new NixieChemController(ncp, chem);
             default:
@@ -203,7 +215,7 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
             let address = typeof data.address !== 'undefined' ? parseInt(data.address) : chem.address;
             let name = typeof data.name !== 'undefined' ? data.name : chem.name || `IntelliChem - ${address - 143}`;
             let type = sys.board.valueMaps.chemControllerTypes.transformByName('intellichem');
-            // So now we are down to the nitty gritty setting the data for the REM or Homegrown Chem controller.
+            // So now we are down to the nitty gritty setting the data for the REM Chem controller.
             let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
             let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
             let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
@@ -584,7 +596,6 @@ export class NixieChemController extends NixieChemControllerBase {
                     await this.checkFlowAsync(schem);
                     await this.validateSetupAsync(this.chem, schem);
                     if (this.chem.ph.enabled) await this.ph.probe.setTempCompensationAsync(schem.ph.probe);
-                    // We are not processing Homegrown at this point.
                     // Check each piece of equipment to make sure it is doing its thing.
                     schem.calculateSaturationIndex();
                     this.processAlarms(schem);
@@ -2126,6 +2137,14 @@ export class NixieChemicalORP extends NixieChemical {
             }
         }
         catch (err) { logger.error(`checkDosing ORP: ${err.message}`); return Promise.reject(err); }
+    }
+    public async deleteChlorAsync(chlor: NixieChlorinator) {
+        logger.info(`Removing chlor ${chlor.id} from Chem Controller ${this.getParent().id}`);
+        let schem = state.chemControllers.getItemById(this.getParent().id);
+        this.orp.useChlorinator = false;
+        schem.orp.useChlorinator = false;
+        if (schem.orp.dosingStatus === 0) { await this.cancelDosing(schem.orp, 'deleting chlorinator'); }
+        if (schem.orp.dosingStatus === 1) { await this.cancelMixing(schem.orp); }
     }
 }
 class NixieChemProbe extends NixieChildEquipment {

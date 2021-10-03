@@ -161,7 +161,7 @@ export class StateSocket {
                         if (typeof data.orpTank.units === 'string') scontroller.orp.tank.units = controller.orp.tank.units = data.orpTank.units;
                     }
 
-                    // Need to build this out to include the type of controller.  If this is Homegrown or REM Chem we
+                    // Need to build this out to include the type of controller.  If this is REM Chem we
                     // will send the whole rest of the nut over to it.  Intellichem will only let us
                     // set specific values.
                     if (controller.type === 3) {

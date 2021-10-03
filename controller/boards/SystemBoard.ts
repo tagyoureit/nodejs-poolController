@@ -520,7 +520,7 @@ export class byteValueMaps {
     [0, { name: 'none', desc: 'None', ph: { min: 6.8, max: 7.6 }, orp: { min: 400, max: 800 }, hasAddress: false }],
     [1, { name: 'unknown', desc: 'Unknown', ph: { min: 6.8, max: 7.6 }, hasAddress: false }],
     [2, { name: 'intellichem', desc: 'IntelliChem', ph: { min: 7.2, max: 7.6 }, orp: { min: 400, max: 800 }, hasAddress: true }],
-    [3, { name: 'homegrown', desc: 'Homegrown', ph: { min: 6.8, max: 7.6 }, hasAddress: false }],
+    // [3, { name: 'homegrown', desc: 'Homegrown', ph: { min: 6.8, max: 7.6 }, hasAddress: false }],
     [4, { name: 'rem', desc: 'REM Chem', ph: { min: 6.8, max: 8.0 }, hasAddress: false }]
   ]);
   public siCalcTypes: byteValueMap = new byteValueMap([
@@ -2822,7 +2822,7 @@ export class ChlorinatorCommands extends BoardCommands {
   public async deleteChlorAsync(obj: any): Promise<ChlorinatorState> {
     try {
       let id = parseInt(obj.id, 10);
-      if (isNaN(id)) obj.id = 1;
+      if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator id is not valid: ${obj.id}`, 'chlorinator', obj.id));
       let chlor = state.chlorinators.getItemById(id);
       chlor.isActive = false;
       await ncp.chlorinators.deleteChlorinatorAsync(id);

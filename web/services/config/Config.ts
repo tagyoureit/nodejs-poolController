@@ -289,7 +289,8 @@ export class ConfigRoute {
                 bodies: sys.board.bodies.getBodyAssociations(),
                 chlorinators: sys.chlorinators.get(),
                 maxChlorinators: sys.equipment.maxChlorinators,
-                models: sys.board.valueMaps.chlorinatorModel.toArray()
+                models: sys.board.valueMaps.chlorinatorModel.toArray(),
+                equipmentMasters: sys.board.valueMaps.equipmentMaster.toArray()
             };
             return res.status(200).send(opts);
         });

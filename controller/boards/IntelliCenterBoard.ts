@@ -2429,12 +2429,10 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
     public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);
         let isAdd = false;
-        let isVirtual = false;
-        if (id <= 0 || isNaN(id)) id = 1;
         let chlor = sys.chlorinators.getItemById(id);
-        if (id < 0 || isNaN(id)) {
+        if (id <= 0 || isNaN(id)) {
             isAdd = true;
-            chlor.master = utils.makeBool(obj.isVirtual) ? 0 : 1;
+            chlor.master = utils.makeBool(obj.master) ? 1 : 0;
             // Calculate an id for the chlorinator.  The messed up part is that if a chlorinator is not attached to the OCP, its address
             // cannot be set by the MUX.  This will have to wait.
             id = 1;
@@ -2443,6 +2441,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         //let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
         // If this is a virtual chlorinator then go to the base class and handle it from there.
         if (chlor.master === 1) return super.setChlorAsync(obj);
+        if (typeof chlor.master === 'undefined') chlor.master = 0;
         let name = obj.name || chlor.name || 'IntelliChlor' + id;
         let superChlorHours = parseInt(obj.superChlorHours, 10);
         if (typeof obj.superChlorinate !== 'undefined') obj.superChlor = utils.makeBool(obj.superChlorinate);
@@ -2511,21 +2510,22 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
     }
     public async deleteChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) obj.id = 1;
-
-        // Merge all the information.
-        let chlor = state.chlorinators.getItemById(id);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator id is not valid: ${obj.id}`, 'chlorinator', obj.id));
+        let chlor = sys.chlorinators.getItemById(id);
+        if (chlor.master === 1) return await super.deleteChlorAsync(obj);
+        let schlor = state.chlorinators.getItemById(id);
         // Verify the data.
         return new Promise<ChlorinatorState>((resolve, reject) => {
             let out = Outbound.create({
                 action: 168,
-                payload: [7, 0, id - 1, chlor.body || 0, 0, chlor.poolSetpoint || 0, chlor.spaSetpoint || 0, 0, chlor.superChlorHours || 0, 0, 0],
+                payload: [7, 0, id - 1, schlor.body || 0, 0, schlor.poolSetpoint || 0, schlor.spaSetpoint || 0, 0, schlor.superChlorHours || 0, 0, 0],
                 response: IntelliCenterBoard.getAckResponse(168),
                 retries: 5,
                 onComplete: (err, msg) => {
                     if (err) reject(err);
                     else {
-                        let schlor = state.chlorinators.getItemById(id, true);
+                        ncp.chlorinators.deleteChlorinatorAsync(id).then(()=>{});
+                        schlor = state.chlorinators.getItemById(id, true);
                         state.chlorinators.removeItemById(id);
                         sys.chlorinators.removeItemById(id);
                         resolve(schlor);
@@ -2614,7 +2614,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
         let id = (typeof data.id === 'undefined' || data.id <= 0) ? sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps) : parseInt(data.id, 10);
         if (isNaN(id)) return Promise.reject(new Error(`Invalid pump id: ${data.id}`));
         let pump = sys.pumps.getItemById(id, false);
-        if (data.master > 0 || pump.master > 0 || pump.isVirtual) return await super.setPumpAsync(data);
+        if (data.master > 0 || pump.master > 0) return await super.setPumpAsync(data);
 
         //                                        0                    6              10   11  12           15
         //[255, 0, 255][165, 63, 15, 16, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 128,   2, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][11, 218]
@@ -3583,7 +3583,7 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
         // Now lets do all our validation to the incoming chem controller data.
         let name = typeof data.name !== 'undefined' ? data.name : chem.name || `IntelliChem - ${address - 143}`;
         let type = sys.board.valueMaps.chemControllerTypes.transformByName('intellichem');
-        // So now we are down to the nitty gritty setting the data for the REM or Homegrown Chem controller.
+        // So now we are down to the nitty gritty setting the data for the REM Chem controller.
         let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
         let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
         let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;

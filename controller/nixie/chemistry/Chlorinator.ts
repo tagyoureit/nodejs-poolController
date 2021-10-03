@@ -9,6 +9,7 @@ import { setTimeout, clearTimeout } from 'timers';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
 import { Outbound, Protocol, Response } from '../../comms/messages/Messages';
 import { conn } from '../../comms/Comms';
+import { ncp } from '../Nixie';
 
 export class NixieChlorinatorCollection extends NixieEquipmentCollection<NixieChlorinator> {
     public async deleteChlorinatorAsync(id: number) {
@@ -18,6 +19,7 @@ export class NixieChlorinatorCollection extends NixieEquipmentCollection<NixieCh
             for (let i = this.length - 1; i >= 0; i--) {
                 let c = this[i];
                 if (c.id === id) {
+                    await ncp.chemControllers.deleteChlorAsync(c as NixieChlorinator);
                     await c.closeAsync();
                     this.splice(i, 1);
                 }
@@ -75,7 +77,6 @@ export class NixieChlorinator extends NixieEquipment {
     private _pollTimer: NodeJS.Timeout = null;
     private superChlorinating: boolean = false;
     private superChlorStart: number = 0;
-    private chlorinating: boolean = false;
     public chlor: Chlorinator;
     public bodyOnTime: number;
     protected _suspendPolling: number = 0;
@@ -101,7 +102,7 @@ export class NixieChlorinator extends NixieEquipment {
             let superChlorHours = typeof data.superChlorHours !== 'undefined' ? parseInt(data.superChlorHours, 10) : chlor.superChlorHours;
             let disabled = typeof data.disabled !== 'undefined' ? utils.makeBool(data.disabled) : chlor.disabled;
             let isDosing = typeof data.isDosing !== 'undefined' ? utils.makeBool(data.isDosing) : chlor.isDosing;
-            let model = typeof data.model !== 'undefined' ? data.model : chlor.model;
+            let model = typeof data.model !== 'undefined' ? data.model : chlor.model || 0;
             if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chlorinator', data.body || chlor.body));
             if (isNaN(poolSetpoint)) poolSetpoint = 0;
             if (isNaN(spaSetpoint)) spaSetpoint = 0;
@@ -113,9 +114,8 @@ export class NixieChlorinator extends NixieEquipment {
             schlor.superChlor = chlor.superChlor = superChlor;
             schlor.superChlorHours = chlor.superChlorHours = superChlorHours;
             schlor.type = chlor.type = chlorType;
-            chlor.body = body;
             chlor.model = model;
-            schlor.body = chlor.body;
+            schlor.body = chlor.body = body.val;
             chlor.disabled = disabled;
             chlor.isDosing = isDosing;
             schlor.name = chlor.name = data.name || chlor.name || `Chlorinator ${chlor.id}`;
@@ -178,7 +178,7 @@ export class NixieChlorinator extends NixieEquipment {
             // Comms failure will be handeled by the message processor.
             logger.error(`Chlorinator ${this.chlor.name} comms failure: ${err.message}`);
         }
-        finally { if(!this.closing) this._pollTimer = setTimeout(async () => { await self.pollEquipment(); }, this.pollingInterval); }
+        finally { if(!this.closing) this._pollTimer = setTimeout(() => {self.pollEquipment();}, this.pollingInterval); }
     }
     public async takeControl(): Promise<boolean> {
         try {
@@ -230,7 +230,7 @@ export class NixieChlorinator extends NixieEquipment {
             let setpoint = 0;
             if (typeof body !== 'undefined') {
                 setpoint = (body.id === 1) ? this.chlor.poolSetpoint : this.chlor.spaSetpoint;
-                if (this.chlor.superChlor === true) setpoint = 100;
+                if (this.chlor.superChlor === true || this.chlor.isDosing) setpoint = 100;
                 if (this.chlor.disabled === true) setpoint = 0; // Our target should be 0 because we have other things going on.  For instance,
                 // we may be dosing acid which will cause the disabled flag to be true.
             }
@@ -251,7 +251,6 @@ export class NixieChlorinator extends NixieEquipment {
                     onAbort: () => {},
                     onComplete: (err) => {
                         if (err) {
-                            this.chlorinating = false;
                             cstate.currentOutput = 0;
                             cstate.status = 128;
                             resolve(false);
@@ -260,7 +259,6 @@ export class NixieChlorinator extends NixieEquipment {
                             // The action:17 message originated from us so we will not see it in the
                             // ChlorinatorStateMessage module.
                             cstate.currentOutput = setpoint;
-                            this.chlorinating = true;
                             if (!this.superChlorinating && cstate.superChlor) {
                                 cstate.superChlorRemaining = cstate.superChlorHours * 3600;
                                 this.superChlorStart = Math.floor(new Date().getTime() / 1000) * 1000;
@@ -308,6 +306,7 @@ export class NixieChlorinator extends NixieEquipment {
                     conn.queueSendMessage(out);
                 });
             }
+            else return Promise.resolve(false);
         } catch (err) { logger.error(`Communication error with Chlorinator ${this.chlor.name} : ${err.message}`); return Promise.reject(err);}
 
     }

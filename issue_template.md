@@ -33,7 +33,7 @@ Follow the instructions to complete a [packet capture](https://github.com/tagyou
  - Pump(s) manufacturer and model: [e.g. IntelliFlow 2 VST 011056]
  - Chlorinator: [e.g. iChlor, IntelliChlor-40]
  - Heater(s): [e.g. gas, solar, heatpump, ultratemp]
- - Chemical controller: [e.g. IntelliChem, homegrown]
+ - Chemical controller: [e.g. IntelliChem, Relay Equipment Manager (REM)]
  - Valves: [e.g. Intellivalve]
  - Any other relevant equipment:
 

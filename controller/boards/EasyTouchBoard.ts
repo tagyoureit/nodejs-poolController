@@ -1665,20 +1665,18 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
     public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);
         let isAdd = false;
-        let isVirtual = false;
-        if (id <= 0 || isNaN(id)) id = 1;
         let chlor = sys.chlorinators.getItemById(id);
-        if (id < 0 || isNaN(id)) {
+        if (id <= 0 || isNaN(id)) {
             isAdd = true;
-            chlor.master = utils.makeBool(obj.isVirtual) ? 0 : 1;
+            chlor.master = utils.makeBool(obj.master) ? 1 : 0;
             // Calculate an id for the chlorinator.  The messed up part is that if a chlorinator is not attached to the OCP, its address
             // cannot be set by the MUX.  This will have to wait.
             id = 1;
-        }
-        //let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
-        // If this is a virtual chlorinator then go to the base class and handle it from there.
+        }        
+        // If this is a Nixie chlorinator then go to the base class and handle it from there.
+        if (chlor.master === 1) return super.setChlorAsync(obj);
         // RKS: I am not even sure this can be done with Touch as the master on the RS485 bus.
-        if (chlor.master === 1 || isVirtual) return super.setChlorAsync(obj);
+        if (typeof chlor.master === 'undefined') chlor.master = 0;
         let name = obj.name || chlor.name || 'IntelliChlor' + id;
         let superChlorHours = parseInt(obj.superChlorHours, 10);
         if (typeof obj.superChlorinate !== 'undefined') obj.superChlor = utils.makeBool(obj.superChlorinate);
@@ -1713,6 +1711,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         if (poolSetpoint > 100 || poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
         if (spaSetpoint > 100 || spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
         if (typeof obj.ignoreSaltReading !== 'undefined') chlor.ignoreSaltReading = utils.makeBool(obj.ignoreSaltReading);
+
         let _timeout: NodeJS.Timeout;
         try {
             let request153packet = new Promise<void>((resolve, reject) => {
@@ -1799,7 +1798,9 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
     }
     public async deleteChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) obj.id = 1;
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator id is not valid: ${obj.id}`, 'chlorinator', obj.id));
+        let chlor = sys.chlorinators.getItemById(id);
+        if (chlor.master === 1) return await super.deleteChlorAsync(obj);
         return new Promise<ChlorinatorState>((resolve, reject) => {
             let out = Outbound.create({
                 dest: 16,
@@ -1813,8 +1814,9 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
                         reject(err);
                     }
                     else {
-                        let cstate = state.chlorinators.getItemById(id);
-                        let chlor = sys.chlorinators.getItemById(id);
+                        ncp.chlorinators.deleteChlorinatorAsync(id).then(()=>{});
+                        let cstate = state.chlorinators.getItemById(id, true);
+                        chlor = sys.chlorinators.getItemById(id, true);
                         chlor.isActive = cstate.isActive = false;
                         sys.chlorinators.removeItemById(id);
                         state.chlorinators.removeItemById(id);
@@ -2343,7 +2345,7 @@ class TouchChemControllerCommands extends ChemControllerCommands {
         // Now lets do all our validation to the incoming chem controller data.
         let name = typeof data.name !== 'undefined' ? data.name : chem.name || `IntelliChem - ${address - 143}`;
         let type = sys.board.valueMaps.chemControllerTypes.transformByName('intellichem');
-        // So now we are down to the nitty gritty setting the data for the REM or Homegrown Chem controller.
+        // So now we are down to the nitty gritty setting the data for the REM Chem controller.
         let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
         let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
         let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;

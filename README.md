@@ -15,7 +15,7 @@ Equipment supported
 1. Pumps: Intelliflow VS/VSF/VF, older models
 1. Chlorinators: Intellichlor, Aqua-Rite and OEM brands
 1. Heaters: Gas, solar, heatpump
-1. Intellichem and homegrown chemical controllers
+1. Intellichem and Relay Equipment Manager (REM) chemical controllers
 1. Intellivalve (coming soon)
 1. Home Automation:  SmartThings, Hubitat, ISY, Vera, Siri, Echo
 1. Chemical probes (pH, ORP, flow sensors, EC, etc.)

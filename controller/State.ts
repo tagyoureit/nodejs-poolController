@@ -1884,7 +1884,7 @@ export class ChemControllerState extends EqState {
         //var chemControllerState = {
         //    lastComm: 'number',             // The unix time the chem controller sent its status.
         //    id: 'number',                   // Id of the chemController.
-        //    type: 'valueMap',               // intellichem, homegrown, rem.
+        //    type: 'valueMap',               // intellichem, rem.
         //    address: 'number',              // Assigned address if IntelliChem.
         //    name: 'string',                 // Name assigned to the controller.
         //    status: 'valueMap',             // ok, nocomms, setupError
