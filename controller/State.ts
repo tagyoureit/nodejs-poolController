@@ -879,6 +879,11 @@ export class PumpStateCollection extends EqStateCollection<PumpState> {
 }
 export class PumpState extends EqState {
     public dataName: string = 'pump';
+    public initData() {
+        if (typeof this.data.status === 'undefined') {
+            this.data.status = { name: 'ok', desc: 'Ok', val: 0 };
+        }
+    }
     private _threshold = 0.05;
     private exceedsThreshold(origVal: number, newVal: number) {
         return Math.abs((newVal - origVal) / origVal) > this._threshold;
@@ -912,7 +917,7 @@ export class PumpState extends EqState {
         // quick fix for #172
         if (this.status !== val) {
             if (sys.board.valueMaps.pumpTypes.getName(this.type) === 'vsf' && val === 0) {
-                this.data.status = { name: 'ok', desc: 'Ok', val };
+                this.data.status = { name: 'ok', desc: 'Ok', val: 0 };
             }
             else this.data.status = sys.board.valueMaps.pumpStatus.transform(val);
             this.hasChanged = true;

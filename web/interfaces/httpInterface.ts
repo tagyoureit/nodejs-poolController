@@ -100,11 +100,13 @@ export class HttpInterfaceBindings extends BaseInterfaceBindings {
                         opts.headers["CONTENT-LENGTH"] = Buffer.byteLength(sbody || '');
                     }
                     if (opts.port === 443 || (opts.protocol || '').startsWith('https')) {
+                        opts.protocol = 'https:';
                         req = https.request(opts, (response: http.IncomingMessage) => {
                             //console.log(response);
                         });
                     }
                     else {
+                        opts.protocol = 'http:';
                         req = http.request(opts, (response: http.IncomingMessage) => {
                             //console.log(response.statusCode);
                         });
