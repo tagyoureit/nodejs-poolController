@@ -1803,13 +1803,17 @@ export class NixieChemicalORP extends NixieChemical {
                 if (sorp.doseHistory.length) {
                     // if last dose was within 15 minutes, set mix time to 15 mins-lastdose
                     // if no dose in last 15, then we should be monitoring
-                    let lastDoseTime = sorp.doseHistory[0].timeDosed;
-                    let mixTime = Math.min(Math.max(this.chlor.chlorInterval * 60 - lastDoseTime, 0), this.chlor.chlorInterval * 60);
-                    // if (mixTime === 0) return; // due to delays with setting chlor, let the checkDosing pick up the cycle again with the chlor already on.
-                    if (sorp.dosingStatus === 0) await this.mixChemicals(sorp, mixTime);
+                    if (new Date().getTime() - sorp.doseHistory[0].end.getTime() <  this.chlor.chlorInterval * 60 * 1000){
+                        let lastDoseTime = sorp.doseHistory[0].timeDosed;
+                        let mixTime = Math.min(Math.max(this.chlor.chlorInterval * 60 - lastDoseTime, 0), this.chlor.chlorInterval * 60);
+                        // if (mixTime === 0) return; // due to delays with setting chlor, let the checkDosing pick up the cycle again with the chlor already on.
+                        if (sorp.dosingStatus === 0) await this.mixChemicals(sorp, mixTime);
+                    }
                 }
-                else
+                else{
                     if (sorp.dosingStatus === 0) await this.mixChemicals(sorp);
+                }
+                return;
             }
             else {
                 // Just stop the pump for now but we will do some logging later.
@@ -2074,7 +2078,7 @@ export class NixieChemicalORP extends NixieChemical {
                         }
 
                         // if none of the other conditions are true, mix
-                        await this.mixChemicals(sorp, this.chlor.chlorInterval * 60);
+                        // await this.mixChemicals(sorp, this.chlor.chlorInterval * 60);
 
                     }
                     else if (this.orp.setpoint > sorp.level) {
