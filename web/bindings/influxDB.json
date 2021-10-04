@@ -879,6 +879,11 @@
               "name": "spaSetpoint",
               "value": "@bind=data.spaSetpoint;",
               "type": "int"
+            },
+            {
+              "name": "target output",
+              "value": "@bind=data.targetOutput;",
+              "type": "int"
             }
           ]
         }
