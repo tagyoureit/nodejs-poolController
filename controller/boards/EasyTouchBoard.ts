@@ -345,9 +345,10 @@ export class EasyTouchBoard extends SystemBoard {
             // Add in the bodies for the configuration.  These need to be set.
             let cbody = sys.bodies.getItemById(i, true);
             let tbody = state.temps.bodies.getItemById(i, true);
-            // If the body doesn't represent a spa then we set the type.
-            tbody.type = cbody.type = i > 1 && !sys.equipment.shared ? 1 : 0;
             cbody.isActive = true;
+            // If the body doesn't represent a spa then we set the type.
+            // RSG - 10-5-21: If a single body IT (i5+3s/i9+3s) the bodies are the same; set to pool
+            tbody.type = cbody.type = i > 1 && !sys.equipment.shared && sys.equipment.intakeReturnValves ? 1 : 0;
             if (typeof cbody.name === 'undefined') {
                 let bt = sys.board.valueMaps.bodyTypes.transform(cbody.type);
                 tbody.name = cbody.name = bt.name;
@@ -390,6 +391,7 @@ export class EasyTouchBoard extends SystemBoard {
         eq.maxChlorinators = md.chlorinators = 1;
         eq.maxChemControllers = md.chemControllers = 1;
         eq.maxCustomNames = 10;
+        eq.intakeReturnValves = md.intakeReturnValves = typeof mt.intakeReturnValves !== 'undefined' ? true : false;
         // Calculate out the invalid ids.
         sys.board.equipmentIds.invalidIds.set([]);
         if (!eq.shared) sys.board.equipmentIds.invalidIds.merge([1]);

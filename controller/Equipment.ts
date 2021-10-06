@@ -819,6 +819,8 @@ export class Equipment extends EqItem {
     public set shared(val: boolean) { this.setDataVal('shared', val); }
     public get dual(): boolean { return this.data.dual; }
     public set dual(val: boolean) { this.setDataVal('dual', val); }
+    public get intakeReturnValves(): boolean { return this.data.intakeReturnValves; }
+    public set intakeReturnValves(val: boolean) { this.setDataVal('intakeReturnValves', val); }
     public get maxBodies(): number { return this.data.maxBodies || 4; }
     public set maxBodies(val: number) { this.setDataVal('maxBodies', val); }
     public get maxValves(): number { return this.data.maxValves || 26; }

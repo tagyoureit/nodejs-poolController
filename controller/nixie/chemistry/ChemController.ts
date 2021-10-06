@@ -2035,7 +2035,6 @@ export class NixieChemicalORP extends NixieChemical {
                             percentOfTime = 1;
                         }
                         else if (sorp.demand < -20) {
-                            logger.info(`Chlor % of time should be 0%`)
                             await this.cancelDosing(sorp, 'demand < -20');
                         }
                         else {
@@ -2069,9 +2068,9 @@ export class NixieChemicalORP extends NixieChemical {
                         // convert the % of time back to an amount of chlorine over 15 minutes; 
                         let time = this.chlor.chlorInterval * 60 * percentOfTime;
                         let dose = model.chlorinePerSec * time;
-                        logger.info(`Chem chlor calculated dosing at ${Math.round(percentOfTime * 10000) / 100}% and will dose ${Math.round(dose * 1000000) / 1000000}Lbs of chlorine over the next ${utils.formatDuration(time)}.`)
-
+                        
                         if (dose > 0) {
+                            logger.info(`Chem chlor calculated dosing at ${Math.round(percentOfTime * 10000) / 100}% and will dose ${Math.round(dose * 1000000) / 1000000}Lbs of chlorine over the next ${utils.formatDuration(time)}.`)
                             sorp.startDose(new Date(), 'auto', dose, 0, time, 0);
                             await this.chlor.dose(sorp);
                             return;

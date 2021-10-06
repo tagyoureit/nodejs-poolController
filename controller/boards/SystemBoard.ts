@@ -247,7 +247,9 @@ export class byteValueMaps {
     [15, { name: 'floorcleaner', desc: 'Floor Cleaner' }],
     [16, { name: 'intellibrite', desc: 'Intellibrite', isLight: true }],
     [17, { name: 'magicstream', desc: 'Magicstream', isLight: true }],
-    [19, { name: 'notused', desc: 'Not Used' }]
+    [19, { name: 'notused', desc: 'Not Used' }],
+    [65, { name: 'lotemp', desc: 'Lo-Temp' }],
+    [66, { name: 'hightemp', desc: 'Hi-Temp' }]
   ]);
 
   // Feature functions are used as the available options to define a circuit.
@@ -437,7 +439,9 @@ export class byteValueMaps {
   ]);
   public bodyTypes: byteValueMap = new byteValueMap([
     [0, { name: 'pool', desc: 'Pool' }],
-    [1, { name: 'spa', desc: 'Spa' }]
+    [1, { name: 'spa', desc: 'Spa' }],
+    [2, { name: 'spa', desc: 'Spa' }],
+    [3, { name: 'spa', desc: 'Spa' }]
   ]);
   public bodies: byteValueMap = new byteValueMap([
     [0, { name: 'pool', desc: 'Pool' }],

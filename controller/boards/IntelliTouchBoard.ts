@@ -18,12 +18,11 @@ import { byteValueMap } from './SystemBoard';
 import { logger } from '../../logger/Logger';
 import { EasyTouchBoard, TouchConfigQueue, GetTouchConfigCategories, TouchCircuitCommands } from './EasyTouchBoard';
 import { state, ICircuitGroupState } from '../State';
-import { PoolSystem, sys, ExpansionPanel, ExpansionModule, Equipment } from '../Equipment';
-import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
+import { PoolSystem, sys, ExpansionPanel, Equipment } from '../Equipment';
 
 import { conn } from '../comms/Comms';
 import { InvalidEquipmentDataError } from '../Errors';
-import { type } from 'os';
+
 export class IntelliTouchBoard extends EasyTouchBoard {
     constructor(system: PoolSystem) {
         super(system);
@@ -34,18 +33,18 @@ export class IntelliTouchBoard extends EasyTouchBoard {
             [0, { name: 'IT5', part: 'i5+3', desc: 'IntelliTouch i5+3', circuits: 6, shared: true }],
             [1, { name: 'IT7', part: 'i7+3', desc: 'IntelliTouch i7+3', circuits: 8, shared: true }],
             [2, { name: 'IT9', part: 'i9+3', desc: 'IntelliTouch i9+3', circuits: 10, shared: true }],
-            [3, { name: 'IT5S', part: 'i5+3S', desc: 'IntelliTouch i5+3S', circuits: 5, shared: false }],
-            [4, { name: 'IT9S', part: 'i9+3S', desc: 'IntelliTouch i9+3S', circuits: 9, shared: false }],
+            [3, { name: 'IT5S', part: 'i5+3S', desc: 'IntelliTouch i5+3S', circuits: 5, shared: false, bodies: 2, intakeReturnValves: false }],
+            [4, { name: 'IT9S', part: 'i9+3S', desc: 'IntelliTouch i9+3S', circuits: 9, shared: false, bodies: 2, intakeReturnValves: false }],
             [5, { name: 'IT10D', part: 'i10D', desc: 'IntelliTouch i10D', circuits: 10, shared: false, dual: true }],
-            [32, { name: 'IT5X', part: 'i5X', desc: 'IntelliTouch i5X', circuits: 5, shared: false }],
-            [33, { name: 'IT10X', part: 'i10X', desc: 'IntelliTouch i10X', circuits: 10, shared: false }]
+            [32, { name: 'IT5X', part: 'i5X', desc: 'IntelliTouch i5X', circuits: 5 }],
+            [33, { name: 'IT10X', part: 'i10X', desc: 'IntelliTouch i10X', circuits: 10 }]
         ]);
         this.valueMaps.panelModes = new byteValueMap([
             [0, { val: 0, name: 'auto', desc: 'Auto' }],
             [1, { val: 1, name: 'service', desc: 'Service' }],
             [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
             [255, { name: 'error', desc: 'System Error' }]
-          ]);
+        ]);
     }
     public initExpansionModules(byte1: number, byte2: number) {
         console.log(`Pentair IntelliTouch System Detected!`);
@@ -66,6 +65,7 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         eq.maxPumps = md.maxPumps = typeof mt.pumps !== 'undefined' ? mt.pumps : 8;
         eq.shared = mt.shared;
         eq.dual = typeof mt.dual !== 'undefined' ? mt.dual : false;
+        eq.intakeReturnValves = md.intakeReturnValves = typeof mt.intakeReturnValves !== 'undefined' ? true : false;
         eq.maxChlorinators = md.chlorinators = 1;
         eq.maxChemControllers = md.chemControllers = 1;
         eq.maxCustomNames = 20;
@@ -144,11 +144,11 @@ export class IntelliTouchBoard extends EasyTouchBoard {
     public circuits: ITTouchCircuitCommands = new ITTouchCircuitCommands(this);
     public async setControllerType(obj): Promise<Equipment> {
         try {
-            if (obj.controllerType !== sys.controllerType){
+            if (obj.controllerType !== sys.controllerType) {
                 return Promise.reject(new InvalidEquipmentDataError(`You may not change the controller type data for ${sys.controllerType} controllers`, 'controllerType', obj.controllerType));
             }
-                
-            let mod  = sys.equipment.modules.getItemById(0);
+
+            let mod = sys.equipment.modules.getItemById(0);
             let mt = this.valueMaps.expansionBoards.get(mod.type);
             let _circuits = mt.circuits;
             let pnl1 = sys.equipment.expansions.getItemById(1);
