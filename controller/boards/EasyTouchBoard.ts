@@ -354,7 +354,7 @@ export class EasyTouchBoard extends SystemBoard {
                 tbody.name = cbody.name = bt.name;
             }
         }
-        if (!sys.equipment.shared && !sys.equipment.dual) {
+        if (!sys.equipment.shared && !sys.equipment.dual && state.equipment.controllerType !== 'intellitouch') {
             sys.bodies.removeItemById(2);
             state.temps.bodies.removeItemById(2);
         }
@@ -391,7 +391,7 @@ export class EasyTouchBoard extends SystemBoard {
         eq.maxChlorinators = md.chlorinators = 1;
         eq.maxChemControllers = md.chemControllers = 1;
         eq.maxCustomNames = 10;
-        eq.intakeReturnValves = md.intakeReturnValves = typeof mt.intakeReturnValves !== 'undefined' ? true : false;
+        eq.intakeReturnValves = md.intakeReturnValves = typeof mt.intakeReturnValves !== 'undefined' ? mt.intakeReturnValves : false;
         // Calculate out the invalid ids.
         sys.board.equipmentIds.invalidIds.set([]);
         if (!eq.shared) sys.board.equipmentIds.invalidIds.merge([1]);

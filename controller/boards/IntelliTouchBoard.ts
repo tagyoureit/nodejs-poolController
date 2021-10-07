@@ -56,6 +56,7 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         mod.type = byte1;
         mod.part = mt.part;
         let eq = sys.equipment;
+        let bd = sys.board;
         let md = mod.get();
 
         eq.maxBodies = md.bodies = typeof mt.bodies !== 'undefined' ? mt.bodies : mt.shared || mt.dual ? 2 : 1;
@@ -65,17 +66,18 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         eq.maxPumps = md.maxPumps = typeof mt.pumps !== 'undefined' ? mt.pumps : 8;
         eq.shared = mt.shared;
         eq.dual = typeof mt.dual !== 'undefined' ? mt.dual : false;
-        eq.intakeReturnValves = md.intakeReturnValves = typeof mt.intakeReturnValves !== 'undefined' ? true : false;
+        eq.intakeReturnValves = md.intakeReturnValves = typeof mt.intakeReturnValves !== 'undefined' ? mt.intakeReturnValves : false;
         eq.maxChlorinators = md.chlorinators = 1;
         eq.maxChemControllers = md.chemControllers = 1;
         eq.maxCustomNames = 20;
         eq.maxCircuitGroups = 10; // Not sure why this is 10 other than to allow for those that we are in control of.
 
         // Calculate out the invalid ids.
-        sys.board.equipmentIds.invalidIds.set([]);
-        if (!eq.shared) sys.board.equipmentIds.invalidIds.merge([1]);
+        // sys.board.equipmentIds.invalidIds.set([]);
         // Add in all the invalid ids from the base personality board.
         sys.board.equipmentIds.invalidIds.set([16, 17, 18]); // These appear to alway be invalid in IntelliTouch.
+        // RGS 10-7-21: Since single bodies have hi-temp/lo-temp we will always want ID 1.
+        // if (!eq.shared) sys.board.equipmentIds.invalidIds.merge([1]);
         //if (eq.maxCircuits < 9) sys.board.equipmentIds.invalidIds.merge([9]);
         for (let i = 7; i <= 10; i++) {
             // This will add all the invalid ids between 7 and 10 that are omitted for IntelliTouch models.
