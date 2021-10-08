@@ -620,6 +620,22 @@
       ]
     },
     {
+      "name": "cover",
+      "description": "Populate the cover topic",
+      "topics": [
+        {
+          "topic": "state/covers/@bind=data.id;/name",
+          "message": "@bind=data.name;",
+          "description": "Bind the name topic."
+        },
+        {
+          "topic": "state/covers/@bind=data.id;/isClosed",
+          "message": "@bind=data.isClosed;",
+          "description": "Bind isClosed as a message to the state topic."
+        }
+      ]
+    },
+    {
       "name": "*",
       "description": "DEFAULT: Sends the entire emitted response.",
       "body": "@bind=data;",

@@ -916,6 +916,10 @@
             {
               "name": "name",
               "value": "@bind=data.name;"
+            },
+            {
+              "name": "id",
+              "value": "@bind=data.id;"
             }
           ],
           "fields": [
@@ -943,6 +947,32 @@
               "name": "cleanPercentage",
               "value": "@bind=data.cleanPercentage;",
               "type": "float"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "cover",
+      "description": "Bind cover to measurements",
+      "points": [
+        {
+          "measurement": "cover",
+          "tags": [
+            {
+              "name": "name",
+              "value": "@bind=data.name;"
+            },
+            {
+              "name": "id",
+              "value": "@bind=data.id;"
+            }
+          ],
+          "fields": [
+            {
+              "name": "isClosed",
+              "value": "@bind=data.isClosed;",
+              "type": "boolean"
             }
           ]
         }
