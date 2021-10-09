@@ -866,7 +866,30 @@ export class NixieCircuitCommands extends CircuitCommands {
     }
     public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
         let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
-        let gstate = (grp.dataName === 'circuitGroupConfig') ? state.circuitGroups.getItemById(grp.id, grp.isActive !== false) : state.lightGroups.getItemById(grp.id, grp.isActive !== false);
+        if (grp.dataName !== 'circuitGroupConfig') return await sys.board.circuits.setLightGroupStateAsync(id, val);
+        let gstate = state.circuitGroups.getItemById(grp.id, grp.isActive !== false);
+        let circuits = grp.circuits.toArray();
+        gstate.isOn = val;
+        let arr = [];
+        for (let i = 0; i < circuits.length; i++) {
+            let circuit = circuits[i];
+            // The desiredState will be as follows.
+            // 1 = on, 2 = off, 3 = ignore.
+            let cval = true;
+            if (circuit.desiredState === 1) cval = val ? true : false;
+            else if (circuit.desiredState === 2) cval = val ? false : true;
+            else continue;
+            arr.push(sys.board.circuits.setCircuitStateAsync(circuit.circuit, cval));
+        }
+        return new Promise<ICircuitGroupState>(async (resolve, reject) => {
+            await Promise.all(arr).catch((err) => { reject(err) });
+            resolve(gstate);
+        });
+    }
+    public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
+        let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
+        if (grp.dataName === 'circuitGroupConfig') return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
+        let gstate = state.lightGroups.getItemById(grp.id, grp.isActive !== false);
         let circuits = grp.circuits.toArray();
         gstate.isOn = val;
         let arr = [];
@@ -878,9 +901,6 @@ export class NixieCircuitCommands extends CircuitCommands {
             await Promise.all(arr).catch((err) => { reject(err) });
             resolve(gstate);
         });
-    }
-    public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
-        return sys.board.circuits.setCircuitGroupStateAsync(id, val);
     }
 }
 export class NixieFeatureCommands extends FeatureCommands {
