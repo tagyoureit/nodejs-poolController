@@ -674,7 +674,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                     //RKS: 09-26-20 There is no such thing as a lighting theme on a circuit group circuit.  That is what lighGroups are for.
                     //if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10);
                 }
-                // group.circuits.length = obj.circuits.length;  // RSG - removed as this will delete circuits that were not changed
+                group.circuits.length = obj.circuits.length;  // RSG - removed as this will delete circuits that were not changed
             }
             resolve(group);
         });
