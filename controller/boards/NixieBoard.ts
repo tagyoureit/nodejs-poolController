@@ -641,8 +641,14 @@ export class NixieCircuitCommands extends CircuitCommands {
         let group: CircuitGroup = null;
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
         if (id <= 0) {
-            // We are adding a circuit group.
-            id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
+            // We are adding a circuit group so we need to get the next equipment id.  For circuit groups and light groups, they share ids.
+            let range = sys.board.equipmentIds.circuitGroups;
+            for (let i = range.start; i <= range.end; i++) {
+                if (!sys.lightGroups.find(elem => elem.id === i) && !sys.circuitGroups.find(elem => elem.id === i)) {
+                    id = i;
+                    break;
+                }
+            }
         }
         if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit group id exceeded`, id, 'CircuitGroup'));
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'CircuitGroup'));
@@ -684,8 +690,14 @@ export class NixieCircuitCommands extends CircuitCommands {
         let group: LightGroup = null;
         let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
         if (id <= 0) {
-            // We are adding a circuit group.
-            id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
+            // We are adding a circuit group so we need to get the next equipment id.  For circuit groups and light groups, they share ids.
+            let range = sys.board.equipmentIds.circuitGroups;
+            for (let i = range.start; i <= range.end; i++) {
+                if (!sys.lightGroups.find(elem => elem.id === i) && !sys.circuitGroups.find(elem => elem.id === i)) {
+                    id = i;
+                    break;
+                }
+            }
         }
         if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit light group id exceeded`, id, 'LightGroup'));
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'LightGroup'));
