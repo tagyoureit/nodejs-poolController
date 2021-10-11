@@ -114,7 +114,8 @@ export class PoolSystem implements IPoolSystem {
                 { val: 2, name: 'i8P', part: '521977Z', desc: 'IntelliCenter i8P', bodies: 1, valves: 2, circuits: 8, shared: false, dual: false, chlorinators: 1, chemControllers: 1 },
                 { val: 3, name: 'i8PS', part: '521968Z', desc: 'IntelliCenter i8PS', bodies: 2, valves: 4, circuits: 9, shared: true, dual: false, chlorinators: 1, chemControllers: 1 },
                 { val: 4, name: 'i10P', part: '521993Z', desc: 'IntelliCenter i10P', bodies: 1, valves: 2, circuits: 10, shared: false, dual: false, chlorinators: 1, chemControllers: 1 }, // This is a guess
-                { val: 5, name: 'i10PS', part: '521873Z', desc: 'IntelliCenter i10PS', bodies: 2, valves: 4, circuits: 11, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }
+                { val: 5, name: 'i10PS', part: '521873Z', desc: 'IntelliCenter i10PS', bodies: 2, valves: 4, circuits: 11, shared: true, dual: false, chlorinators: 1, chemControllers: 1 },
+                { val: 7, name: 'i10D', part: '523029Z', desc: 'IntelliCenter i10D', bodies: 2, valves: 2, circuits: 11, shared: false, dual: true, chlorinators: 2, chemControllers: 2 },
             ]
         });
         arr.push({

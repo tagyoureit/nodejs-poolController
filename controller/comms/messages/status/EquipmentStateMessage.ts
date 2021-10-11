@@ -514,17 +514,20 @@ export class EquipmentStateMessage {
                     }
                 }
                 ExternalMessage.processFeatureState(9, msg);
-                let cover1 = state.covers.getItemById(1, false);
-                cover1.isClosed = (msg.extractPayloadByte(30) & 0x0001) > 0;
-                state.temps.bodies.getItemById(1).isCovered = cover1.isClosed;
-                if (sys.bodies.length > 1) {
-                    let cover2 = state.covers.getItemById(2, false);
-                    state.temps.bodies.getItemById(2).isCovered = cover2.isClosed;
+                // At this point normally on is ignored.  Not sure what this does.
+                let cover1 = sys.covers.getItemById(1);
+                let cover2 = sys.covers.getItemById(2);
+                if (cover1.isActive) {
+                    let scover1 = state.covers.getItemById(1, true);
+                    scover1.name = cover1.name;
+                    state.temps.bodies.getItemById(cover1.body).isCovered = scover1.isClosed = (msg.extractPayloadByte(30) & 0x0001) > 0;
                 }
-
-                //let cover2 = state.covers.getItemById(2);
+                if (cover2.isActive) {
+                    let scover2 = state.covers.getItemById(2, true);
+                    scover2.name = cover2.name;
+                    state.temps.bodies.getItemById(cover2.body).isCovered = scover2.isClosed = (msg.extractPayloadByte(30) & 0x0002) > 0;
+                }
                 msg.isProcessed = true;
-                // state.emitControllerChange();
                 state.emitEquipmentChanges();
                 break;
         }
