@@ -139,15 +139,16 @@ export class EquipmentStateMessage {
 
                     // Shared
                     let dt = new Date();
-                    if (state.chemControllers.length > 0) {
-                        // TODO: move this to chemController when we understand the packets better
-                        for (let i = 0; i < state.chemControllers.length; i++) {
-                            let ccontroller = state.chemControllers.getItemByIndex(i);
-                            if (sys.board.valueMaps.chemControllerTypes.getName(ccontroller.type) === 'intellichem') {
-                                if (dt.getTime() - ccontroller.lastComm > 60000) ccontroller.status = 1;
-                            }
-                        }
-                    }
+                    // RKS: This was moved to the ChemControllerState message.  This is flawed in that it incorrectly sets IntelliChem to no comms.
+                    //if (state.chemControllers.length > 0) {
+                    //    // TODO: move this to chemController when we understand the packets better
+                    //    for (let i = 0; i < state.chemControllers.length; i++) {
+                    //        let ccontroller = state.chemControllers.getItemByIndex(i);
+                    //        if (sys.board.valueMaps.chemControllerTypes.getName(ccontroller.type) === 'intellichem') {
+                    //            if (dt.getTime() - ccontroller.lastComm > 60000) ccontroller.status = 1;
+                    //        }
+                    //    }
+                    //}
                     state.time.hours = msg.extractPayloadByte(0);
                     state.time.minutes = msg.extractPayloadByte(1);
                     state.time.seconds = dt.getSeconds();

@@ -3509,6 +3509,8 @@ export class HeaterCommands extends BoardCommands {
                                             }
                                         }
                                         break;
+                                    case 'mastertemp':
+                                    case 'maxetherm':
                                     case 'gas':
                                         if (mode === 'heater') {
                                             if (body.temp < cfgBody.setPoint) {

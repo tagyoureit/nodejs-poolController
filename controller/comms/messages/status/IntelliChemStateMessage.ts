@@ -23,15 +23,25 @@ import { Timestamp, utils } from "../../../Constants"
 export class IntelliChemStateMessage {
     public static process(msg: Inbound) {
         if (sys.controllerType === ControllerType.Unknown) return;
-        if (msg.source < 144 || msg.source > 158) return;
+        let address = (msg.dest >= 144 && msg.dest <= 158) ? msg.dest : msg.source;
+        if (address < 144 || address > 158) return;
+        let controller = sys.chemControllers.getItemByAddress(address);
+        if (!controller.isActive) {
+            msg.isProcessed = true;
+            return;
+        }
         switch (msg.action) {
-
             // ---------- IntelliChem Control panel is spitting out its status ----------- //
             case 18: // IntelliChem is sending us it's status.
                 IntelliChemStateMessage.processState(msg);
                 break;
             case 210: // OCP is asking IntelliChem controller for it's current status info.
                 // [165,0,144,16,210,1],[210],[2,234]
+                let schem = state.chemControllers.getItemById(controller.id);
+                if (schem.lastComm + (30 * 1000) < new Date().getTime()) {
+                    // We have not talked to the chem controller in 30 seconds so we have lost communication.
+                    schem.status = schem.alarms.comms = 1;
+                }
                 msg.isProcessed = true;
                 break;
             // ---------- End IntelliChem set get ----------- //
@@ -57,14 +67,11 @@ export class IntelliChemStateMessage {
                 msg.isProcessed = true;
                 break;
             case 146: // OCP is telling IntelliChem that it needs to change its settings to...
-                let address = msg.dest;
-                // The address is king here.  The id is not.
-                let controller = sys.chemControllers.getItemByAddress(address, true);
-                let scontroller = state.chemControllers.getItemById(controller.id, true);
-                if (scontroller.lastComm + (30 * 1000) < new Date().getTime()) {
-                    // We have not talked to the chem controller in 30 seconds so we have lost communication.
-                    scontroller.status = scontroller.alarms.comms = 1;                   
-                }
+                //let scontroller = state.chemControllers.getItemById(controller.id, true);
+                //if (scontroller.lastComm + (30 * 1000) < new Date().getTime()) {
+                //    // We have not talked to the chem controller in 30 seconds so we have lost communication.
+                //    scontroller.status = scontroller.alarms.comms = 1;                   
+                //}
                 controller.ph.tank.capacity = controller.orp.tank.capacity = 6;
                 controller.ph.tank.units = controller.orp.tank.units = '';
                 msg.isProcessed = true;
@@ -125,7 +132,10 @@ export class IntelliChemStateMessage {
         schem.status = schem.alarms.comms = 0; 
         chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
         chem.ph.tank.units = chem.orp.tank.units = '';
-        
+        chem.ph.tank.alarmEmptyEnabled = false;
+        chem.ph.tank.alarmEmptyLevel = 1;
+        chem.orp.tank.alarmEmptyEnabled = false;
+        chem.orp.tank.alarmEmptyLevel = 1;
         schem.address = chem.address;
         schem.ph.level = schem.ph.probe.level = msg.extractPayloadIntBE(0) / 100;
         schem.orp.level = schem.orp.probe.level = msg.extractPayloadIntBE(2);
@@ -187,7 +197,7 @@ export class IntelliChemStateMessage {
         schem.ph.dosingStatus = (msg.extractPayloadByte(34) & 0x30) >> 4; // mask 00xx0000 and shift bit 5 & 6
         schem.orp.dosingStatus = (msg.extractPayloadByte(34) & 0xC0) >> 6; // mask xx000000 and shift bit 7 & 8
         //      35 : Delays = 0
-        schem.status = msg.extractPayloadByte(35) & 0x80 >> 7; // to be verified as comms lost
+        schem.status = (msg.extractPayloadByte(35) & 0x80) >> 7; // to be verified as comms lost
         schem.ph.manualDosing = (msg.extractPayloadByte(35) & 0x08) === 1 ? true : false;
         chem.orp.useChlorinator = (msg.extractPayloadByte(35) & 0x10) === 1 ? true : false;
         chem.HMIAdvancedDisplay = (msg.extractPayloadByte(35) & 0x20) === 1 ? true : false;
