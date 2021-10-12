@@ -335,15 +335,15 @@ export class NixiePumpRS485 extends NixiePump {
             let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
             // Since these process are async the closing flag can be set
             // between calls.  We need to check it in between each call.
-            if (!this.closing) await this.setDriveStateAsync(pstate);
-            if (!this.closing) {
+            try { if (!this.closing) await this.setDriveStateAsync(pstate); } catch (err) {}
+            try { if (!this.closing) {
                 if (this._targetSpeed >= pt.minFlow && this._targetSpeed <= pt.maxFlow) await this.setPumpGPMAsync(pstate);
                 else if (this._targetSpeed >= pt.minSpeed && this._targetSpeed <= pt.maxSpeed) await this.setPumpRPMAsync(pstate);  
-            }
+            } } catch (err) {}
            
-            if(!this.closing) await utils.sleep(2000);
-            if(!this.closing) await this.requestPumpStatus(pstate);
-            if(!this.closing) await this.setPumpToRemoteControl(pstate);
+            try { if(!this.closing) await utils.sleep(2000); } catch (err) {};
+            try { if(!this.closing) await this.requestPumpStatus(pstate);  } catch (err) {};
+            try { if(!this.closing) await this.setPumpToRemoteControl(pstate);  } catch (err) {};
             return new InterfaceServerResponse(200, 'Success');
         }
         catch (err) {
