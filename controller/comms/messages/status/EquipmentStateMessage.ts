@@ -514,6 +514,20 @@ export class EquipmentStateMessage {
                         chlor.superChlor = false;
                     }
                 }
+                if (sys.equipment.dual === true) {
+                    // For IntelliCenter i10D the body state is on byte 26 of the 204.  This impacts circuit 6.
+                    let byte = msg.extractPayloadByte(26);
+                    let pstate = state.circuits.getItemById(6, true);
+                    let oldstate = pstate.isOn;
+                    pstate.isOn = (byte & 0x0010) === 0x0010;
+                    if (oldstate !== pstate.isOn) {
+                        sys.board.circuits.syncCircuitRelayStates();
+                        sys.board.circuits.syncVirtualCircuitStates();
+                        sys.board.valves.syncValveStates();
+                        sys.board.filters.syncFilterStates();
+                        sys.board.heaters.syncHeaterStates();
+                    }
+                }
                 ExternalMessage.processFeatureState(9, msg);
                 // At this point normally on is ignored.  Not sure what this does.
                 let cover1 = sys.covers.getItemById(1);
@@ -549,7 +563,8 @@ export class EquipmentStateMessage {
                     let cstate = state.circuits.getItemById(circuitId, circuit.isActive);
                     let isOn = (byte & (1 << j)) > 0;
                     sys.board.circuits.setEndTime(circuit, cstate, isOn);
-                    cstate.isOn = isOn;
+                    // For IntelliCenter i10D the body state for circuit 6 is on the 204 message.
+                    cstate.isOn = (circuitId === 6 && sys.equipment.dual === true) ? cstate.isOn : isOn;
                     cstate.name = circuit.name;
                     cstate.nameId = circuit.nameId;
                     cstate.showInFeatures = circuit.showInFeatures;
