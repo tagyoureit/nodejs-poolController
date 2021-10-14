@@ -1274,8 +1274,10 @@ export class Pump extends EqItem {
     public set vacuumTime(val: number) { this.setDataVal('vacuumTime', val); }
     public get backgroundCircuit() { return this.data.backgroundCircuit; }
     public set backgroundCircuit(val: number) { this.setDataVal('backgroundCircuit', val); }
-    public get isVirtual() { return this.data.isVirtual; }
-    public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
+    public get filterSize() { return this.data.filterSize; }
+    public set filterSize(val: number) { this.setDataVal('filterSize', val); }
+    // public get isVirtual() { return this.data.isVirtual; }
+    // public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
     public get connectionId(): string { return this.data.connectionId; }
     public set connectionId(val: string) { this.setDataVal('connectionId', val); }
     public get deviceBinding(): string { return this.data.deviceBinding; }

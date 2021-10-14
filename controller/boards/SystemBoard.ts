@@ -1798,9 +1798,10 @@ export class PumpCommands extends BoardCommands {
     // and props that aren't for this pump type
     let _id = pump.id;
     if (pump.type !== pumpType || pumpType === 0) {
-      const _isVirtual = sys.pumps.getItemById(_id).isVirtual;
+      let _p = pump.get(true);
+      const _isVirtual = typeof _p.isVirtual !== 'undefined' ? _p.isVirtual : false;
       sys.pumps.removeItemById(_id);
-      let pump = sys.pumps.getItemById(_id, true);
+      pump = sys.pumps.getItemById(_id, true);
       if (_isVirtual) {
         // pump.isActive = true;
         // pump.isVirtual = true;

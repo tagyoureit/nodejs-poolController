@@ -347,38 +347,20 @@ export class PumpMessage {
                 circuit.circuit = _circuit;
                 circuit.flow = msg.extractPayloadByte(circuitId * 2 + 4);
                 circuit.units = 1;
-                switch (circuit.circuit) {
-                    case 1:
-                        {
-                            let body = sys.bodies.getItemById(2, sys.equipment.maxBodies >= 2);
-                            let sbody = state.temps.bodies.getItemById(2, sys.equipment.maxBodies >= 2);
-                            sbody.type = body.type = 1; // spa
-                            body.isActive = true;
-                            break;
-                        }
-                    case 6:
-                        {
-                            let body = sys.bodies.getItemById(1, sys.equipment.maxBodies >= 1);
-                            let sbody = state.temps.bodies.getItemById(1, sys.equipment.maxBodies >= 1);
-                            sbody.type = body.type = 0; // pool
-                            body.isActive = true;
-                            body.capacity = msg.extractPayloadByte(6) * 1000;
-                            break;
-                        }
-                }
             }
             else {
                 pump.circuits.removeItemById(_circuit);
             }
         }
         pump.backgroundCircuit = msg.extractPayloadByte(1);
+        pump.filterSize = msg.extractPayloadByte(2) * 1000;
         pump.turnovers = msg.extractPayloadByte(3);
+        pump.manualFilterGPM = msg.extractPayloadByte(21);
         pump.primingSpeed = msg.extractPayloadByte(22);
         pump.primingTime = (msg.extractPayloadByte(23) & 0xf);
         pump.minFlow = sys.board.valueMaps.pumpTypes.get(pump.type).minFlow;
         pump.maxFlow = sys.board.valueMaps.pumpTypes.get(pump.type).maxFlow;
         pump.flowStepSize = sys.board.valueMaps.pumpTypes.get(pump.type).flowStepSize;
-        pump.manualFilterGPM = msg.extractPayloadByte(21);
         pump.maxSystemTime = msg.extractPayloadByte(23) >> 4;
         pump.maxPressureIncrease = msg.extractPayloadByte(24);
         pump.backwashFlow = msg.extractPayloadByte(25);

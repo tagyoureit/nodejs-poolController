@@ -162,10 +162,10 @@ export class EasyTouchBoard extends SystemBoard {
         // We need this because there is a no-pump thing in *Touch.
         // RKS: 05-04-21 The no-pump item was removed as this was only required for -webClient.  deletePumpAsync should remove the pump from operation.
         this.valueMaps.pumpTypes = new byteValueMap([
-            [1, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
+            [1, { name: 'vf', desc: 'Intelliflo VF', maxPrimingTime: 6, minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
             [64, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
             [65, { name: 'ds', desc: 'Two-Speed', maxCircuits: 40, hasAddress: false, hasBody: true }],
-            [128, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true }],
+            [128, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 10, minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true }],
             [169, { name: 'vssvrs', desc: 'IntelliFlo VS+SVRS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true }],
             [257, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true, equipmentMaster: 1 }],
             [256, { name: 'sf', desc: 'SuperFlo VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1 }]
@@ -1963,7 +1963,7 @@ class TouchPumpCommands extends PumpCommands {
         }
         else {
             pump = sys.pumps.getItemById(id, false);
-            if (data.master > 0 || pump.master > 0 || pump.isVirtual) return await super.setPumpAsync(data);
+            if (data.master > 0 || pump.master > 0) return await super.setPumpAsync(data);
             ntype = typeof data.type === 'undefined' ? pump.type : parseInt(data.type, 10);
             if (isNaN(ntype)) return Promise.reject(new InvalidEquipmentDataError(`Pump type ${data.type} is not valid`, 'Pump', data));
             type = sys.board.valueMaps.pumpTypes.transform(ntype);
@@ -2026,21 +2026,25 @@ class TouchPumpCommands extends PumpCommands {
                 retries: 2,
                 response: Response.create({ action: 1, payload: [155] })
             });
-            outc.appendPayloadByte(typeof type.maxPrimingTime !== 'undefined' ? data.primingTime : 0, pump.primingTime | 0);
             outc.appendPayloadBytes(0, 44);
-            if (typeof type.maxPrimingTime !== 'undefined' && type.maxPrimingTime > 0) {
+            if (type.val === 128){
+                outc.setPayloadByte(3, 2);
+            }
+            if (typeof type.maxPrimingTime !== 'undefined' && type.maxPrimingTime > 0 && type.val >=64) {
+                outc.setPayloadByte(2, parseInt(data.primingTime, 10), pump.primingTime || 1);
                 let primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || type.minSpeed;
                 outc.setPayloadByte(21, Math.floor(primingSpeed / 256));
-                outc.setPayloadByte(30, primingSpeed - (Math.floor(primingSpeed / 256) * 256));
+                outc.setPayloadByte(30, primingSpeed % 256);
             }
-            if (type.val > 1 && type.val < 64) { // Any VF pump.  It probably only goes up to Circuit 40 because that's how many circuits *Touch can support.
+            if (type.val === 1) { // Any VF pump. 
                 outc.setPayloadByte(1, parseInt(data.backgroundCircuit, 10), pump.backgroundCircuit || 6);
+                outc.setPayloadByte(2, parseInt(data.filterSize, 10) / 1000, pump.filterSize / 1000 || 15);
+                // outc.setPayloadByte(2, body.capacity / 1000, 15);  RSG - This is filter size, which may or may not equal the body size.
                 outc.setPayloadByte(3, parseInt(data.turnovers, 10), pump.turnovers || 2);
                 let body = sys.bodies.getItemById(1, sys.equipment.maxBodies >= 1);
-                outc.setPayloadByte(2, body.capacity / 1000, 15);
                 outc.setPayloadByte(21, parseInt(data.manualFilterGPM, 10), pump.manualFilterGPM || 30);
                 outc.setPayloadByte(22, parseInt(data.primingSpeed, 10), pump.primingSpeed || 55);
-                let primingTime = typeof data.primingTime !== 'undefined' ? parseInt(data.primingTime, 10) : pump.primingTime;
+                let primingTime = typeof data.primingTime !== 'undefined' ? parseInt(data.primingTime, 10) : pump.primingTime || 0;
                 let maxSystemTime = typeof data.maxSystemTime !== 'undefined' ? parseInt(data.maxSystemTime, 10) : pump.maxSystemTime;
                 outc.setPayloadByte(23, primingTime | maxSystemTime << 4, 5);
                 outc.setPayloadByte(24, parseInt(data.maxPressureIncrease, 10), pump.maxPressureIncrease || 10);
@@ -2048,7 +2052,7 @@ class TouchPumpCommands extends PumpCommands {
                 outc.setPayloadByte(26, parseInt(data.backwashTime, 10), pump.backwashTime || 5);
                 outc.setPayloadByte(27, parseInt(data.rinseTime, 10), pump.rinseTime || 1);
                 outc.setPayloadByte(28, parseInt(data.vacuumFlow, 10), pump.vacuumFlow || 50);
-                outc.setPayloadByte(28, parseInt(data.vacuumTime, 10), pump.vacuumTime || 10);
+                outc.setPayloadByte(30, parseInt(data.vacuumTime, 10), pump.vacuumTime || 10);
             }
             if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
                 for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
@@ -2061,7 +2065,7 @@ class TouchPumpCommands extends PumpCommands {
                     c.units = parseInt(c.units, 10) || type.name === 'vf' ? sys.board.valueMaps.pumpUnits.getValue('gpm') : sys.board.valueMaps.pumpUnits.getValue('rpm');
                     if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
                         outc.setPayloadByte(i * 2 + 4, Math.floor(speed / 256)); // Set to rpm
-                        outc.setPayloadByte(i + 21, speed - (Math.floor(speed / 256) * 256));
+                        outc.setPayloadByte(i + 21, speed % 256);
                         c.speed = speed;
                     }
                     else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
@@ -2098,7 +2102,7 @@ class TouchPumpCommands extends PumpCommands {
         // [165,33,16,34,155,46],[1,128,0,2,0,16,12,6,7,1,9,4,11,11,3,128,8,0,2,18,2,3,128,8,196,184,232,152,188,238,232,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[9,75]
         const setPumpConfig = Outbound.create({
             action: 155,
-            payload: [pump.id, pump.type, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            payload: [pump.id, pump.type, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
             retries: 2,
             response: true
         });
@@ -2173,6 +2177,32 @@ class TouchPumpCommands extends PumpCommands {
         let spump = state.pumps.getItemById(pump.id, true);
         spump.type = pump.type;
         spump.status = 0;
+    }
+    public async deletePumpAsync(id):Promise<Pump>{
+        const outc = Outbound.create({
+            action: 155,
+            payload: [id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            retries: 2,
+            response: true
+        });
+        return new Promise<Pump>((resolve, reject) => {
+            outc.onComplete = (err, msg) => {
+                if (err) reject(err);
+                else {
+                    sys.pumps.removeItemById(id);
+                    state.pumps.removeItemById(id);
+                    resolve(sys.pumps.getItemById(id,false));
+                    const pumpConfigRequest = Outbound.create({
+                        action: 216,
+                        payload: [id],
+                        retries: 2,
+                        response: true
+                    });
+                    conn.queueSendMessage(pumpConfigRequest);
+                }
+            };
+            conn.queueSendMessage(outc);
+        });
     }
 }
 class TouchHeaterCommands extends HeaterCommands {

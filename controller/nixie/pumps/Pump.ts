@@ -461,8 +461,8 @@ export class NixiePumpRS485 extends NixiePump {
             let out = Outbound.create({
                 protocol: Protocol.Pump,
                 dest: this.pump.address,
-                action: 10,
-                payload: [1, 4, 2, 228, this._targetSpeed, 0],
+                action: 1,
+                payload: [2, 228, 0, this._targetSpeed],
                 retries: 1,
                 response: true,
                 onComplete: (err, msg) => {
@@ -574,14 +574,36 @@ export class NixiePumpVSF extends NixiePumpRS485 {
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed} ${flows > 0 ? 'GPM' : 'RPM'}.`);
         this._targetSpeed = _newSpeed;
     }
+    protected async setPumpRPMAsync(pstate: PumpState) {
+        // vsf action is 10 for rpm
+        return new Promise<void>((resolve, reject) => {
+            let out = Outbound.create({
+                protocol: Protocol.Pump,
+                dest: this.pump.address,
+                action: 10,
+                payload: [2, 196, Math.floor(this._targetSpeed / 256), this._targetSpeed % 256],
+                retries: 1,
+                // timeout: 250,
+                response: true,
+                onComplete: (err, msg) => {
+                    if (err) {
+                        logger.error(`Error sending setPumpRPMAsync for ${this.pump.name}: ${err.message}`);
+                        reject(err);
+                    }
+                    else resolve();
+                }
+            });
+            conn.queueSendMessage(out);
+        });
+    };
     protected async setPumpGPMAsync(pstate: PumpState) {
         // vsf payload; different from vf payload
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
                 protocol: Protocol.Pump,
                 dest: this.pump.address,
-                action: 10,
-                payload: [1, 4, 2, 196, this._targetSpeed, 0],
+                action: 9,
+                payload: [2, 196, 0, this._targetSpeed],
                 retries: 1,
                 response: true,
                 onComplete: (err, msg) => {
