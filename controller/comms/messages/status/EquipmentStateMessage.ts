@@ -101,7 +101,9 @@ export class EquipmentStateMessage {
         Message.headerSubByte = msg.header[1];
         //console.log(process.memoryUsage());
         if (msg.action === 2 && state.isInitialized && sys.controllerType === ControllerType.Nixie) {
-            // Start over because we didn't have communication before but we now do.
+            // Start over because we didn't have communication before but we now do.  This will fall into the if
+            // below so that it goes through the intialization process.  In this case we didn't see an OCP when we started
+            // but there clearly is one now.
             sys.controllerType = ControllerType.Unknown;
             state.status = 0;
         }
@@ -502,8 +504,7 @@ export class EquipmentStateMessage {
                 state.time.date = msg.extractPayloadByte(6);
                 state.time.month = msg.extractPayloadByte(7);
                 state.time.year = msg.extractPayloadByte(8);
-                sys.equipment.controllerFirmware = (msg.extractPayloadByte(42)
-                    + (msg.extractPayloadByte(43) / 1000)).toString();
+                sys.equipment.controllerFirmware = (msg.extractPayloadByte(42) + (msg.extractPayloadByte(43) / 1000)).toString();
                 if (sys.chlorinators.length > 0) {
                     if (msg.extractPayloadByte(37, 255) !== 255) {
                         const chlor = state.chlorinators.getItemById(1);
@@ -514,13 +515,16 @@ export class EquipmentStateMessage {
                         chlor.superChlor = false;
                     }
                 }
+                ExternalMessage.processFeatureState(9, msg);
                 if (sys.equipment.dual === true) {
                     // For IntelliCenter i10D the body state is on byte 26 of the 204.  This impacts circuit 6.
                     let byte = msg.extractPayloadByte(26);
                     let pstate = state.circuits.getItemById(6, true);
                     let oldstate = pstate.isOn;
-                    pstate.isOn = (byte & 0x0010) === 0x0010;
+                    pstate.isOn = ((byte & 0x0010) === 0x0010);
                     if (oldstate !== pstate.isOn) {
+                        logger.info(`Setting i10D pool state ${byte} old:${oldstate}`);
+                        state.temps.bodies.getItemById(1, true).isOn = pstate.isOn;
                         sys.board.circuits.syncCircuitRelayStates();
                         sys.board.circuits.syncVirtualCircuitStates();
                         sys.board.valves.syncValveStates();
@@ -528,7 +532,6 @@ export class EquipmentStateMessage {
                         sys.board.heaters.syncHeaterStates();
                     }
                 }
-                ExternalMessage.processFeatureState(9, msg);
                 // At this point normally on is ignored.  Not sure what this does.
                 let cover1 = sys.covers.getItemById(1);
                 let cover2 = sys.covers.getItemById(2);
@@ -561,14 +564,14 @@ export class EquipmentStateMessage {
                 let circuit = sys.circuits.getItemById(circuitId, false, { isActive: false });
                 if (circuit.isActive !== false) {
                     let cstate = state.circuits.getItemById(circuitId, circuit.isActive);
-                    let isOn = (byte & (1 << j)) > 0;
-                    sys.board.circuits.setEndTime(circuit, cstate, isOn);
                     // For IntelliCenter i10D the body state for circuit 6 is on the 204 message.
-                    cstate.isOn = (circuitId === 6 && sys.equipment.dual === true) ? cstate.isOn : isOn;
+                    let isOn = (circuitId === 6 && sys.equipment.dual === true) ? cstate.isOn : (byte & (1 << j)) > 0;
+                    cstate.isOn = isOn;
                     cstate.name = circuit.name;
                     cstate.nameId = circuit.nameId;
                     cstate.showInFeatures = circuit.showInFeatures;
                     cstate.type = circuit.type;
+                    sys.board.circuits.setEndTime(circuit, cstate, isOn);
                     if (sys.controllerType === ControllerType.IntelliCenter) {
                         // intellitouch sends a separate msg with themes
                         switch (circuit.type) {

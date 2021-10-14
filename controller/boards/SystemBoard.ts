@@ -3653,81 +3653,81 @@ export class ValveCommands extends BoardCommands {
         } catch (err) { logger.error(`Error validating valves for restore: ${err.message}`); }
     }
 
-  public async setValveStateAsync(valve: Valve, vstate: ValveState, isDiverted: boolean) {
-    if (valve.master === 1) await ncp.valves.setValveStateAsync(vstate, isDiverted);
-    else
-      vstate.isDiverted = isDiverted;
-  }
-  public async setValveAsync(obj: any): Promise<Valve> {
-    try {
-      let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
-      obj.master = 1;
-      if (isNaN(id) || id <= 0) id = Math.max(sys.valves.getMaxId(false, 49) + 1, 50);
+    public async setValveStateAsync(valve: Valve, vstate: ValveState, isDiverted: boolean) {
+        if (valve.master === 1) await ncp.valves.setValveStateAsync(vstate, isDiverted);
+        else
+            vstate.isDiverted = isDiverted;
+    }
+    public async setValveAsync(obj: any): Promise<Valve> {
+        try {
+            let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+            obj.master = 1;
+            if (isNaN(id) || id <= 0) id = Math.max(sys.valves.getMaxId(false, 49) + 1, 50);
 
-      if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Nixie: Valve Id has not been defined ${id}`, obj.id, 'Valve'));
-      // Check the Nixie Control Panel to make sure the valve exist there.  If it needs to be added then we should add it.
-      let valve = sys.valves.getItemById(id, true);
-      // Set all the valve properies.
-      let vstate = state.valves.getItemById(valve.id, true);
-      valve.isActive = true;
-      valve.circuit = typeof obj.circuit !== 'undefined' ? obj.circuit : valve.circuit;
-      valve.name = typeof obj.name !== 'undefined' ? obj.name : valve.name;
-      valve.connectionId = typeof obj.connectionId ? obj.connectionId : valve.connectionId;
-      valve.deviceBinding = typeof obj.deviceBinding !== 'undefined' ? obj.deviceBinding : valve.deviceBinding;
-      valve.pinId = typeof obj.pinId !== 'undefined' ? obj.pinId : valve.pinId;
-      await ncp.valves.setValveAsync(valve, obj);
-      sys.board.valves.syncValveStates();
-      return valve;
-    } catch (err) { logger.error(`Nixie: Error setting valve definition. ${err.message}`); return Promise.reject(err); }
-  }
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Nixie: Valve Id has not been defined ${id}`, obj.id, 'Valve'));
+            // Check the Nixie Control Panel to make sure the valve exist there.  If it needs to be added then we should add it.
+            let valve = sys.valves.getItemById(id, true);
+            // Set all the valve properies.
+            let vstate = state.valves.getItemById(valve.id, true);
+            valve.isActive = true;
+            valve.circuit = typeof obj.circuit !== 'undefined' ? obj.circuit : valve.circuit;
+            valve.name = typeof obj.name !== 'undefined' ? obj.name : valve.name;
+            valve.connectionId = typeof obj.connectionId ? obj.connectionId : valve.connectionId;
+            valve.deviceBinding = typeof obj.deviceBinding !== 'undefined' ? obj.deviceBinding : valve.deviceBinding;
+            valve.pinId = typeof obj.pinId !== 'undefined' ? obj.pinId : valve.pinId;
+            await ncp.valves.setValveAsync(valve, obj);
+            sys.board.valves.syncValveStates();
+            return valve;
+        } catch (err) { logger.error(`Nixie: Error setting valve definition. ${err.message}`); return Promise.reject(err); }
+    }
 
-  public async deleteValveAsync(obj: any): Promise<Valve> {
-    let id = parseInt(obj.id, 10);
-    try {
-      if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
-      let valve = sys.valves.getItemById(id, false);
-      let vstate = state.valves.getItemById(id);
-      if (valve.master === 1) await ncp.valves.deleteValveAsync(id);
-      valve.isActive = false;
-      vstate.hasChanged = true;
-      vstate.emitEquipmentChange();
-      sys.valves.removeItemById(id);
-      state.valves.removeItemById(id);
-      return valve;
-    } catch (err) { return Promise.reject(new Error(`Error deleting valve: ${err.message}`)); }
-    // The following code will make sure we do not encroach on any valves defined by the OCP.
-  }
-  public async syncValveStates() {
-    try {
-      for (let i = 0; i < sys.valves.length; i++) {
-        // Run through all the valves to see whether they should be triggered or not.
-        let valve = sys.valves.getItemByIndex(i);
-        if (valve.isActive) {
-          let vstate = state.valves.getItemById(valve.id, true);
-          let isDiverted = vstate.isDiverted;
-          if (typeof valve.circuit !== 'undefined' && valve.circuit > 0) {
-            if (sys.equipment.shared && valve.isIntake === true)
-              isDiverted = utils.makeBool(state.circuits.getItemById(1).isOn); // If the spa is on then the intake is diverted.
-            else if (sys.equipment.shared && valve.isReturn === true) {
-              // Check to see if there is a spillway circuit or feature on.  If it is on then the return will be diverted no mater what.
-              let spillway = typeof state.circuits.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined' ||
-                typeof state.features.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined';
-              isDiverted = utils.makeBool(spillway || state.circuits.getItemById(1).isOn);
+    public async deleteValveAsync(obj: any): Promise<Valve> {
+        let id = parseInt(obj.id, 10);
+        try {
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
+            let valve = sys.valves.getItemById(id, false);
+            let vstate = state.valves.getItemById(id);
+            if (valve.master === 1) await ncp.valves.deleteValveAsync(id);
+            valve.isActive = false;
+            vstate.hasChanged = true;
+            vstate.emitEquipmentChange();
+            sys.valves.removeItemById(id);
+            state.valves.removeItemById(id);
+            return valve;
+        } catch (err) { return Promise.reject(new Error(`Error deleting valve: ${err.message}`)); }
+        // The following code will make sure we do not encroach on any valves defined by the OCP.
+    }
+    public async syncValveStates() {
+        try {
+            for (let i = 0; i < sys.valves.length; i++) {
+                // Run through all the valves to see whether they should be triggered or not.
+                let valve = sys.valves.getItemByIndex(i);
+                if (valve.isActive) {
+                    let vstate = state.valves.getItemById(valve.id, true);
+                    let isDiverted = vstate.isDiverted;
+                    if (typeof valve.circuit !== 'undefined' && valve.circuit > 0) {
+                        if (sys.equipment.shared && valve.isIntake === true)
+                            isDiverted = utils.makeBool(state.circuits.getItemById(1).isOn); // If the spa is on then the intake is diverted.
+                        else if (sys.equipment.shared && valve.isReturn === true) {
+                            // Check to see if there is a spillway circuit or feature on.  If it is on then the return will be diverted no mater what.
+                            let spillway = typeof state.circuits.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined' ||
+                                typeof state.features.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined';
+                            isDiverted = utils.makeBool(spillway || state.circuits.getItemById(1).isOn);
+                        }
+                        else {
+                            let circ = state.circuits.getInterfaceById(valve.circuit);
+                            isDiverted = utils.makeBool(circ.isOn);
+                        }
+                    }
+                    else
+                        isDiverted = false;
+                    vstate.type = valve.type;
+                    vstate.name = valve.name;
+                    await sys.board.valves.setValveStateAsync(valve, vstate, isDiverted);
+                }
             }
-            else {
-              let circ = state.circuits.getInterfaceById(valve.circuit);
-              isDiverted = utils.makeBool(circ.isOn);
-            }
-          }
-          else
-            isDiverted = false;
-          vstate.type = valve.type;
-          vstate.name = valve.name;
-          await sys.board.valves.setValveStateAsync(valve, vstate, isDiverted);
-        }
-      }
-    } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
-  }
+        } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
+    }
 }
 export class ChemControllerCommands extends BoardCommands {
     public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
