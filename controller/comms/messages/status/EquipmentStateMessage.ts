@@ -522,15 +522,15 @@ export class EquipmentStateMessage {
                     let pstate = state.circuits.getItemById(6, true);
                     let oldstate = pstate.isOn;
                     pstate.isOn = ((byte & 0x0010) === 0x0010);
-                    if (oldstate !== pstate.isOn) {
-                        logger.info(`Setting i10D pool state ${byte} old:${oldstate}`);
+                    logger.info(`Checking i10D pool state ${byte} old:${oldstate} new: ${pstate.isOn}`);
+                    //if (oldstate !== pstate.isOn) {
                         state.temps.bodies.getItemById(1, true).isOn = pstate.isOn;
                         sys.board.circuits.syncCircuitRelayStates();
                         sys.board.circuits.syncVirtualCircuitStates();
                         sys.board.valves.syncValveStates();
                         sys.board.filters.syncFilterStates();
                         sys.board.heaters.syncHeaterStates();
-                    }
+                    //}
                 }
                 // At this point normally on is ignored.  Not sure what this does.
                 let cover1 = sys.covers.getItemById(1);

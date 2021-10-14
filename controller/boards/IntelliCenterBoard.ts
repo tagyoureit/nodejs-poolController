@@ -1405,7 +1405,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let eggHrs = Math.floor(eggTimer / 60);
             let eggMins = eggTimer - (eggHrs * 60);
             let type = typeof data.type !== 'undefined' ? parseInt(data.type, 10) : circuit.type;
-            let theme = typeof data.lightingTheme !== 'undefined' ? data.ligthingTheme : circuit.lightingTheme;
+            let theme = typeof data.lightingTheme !== 'undefined' ? data.lightingTheme : circuit.lightingTheme;
             if (circuit.type === 9) theme = typeof data.level !== 'undefined' ? data.level : circuit.level;
             if (typeof theme === 'undefined') theme = 0;
             let out = Outbound.create({
@@ -1425,8 +1425,15 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                         circuit.freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze);
                         circuit.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures);
                         if (type === 9) scircuit.level = circuit.level = theme;
-                        else scircuit.lightingTheme = circuit.lightingTheme = theme;
-                        scircuit.lightingTheme = circuit.name = typeof data.name !== 'undefined' ? data.name.toString().substring(0, 16) : circuit.name;
+                        else {
+                            let t = sys.board.valueMaps.circuitFunctions.transform(type);
+                            if (t.isLight) scircuit.lightingTheme = circuit.lightingTheme = theme;
+                            else {
+                                scircuit.lightingTheme = undefined;
+                                circuit.lightingTheme = 0;
+                            }
+                        }
+                        scircuit.name = circuit.name = typeof data.name !== 'undefined' ? data.name.toString().substring(0, 16) : circuit.name;
                         scircuit.type = circuit.type = type;
                         scircuit.isActive = circuit.isActive = true;
                         resolve(circuit);
