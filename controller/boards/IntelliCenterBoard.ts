@@ -1427,7 +1427,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                         if (type === 9) scircuit.level = circuit.level = theme;
                         else {
                             let t = sys.board.valueMaps.circuitFunctions.transform(type);
-                            if (t.isLight) scircuit.lightingTheme = circuit.lightingTheme = theme;
+                            if (t.isLight == true) scircuit.lightingTheme = circuit.lightingTheme = theme;
                             else {
                                 scircuit.lightingTheme = undefined;
                                 circuit.lightingTheme = 0;

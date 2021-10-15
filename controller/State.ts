@@ -1581,10 +1581,12 @@ export class CircuitState extends EqState implements ICircuitState {
             this.hasChanged = true;
         }
     }
-    public get lightingTheme(): number { return typeof (this.data.lightingTheme) !== 'undefined' ? this.data.lightingTheme.val : 255; }
+    public get lightingTheme(): number { return typeof this.data.lightingTheme !== 'undefined' ? this.data.lightingTheme.val : 255; }
     public set lightingTheme(val: number) {
         if (this.lightingTheme !== val) {
-            this.data.lightingTheme = sys.board.valueMaps.lightThemes.transform(val);
+            // Force this to undefined when we are a circuit without a theme.
+            if (typeof val === 'undefined') this.data.lightingTheme = undefined;
+            else this.data.lightingTheme = sys.board.valueMaps.lightThemes.transform(val);
             this.hasChanged = true;
         }
     }

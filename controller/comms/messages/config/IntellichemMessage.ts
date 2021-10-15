@@ -139,6 +139,7 @@ export class IntellichemMessage {
                         let scontroller = state.chemControllers.getItemById(controller.id, isActive);
                         scontroller.isActive = controller.isActive = true;
                         controller.isVirtual = false;
+                        controller.master = 0;
                         if (!controller.isActive) {
                             sys.chemControllers.removeItemById(controller.id);
                             state.chemControllers.removeItemById(controller.id);

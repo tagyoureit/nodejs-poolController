@@ -204,10 +204,19 @@ export class EquipmentStateMessage {
                             tbody.name = cbody.name;
                             tbody.circuit = cbody.circuit = 6;
                             tbody.heatStatus = msg.extractPayloadByte(11) & 0x0F;
-                            if ((msg.extractPayloadByte(2) & 0x20) === 32) {
+                            // With the IntelliCenter i10D, bit 6 is not reliable.  It is not set properly and requires the 204 message
+                            // to process the data.
+                            if (!sys.equipment.dual) {
+                                if ((msg.extractPayloadByte(2) & 0x20) === 32) {
+                                    tbody.temp = state.temps.waterSensor1;
+                                    tbody.isOn = true;
+                                } else tbody.isOn = false;
+                            }
+                            else if (state.circuits.getItemById(6).isOn === true) {
                                 tbody.temp = state.temps.waterSensor1;
                                 tbody.isOn = true;
-                            } else tbody.isOn = false;
+                            }
+                            else tbody.isOn = false;
                         }
                         if (sys.bodies.length > 1) {
                             const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
