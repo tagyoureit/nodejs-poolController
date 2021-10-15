@@ -2178,7 +2178,9 @@ class TouchPumpCommands extends PumpCommands {
         spump.type = pump.type;
         spump.status = 0;
     }
-    public async deletePumpAsync(id):Promise<Pump>{
+    public async deletePumpAsync(pump: Pump):Promise<Pump>{
+        let id = pump.id;
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`DeletePumpAsync: Pump ${id} is not valid.`, 0, `pump`))
         const outc = Outbound.create({
             action: 155,
             payload: [id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],

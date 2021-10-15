@@ -423,7 +423,7 @@ export class WebServer {
             }
            
             return stats;
-        } catch (err) { logger.error(`Error validating restore options: ${err.message}`); }
+        } catch (err) { logger.error(`Error validating restore options: ${err.message}`); return Promise.reject(err);}
     }
     public async restoreServers(opts): Promise<any> {
         let stats: { backupOptions?: any, njsPC?: RestoreResults, servers: any[] } = { servers: [] };
@@ -474,7 +474,7 @@ export class WebServer {
             }
 
             return stats;
-        } catch (err) { logger.error(`Error validating restore options: ${err.message}`); }
+        } catch (err) { logger.error(`Error validating restore options: ${err.message}`); return Promise.reject(err); }
         finally {
             try {
                 let baseDir = process.cwd();

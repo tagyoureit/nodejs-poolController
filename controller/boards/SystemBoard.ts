@@ -931,7 +931,7 @@ export class SystemCommands extends BoardCommands {
         try {
             let ctx = await sys.board.system.validateRestore(rest);
             // Restore the general stuff.
-            if (ctx.general.update.length > 0) await sys.board.system.setGeneralAsync(ctx.general.upadate[0]);
+            if (ctx.general.update.length > 0) await sys.board.system.setGeneralAsync(ctx.general.update[0]);
             for (let i = 0; i < ctx.customNames.update.length; i++) {
                 let cn = ctx.customNames.update[i];
                 try {
@@ -958,7 +958,7 @@ export class SystemCommands extends BoardCommands {
             await sys.board.schedules.restore(rest, ctx, res);
             return res;
             //await sys.board.covers.restore(rest, ctx);
-        } catch (err) { logger.error(`Error restoring njsPC server: ${err.message}`); res.addModuleError('system', err.message); }
+        } catch (err) { logger.error(`Error restoring njsPC server: ${err.message}`); res.addModuleError('system', err.message); return Promise.reject(err);}
     }
     public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<any> {
         try {
@@ -993,7 +993,7 @@ export class SystemCommands extends BoardCommands {
             
             return ctx;
            
-        } catch (err) { logger.error(`Error validating restore file: ${err.message}`); }
+        } catch (err) { logger.error(`Error validating restore file: ${err.message}`); return Promise.reject(err);}
 
     }
     public cancelDelay(): Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay); }
@@ -2858,14 +2858,14 @@ export class ScheduleCommands extends BoardCommands {
                 let s = ctx.schedules.remove[i];
                 try {
                     await sys.board.schedules.deleteScheduleAsync(ctx.schedules.remove[i]);
-                    res.addModuleSuccess('schedule', `Remove: ${s.id}-${s.circiutId}`);
+                    res.addModuleSuccess('schedule', `Remove: ${s.id}-${s.circuitId}`);
                 } catch (err) { res.addModuleError('schedule', `Remove: ${s.id}-${s.circuitId} ${err.message}`); }
             }
             for (let i = 0; i < ctx.schedules.update.length; i++) {
                 let s = ctx.schedules.update[i];
                 try {
                     await sys.board.schedules.setScheduleAsync(s);
-                    res.addModuleSuccess('schedule', `Update: ${s.id}-${s.circiutId}`);
+                    res.addModuleSuccess('schedule', `Update: ${s.id}-${s.circuitId}`);
                 } catch (err) { res.addModuleError('schedule', `Update: ${s.id}-${s.circuitId} ${err.message}`); }
             }
             for (let i = 0; i < ctx.schedules.add.length; i++) {
@@ -2875,7 +2875,7 @@ export class ScheduleCommands extends BoardCommands {
                     // it won't error out.
                     sys.schedules.getItemById(s.id, true);
                     await sys.board.schedules.setScheduleAsync(s);
-                    res.addModuleSuccess('schedule', `Add: ${s.id}-${s.circiutId}`);
+                    res.addModuleSuccess('schedule', `Add: ${s.id}-${s.circuitId}`);
                 } catch (err) { res.addModuleError('schedule', `Add: ${s.id}-${s.circuitId} ${err.message}`); }
             }
             return true;

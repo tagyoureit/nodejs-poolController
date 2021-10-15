@@ -341,7 +341,7 @@ export class NixiePumpRS485 extends NixiePump {
                 else if (this._targetSpeed >= pt.minSpeed && this._targetSpeed <= pt.maxSpeed) await this.setPumpRPMAsync(pstate);  
             } } catch (err) {}
            
-            try { if(!this.closing) await utils.sleep(2000); } catch (err) {};
+            try { if(!this.closing) await utils.sleep(1000); } catch (err) {};
             try { if(!this.closing) await this.requestPumpStatus(pstate);  } catch (err) {};
             try { if(!this.closing) await this.setPumpToRemoteControl(pstate);  } catch (err) {};
             return new InterfaceServerResponse(200, 'Success');
