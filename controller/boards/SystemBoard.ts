@@ -975,7 +975,7 @@ export class SystemCommands extends BoardCommands {
                     else if (JSON.stringify(rest.poolConfig.customNames[i]) !== JSON.stringify(cn)) ctx.customNames.update.push(cn);
                 }
                 ctx.general = { errors: [], warnings: [], add: [], update: [], remove: [] };
-                if (JSON.stringify(sys.general.get()) !== JSON.stringify(cfg.pool)) ctx.general.update(cfg.pool);
+                if (JSON.stringify(sys.general.get()) !== JSON.stringify(cfg.pool)) ctx.general.update.push(cfg.pool);
                 ctx.bodies = await sys.board.bodies.validateRestore(rest);
                 ctx.pumps = await sys.board.pumps.validateRestore(rest);
                 await sys.board.circuits.validateRestore(rest, ctx);
