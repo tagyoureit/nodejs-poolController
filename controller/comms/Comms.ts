@@ -97,6 +97,7 @@ export class Connection {
             let nc: net.Socket = new net.Socket();
             nc.on('connect', () => { logger.info(`Net connect (socat) connected to: ${this._cfg.netHost}:${this._cfg.netPort}`); }); // Socket is opened but not yet ready.
             nc.on('ready', () => {
+                this.isOpen = true;
                 logger.info(`Net connect (socat) ready and communicating: ${this._cfg.netHost}:${this._cfg.netPort}`);
                 nc.on('data', (data) => { if (data.length > 0 && !this.isPaused) this.emitter.emit('packetread', data); });
             });
