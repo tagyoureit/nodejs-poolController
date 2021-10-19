@@ -547,12 +547,12 @@ export class EquipmentStateMessage {
                 if (cover1.isActive) {
                     let scover1 = state.covers.getItemById(1, true);
                     scover1.name = cover1.name;
-                    state.temps.bodies.getItemById(cover1.body).isCovered = scover1.isClosed = (msg.extractPayloadByte(30) & 0x0001) > 0;
+                    state.temps.bodies.getItemById(cover1.body + 1).isCovered = scover1.isClosed = (msg.extractPayloadByte(30) & 0x0001) > 0;
                 }
                 if (cover2.isActive) {
                     let scover2 = state.covers.getItemById(2, true);
                     scover2.name = cover2.name;
-                    state.temps.bodies.getItemById(cover2.body).isCovered = scover2.isClosed = (msg.extractPayloadByte(30) & 0x0002) > 0;
+                    state.temps.bodies.getItemById(cover2.body + 1).isCovered = scover2.isClosed = (msg.extractPayloadByte(30) & 0x0002) > 0;
                 }
                 msg.isProcessed = true;
                 state.emitEquipmentChanges();
