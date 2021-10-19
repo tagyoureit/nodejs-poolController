@@ -106,6 +106,7 @@ export class Connection {
                 this.isOpen = false;
                 if (typeof this._port !== 'undefined') this._port.destroy();
                 this._port = undefined;
+                this.buffer.clearOutbound();
                 logger.info(`Net connect (socat) closed ${p === true ? 'due to error' : ''}: ${this._cfg.netHost}:${this._cfg.netPort}`);
             });
             nc.on('end', () => { // Happens when the other end of the socket closes.
@@ -349,7 +350,7 @@ export class SendRecieveBuffer {
     public pushOut(msg) { conn.buffer._outBuffer.push(msg); setTimeout(() => { this.processPackets(); }, 0); }
     public clear() { conn.buffer._inBuffer.length = 0; conn.buffer._outBuffer.length = 0; }
     public close() { clearTimeout(conn.buffer.procTimer); conn.buffer.clear(); this._msg = undefined; }
-
+    public clearOutbound() { conn.buffer._outBuffer.length = 0; conn.buffer._waitingPacket = undefined; }
     /********************************************************************
      * RKS: 06-06-20
      * This used to process every 175ms.  While the processing was light
