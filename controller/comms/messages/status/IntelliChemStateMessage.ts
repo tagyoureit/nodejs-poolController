@@ -53,7 +53,7 @@ export class IntelliChemStateMessage {
 
             /* RKS: This is processed in the IntellichemMessage.processTouch() and is the results of asking for the IntelliChem configuration.
             case 147: // OCP is broadcasting it's known ic values...  Need to change our settings if virtual.
-                // 147 is a proto:broadcast message; 
+                // 147 is a proto:broadcast message;
                 // it has exactly the same format as 18 but there is payload[0] which is inserted at the beginning.  Likely the chem controller id.
                 if (msg.dest < 144 || msg.dest > 158) return;
                 IntelliChemStateMessage.processControllerChange(msg);
@@ -70,7 +70,7 @@ export class IntelliChemStateMessage {
                 //let scontroller = state.chemControllers.getItemById(controller.id, true);
                 //if (scontroller.lastComm + (30 * 1000) < new Date().getTime()) {
                 //    // We have not talked to the chem controller in 30 seconds so we have lost communication.
-                //    scontroller.status = scontroller.alarms.comms = 1;                   
+                //    scontroller.status = scontroller.alarms.comms = 1;
                 //}
                 controller.ph.tank.capacity = controller.orp.tank.capacity = 6;
                 controller.ph.tank.units = controller.orp.tank.units = '';
@@ -96,8 +96,8 @@ export class IntelliChemStateMessage {
         //      6-7 : ORP Setpoint : byte(6) x 256 + byte(7)
         //      8 : Unknown = 0
         //      9 : Unknown = 0
-        //      10 : Unknown = 0
-        //      11-12 : pH Dose time seconds. The number of seconds since the dose started. byte(11) x 256 + byte(12)
+        //      10-11 : pH Dose time seconds. The number of seconds since the dose started. byte(11) x 256 + byte(12)
+        //      12 : Unknown
         //      13 : Unknown
         //      14-15 : ORP Dose time seconds.  The number of seconds since the dose started. byte(14) x 256 + byte(15)
         //      16-17 : pH Dose volume (unknown units) - These appear to be mL.
@@ -129,7 +129,7 @@ export class IntelliChemStateMessage {
         schem.type = chem.type = sys.board.valueMaps.chemControllerTypes.getValue('intellichem');
         chem.name = chem.name || `IntelliChem ${chem.address - 143}`; // default to true id if no name is set
         schem.lastComm = new Date().getTime();
-        schem.status = schem.alarms.comms = 0; 
+        schem.status = schem.alarms.comms = 0;
         chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
         chem.ph.tank.units = chem.orp.tank.units = '';
         chem.ph.tank.alarmEmptyEnabled = false;
@@ -143,11 +143,11 @@ export class IntelliChemStateMessage {
         chem.orp.setpoint = msg.extractPayloadIntBE(6);
         // Missing information on the related bytes.
         // Bytes 8-14 (Probably Total Dissolved Solids in here if no IntelliChlor)
-        let phPrev = { status: schem.orp.dosingStatus, time: schem.ph.timeDosed || 0, vol: schem.ph.volumeDosed };
+        let phPrev = { status: schem.ph.dosingStatus, time: schem.ph.timeDosed || 0, vol: schem.ph.volumeDosed };
         let orpPrev = { status: schem.orp.dosingStatus, time: schem.orp.timeDosed || 0, vol: schem.orp.volumeDosed };
         // IntelliChem never tells us what the dose time or volume is so we will let that dog lie.
-        //      11-12 : pH Dose time
-        schem.ph.timeDosed = (msg.extractPayloadByte(11) * 256) + msg.extractPayloadByte(12);
+        //      10-11 : pH Dose time
+        schem.ph.timeDosed = (msg.extractPayloadByte(10) * 256) + msg.extractPayloadByte(11);
         //      14-15 : ORP Dose time seconds.  The number of seconds since the dose started.
         schem.orp.timeDosed = (msg.extractPayloadByte(14) * 256) + msg.extractPayloadByte(15);
         //      16-17 : pH Dose volume (unknown units) = 35
@@ -167,7 +167,7 @@ export class IntelliChemStateMessage {
         chem.cyanuricAcid = msg.extractPayloadByte(26);
         //      27-28 : Alkalinity
         chem.alkalinity = (msg.extractPayloadByte(27) * 256) + msg.extractPayloadByte(28);
-        //      29 : Salt level = 20 
+        //      29 : Salt level = 20
         if (sys.chlorinators.length > 0) {
             let chlor = state.chlorinators.find(elem => elem.id === 1);
             schem.orp.probe.saltLevel = (typeof chlor !== 'undefined') ? chlor.saltLevel : msg.extractPayloadByte(29) * 50;
@@ -179,6 +179,8 @@ export class IntelliChemStateMessage {
         //      32 : Alarms = 8 = (no alarm)
         const alarms = schem.alarms;
         alarms.flow = msg.extractPayloadByte(32) & 0x01;
+        if(alarms.flow === 0)
+            schem.flowDetected = true;
         alarms.pH = msg.extractPayloadByte(32) & 0x06;
         alarms.orp = msg.extractPayloadByte(32) & 0x18;
         alarms.pHTank = msg.extractPayloadByte(32) & 0x20;
@@ -239,13 +241,13 @@ export class IntelliChemStateMessage {
         else if (schem.ph.dosingStatus !== 0 && phPrev.status === 0) {
             if (typeof schem.ph.currentDose !== 'undefined') {
                 // We just ended a dose so write it out to the chem logs.
-                schem.ph.endDose(Timestamp.now.addSeconds(-(schem.ph.doseTime - phPrev.time)).toDate(), 'completed',
-                    schem.ph.volumeDosed - phPrev.vol, (schem.ph.doseTime - phPrev.time) * 1000);
+                schem.ph.endDose( Timestamp.now.addSeconds(-(schem.ph.doseTime - phPrev.time)).toDate(), 'completed',
+                    schem.ph.volumeDosed - phPrev.vol, (schem.ph.timeDosed - phPrev.time) * 1000);
             }
         }
         else if (schem.ph.dosingStatus === 0) {
             // We are still dosing so add the time and volume to the dose.
-            schem.ph.appendDose(schem.ph.doseVolume - phPrev.vol, (schem.ph.doseTime - phPrev.time) * 1000);
+            schem.ph.appendDose(schem.ph.doseVolume - phPrev.vol, (schem.ph.timeDosed - phPrev.time) * 1000);
         }
         else {
             console.log(`DOSING STATUS === ${schem.ph.dosingStatus}`);
@@ -256,19 +258,19 @@ export class IntelliChemStateMessage {
         if (schem.orp.dosingStatus === 0 && orpPrev.status !== 0) {
             if (schem.orp.dosingStatus === 0) {
                 // We are starting a dose so we need to set the current dose.
-                schem.orp.startDose(Timestamp.now.addSeconds(-schem.orp.doseTime).toDate(), schem.orp.manualDosing ? 'manual' : 'auto', 0, schem.orp.volumeDosed, schem.orp.timeDosed * 1000);
+                schem.orp.startDose(Timestamp.now.addSeconds(-schem.orp.doseTime).toDate(), schem.orp.manualDosing ? 'manual' : 'auto', 0, schem.orp.volumeDosed, 0, schem.orp.timeDosed * 1000);
             }
         }
         else if (schem.orp.dosingStatus !== 0 && orpPrev.status === 0) {
             if (typeof schem.orp.currentDose !== 'undefined') {
                 // We just ended a dose so write it out to the chem logs.
-                schem.orp.endDose(Timestamp.now.addSeconds(-(schem.orp.doseTime - orpPrev.time)).toDate(), 'completed',
-                    schem.orp.volumeDosed - orpPrev.vol, schem.orp.doseTime - orpPrev.time);
+                schem.orp.endDose( Timestamp.now.addSeconds(-(schem.orp.doseTime - orpPrev.time)).toDate(), 'completed',
+                    schem.orp.volumeDosed - orpPrev.vol, (schem.orp.timeDosed - orpPrev.time) * 1000);
             }
         }
         else if (schem.orp.dosingStatus === 0) {
             // We are still dosing so add the time and volume to the dose.
-            schem.orp.appendDose(schem.orp.doseTime - orpPrev.time, schem.orp.doseVolume - orpPrev.vol);
+            schem.orp.appendDose( schem.orp.doseVolume - orpPrev.vol, (schem.orp.timeDosed - orpPrev.time) * 1000 );
         }
         else {
             // Make sure we don't have a current dose going.
