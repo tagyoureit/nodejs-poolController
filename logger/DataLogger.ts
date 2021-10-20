@@ -47,6 +47,7 @@ export class DataLogger {
             let newLines = ['\r', '\n'];
             let arr: T[] = [];
             if (fs.existsSync(logPath)) {
+                console.log(`Reading logfile ${logPath}`);
                 // Alright what we have created here is a method to read the data from the end of 
                 // a log file in reverse order (tail) that works for all os implementations.  It is
                 // really dumb that this isn't part of the actual file processing.
@@ -399,11 +400,21 @@ export class DataLoggerEntry {
         // Parse the data from the log entry if it exists.
         if (typeof entry === 'object') entry = JSON.stringify(entry);
         if (typeof entry === 'string') this.parse(entry);
+        else {
+            console.log(`A DATALOGGER ENTRY DOES NOT HAVE A PROPER TYPE ${typeof entry} *************************************`);
+            console.log(entry);
+        }
     }
     public createInstance(entry?: string) { return new DataLoggerEntry(entry); }
     public parse(entry: string) {
         let obj = typeof entry !== 'undefined' ? JSON.parse(entry, this.dateParser) : {};
-        extend(true, this, obj);
+        if (typeof entry === 'undefined') {
+            console.log(`A DATALOGGER ENTRY WAS NOT DEFINED *************************`);
+        }
+        else if (entry === '') {
+            console.log(`THE INCOMING DATALOGGER ENTRY WAS EMPTY ***************************`)
+        }
+        let o = extend(true, this, obj);
     }
     protected dateParser(key, value) {
         if (typeof value === 'string') {
