@@ -15,6 +15,8 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as express from "express";
+import * as extend from "extend";
+
 import { state, ICircuitState, LightGroupState, ICircuitGroupState, ChemicalDoseState } from "../../../controller/State";
 import { sys } from "../../../controller/Equipment";
 import { utils } from '../../../controller/Constants';
@@ -79,11 +81,53 @@ export class StateRoute {
             catch (err) { next(err); }
 
         });
-        app.search('/state/chemController/:id/doseHistory/ph', async (req, res, next) => {
+        app.get('/state/chemController/:id/doseLog/ph', async (req, res, next) => {
+            try {
+                let schem = state.chemControllers.getItemById(parseInt(req.params.id));
+                let filter = req.body || {};
+                let dh = await DataLogger.readFromEndAsync(`chemDosage_${schem.ph.chemType}.log`, ChemicalDoseState, (lineNumber: number, entry: ChemicalDoseState, arr: ChemicalDoseState[]): boolean => {
+                    if (entry.id !== schem.id) return false;
+                    if (typeof filter.lines !== 'undefined' && filter.lines <= arr.length) return false;
+                    if (typeof filter.date !== 'undefined' && entry.end < filter.date) return false;
+                    return true;
+                });
+                return res.status(200).send(dh);
+            }
+            catch (err) { next(err); }
+        });
+        app.search('/state/chemController/:id/doseLog/ph', async (req, res, next) => {
             try {
                 let schem = state.chemControllers.getItemById(parseInt(req.params.id));
                 let filter = req.body || {};
                 let dh = DataLogger.readFromEnd(`chemDosage_${schem.ph.chemType}.log`, ChemicalDoseState, (lineNumber: number, entry: ChemicalDoseState, arr: ChemicalDoseState[]): boolean => {
+                    if (entry.id !== schem.id) return;
+                    if (typeof filter.lines !== 'undefined' && filter.lines <= arr.length) return false;
+                    if (typeof filter.date !== 'undefined' && entry.end < filter.date) return false;
+                    return true;
+                });
+                return res.status(200).send(dh);
+            }
+            catch (err) { next(err); }
+        });
+        app.get('/state/chemController/:id/doseLog/orp', async (req, res, next) => {
+            try {
+                let schem = state.chemControllers.getItemById(parseInt(req.params.id));
+                let filter = req.body || {};
+                let dh = await DataLogger.readFromEndAsync(`chemDosage_orp.log`, ChemicalDoseState, (lineNumber: number, entry: ChemicalDoseState, arr: ChemicalDoseState[]): boolean => {
+                    if (entry.id !== schem.id) return false;
+                    if (typeof filter.lines !== 'undefined' && filter.lines <= arr.length) return false;
+                    if (typeof filter.date !== 'undefined' && entry.end < filter.date) return false;
+                    return true;
+                });
+                return res.status(200).send(dh);
+            }
+            catch (err) { next(err); }
+        });
+        app.search('/state/chemController/:id/doseLog/orp', async (req, res, next) => {
+            try {
+                let schem = state.chemControllers.getItemById(parseInt(req.params.id));
+                let filter = req.body || {};
+                let dh = DataLogger.readFromEnd(`chemDosage_orp.log`, ChemicalDoseState, (lineNumber: number, entry: ChemicalDoseState, arr: ChemicalDoseState[]): boolean => {
                     if (entry.id !== schem.id) return;
                     if (typeof filter.lines !== 'undefined' && filter.lines <= arr.length) return false;
                     if (typeof filter.date !== 'undefined' && entry.end < filter.date) return false;

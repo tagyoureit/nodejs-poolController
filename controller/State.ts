@@ -2522,7 +2522,7 @@ export class ChemicalDoseState extends DataLoggerEntry {
     public time: number;
     public timeDosed: number;
 
-    public createInstance(entry?: string): ChemicalDoseState { return new ChemicalDoseState(entry); }
+    public static createInstance(entry?: string): ChemicalDoseState { return new ChemicalDoseState(entry); }
     public save() { DataLogger.writeEnd(`chemDosage_${this.chem}.log`, this); }
     public get timeRemaining(): number { return Math.floor(Math.max(0, this.time - (this._timeDosed / 1000))); }
     public get volumeRemaining(): number { return Math.max(0, this.volume - this.volumeDosed); }

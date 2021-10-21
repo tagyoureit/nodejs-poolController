@@ -85,7 +85,6 @@ export class DataLogger {
                                         let entry = DataLogger.createEntry<T>(type, chars.join(''));
                                         if (typeof fn === 'function') {
                                             let rc = fn(arr.length + 1, entry, arr);
-                                            console.log(rc);
                                             if (rc === true) arr.push(entry);
                                             else if (rc === false) break;
                                         }
@@ -277,7 +276,6 @@ export class DataLogger {
                                             let entry = DataLogger.createEntry<T>(type, chars.join(''));
                                             if (typeof fn === 'function') {
                                                 let rc = fn(arr.length + 1, entry, arr);
-                                                console.log(rc);
                                                 if (rc === true) arr.push(entry);
                                                 else if (rc === false) break;
                                             }
@@ -401,11 +399,11 @@ export class DataLoggerEntry {
         if (typeof entry === 'object') entry = JSON.stringify(entry);
         if (typeof entry === 'string') this.parse(entry);
         else {
-            console.log(`A DATALOGGER ENTRY DOES NOT HAVE A PROPER TYPE ${typeof entry} *************************************`);
-            console.log(entry);
+            //console.log(`A DATALOGGER ENTRY DOES NOT HAVE A PROPER TYPE ${typeof entry} *************************************`);
+            //console.log(entry);
         }
     }
-    public createInstance(entry?: string) { return new DataLoggerEntry(entry); }
+    public static createInstance(entry?: string) { return new DataLoggerEntry(entry); }
     public parse(entry: string) {
         let obj = typeof entry !== 'undefined' ? JSON.parse(entry, this.dateParser) : {};
         if (typeof entry === 'undefined') {
