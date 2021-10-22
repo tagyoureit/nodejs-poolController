@@ -39,12 +39,6 @@ export class IntelliTouchBoard extends EasyTouchBoard {
             [32, { name: 'IT5X', part: 'i5X', desc: 'IntelliTouch i5X', circuits: 5 }],
             [33, { name: 'IT10X', part: 'i10X', desc: 'IntelliTouch i10X', circuits: 10 }]
         ]);
-        this.valueMaps.panelModes = new byteValueMap([
-            [0, { val: 0, name: 'auto', desc: 'Auto' }],
-            [1, { val: 1, name: 'service', desc: 'Service' }],
-            [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
-            [255, { name: 'error', desc: 'System Error' }]
-        ]);
     }
     public initExpansionModules(byte1: number, byte2: number) {
         console.log(`Pentair IntelliTouch System Detected!`);

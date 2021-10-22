@@ -38,6 +38,12 @@ export class IntelliCenterBoard extends SystemBoard {
         this.equipmentIds.features.start = 129;
         this.equipmentIds.circuitGroups.start = 193;
         this.equipmentIds.virtualCircuits.start = 237;
+        this.valueMaps.panelModes = new byteValueMap([
+            [0, { val: 0, name: 'auto', desc: 'Auto' }],
+            [1, { val: 1, name: 'service', desc: 'Service' }],
+            [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
+            [255, { name: 'error', desc: 'System Error' }]
+        ]);
         this.valueMaps.circuitFunctions = new byteValueMap([
             [0, { name: 'generic', desc: 'Generic' }],
             [1, { name: 'spillway', desc: 'Spillway' }],
