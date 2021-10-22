@@ -2070,6 +2070,14 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         // NOT SURE IF COINCIDENTAL: The ICP seems to respond immediately after action 2.
         // 7. ICP Sends 168[15,0,... new options, 0,0,0,0]
         // 8. OCP responds ACK(168)
+        // i10D turn on pool
+        // OCP
+        // Schedule on
+        // [255, 0, 255][165, 1, 15, 16, 168, 36][15, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0, 1][5, 226]
+        // No schedules
+        // [255, 0, 255][165, 1, 15, 16, 168, 36][15, 0, 0, 38, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1, 0][5, 195]
+        // njsPC
+        // [255, 0, 255][165, 1, 15, 33, 168, 36][15, 0, 0, 33, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0,  8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0, 0][5, 216]
 
         // The previous sequence is just additional noise on the bus. There is no need for it.  We just
         // need to send the set circuit message.  It will reliably work 100% of the time but the ICP
@@ -2079,6 +2087,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             //if (b) b = await this.getConfigAsync([15, 0]);
             return new Promise<ICircuitState>((resolve, reject) => {
                 let out = this.createCircuitStateMessage(id, val);
+                //if (sys.equipment.dual && id === 6) out.setPayloadByte(35, 1);
+                out.setPayloadByte(34, 1);
                 out.onComplete = async (err, msg: Inbound) => {
                     if (err) reject(err);
                     else {
