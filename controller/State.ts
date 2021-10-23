@@ -2528,19 +2528,19 @@ export class ChemicalDoseState extends DataLoggerEntry {
     public get volumeRemaining(): number { return Math.max(0, this.volume - this.volumeDosed); }
     public parse(entry: string) {
         let obj = typeof entry !== 'undefined' ? JSON.parse(entry, this.dateParser) : {};
-        //if (typeof obj.setpoint !== 'undefined') this.setpoint = obj.setpoint;
-        //if (typeof obj.method !== 'undefined') this.method = obj.method;
-        //if (typeof obj.start !== 'undefined') this.start = obj.start;
-        //if (typeof obj.end !== 'undefined') this.end = obj.end;
-        //if (typeof obj.chem !== 'undefined') this.chem = obj.chem;
-        //if (typeof obj.demand !== 'undefined') this.demand = obj.demand;
-        //if (typeof obj.level !== 'undefined') this.level = obj.level;
-        //if (typeof obj.volume !== 'undefined') this.volume = obj.volume;
-        //if (typeof obj.status !== 'undefined') this.status = obj.status;
-        //if (typeof obj.volumeDosed !== 'undefined') this.volumeDosed = obj.volumeDosed;
-        //if (typeof obj.time !== 'undefined') this.time = obj.time;
-        //if (typeof obj.timeDosed !== 'undefined') this.timeDosed = obj.timeDosed;
-        this.setProperties(obj);
+        if (typeof obj.setpoint !== 'undefined') this.setpoint = obj.setpoint;
+        if (typeof obj.method !== 'undefined') this.method = obj.method;
+        if (typeof obj.start !== 'undefined') this.start = obj.start;
+        if (typeof obj.end !== 'undefined') this.end = obj.end;
+        if (typeof obj.chem !== 'undefined') this.chem = obj.chem;
+        if (typeof obj.demand !== 'undefined') this.demand = obj.demand;
+        if (typeof obj.level !== 'undefined') this.level = obj.level;
+        if (typeof obj.volume !== 'undefined') this.volume = obj.volume;
+        if (typeof obj.status !== 'undefined') this.status = obj.status;
+        if (typeof obj.volumeDosed !== 'undefined') this.volumeDosed = obj.volumeDosed;
+        if (typeof obj.time !== 'undefined') this.time = obj.time;
+        if (typeof obj.timeDosed !== 'undefined') this.timeDosed = obj.timeDosed;
+        //this.setProperties(obj);
     }
     protected setProperties(data: any) {
         let op = Object.getOwnPropertyNames(Object.getPrototypeOf(this));
