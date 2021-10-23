@@ -48,6 +48,7 @@ export class EquipmentMessage {
                         body.capacity = msg.extractPayloadByte(34) * 1000;
                         if (body.isActive && sys.equipment.maxBodies === 0) sys.bodies.removeItemById(1);
                         body.isActive = sys.equipment.maxBodies > 0;
+                        msg.isProcessed = true;
                         break;
                     case 1:
                         pnl = sys.equipment.expansions.getItemById(2);
@@ -66,6 +67,7 @@ export class EquipmentMessage {
                         }
                         pnl = sys.equipment.expansions.getItemById(3);
                         pnl.name = msg.extractPayloadString(18, 16);
+                        msg.isProcessed = true;
                         break;
                     case 2:
                         // The first name is the first body in this packet and the second is the third.  Go figure.
@@ -87,6 +89,7 @@ export class EquipmentMessage {
                             sys.bodies.removeItemById(bodyId);
                             state.temps.bodies.removeItemById(bodyId);
                         }
+                        msg.isProcessed = true;
                         break;
                     case 3:
                         // The first name is the second body and the 2nd is the 4th.  This packet also contains
@@ -136,6 +139,7 @@ export class EquipmentMessage {
                         state.equipment.maxValves = sys.equipment.maxValves;
                         state.equipment.maxSchedules = sys.equipment.maxSchedules;
                         state.equipment.maxPumps = sys.equipment.maxPumps;
+                        msg.isProcessed = true;
                         break;
                     default:
                         logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
