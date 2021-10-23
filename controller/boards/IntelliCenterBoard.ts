@@ -2089,6 +2089,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 let out = this.createCircuitStateMessage(id, val);
                 //if (sys.equipment.dual && id === 6) out.setPayloadByte(35, 1);
                 out.setPayloadByte(34, 1);
+                out.source = 16;
                 out.onComplete = async (err, msg: Inbound) => {
                     if (err) reject(err);
                     else {
