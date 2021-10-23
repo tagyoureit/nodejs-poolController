@@ -405,6 +405,7 @@ export class Inbound extends Message {
             case ControllerType.IntelliCenter:
                 switch (this.action) {
                     case 1: // ACK
+                        this.isProcessed = true;
                         break;
                     case 2:
                     case 204:
@@ -424,6 +425,7 @@ export class Inbound extends Message {
                         break;
                     case 222: // A panel is asking for action 30s
                     case 228: // A panel is asking for the current version
+                        this.isProcessed = true;
                         break;
                     default:
                         logger.info(`An unprocessed message was received ${this.toPacket()}`)
