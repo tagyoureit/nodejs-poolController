@@ -430,6 +430,8 @@ export class Inbound extends Message {
                         break;
 
                 }
+                if (!this.isProcessed) logger.info(`The message was not processed ${this.action} - ${this.toPacket()}`);
+
                 break;
             default:
                 switch (this.action) {
