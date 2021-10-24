@@ -2293,7 +2293,7 @@ export class ChemicalState extends ChildEqState {
 }
 export class ChemicalPhState extends ChemicalState {
     public initData() {
-        if (typeof this.data.chemType === 'undefined') this.data.chemType === 'acid';
+        // if (typeof this.data.chemType === 'undefined') this.data.chemType === 'acid';  // RSG 10-23-21 - Only a getter; don't need to set this.
         super.initData();
     }
     public getConfig() {
@@ -2498,14 +2498,16 @@ export class ChemicalDoseState extends DataLoggerEntry {
     public _isManual: boolean;
 
     constructor(entry?: string | object) {
-        super(entry);
+        super();
+        if (typeof entry === 'object') entry = JSON.stringify(entry);
+        if (typeof entry === 'string') this.parse(entry);
         // Javascript is idiotic in that the initialization of variables
         // do not happen before the assignment so some of the values can be undefined.
         if (typeof this.volumeDosed === 'undefined' || !this.volumeDosed) this.volumeDosed = 0;
         if (typeof this.volume === 'undefined' || !this.volume) this.volume = 0;
         if (typeof this._isManual === 'undefined') this._isManual = this.method === 'manual';
         if (typeof this.timeDosed === 'undefined' || !this.timeDosed) this.timeDosed = 0;
-        if (typeof this._timeDosed === 'undefined') this.timeDosed * 1000;
+        if (typeof this._timeDosed === 'undefined') this._timeDosed = this.timeDosed * 1000;
         if (typeof this.time === 'undefined' || !this.time) this.time = 0;
     }
     public id: number;
@@ -2527,20 +2529,23 @@ export class ChemicalDoseState extends DataLoggerEntry {
     public get timeRemaining(): number { return Math.floor(Math.max(0, this.time - (this._timeDosed / 1000))); }
     public get volumeRemaining(): number { return Math.max(0, this.volume - this.volumeDosed); }
     public parse(entry: string) {
-        let obj = typeof entry !== 'undefined' ? JSON.parse(entry, this.dateParser) : {};
+        // let obj = typeof entry !== 'undefined' ? JSON.parse(entry, this.dateParser) : {};
+        let obj = typeof entry !== 'undefined' ? JSON.parse(entry) : {};
+        for (const prop in obj) {obj[prop] = this.dateParser(prop, obj[prop])}
         if (typeof obj.setpoint !== 'undefined') this.setpoint = obj.setpoint;
         if (typeof obj.method !== 'undefined') this.method = obj.method;
         if (typeof obj.start !== 'undefined') this.start = obj.start;
         if (typeof obj.end !== 'undefined') this.end = obj.end;
         if (typeof obj.chem !== 'undefined') this.chem = obj.chem;
         if (typeof obj.demand !== 'undefined') this.demand = obj.demand;
+        if (typeof obj.id !== 'undefined') this.id = obj.id;
         if (typeof obj.level !== 'undefined') this.level = obj.level;
         if (typeof obj.volume !== 'undefined') this.volume = obj.volume;
         if (typeof obj.status !== 'undefined') this.status = obj.status;
         if (typeof obj.volumeDosed !== 'undefined') this.volumeDosed = obj.volumeDosed;
         if (typeof obj.time !== 'undefined') this.time = obj.time;
         if (typeof obj.timeDosed !== 'undefined') this.timeDosed = obj.timeDosed;
-        //this.setProperties(obj);
+        // this.setProperties(obj);
     }
     protected setProperties(data: any) {
         let op = Object.getOwnPropertyNames(Object.getPrototypeOf(this));
