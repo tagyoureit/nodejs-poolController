@@ -38,6 +38,12 @@ export class IntelliCenterBoard extends SystemBoard {
         this.equipmentIds.features.start = 129;
         this.equipmentIds.circuitGroups.start = 193;
         this.equipmentIds.virtualCircuits.start = 237;
+        this.valueMaps.panelModes = new byteValueMap([
+            [0, { val: 0, name: 'auto', desc: 'Auto' }],
+            [1, { val: 1, name: 'service', desc: 'Service' }],
+            [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
+            [255, { name: 'error', desc: 'System Error' }]
+        ]);
         this.valueMaps.circuitFunctions = new byteValueMap([
             [0, { name: 'generic', desc: 'Generic' }],
             [1, { name: 'spillway', desc: 'Spillway' }],
@@ -2064,6 +2070,14 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         // NOT SURE IF COINCIDENTAL: The ICP seems to respond immediately after action 2.
         // 7. ICP Sends 168[15,0,... new options, 0,0,0,0]
         // 8. OCP responds ACK(168)
+        // i10D turn on pool
+        // OCP
+        // Schedule on
+        // [255, 0, 255][165, 1, 15, 16, 168, 36][15, 0, 0, 33, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 36, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0, 1][5, 226]
+        // No schedules
+        // [255, 0, 255][165, 1, 15, 16, 168, 36][15, 0, 0, 38, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,  0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 1, 0][5, 195]
+        // njsPC
+        // [255, 0, 255][165, 1, 15, 33, 168, 36][15, 0, 0, 33, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0,  8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 255, 255, 255, 255, 0, 0, 0, 0][5, 216]
 
         // The previous sequence is just additional noise on the bus. There is no need for it.  We just
         // need to send the set circuit message.  It will reliably work 100% of the time but the ICP
@@ -2073,6 +2087,9 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             //if (b) b = await this.getConfigAsync([15, 0]);
             return new Promise<ICircuitState>((resolve, reject) => {
                 let out = this.createCircuitStateMessage(id, val);
+                //if (sys.equipment.dual && id === 6) out.setPayloadByte(35, 1);
+                out.setPayloadByte(34, 1);
+                out.source = 16;
                 out.onComplete = async (err, msg: Inbound) => {
                     if (err) reject(err);
                     else {
@@ -2306,7 +2323,19 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 15];
             let bit = ordinal - (ndx * 8);
-            if (sched.isOn) byte = byte | (1 << bit);
+            // Lets determine if this schedule should be on.
+            if (sched.circuit === id) {
+                if (isOn) {
+                    let dt = state.time.toDate();
+                    let dow = dt.getDay();
+                    // Convert the dow to the bit value.
+                    let sd = sys.board.valueMaps.scheduleDays.toArray().find(elem => elem.dow === dow);
+                    let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
+                    let ts = dt.getHours() * 60 + dt.getMinutes();
+                    if ((sched.scheduleDays & dayVal) > 0 && ts >= sched.startTime && ts <= sched.endTime) byte = byte | (1 << bit);
+                }
+            }
+            else if (sched.isOn) byte = byte | (1 << bit);
             out.payload[ndx + 15] = byte;
         }
         return out;

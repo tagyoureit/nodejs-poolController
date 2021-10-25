@@ -29,8 +29,10 @@ export class DataLogger {
             }
             let arr: T[] = [];
             for (let i = 0; i < lines.length; i++) {
-                let entry = DataLogger.createEntry<T>(type, lines[i]);
-                arr.push(entry);
+                try {
+                    let entry = DataLogger.createEntry<T>(type, lines[i]);
+                    arr.push(entry);
+                } catch (err) { logger.error(`Skipping invalid dose history entry: ${err.message}`); }
             }
             return arr;
         } catch (err) { logger.error(err); }
@@ -82,14 +84,16 @@ export class DataLogger {
                                 // record then we shoud save off the line and read the next record.
                                 if (newLines.includes(char) || pos === 0) {
                                     if (chars.length > 0) {
-                                        let entry = DataLogger.createEntry<T>(type, chars.join(''));
-                                        if (typeof fn === 'function') {
-                                            let rc = fn(arr.length + 1, entry, arr);
-                                            if (rc === true) arr.push(entry);
-                                            else if (rc === false) break;
-                                        }
-                                        else
-                                            arr.push(entry);
+                                        try {
+                                            let entry = DataLogger.createEntry<T>(type, chars.join(''));
+                                            if (typeof fn === 'function') {
+                                                let rc = fn(arr.length + 1, entry, arr);
+                                                if (rc === true) arr.push(entry);
+                                                else if (rc === false) break;
+                                            }
+                                            else
+                                                arr.push(entry);
+                                        } catch (err) { logger.error(`Skipping invalid dose history entry: ${err.message}`); }
                                     }
                                     chars = [];
                                 }
@@ -142,14 +146,16 @@ export class DataLogger {
                                     // record then we shoud save off the line and read the next record.
                                     if (newLines.includes(char) || pos === 0) {
                                         if (chars.length > 0) {
-                                            let entry = DataLogger.createEntry<T>(type, chars.join(''));
-                                            if (typeof fn === 'function') {
-                                                let rc = fn(arr.length + 1, entry, arr);
-                                                if (rc === true) arr.push(entry);
-                                                else if (rc === false) break;
-                                            }
-                                            else
-                                                arr.push(entry);
+                                            try {
+                                                let entry = DataLogger.createEntry<T>(type, chars.join(''));
+                                                if (typeof fn === 'function') {
+                                                    let rc = fn(arr.length + 1, entry, arr);
+                                                    if (rc === true) arr.push(entry);
+                                                    else if (rc === false) break;
+                                                }
+                                                else
+                                                    arr.push(entry);
+                                            } catch (err) { logger.error(`Skipping invalid dose history entry: ${err.message}`); }
                                         }
                                         chars = [];
                                     }
