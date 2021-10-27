@@ -91,6 +91,7 @@ export class ValveMessage {
                     let svalve = state.valves.getItemById(id, true);
                     svalve.name = valve.name;
                     svalve.type = valve.type;
+                    valve.master = 0;
                 }
                 else {
                     sys.valves.removeItemById(id);
@@ -110,6 +111,7 @@ export class ValveMessage {
                     let svalve = state.valves.getItemById(id, true);
                     svalve.name = valve.name;
                     svalve.type = valve.type;
+                    valve.master = 0;
                 }
                 else {
                     sys.valves.removeItemById(id);
@@ -136,6 +138,7 @@ export class ValveMessage {
                 let svalve = state.valves.getItemById(id, true);
                 svalve.name = valve.name;
                 svalve.type = valve.type;
+                valve.master = 0;
             }
             if (!valve.isActive) {
                 sys.valves.removeItemById(id);

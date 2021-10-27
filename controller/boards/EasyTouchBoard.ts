@@ -1960,6 +1960,7 @@ class TouchPumpCommands extends PumpCommands {
                 }
             }
             isAdd = true;
+            pump = sys.pumps.getItemById(id, true);
         }
         else {
             pump = sys.pumps.getItemById(id, false);
@@ -1994,7 +1995,6 @@ class TouchPumpCommands extends PumpCommands {
         if (type.name === 'ss') {
             // The OCP doesn't deal with single speed pumps.  Simply add it to the config.
             data.circuits = [];
-            pump = sys.pumps.getItemById(id, true);
             pump.set(pump);
             let spump = state.pumps.getItemById(id, true);
             for (let prop in spump) {
