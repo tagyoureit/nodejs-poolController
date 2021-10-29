@@ -980,39 +980,48 @@ export class NixieFeatureCommands extends FeatureCommands {
         return this.setFeatureStateAsync(id, !(feat.isOn || false));
     }
     public syncGroupStates() {
+        // The way this should work is that when all of the states are met
+        // the group should be on.  Otherwise it should be off.  That means that if
+        // you turned on all the group circuits that should be on individually then
+        // the group should be on.
         for (let i = 0; i < sys.circuitGroups.length; i++) {
             let grp: CircuitGroup = sys.circuitGroups.getItemByIndex(i);
             let circuits = grp.circuits.toArray();
-            let bIsOn = false;
             if (grp.isActive) {
-                for (let j = 0; j < circuits.length; j++) {
+                let bIsOn = true;
+                // Iterate the circuits and break out should we find a condition
+                // where the group should be off.
+                for (let j = 0; j < circuits.length && bIsOn === true; j++) {
                     let circuit: CircuitGroupCircuit = grp.circuits.getItemById(j);
                     let cstate = state.circuits.getInterfaceById(circuit.circuit);
-                    if (circuit.desiredState === 1 || circuit.desiredState === 0) {
-                        if (cstate.isOn === utils.makeBool(circuit.desiredState)) bIsOn = true;
+                    if (circuit.desiredState === 1) { // The circuit should be on.
+                        if (!utils.makeBool(cstate.isOn)) bIsOn = false;
+                    }
+                    else if (circuit.desiredState === 0) { // The circuit should be off.
+                        if (utils.makeBool(cstate.isOn)) bIsOn = false;
                     }
                 }
+                let sgrp = state.circuitGroups.getItemById(grp.id);
+                sgrp.isOn = bIsOn;
             }
-            let sgrp = state.circuitGroups.getItemById(grp.id);
-            sgrp.isOn = bIsOn && grp.isActive;
-
             sys.board.valves.syncValveStates();
         }
         // I am guessing that there will only be one here but iterate
         // just in case we expand.
         for (let i = 0; i < sys.lightGroups.length; i++) {
-            let grp: LightGroup = sys.lightGroups.getItemByIndex(i);
-            let bIsOn = false;
+            let grp: CircuitGroup = sys.lightGroups.getItemByIndex(i);
+            let circuits = grp.circuits.toArray();
             if (grp.isActive) {
-                let circuits = grp.circuits.toArray();
-                for (let j = 0; j < circuits.length; j++) {
-                    let circuit = grp.circuits.getItemByIndex(j).circuit;
-                    let cstate = state.circuits.getInterfaceById(circuit);
-                    if (cstate.isOn) bIsOn = true;
+                let bIsOn = true;
+                for (let j = 0; j < circuits.length && bIsOn === true; j++) {
+                    let circuit: CircuitGroupCircuit = grp.circuits.getItemById(j);
+                    let cstate = state.circuits.getInterfaceById(circuit.circuit);
+                    if (!utils.makeBool(cstate.isOn)) bIsOn = false;
                 }
+                let sgrp = state.lightGroups.getItemById(grp.id);
+                sgrp.isOn = bIsOn;
             }
-            let sgrp = state.lightGroups.getItemById(grp.id);
-            sgrp.isOn = bIsOn;
+            sys.board.valves.syncValveStates();
         }
         state.emitEquipmentChanges();
     }
