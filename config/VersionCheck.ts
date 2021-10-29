@@ -41,7 +41,7 @@ class VersionCheck {
     public checkGitLocal() {
         // check local git version
         try {
-            let res = execSync('git rev-parse --abbrev-ref HEAD');
+            let res = execSync('git rev-parse --abbrev-ref HEAD', { stdio: 'pipe' });
             let out = res.toString().trim();
             logger.info(`The current git branch output is ${out}`);
             switch (out) {
@@ -54,10 +54,11 @@ class VersionCheck {
             }
         }
         catch (err) {
+            state.appVersion.gitLocalBranch = '--';
             logger.warn(`Unable to retrieve local git branch.  ${err}`);
         }
         try {
-            let res = execSync('git rev-parse HEAD');
+            let res = execSync('git rev-parse HEAD', { stdio: 'pipe' });
             let out = res.toString().trim();
             logger.info(`The current git commit output is ${out}`);
             switch (out) {
@@ -69,7 +70,10 @@ class VersionCheck {
                     state.appVersion.gitLocalCommit = out;
             }
         }
-        catch (err) { logger.warn(`Unable to retrieve local git commit.  ${err}`); }
+        catch (err) { 
+            state.appVersion.gitLocalCommit = '--';
+            logger.warn(`Unable to retrieve local git commit.  ${err}`); 
+        }
     }
     private checkAll() {
         try {
