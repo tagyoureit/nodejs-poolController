@@ -1009,12 +1009,12 @@ export class NixieFeatureCommands extends FeatureCommands {
         // I am guessing that there will only be one here but iterate
         // just in case we expand.
         for (let i = 0; i < sys.lightGroups.length; i++) {
-            let grp: CircuitGroup = sys.lightGroups.getItemByIndex(i);
+            let grp: LightGroup = sys.lightGroups.getItemByIndex(i);
             let circuits = grp.circuits.toArray();
             if (grp.isActive) {
                 let bIsOn = true;
                 for (let j = 0; j < circuits.length && bIsOn === true; j++) {
-                    let circuit: CircuitGroupCircuit = grp.circuits.getItemById(j);
+                    let circuit: LightGroupCircuit = grp.circuits.getItemById(j);
                     let cstate = state.circuits.getInterfaceById(circuit.circuit);
                     if (!utils.makeBool(cstate.isOn)) bIsOn = false;
                 }
