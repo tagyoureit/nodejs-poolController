@@ -234,7 +234,7 @@ export class NixieSchedule extends NixieEquipment {
     }
     public logData(filename: string, data: any) { this.controlPanel.logData(filename, data); }
 }
-class NixieScheduleContext {
+class   NixieScheduleContext {
     constructor() {
 
     }

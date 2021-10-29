@@ -3327,14 +3327,14 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         conn.queueSendMessage(out);
     }
     public async setHeaterAsync(obj: any): Promise<Heater> {
-        if (utils.makeBool(obj.isVirtual) || parseInt(obj.id, 10) > 255) return super.setHeaterAsync(obj);
+        if (obj.master === 1 || parseInt(obj.id, 10) > 255) return super.setHeaterAsync(obj);
         return new Promise<Heater>((resolve, reject) => {
             let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
             if (isNaN(id)) return reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
             let heater: Heater;
             if (id <= 0) {
                 // We are adding a heater.  In this case all heaters are virtual.
-                let vheaters = sys.heaters.filter(h => h.isVirtual);
+                let vheaters = sys.heaters.filter(h => h.master === 1);
                 id = vheaters.length + 1;
             }
             heater = sys.heaters.getItemById(id, false);
@@ -3442,7 +3442,6 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
                     heater.economyTime = economyTime;
                     heater.startTempDelta = startTempDelta;
                     heater.stopTempDelta = stopTempDelta;
-                    //hstate.isVirtual = heater.isVirtual = false;
                     heater.cooldownDelay = cooldownDelay;
                     sys.board.heaters.updateHeaterServices();
                     sys.board.heaters.syncHeaterStates();
@@ -3455,7 +3454,7 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         });
     }
     public async deleteHeaterAsync(obj): Promise<Heater> {
-        if (utils.makeBool(obj.isVirtual) || obj.master === 1 || parseInt(obj.id, 10) > 255) return await super.deleteHeaterAsync(obj);
+        if (obj.master === 1 || parseInt(obj.id, 10) > 255) return await super.deleteHeaterAsync(obj);
         return new Promise<Heater>((resolve, reject) => {
             let id = parseInt(obj.id, 10);
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
@@ -3569,7 +3568,7 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
 }
 class IntelliCenterValveCommands extends ValveCommands {
     public async setValveAsync(obj?: any): Promise<Valve> {
-        if (obj.isVirtual || obj.master === 1) return super.setValveAsync(obj);
+        if (obj.master === 1) return super.setValveAsync(obj);
         let id = parseInt(obj.id, 10);
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
         let valve = sys.valves.getItemById(id);

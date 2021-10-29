@@ -1228,6 +1228,9 @@ export class PumpCollection extends EqItemCollection<Pump> {
 }
 export class Pump extends EqItem {
     public dataName = 'pumpConfig';
+    public initData() {
+        if (typeof this.data.isVirtual !== 'undefined') delete this.data.isVirtual;
+    }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get address(): number { return this.data.address || this.data.id + 95; }
@@ -1433,8 +1436,8 @@ export class Valve extends EqItem {
     public set isIntake(val: boolean) { this.setDataVal('isIntake', val); }
     public get isReturn(): boolean { return utils.makeBool(this.data.isReturn); }
     public set isReturn(val: boolean) { this.setDataVal('isReturn', val); }
-    public get isVirtual(): boolean { return utils.makeBool(this.data.isVirtual); }
-    public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
+    // public get isVirtual(): boolean { return utils.makeBool(this.data.isVirtual); }
+    // public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
     public get pinId(): number { return this.data.pinId || 0; }
     public set pinId(val: number) { this.setDataVal('pinId', val); }
     public get isActive(): boolean { return this.data.isActive; }
@@ -1481,8 +1484,6 @@ export class Heater extends EqItem {
     public set efficiencyMode(val: number) { this.setDataVal('efficiencyMode', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
-    public get isVirtual(): boolean { return this.data.isVirtual; }
-    public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
     public get coolingEnabled(): boolean { return this.data.coolingEnabled; }
     public set coolingEnabled(val: boolean) { this.setDataVal('coolingEnabled', val); }
     public get heatingEnabled(): boolean { return this.data.heatingEnabled; }
@@ -1933,8 +1934,8 @@ export class ChemController extends EqItem {
     public set address(val: number) { this.setDataVal('address', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
-    public get isVirtual(): boolean { return this.data.isVirtual; }
-    public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
+    // public get isVirtual(): boolean { return this.data.isVirtual; }
+    // public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
     public get calciumHardness(): number { return this.data.calciumHardness; }
     public set calciumHardness(val: number) { this.setDataVal('calciumHardness', val); }
     public get cyanuricAcid(): number { return this.data.cyanuricAcid; }

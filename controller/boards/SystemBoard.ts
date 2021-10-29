@@ -14,7 +14,6 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { log } from 'console';
 import * as extend from 'extend';
 import { logger } from '../../logger/Logger';
 import { Message, Outbound } from '../comms/messages/Messages';
@@ -1799,14 +1798,14 @@ export class PumpCommands extends BoardCommands {
     let _id = pump.id;
     if (pump.type !== pumpType || pumpType === 0) {
       let _p = pump.get(true);
-      const _isVirtual = typeof _p.isVirtual !== 'undefined' ? _p.isVirtual : false;
+      // const _isVirtual = typeof _p.isVirtual !== 'undefined' ? _p.isVirtual : false;
       sys.pumps.removeItemById(_id);
       pump = sys.pumps.getItemById(_id, true);
-      if (_isVirtual) {
+      /* if (_isVirtual) {
         // pump.isActive = true;
         // pump.isVirtual = true;
         pump.master = 1;
-      }
+      } */
       state.pumps.removeItemById(pump.id);
       pump.type = pumpType;
       let type = sys.board.valueMaps.pumpTypes.transform(pumpType);
@@ -3249,7 +3248,7 @@ export class HeaterCommands extends BoardCommands {
             let heater: Heater;
             if (id <= 0) {
                 // We are adding a heater.  In this case all heaters are virtual.
-                let vheaters = sys.heaters.filter(h => h.isVirtual === true);
+                let vheaters = sys.heaters.filter(h => h.master === 1);
                 id = vheaters.length + 256;
             }
             heater = sys.heaters.getItemById(id, true);
@@ -3468,7 +3467,7 @@ export class HeaterCommands extends BoardCommands {
                             let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
                             let status = sys.board.valueMaps.heatStatus.transform(body.heatStatus);
                             let hstate = state.heaters.getItemById(heater.id, true);
-                            if (heater.isVirtual === true || heater.master === 1) {
+                            if (heater.master === 1) {
                                 // We need to do our own calculation as to whether it is on.  This is for Nixie heaters.
                                 let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
                                 switch (htype.name) {

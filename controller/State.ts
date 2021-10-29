@@ -1657,7 +1657,7 @@ export class ValveState extends EqState {
         if (valve.circuit !== 256) vstate.circuit = state.circuits.getInterfaceById(valve.circuit).get(true);
         vstate.isIntake = utils.makeBool(valve.isIntake);
         vstate.isReturn = utils.makeBool(valve.isReturn);
-        vstate.isVirtual = utils.makeBool(valve.isVirtual);
+        // vstate.isVirtual = utils.makeBool(valve.isVirtual);
         vstate.isActive = utils.makeBool(valve.isActive);
         vstate.pinId = valve.pinId;
         return vstate;

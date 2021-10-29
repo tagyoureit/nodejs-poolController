@@ -138,7 +138,7 @@ export class IntellichemMessage {
                         let controller = sys.chemControllers.getItemById(id, isActive, { id: i + 1, type: 1 });
                         let scontroller = state.chemControllers.getItemById(controller.id, isActive);
                         scontroller.isActive = controller.isActive = true;
-                        controller.isVirtual = false;
+                        // controller.isVirtual = false;
                         controller.master = 0;
                         if (!controller.isActive) {
                             sys.chemControllers.removeItemById(controller.id);

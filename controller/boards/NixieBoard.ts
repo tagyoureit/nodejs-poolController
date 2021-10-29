@@ -1082,7 +1082,7 @@ export class NixieHeaterCommands extends HeaterCommands {
             let heater: Heater;
             if (id <= 0) {
                 // We are adding a heater.  In this case all heaters are virtual.
-                let vheaters = sys.heaters.filter(h => h.isVirtual === true);
+                let vheaters = sys.heaters.filter(h => h.master === 1);
                 id = vheaters.length + 256;
             }
             heater = sys.heaters.getItemById(id, true);
