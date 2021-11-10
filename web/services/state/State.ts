@@ -153,7 +153,7 @@ export class StateRoute {
         });
 
         app.get('/state/chlorinator/:id', (req, res) => {
-            res.status(200).send(state.chlorinators.getItemById(parseInt(req.params.id, 10)).get());
+            res.status(200).send(state.chlorinators.getItemById(parseInt(req.params.id, 10), false).getExtended());
         });
         app.get('/state/circuit/:id', (req, res) => {
             res.status(200).send(state.circuits.getItemById(parseInt(req.params.id, 10)).get());

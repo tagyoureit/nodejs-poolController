@@ -335,15 +335,16 @@ export class NixiePumpRS485 extends NixiePump {
             let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
             // Since these process are async the closing flag can be set
             // between calls.  We need to check it in between each call.
-            try { if (!this.closing) await this.setDriveStateAsync(pstate); } catch (err) {}
+            try { if (!this.closing) await this.setDriveStateAsync(); } catch (err) {}
             try { if (!this.closing) {
-                if (this._targetSpeed >= pt.minFlow && this._targetSpeed <= pt.maxFlow) await this.setPumpGPMAsync(pstate);
-                else if (this._targetSpeed >= pt.minSpeed && this._targetSpeed <= pt.maxSpeed) await this.setPumpRPMAsync(pstate);  
+                if (this._targetSpeed >= pt.minFlow && this._targetSpeed <= pt.maxFlow) await this.setPumpGPMAsync();
+                else if (this._targetSpeed >= pt.minSpeed && this._targetSpeed <= pt.maxSpeed) await this.setPumpRPMAsync();  
             } } catch (err) {}
            
+            try { if(!this.closing) await this.setPumpFeature(6);  } catch (err) {};
             try { if(!this.closing) await utils.sleep(1000); } catch (err) {};
-            try { if(!this.closing) await this.requestPumpStatus(pstate);  } catch (err) {};
-            try { if(!this.closing) await this.setPumpToRemoteControl(pstate);  } catch (err) {};
+            try { if(!this.closing) await this.requestPumpStatus();  } catch (err) {};
+            try { if(!this.closing) await this.setPumpToRemoteControl();  } catch (err) {};
             return new InterfaceServerResponse(200, 'Success');
         }
         catch (err) {
@@ -353,7 +354,7 @@ export class NixiePumpRS485 extends NixiePump {
         finally { this.suspendPolling = false; }
     
     };
-    protected async setDriveStateAsync(pstate: PumpState, running: boolean = true) {
+    protected async setDriveStateAsync(running: boolean = true) {
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
                 protocol: Protocol.Pump,
@@ -373,7 +374,7 @@ export class NixiePumpRS485 extends NixiePump {
             conn.queueSendMessage(out);
         });
     };
-    protected async requestPumpStatus(pstate: PumpState) {
+    protected async requestPumpStatus() {
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
                 protocol: Protocol.Pump,
@@ -393,7 +394,7 @@ export class NixiePumpRS485 extends NixiePump {
             conn.queueSendMessage(out);
         })
     };
-    protected setPumpToRemoteControl(spump: PumpState, running: boolean = true) {
+    protected setPumpToRemoteControl(running: boolean = true) {
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
                 protocol: Protocol.Pump,
@@ -414,13 +415,15 @@ export class NixiePumpRS485 extends NixiePump {
             conn.queueSendMessage(out);
         });
     }
-    protected setPumpManual(pstate: PumpState) {
+    protected setPumpFeature(feature?: number) {
+        // empty payload (possibly 0?, too) is no feature
+        // 6: Feature 1
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
                 protocol: Protocol.Pump,
                 dest: this.pump.address,
                 action: 5,
-                payload: [],
+                payload: typeof feature === 'undefined' ? [] : [ feature ],
                 retries: 2,
                 repsonse: true,
                 onComplete: (err, msg: Outbound) => {
@@ -434,7 +437,7 @@ export class NixiePumpRS485 extends NixiePump {
             conn.queueSendMessage(out);
         });
     };
-    protected async setPumpRPMAsync(pstate: PumpState) {
+    protected async setPumpRPMAsync() {
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
                 protocol: Protocol.Pump,
@@ -455,7 +458,7 @@ export class NixiePumpRS485 extends NixiePump {
             conn.queueSendMessage(out);
         });
     };
-    protected async setPumpGPMAsync(pstate: PumpState) {
+    protected async setPumpGPMAsync() {
         // packet for vf; vsf will override
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
@@ -484,10 +487,10 @@ export class NixiePumpRS485 extends NixiePump {
             this._pollTimer = null;
             let pstate = state.pumps.getItemById(this.pump.id);
             this._targetSpeed = 0;
-            try { await this.setDriveStateAsync(pstate, false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
-            try { await this.setPumpManual(pstate); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
-            try { await this.setDriveStateAsync(pstate, false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
-            try { await this.setPumpToRemoteControl(pstate, false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
+            try { await this.setDriveStateAsync(false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
+            try { await this.setPumpFeature(); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
+            try { await this.setDriveStateAsync(false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
+            try { await this.setPumpToRemoteControl(false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
             this.closing = true;
             // Make sure the polling timer is dead after we have closted this all off.  That way we do not
             // have another process that revives it from the dead.
@@ -574,7 +577,7 @@ export class NixiePumpVSF extends NixiePumpRS485 {
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed} ${flows > 0 ? 'GPM' : 'RPM'}.`);
         this._targetSpeed = _newSpeed;
     }
-    protected async setPumpRPMAsync(pstate: PumpState) {
+    protected async setPumpRPMAsync() {
         // vsf action is 10 for rpm
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
@@ -596,7 +599,7 @@ export class NixiePumpVSF extends NixiePumpRS485 {
             conn.queueSendMessage(out);
         });
     };
-    protected async setPumpGPMAsync(pstate: PumpState) {
+    protected async setPumpGPMAsync() {
         // vsf payload; different from vf payload
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({

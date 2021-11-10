@@ -1960,6 +1960,7 @@ class TouchPumpCommands extends PumpCommands {
                 }
             }
             isAdd = true;
+            pump = sys.pumps.getItemById(id, true);
         }
         else {
             pump = sys.pumps.getItemById(id, false);
@@ -1994,7 +1995,6 @@ class TouchPumpCommands extends PumpCommands {
         if (type.name === 'ss') {
             // The OCP doesn't deal with single speed pumps.  Simply add it to the config.
             data.circuits = [];
-            pump = sys.pumps.getItemById(id, true);
             pump.set(pump);
             let spump = state.pumps.getItemById(id, true);
             for (let prop in spump) {
@@ -2266,13 +2266,14 @@ class TouchHeaterCommands extends HeaterCommands {
     }
     // RKS: Not sure what to do with this as the heater data for Touch isn't actually processed anywhere.
     public async setHeaterAsync(obj: any): Promise<Heater> {
+        if (obj.master === 1 || parseInt(obj.id, 10) > 255) return super.setHeaterAsync(obj);
         return new Promise<Heater>((resolve, reject) => {
             let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
             if (isNaN(id)) return reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
             let heater: Heater;
             if (id <= 0) {
                 // We are adding a heater.  In this case all heaters are virtual.
-                let heaters = sys.heaters.filter(h => h.isVirtual === false);
+                let heaters = sys.heaters.filter(h => h.master === 1);
                 id = heaters.getMaxId() + 1;
             }
             heater = sys.heaters.getItemById(id, true);
@@ -2283,7 +2284,7 @@ class TouchHeaterCommands extends HeaterCommands {
                 }
             }
             let hstate = state.heaters.getItemById(id, true);
-            //hstate.isVirtual = heater.isVirtual = true;
+
             hstate.name = heater.name;
             hstate.type = heater.type;
             heater.master = 1;
@@ -2293,7 +2294,7 @@ class TouchHeaterCommands extends HeaterCommands {
         });
     }
     public async deleteHeaterAsync(obj: any): Promise<Heater> {
-        if (utils.makeBool(obj.isVirtual) || obj.master === 1 || parseInt(obj.id, 10) > 255) return await super.deleteHeaterAsync(obj);
+        if (utils.makeBool(obj.master === 1 || parseInt(obj.id, 10) > 255)) return super.deleteHeaterAsync(obj);
         return new Promise<Heater>((resolve, reject) => {
             let id = parseInt(obj.id, 10);
             if (isNaN(id)) return reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));

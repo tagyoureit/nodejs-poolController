@@ -1657,7 +1657,7 @@ export class ValveState extends EqState {
         if (valve.circuit !== 256) vstate.circuit = state.circuits.getInterfaceById(valve.circuit).get(true);
         vstate.isIntake = utils.makeBool(valve.isIntake);
         vstate.isReturn = utils.makeBool(valve.isReturn);
-        vstate.isVirtual = utils.makeBool(valve.isVirtual);
+        // vstate.isVirtual = utils.makeBool(valve.isVirtual);
         vstate.isActive = utils.makeBool(valve.isActive);
         vstate.pinId = valve.pinId;
         return vstate;
@@ -1747,16 +1747,6 @@ export class ChlorinatorState extends EqState {
             this.hasChanged = true;
         }
     }
-    //public get virtualControllerStatus(): number {
-    //    return typeof (this.data.virtualControllerStatus) !== 'undefined' ? this.data.virtualControllerStatus.val : -1;
-    //}
-    //public set virtualControllerStatus(val: number) {
-    //    if (this.virtualControllerStatus !== val) {
-    //        this.data.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.transform(val);
-    //        this.hasChanged = true;
-
-    //    }
-    //}
     public get type(): number { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : -1; }
     public set type(val: number) {
         if (this.type !== val) {
@@ -1842,6 +1832,12 @@ export class ChlorinatorState extends EqState {
             this.setDataVal('superChlor', true);
         else
             this.setDataVal('superChlor', false);
+    }
+    public getExtended(): any {
+        let schlor = this.get(true);
+        let chlor = sys.chlorinators.getItemById(this.id, false);
+        schlor.lockSetpoints = chlor.disabled || chlor.isDosing;
+        return schlor;
     }
 }
 export class ChemControllerStateCollection extends EqStateCollection<ChemControllerState> {

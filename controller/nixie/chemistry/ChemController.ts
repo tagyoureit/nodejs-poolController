@@ -557,6 +557,7 @@ export class NixieChemController extends NixieChemControllerBase {
                     else if (typeof ret.obj.state === 'boolean') v = ret.obj.state;
                     else if (typeof ret.obj.state === 'number') v = utils.makeBool(ret.obj.state);
                     else if (typeof ret.obj.state.val === 'number') v = utils.makeBool(ret.obj.state.val);
+                    else if (typeof ret.obj.state.value === 'number') v = utils.makeBool(ret.obj.state.value);
                     else v = false;
                     this.flowDetected = schem.flowDetected = v;
                 }

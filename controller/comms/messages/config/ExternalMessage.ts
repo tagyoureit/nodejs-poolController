@@ -83,7 +83,8 @@ export class ExternalMessage {
         if (isActive) {
             let chem = sys.chemControllers.getItemById(id, true);
             let schem = state.chemControllers.getItemById(id, true);
-            chem.isVirtual = false;
+            // chem.isVirtual = false;
+            chem.master = 0;
             chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
             chem.ph.tank.units = chem.orp.tank.units = '';
             schem.type = chem.type = 2;
@@ -106,7 +107,8 @@ export class ExternalMessage {
         let valve = sys.valves.getItemById(msg.extractPayloadByte(2) + 1);
         valve.circuit = msg.extractPayloadByte(3) + 1;
         valve.name = msg.extractPayloadString(4, 16);
-        valve.isVirtual = false;
+        valve.master = 0;
+        // valve.isVirtual = false;
         msg.isProcessed = true;
     }
     public static processPool(msg: Inbound) {

@@ -91,6 +91,7 @@ export class ValveMessage {
                     let svalve = state.valves.getItemById(id, true);
                     svalve.name = valve.name;
                     svalve.type = valve.type;
+                    valve.master = 0;
                 }
                 else {
                     sys.valves.removeItemById(id);
@@ -110,6 +111,7 @@ export class ValveMessage {
                     let svalve = state.valves.getItemById(id, true);
                     svalve.name = valve.name;
                     svalve.type = valve.type;
+                    valve.master = 0;
                 }
                 else {
                     sys.valves.removeItemById(id);
@@ -136,13 +138,15 @@ export class ValveMessage {
                 let svalve = state.valves.getItemById(id, true);
                 svalve.name = valve.name;
                 svalve.type = valve.type;
+                valve.master = 0;
             }
             if (!valve.isActive) {
                 sys.valves.removeItemById(id);
                 state.valves.removeItemById(id);
             }
             else {
-                valve.isVirtual = false;
+                valve.master = 0;
+                // valve.isVirtual = false;
                 valve.type = 0;
             }
             id++;
@@ -187,7 +191,8 @@ export class ValveMessage {
                 ndx += 2;
             }
             let valve: Valve = sys.valves.getItemById(id, true);
-            valve.isVirtual = false;
+            valve.master = 0;
+            // valve.isVirtual = false;
             if (id === 3 || id === 5) {
                 valve.circuit = 247; // Hardcode the intake/return to pool/spa;
                 valve.isIntake = true;
