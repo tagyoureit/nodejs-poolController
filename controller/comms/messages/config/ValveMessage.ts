@@ -32,6 +32,7 @@ export class ValveMessage {
                         ValveMessage.processValveNames(msg);
                         break;
                     case 3: // Skip the secondary intake/return
+                        msg.isProcessed = true;
                         break;
                     case 4:
                     case 5:
@@ -233,5 +234,6 @@ export class ValveMessage {
         if (typeof sys.valves.find(elem => elem.id === valveId) !== 'undefined') {
             state.valves.getItemById(valveId).name = sys.valves.getItemById(valveId++).name = msg.extractPayloadString(18, 16);
         }
+        msg.isProcessed = true;
     }
 }

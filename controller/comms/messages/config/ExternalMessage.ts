@@ -824,8 +824,17 @@ export class ExternalMessage {
                 msg.isProcessed = true;
                 break;
             case 64: // Vacation mode
-                let tsStart = new Timestamp(new Date(`20${msg.extractPayloadByte(5)}-${msg.extractPayloadByte(6)}-${msg.extractPayloadByte(7)}`));
-                let tsEnd = new Timestamp(new Date(`20${msg.extractPayloadByte(5)}-${msg.extractPayloadByte(6)}-${msg.extractPayloadByte(7)}`));
+                let yy = msg.extractPayloadByte(5) + 2000;
+                let mm = msg.extractPayloadByte(6);
+                let dd = msg.extractPayloadByte(7);
+                sys.general.options.vacation.startDate = new Date(yy, mm - 1, dd);
+                yy = msg.extractPayloadByte(8) + 2000;
+                mm = msg.extractPayloadByte(9);
+                dd = msg.extractPayloadByte(10);
+                sys.general.options.vacation.endDate = new Date(yy, mm - 1, dd);
+                sys.general.options.vacation.enabled = msg.extractPayloadByte(3) > 0;
+                sys.general.options.vacation.useTimeframe = msg.extractPayloadByte(4) > 0;
+                msg.isProcessed = true;
                 break;
         }
     }

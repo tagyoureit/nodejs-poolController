@@ -164,6 +164,7 @@ export class IntellichemMessage {
                         }
                     }
                 }
+                msg.isProcessed = true;
                 break;
             case 1:
                 for (let i = 0; i < 4; i++) {
@@ -176,6 +177,7 @@ export class IntellichemMessage {
                         controller.alkalinity = msg.extractPayloadInt((i * 2) + 26);
                     }
                 }
+                msg.isProcessed = true;
                 break;
         }
     }

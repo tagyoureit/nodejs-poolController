@@ -219,6 +219,7 @@ export class HeaterMessage {
                 }
                 sys.board.heaters.syncHeaterStates();
                 sys.equipment.setEquipmentIds();
+                msg.isProcessed = true;
                 break;
             case 168:
                 {
@@ -238,7 +239,7 @@ export class HeaterMessage {
                     }
                     // Spa Manual Heat on/off
                     sys.general.options.manualHeat = msg.extractPayloadByte(4) === 1 ? true : false;
-
+                    msg.isProcessed = true;
                 }
         }
     }
@@ -258,6 +259,7 @@ export class HeaterMessage {
                 })();
             }
         }
+        msg.isProcessed = true;
     }
 
     //private static processBody(msg: Inbound) {
@@ -298,12 +300,14 @@ export class HeaterMessage {
 
         }
         sys.board.heaters.updateHeaterServices();
+        msg.isProcessed = true;
     }
     private static processMaxBoostTemp(msg: Inbound) {
         for (let i = 0; i < msg.payload.length - 1 && i < sys.equipment.maxHeaters; i++) {
             var heater: Heater = sys.heaters.getItemById(i + 1);
             heater.maxBoostTemp = msg.extractPayloadByte(i + 2);
         }
+        msg.isProcessed = true;
     }
     private static processStartStopDelta(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
@@ -311,6 +315,7 @@ export class HeaterMessage {
             heater.startTempDelta = msg.extractPayloadByte(i + 1);
             heater.stopTempDelta = msg.extractPayloadByte(i + 18);
         }
+        msg.isProcessed = true;
     }
     private static processCoolingSetTemp(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
@@ -318,20 +323,22 @@ export class HeaterMessage {
             heater.coolingEnabled = msg.extractPayloadByte(i + 1) > 0;
             heater.differentialTemp = msg.extractPayloadByte(i + 18);
         }
+        msg.isProcessed = true;
     }
     private static processAddress(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
             var heater: Heater = sys.heaters.getItemById(i);
             heater.address = msg.extractPayloadByte(i + 1);
         }
+        msg.isProcessed = true;
     }
     private static processEfficiencyMode(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxHeaters; i++) {
             var heater: Heater = sys.heaters.getItemById(i);
             heater.efficiencyMode = msg.extractPayloadByte(i + 1);
         }
+        msg.isProcessed = true;
     }
-
     private static processHeaterNames(msg: Inbound) {
         var heaterId = ((msg.extractPayloadByte(1) - 5) * 2) + 1;
         if (heaterId <= sys.equipment.maxHeaters) {
@@ -342,5 +349,6 @@ export class HeaterMessage {
             let hstate = state.heaters.getItemById(heaterId);
             hstate.name = sys.heaters.getItemById(heaterId++).name = msg.extractPayloadString(18, 16);
         }
+        msg.isProcessed = true;
     }
 }

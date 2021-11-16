@@ -80,6 +80,7 @@ export class CircuitGroupMessage {
                         group.circuits.removeItemByIndex(i);
                 }
             }
+            msg.isProcessed = true;
         }
         else if (msgId >= 16 && msgId <= 31) {
             groupId = msgId - 16 + sys.board.equipmentIds.circuitGroups.start;
@@ -90,6 +91,7 @@ export class CircuitGroupMessage {
                     group.name = msg.extractPayloadString(2, 16);
                     sgroup.name = group.name;
                 }
+                msg.isProcessed = true;
             }
         }
     }
@@ -143,6 +145,7 @@ export class CircuitGroupMessage {
             state.circuitGroups.removeItemById(groupId);
         }
         state.emitEquipmentChanges();
+        msg.isProcessed = true;
     }
     private static processGroupType(msg: Inbound) {
         var groupId = ((msg.extractPayloadByte(1) - 32) * 16) + sys.board.equipmentIds.circuitGroups.start;
@@ -188,6 +191,7 @@ export class CircuitGroupMessage {
             sgroup.type = group.type;
         }
         state.emitEquipmentChanges();
+        msg.isProcessed = true;
     }
     private static processColor(msg: Inbound) {
         var groupId = ((msg.extractPayloadByte(1) - 35)) + sys.board.equipmentIds.circuitGroups.start;
@@ -208,6 +212,7 @@ export class CircuitGroupMessage {
             }
 
         }
+        msg.isProcessed = true;
     }
     private static processEggTimer(msg: Inbound) {
         var groupId = ((msg.extractPayloadByte(1) - 34) * 16) + sys.board.equipmentIds.circuitGroups.start;
@@ -220,5 +225,6 @@ export class CircuitGroupMessage {
                 //  sgroup.eggTimer = group.eggTimer;
             }
         }
+        msg.isProcessed = true;
     }
 }

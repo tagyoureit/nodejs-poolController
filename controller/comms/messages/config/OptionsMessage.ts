@@ -92,6 +92,7 @@ export class OptionsMessage {
                             //body = sys.bodies.getItemById(4, sys.equipment.maxBodies > 3);
                             //body.heatMode = msg.extractPayloadByte(27);
                             //body.heatSetpoint = msg.extractPayloadByte(23);
+                            msg.isProcessed = true;
                             break;
                         }
                     case 1: // Vacation mode
@@ -105,6 +106,7 @@ export class OptionsMessage {
                         sys.general.options.vacation.endDate = new Date(yy, mm - 1, dd);
                         sys.general.options.vacation.enabled = msg.extractPayloadByte(2) > 0;
                         sys.general.options.vacation.useTimeframe = msg.extractPayloadByte(3) > 0;
+                        msg.isProcessed = true;
                         break;
                 }
                 msg.isProcessed = true;

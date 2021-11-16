@@ -93,6 +93,7 @@ export class RemoteMessage {
                     if (!remote.button1 && !remote.button2 && !remote.button3 && !remote.button4) remote.isActive = false;
                     else remote.isActive = true;
                     remote.name = "QuickTouch";
+                    msg.isProcessed = true;
                     break;
                 }
             case 32: // is4/is10
@@ -120,6 +121,7 @@ export class RemoteMessage {
                         remote.type = 1;
                         remote.name = "is4";
                     }
+                    msg.isProcessed = true;
                     break;
                 }
             case 22: // Spa Command spa side remote additional config
@@ -132,6 +134,7 @@ export class RemoteMessage {
                     remote.pumpId = msg.extractPayloadByte(5);
                     remote.stepSize = msg.extractPayloadByte(6);
                     remote.type = 7;
+                    msg.isProcessed = true;
                     break;
                 }
         }
@@ -187,5 +190,6 @@ export class RemoteMessage {
             }
             remote["button" + (i + 1)] = msg.extractPayloadByte(i + 2);
         }
+        msg.isProcessed = true;
     }
 }

@@ -132,6 +132,7 @@ export class PumpMessage {
                 }
             }
         }
+        msg.isProcessed = true;
         switch (msgId) {
             case 0:
                 break;
