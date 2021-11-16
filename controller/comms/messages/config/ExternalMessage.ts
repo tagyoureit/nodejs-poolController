@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import { Inbound } from "../Messages";
 import { sys, Body, ICircuitGroup, LightGroup, CircuitGroup } from "../../../Equipment";
 import { state, ICircuitGroupState, LightGroupState } from "../../../State";
-import { utils } from "../../../Constants";
+import { Timestamp, utils } from "../../../Constants";
 import { logger } from "../../../../logger/Logger";
 export class ExternalMessage {
     public static processIntelliCenter(msg: Inbound): void {
@@ -740,12 +740,16 @@ export class ExternalMessage {
                 sys.general.options.clockMode = (msg.extractPayloadByte(14) & 0x0001) == 1 ? 24 : 12;
                 msg.isProcessed = true;
                 break;
+            case 12: // This is byte 15 but we don't know what it is.  Numbers witnessed include 51, 52, 89, 235.
+                break;
             case 14: // Clock source
                 if ((msg.extractPayloadByte(17) & 0x0040) === 1)
                     sys.general.options.clockSource = 'internet';
                 else if (sys.general.options.clockSource !== 'server')
                     sys.general.options.clockSource = 'manual';
                 msg.isProcessed = true;
+                break;
+            case 15: // This is byte 18 but we don't know what it is.  Numbers witnessed include 1, 2, 3, 5, 100.
                 break;
             case 18: // Body 1 Heat Setpoint
                 body = sys.bodies.getItemById(1, false);
@@ -818,6 +822,10 @@ export class ExternalMessage {
             case 37: // Manual Heat
                 sys.general.options.manualHeat = msg.extractPayloadByte(40) !== 0;
                 msg.isProcessed = true;
+                break;
+            case 64: // Vacation mode
+                let tsStart = new Timestamp(new Date(`20${msg.extractPayloadByte(5)}-${msg.extractPayloadByte(6)}-${msg.extractPayloadByte(7)}`));
+                let tsEnd = new Timestamp(new Date(`20${msg.extractPayloadByte(5)}-${msg.extractPayloadByte(6)}-${msg.extractPayloadByte(7)}`));
                 break;
         }
     }

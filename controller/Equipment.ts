@@ -31,6 +31,7 @@ import { conn } from './comms/Comms';
 import { versionCheck } from "../config/VersionCheck";
 import { NixieControlPanel } from "./nixie/Nixie";
 import { NixieBoard } from 'controller/boards/NixieBoard';
+import { child } from "winston";
 
 interface IPoolSystem {
     cfgPath: string;
@@ -734,8 +735,7 @@ export class Options extends EqItem {
     public set adjustDST(val: boolean) { this.setDataVal('adjustDST', val); }
     public get manualPriority(): boolean { return this.data.manualPriority; }
     public set manualPriority(val: boolean) { this.setDataVal('manualPriority', val); }
-    public get vacationMode(): boolean { return this.data.vacationMode; }
-    public set vacationMode(val: boolean) { this.setDataVal('vacationMode', val); }
+    public get vacation(): VacationOptions { return new VacationOptions(this.data, 'vacation', this); }
     public get manualHeat(): boolean { return this.data.manualHeat; }
     public set manualHeat(val: boolean) { this.setDataVal('manualHeat', val); }
     public get pumpDelay(): boolean { return this.data.pumpDelay; }
@@ -755,6 +755,42 @@ export class Options extends EqItem {
     //public set waterTempAdj2(val: number) { this.setDataVal('waterTempAdj2', val); }
     //public get solarTempAdj2(): number { return typeof this.data.solarTempAdj2 === 'undefined' ? 0 : this.data.solarTempAdj2; }
     //public set solarTempAdj2(val: number) { this.setDataVal('solarTempAd2', val); }
+}
+export class VacationOptions extends ChildEqItem {
+    public initData() {
+        if (typeof this.data.enabled === 'undefined') this.data.enabled = false;
+        if (typeof this.data.useTimeframe === 'undefined') this.data.useTimeframe = false;
+    }
+    private _startDate: Date;
+    private _endDate: Date;
+    public get enabled(): boolean { return this.data.enabled; }
+    public set enabled(val: boolean) { this.setDataVal('enabled', val); }
+    public get useTimeframe(): boolean { return this.data.useTimeframe; }
+    public set useTimeframe(val: boolean) { this.setDataVal('useTimeframe', val); }
+    public get startDate() {
+        if (typeof this._startDate === 'undefined') this._startDate = typeof this.data.startDate === 'string' ? new Date(this.data.startDate) : undefined;
+        return this._startDate;
+    }
+    public set startDate(val: Date | string | number) {
+        this._startDate = new Date(val);
+        this._saveDate('startDate', this._startDate);
+    }
+    public get endDate() {
+        if (typeof this._endDate === 'undefined') this._endDate = typeof this.data.endDate === 'string' ? new Date(this.data.endDate) : undefined;
+        return this._endDate;
+    }
+    public set endDate(val: Date | string | number) {
+        this._endDate = new Date(val);
+        this._saveDate('endDate', this._endDate);
+    }
+
+    private _saveDate(prop: string, dt: Date) {
+        if (typeof dt !== 'undefined' && !isNaN(dt.getTime())) {
+            dt.setHours(0, 0, 0, 0);
+            this.setDataVal(prop, Timestamp.toISOLocal(dt));
+        }
+        else this.setDataVal(prop, undefined);
+    }
 }
 export class Location extends EqItem {
     public dataName = 'locationConfig';

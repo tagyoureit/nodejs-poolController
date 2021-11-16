@@ -24,31 +24,39 @@ export class GeneralMessage {
                 sys.general.alias = msg.extractPayloadString(2, 16);
                 sys.general.owner.name = msg.extractPayloadString(18, 16);
                 sys.general.location.zip = msg.extractPayloadString(34, 6);
+                msg.isProcessed = true;
                 break;
             case 1:
                 sys.general.owner.phone = msg.extractPayloadString(2, 20);
                 sys.general.owner.phone2 = msg.extractPayloadString(21, 15);
                 sys.general.location.latitude = ((msg.extractPayloadByte(35) * 256) + msg.extractPayloadByte(34)) / 100;
+                msg.isProcessed = true;
                 break;
             case 2:
                 sys.general.location.address = msg.extractPayloadString(2, 32);
                 sys.general.location.longitude = -(((msg.extractPayloadByte(35) * 256) + msg.extractPayloadByte(34)) / 100);
+                msg.isProcessed = true;
                 break;
             case 3:
                 sys.general.owner.email = msg.extractPayloadString(2, 32);
                 sys.general.location.timeZone = msg.extractPayloadByte(34);
+                msg.isProcessed = true;
                 break;
             case 4:
                 sys.general.owner.email2 = msg.extractPayloadString(2, 32);
+                msg.isProcessed = true;
                 break;
             case 5:
                 sys.general.location.country = msg.extractPayloadString(2, 32);
+                msg.isProcessed = true;
                 break;
             case 6:
                 sys.general.location.city = msg.extractPayloadString(2, 32);
+                msg.isProcessed = true;
                 break;
             case 7:
                 sys.general.location.state = msg.extractPayloadString(2, 32);
+                msg.isProcessed = true;
                 break;
             default:
                 logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)

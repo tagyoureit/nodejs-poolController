@@ -90,6 +90,11 @@
           "description": "The type of circuit we are dealing with."
         },
         {
+          "topic": "state/circuits/@bind=data.id;/endTime",
+          "message": "@bind=data.endTime;",
+          "description":  "The end time for the circuit."
+        },
+        {
           "topic": "state/circuits/@bind=data.id;/lightingTheme",
           "message": "@bind=data.lightingTheme;",
           "description": "Bind the lighting theme to the topic.",
@@ -115,6 +120,11 @@
           "topic": "state/features/@bind=data.id;/isOn",
           "message": "@bind=data.isOn;",
           "description": "Bind the on/off status to the topic."
+        },
+        {
+          "topic": "state/features/@bind=data.id;/endTime",
+          "message": "@bind=data.endTime;",
+          "description": "The end time for the feature."
         },
         {
           "topic": "state/features/@bind=data.id;/type",

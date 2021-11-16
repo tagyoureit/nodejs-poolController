@@ -94,7 +94,17 @@ export class OptionsMessage {
                             //body.heatSetpoint = msg.extractPayloadByte(23);
                             break;
                         }
-                    case 1: // Unknown
+                    case 1: // Vacation mode
+                        let yy = msg.extractPayloadByte(4) + 2000;
+                        let mm = msg.extractPayloadByte(5);
+                        let dd = msg.extractPayloadByte(6);
+                        sys.general.options.vacation.startDate = new Date(yy, mm - 1, dd);
+                        yy = msg.extractPayloadByte(7) + 2000;
+                        mm = msg.extractPayloadByte(8);
+                        dd = msg.extractPayloadByte(9);
+                        sys.general.options.vacation.endDate = new Date(yy, mm - 1, dd);
+                        sys.general.options.vacation.enabled = msg.extractPayloadByte(2) > 0;
+                        sys.general.options.vacation.useTimeframe = msg.extractPayloadByte(3) > 0;
                         break;
                 }
                 msg.isProcessed = true;
