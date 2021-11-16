@@ -135,6 +135,7 @@ export class PumpMessage {
         msg.isProcessed = true;
         switch (msgId) {
             case 0:
+                msg.isProcessed = true;
                 break;
             case 1:
                 PumpMessage.processFlowStepSize(msg);

@@ -58,6 +58,7 @@ export class FeatureMessage {
                 FeatureMessage.processFeatureNames(msg);
                 break;
             case 22: // Not sure what this is.
+                msg.isProcessed = true;
                 break;
             default:
                 logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)

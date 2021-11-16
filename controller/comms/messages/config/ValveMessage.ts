@@ -71,6 +71,7 @@ export class ValveMessage {
         // [165,33,15,16,35,2],[132,0],[1,142]
         //                      ^^^ 128 = Pump off during valve operation
         sys.general.options.pumpDelay = msg.extractPayloadByte(0) >> 7 === 1;
+        msg.isProcessed = true;
     }
     private static process_ValveAssignment_IT(msg: Inbound) {
         // sample packet
@@ -152,6 +153,7 @@ export class ValveMessage {
             }
             id++;
         }
+        msg.isProcessed = true;
     }
     private static getName(id: number, cir: number) {
         if (cir <= 0 || cir >= 255 || cir === 6) {
@@ -220,6 +222,7 @@ export class ValveMessage {
         }
         // Sort them so they are in valve id order.  This will ensure any OCP valves come first in the list.  Valves ids > 50 are virtual valves.
         sys.valves.sortById();
+        msg.isProcessed = true;
     }
     private static processValveNames(msg: Inbound) {
         let byte = msg.extractPayloadByte(1);
