@@ -103,7 +103,12 @@
         {
           "topic": "state/circuits/@bind=data.id;/showInFeatures",
           "message": "@bind=data.showInFeatures;",
-          "description": "Indicates wether the item should show in features."
+          "description": "Indicates whether the item should show in features."
+        },
+        {
+          "topic": "state/circuits/@bind=data.id;/endTime",
+          "message": "@bind=data.endTime;",
+          "description": "Indicates end time for a circuit (when it will turn off)."
         }
       ]
     },
@@ -134,7 +139,12 @@
         {
           "topic": "state/features/@bind=data.id;/showInFeatures",
           "message": "@bind=data.showInFeatures;",
-          "description": "Indicates wether the item should show in features."
+          "description": "Indicates whether the item should show in features."
+        },
+        {
+          "topic": "state/features/@bind=data.id;/endTime",
+          "message": "@bind=data.endTime;",
+          "description": "Indicates end time for a features (when it will turn off)."
         }
       ]
     },
@@ -163,6 +173,10 @@
         {
           "topic": "state/lightGroups/@bind=data.id;/type",
           "message": "@bind=data.type;"
+        },
+        {
+          "topic": "state/lightGroups/@bind=data.id;/endTime",
+          "message": "@bind=data.endTime;"
         }
       ]
     },
@@ -187,7 +201,12 @@
         {
           "topic": "state/circuitGroups/@bind=data.id;/showInFeatures",
           "message": "@bind=data.showInFeatures;",
-          "description": "Indicates wether the item should show in features."
+          "description": "Indicates whether the item should show in features."
+        },
+        {
+          "topic": "state/circuitGroups/@bind=data.id;/endTime",
+          "message": "@bind=data.showInFeatures;",
+          "description": "Indicates end time for the circuitGroup (when it will turn off)."
         }
 
       ]

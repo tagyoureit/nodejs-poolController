@@ -121,6 +121,11 @@
           "enabled": false
         },
         {
+          "topic": "state/circuits/@bind=data.id;/@bind=data.name;/endTime",
+          "message": "{\"id\":@bind=data.id;,\"endTime\":@bind=data.endTime;}",
+          "description": "Bind endTime as a message to the state topic."
+        },
+        {
           "topic": "state/circuits/@bind=data.id;/@bind=data.name;/object",
           "message": "@bind=data;",
           "description": "SAMPLE: Bind a JSON object as a message to the topic.",
@@ -158,6 +163,11 @@
           "topic": "state/features/@bind=data.id;/@bind=data.name;",
           "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';,\"endTime\":\"@bind=data.endTime;\"}",
           "description": "Bind 'on'/'off' as a message to the state topic."
+        },
+        {
+          "topic": "state/features/@bind=data.id;/@bind=data.name;/endTime",
+          "message": "{\"id\":@bind=data.id;,\"endTime\":@bind=data.endTime;}",
+          "description": "Bind endTime as a message to the state topic."
         }
       ]
     },
@@ -180,6 +190,32 @@
           "topic": "state/temps/units",
           "message": "{\"units\":@bind=data.units;}"
         }
+      ]
+    },
+    {
+      "name": "circuitGroup",
+      "description": "Populate the circuitGroup topic",
+      "topics": [
+        {
+          "topic": "state/circuitGroups/@bind=data.id;/name",
+          "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
+          "description": "Bind name to the state topic."
+        },
+        {
+          "topic": "state/circuitGroups/@bind=data.id;/isOn",
+          "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
+          "description": "Bind the on/off status to the topic."
+        },
+        {
+          "topic": "state/circuitGroups/@bind=data.id;/type",
+          "message": "{\"type\":@bind=data.type;}"
+        },
+        {
+          "topic": "state/circuitGroups/@bind=data.id;/showInFeatures",
+          "message": "{\"showInFeatures\":@bind=data.showInFeatures;}",
+          "description": "Indicates wether the item should show in features."
+        }
+
       ]
     },
     {
@@ -294,6 +330,10 @@
         {
           "topic": "state/lightgroups/@bind=data.id;/@bind=data.name;/type",
           "message": "{\"type\":@bind=data.type;}"
+        },
+        {
+          "topic": "state/lightgroups/@bind=data.id;/@bind=data.name;/endTime",
+          "message": "{\"endTime\":@bind=data.endTime;}"
         }
       ]
     },
