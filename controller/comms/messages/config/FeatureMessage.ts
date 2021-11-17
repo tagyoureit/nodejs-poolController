@@ -58,6 +58,7 @@ export class FeatureMessage {
                 FeatureMessage.processFeatureNames(msg);
                 break;
             case 22: // Not sure what this is.
+                msg.isProcessed = true;
                 break;
             default:
                 logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
@@ -70,6 +71,7 @@ export class FeatureMessage {
             var feature: Feature = sys.features.getItemById(featureId, false);
             feature.dontStop = msg.extractPayloadByte(i + 1) == 1;
         }
+        msg.isProcessed = true;
     }
     private static processFeatureType(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxFeatures; i++) {
@@ -88,6 +90,7 @@ export class FeatureMessage {
                 state.features.removeItemById(featureId);
             }
         }
+        msg.isProcessed = true;
     }
     private static processFreezeProtect(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxFeatures; i++) {
@@ -95,6 +98,7 @@ export class FeatureMessage {
             var feature: Feature = sys.features.getItemById(featureId);
             feature.freeze = msg.extractPayloadByte(i + 1) > 0;
         }
+        msg.isProcessed = true;
     }
     private static processFeatureNames(msg: Inbound) {
         var featureId = ((msg.extractPayloadByte(1) - 6) * 2) + sys.board.equipmentIds.features.start;
@@ -109,6 +113,7 @@ export class FeatureMessage {
             if (feature.isActive) state.features.getItemById(feature.id).name = feature.name;
         }
         state.emitEquipmentChanges();
+        msg.isProcessed = true;
     }
     private static processEggTimerHours(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxFeatures; i++) {
@@ -116,6 +121,7 @@ export class FeatureMessage {
             let feature: Feature = sys.features.getItemById(featureId);
             feature.eggTimer = (msg.extractPayloadByte(i + 1) * 60) + ((feature.eggTimer || 0) % 60);
         }
+        msg.isProcessed = true;
     }
     private static processEggTimerMinutes(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxFeatures; i++) {
@@ -123,6 +129,7 @@ export class FeatureMessage {
             var feature: Feature = sys.features.getItemById(featureId);
             feature.eggTimer = (Math.floor(feature.eggTimer / 60) * 60) + msg.extractPayloadByte(i + 1);
         }
+        msg.isProcessed = true;
     }
     private static processShowInFeatures(msg: Inbound) {
         for (let i = 1; i < msg.payload.length - 1 && i <= sys.equipment.maxFeatures; i++) {
@@ -132,6 +139,6 @@ export class FeatureMessage {
             if (feature.isActive) state.features.getItemById(featureId, feature.isActive).showInFeatures = feature.showInFeatures;
         }
         state.emitEquipmentChanges();
+        msg.isProcessed = true;
     }
-
 }

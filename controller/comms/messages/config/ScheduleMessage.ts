@@ -187,6 +187,7 @@ export class ScheduleMessage {
             const schedule: Schedule = sys.schedules.getItemById(schedId++, false, { isActive: false });
             if (schedule.isActive !== false) schedule.startMonth = msg.extractPayloadByte(i + 1);
         }
+        msg.isProcessed = true;
     }
     private static processStartDay(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 17) * 40 + 1;
@@ -198,6 +199,7 @@ export class ScheduleMessage {
                 csched.startTime = schedule.startTime;
             }
         }
+        msg.isProcessed = true;
     }
     private static processStartYear(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 20) * 40 + 1;
@@ -207,6 +209,7 @@ export class ScheduleMessage {
                 schedule.startYear = msg.extractPayloadByte(i + 1);
             }
         }
+        msg.isProcessed = true;
     }
     private static processStartTimes(msg: Inbound) {
         let schedId = msg.extractPayloadByte(1) * 20 + 1;
@@ -226,6 +229,7 @@ export class ScheduleMessage {
             i += 2;
         }
         ScheduleMessage._maxSchedId = sys.schedules.getMaxId(true, 0);
+        msg.isProcessed = true;
     }
     private static processEndTimes(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 23) * 20 + 1;
@@ -239,6 +243,7 @@ export class ScheduleMessage {
             }
             i += 2;
         }
+        msg.isProcessed = true;
     }
     private static processCircuit(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 5) * 40 + 1;
@@ -258,6 +263,7 @@ export class ScheduleMessage {
                     csched.circuit = schedule.circuit;
             }
         }
+        msg.isProcessed = true;
     }
     private static processRunOnce(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 8) * 40 + 1;
@@ -280,6 +286,7 @@ export class ScheduleMessage {
                 csched.scheduleType = schedule.scheduleType;
             }
         }
+        msg.isProcessed = true;
     }
     private static processDays(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 11) * 40 + 1;
@@ -291,6 +298,7 @@ export class ScheduleMessage {
                 csched.scheduleDays = csched.scheduleType === 128 ? schedule.scheduleDays : 0;
             }
         }
+        msg.isProcessed = true;
     }
     private static processHeatSource(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 28) * 40 + 1;
@@ -305,6 +313,7 @@ export class ScheduleMessage {
                 csched.heatSource = schedule.heatSource;
             }
         }
+        msg.isProcessed = true;
     }
     private static processHeatSetpoint(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 31) * 40 + 1;
@@ -316,6 +325,7 @@ export class ScheduleMessage {
                 csched.heatSetpoint = schedule.heatSetpoint;
             }
         }
+        msg.isProcessed = true;
     }
     private static processCoolSetpoint(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 34) * 40 + 1;
@@ -327,5 +337,6 @@ export class ScheduleMessage {
                 csched.coolSetpoint = schedule.coolSetpoint;
             }
         }
+        msg.isProcessed = true;
     }
 }

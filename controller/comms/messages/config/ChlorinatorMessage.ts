@@ -59,6 +59,7 @@ export class ChlorinatorMessage {
                     }
                     chlorId++;
                 }
+                msg.isProcessed = true;
                 break;
             default:
                 logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
@@ -114,5 +115,6 @@ export class ChlorinatorMessage {
             sys.chlorinators.removeItemById(1);
             state.chlorinators.removeItemById(1);
         }
+        msg.isProcessed = true;
     }
 }

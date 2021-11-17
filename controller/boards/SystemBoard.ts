@@ -51,11 +51,11 @@ export class byteValueMap extends Map<number, any> {
     let arrKeys = Array.from(this.keys());
     return typeof arrKeys.find(elem => elem === val) !== 'undefined';
   }
-  public encode(val: string | number | { val: any, name: string }, def?: number) {
-    let v = this.findItem(val);
-    if (typeof v === 'undefined') logger.debug(`Invalid enumeration: val = ${val} map = ${JSON.stringify(this)}`);
-    return typeof v === 'undefined' ? def : v.val;
-  }
+    public encode(val: string | number | { val: any, name: string }, def?: number) {
+        let v = this.findItem(val);
+        if (typeof v === 'undefined') logger.debug(`Invalid enumeration: val = ${val} map = ${JSON.stringify(this)}`);
+        return typeof v === 'undefined' ? def : v.val;
+    }
   public findItem(val: string | number | { val: any, name: string }) {
     if (val === null || typeof val === 'undefined') return;
     else if (typeof val === 'number') return this.transform(val);

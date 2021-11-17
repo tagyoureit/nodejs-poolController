@@ -32,6 +32,7 @@ export class CoverMessage {
               for (let i = 1; i < 10; i++) {
                   if (msg.extractPayloadByte(i + 18) !== 255) cover.circuits.push(msg.extractPayloadByte(i + 18));
               }
+              msg.isProcessed = true;
               break;
           default:
               logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)

@@ -34,5 +34,6 @@ export class SecurityMessage {
             role.flag2 = msg.extractPayloadByte(3);
             role.pin = msg.extractPayloadByte(21).toString() + msg.extractPayloadByte(22).toString() + msg.extractPayloadByte(23).toString() + msg.extractPayloadByte(24).toString();
         }
+        msg.isProcessed = true;
     }
 }

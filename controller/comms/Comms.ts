@@ -43,7 +43,8 @@ export class Connection {
         if (conn.connTimer !== null) clearTimeout(conn.connTimer);
         if (!conn._cfg.mockPort && conn._cfg.inactivityRetry > 0 && !conn._closing) conn.connTimer = setTimeout(async () => {
             try {
-                await conn.openAsync()
+                await conn.endAsync();
+                await conn.openAsync();
             }
             catch (err) {};
         }, conn._cfg.inactivityRetry * 1000);
@@ -83,7 +84,7 @@ export class Connection {
         } catch (err) { return Promise.reject(err); }
     }
     public async openAsync(): Promise<boolean> {
-        if (typeof (this.buffer) === 'undefined') {
+        if (typeof this.buffer === 'undefined') {
             this.buffer = new SendRecieveBuffer();
             this.emitter.on('packetread', (pkt) => { this.buffer.pushIn(pkt); });
             this.emitter.on('messagewrite', (msg) => { this.buffer.pushOut(msg); });
@@ -100,7 +101,10 @@ export class Connection {
                 this.isOpen = true;
                 this.isRTS = true;
                 logger.info(`Net connect (socat) ready and communicating: ${this._cfg.netHost}:${this._cfg.netPort}`);
-                nc.on('data', (data) => { if (data.length > 0 && !this.isPaused) this.emitter.emit('packetread', data); });
+                nc.on('data', (data) => {
+                    this.resetConnTimer();
+                    if (data.length > 0 && !this.isPaused) this.emitter.emit('packetread', data);
+                });
             });
             nc.on('close', (p) => {
                 this.isOpen = false;
@@ -251,6 +255,63 @@ export class Connection {
             }
             return true;
         } catch (err) { logger.error(`Error closing comms connection: ${err.message}`); return Promise.resolve(false); }
+    }
+    public async endAsync(): Promise<boolean> {
+        try {
+            this._closing = true;
+            if (this.connTimer) clearTimeout(this.connTimer);
+            if (typeof this._port !== 'undefined' && this.isOpen) {
+                let success = await new Promise<boolean>((resolve, reject) => {
+                    if (this._cfg.netConnect) {
+                        this._port.removeAllListeners();
+                        this._port.once('error', (err) => {
+                            if (err) {
+                                logger.error(`Error closing ${this._cfg.netHost}:${this._cfg.netPort}/${this._cfg.rs485Port}: ${err}`);
+                                resolve(false);
+                            }
+                            else {
+                                conn._port = undefined;
+                                this.isOpen = false;
+                                logger.info(`Successfully closed (socat) port ${this._cfg.netHost}:${this._cfg.netPort}/${this._cfg.rs485Port}`);
+                                resolve(true);
+                            }
+                        });
+                        this._port.once('close', (p) => {
+                            this.isOpen = false;
+                            this._port = undefined;
+                            logger.info(`Net connect (socat) successfully closed: ${this._cfg.netHost}:${this._cfg.netPort}`);
+                            resolve(true);
+                        });
+                        this._port.destroy();
+                    }
+                    else if (typeof conn._port.close === 'function') {
+                        conn._port.close((err) => {
+                            if (err) {
+                                logger.error(`Error closing ${this._cfg.rs485Port}: ${err}`);
+                                resolve(false);
+                            }
+                            else {
+                                conn._port = undefined;
+                                logger.info(`Successfully closed seral port ${this._cfg.rs485Port}`);
+                                resolve(true);
+                                this.isOpen = false;
+                            }
+                        });
+                    }
+                    else {
+                        resolve(true);
+                        conn._port = undefined;
+                    }
+                });
+                if (success) {
+                    if (typeof conn.buffer !== 'undefined') conn.buffer.close();
+                }
+
+                return success;
+            }
+            return true;
+        } catch (err) { logger.error(`Error closing comms connection: ${err.message}`); return Promise.resolve(false); }
+        finally { this._closing = false; }
     }
     public drain(cb: Function) {
         if (typeof (conn._port.drain) === 'function')
