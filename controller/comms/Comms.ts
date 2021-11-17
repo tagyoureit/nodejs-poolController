@@ -43,7 +43,8 @@ export class Connection {
         if (conn.connTimer !== null) clearTimeout(conn.connTimer);
         if (!conn._cfg.mockPort && conn._cfg.inactivityRetry > 0 && !conn._closing) conn.connTimer = setTimeout(async () => {
             try {
-                await conn.openAsync()
+                await conn.closeAsync();
+                await conn.openAsync();
             }
             catch (err) {};
         }, conn._cfg.inactivityRetry * 1000);
@@ -83,7 +84,7 @@ export class Connection {
         } catch (err) { return Promise.reject(err); }
     }
     public async openAsync(): Promise<boolean> {
-        if (typeof (this.buffer) === 'undefined') {
+        if (typeof this.buffer === 'undefined') {
             this.buffer = new SendRecieveBuffer();
             this.emitter.on('packetread', (pkt) => { this.buffer.pushIn(pkt); });
             this.emitter.on('messagewrite', (msg) => { this.buffer.pushOut(msg); });
@@ -100,7 +101,10 @@ export class Connection {
                 this.isOpen = true;
                 this.isRTS = true;
                 logger.info(`Net connect (socat) ready and communicating: ${this._cfg.netHost}:${this._cfg.netPort}`);
-                nc.on('data', (data) => { if (data.length > 0 && !this.isPaused) this.emitter.emit('packetread', data); });
+                nc.on('data', (data) => {
+                    this.resetConnTimer();
+                    if (data.length > 0 && !this.isPaused) this.emitter.emit('packetread', data);
+                });
             });
             nc.on('close', (p) => {
                 this.isOpen = false;
