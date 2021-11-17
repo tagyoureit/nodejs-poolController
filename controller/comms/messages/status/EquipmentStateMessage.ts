@@ -525,22 +525,23 @@ export class EquipmentStateMessage {
                     }
                 }
                 ExternalMessage.processFeatureState(9, msg);
-                //if (sys.equipment.dual === true) {
-                //    // For IntelliCenter i10D the body state is on byte 26 of the 204.  This impacts circuit 6.
-                //    let byte = msg.extractPayloadByte(26);
-                //    let pstate = state.circuits.getItemById(6, true);
-                //    let oldstate = pstate.isOn;
-                //    pstate.isOn = ((byte & 0x0010) === 0x0010);
-                //    logger.info(`Checking i10D pool state ${byte} old:${oldstate} new: ${pstate.isOn}`);
-                //    //if (oldstate !== pstate.isOn) {
-                //        state.temps.bodies.getItemById(1, true).isOn = pstate.isOn;
-                //        sys.board.circuits.syncCircuitRelayStates();
-                //        sys.board.circuits.syncVirtualCircuitStates();
-                //        sys.board.valves.syncValveStates();
-                //        sys.board.filters.syncFilterStates();
-                //        sys.board.heaters.syncHeaterStates();
-                //    //}
-                //}
+                if (sys.equipment.dual === true) {
+                    // For IntelliCenter i10D the body state is on byte 26 of the 204.  This impacts circuit 6.
+                    let byte = msg.extractPayloadByte(26);
+                    let pstate = state.circuits.getItemById(6, true);
+                    let oldstate = pstate.isOn;
+                    pstate.isOn = ((byte & 0x0010) === 0x0010);
+                    logger.info(`Checking i10D pool state ${byte} old:${oldstate} new: ${pstate.isOn}`);
+                    //if (oldstate !== pstate.isOn) {
+                        state.temps.bodies.getItemById(1, true).isOn = pstate.isOn;
+                        sys.board.circuits.syncCircuitRelayStates();
+                        sys.board.circuits.syncVirtualCircuitStates();
+                        sys.board.valves.syncValveStates();
+                        sys.board.filters.syncFilterStates();
+                        sys.board.heaters.syncHeaterStates();
+                    //}
+                    if (oldstate !== pstate.isOn) pstate.emitEquipmentChange();
+                }
                 // At this point normally on is ignored.  Not sure what this does.
                 let cover1 = sys.covers.getItemById(1);
                 let cover2 = sys.covers.getItemById(2);
@@ -574,8 +575,8 @@ export class EquipmentStateMessage {
                 if (circuit.isActive !== false) {
                     let cstate = state.circuits.getItemById(circuitId, circuit.isActive);
                     // For IntelliCenter i10D the body state for circuit 6 is on the 204 message.
-                    //let isOn = (circuitId === 6 && sys.equipment.dual === true) ? cstate.isOn : (byte & (1 << j)) > 0;
-                    let isOn = (byte & (1 << j)) > 0;
+                    let isOn = (circuitId === 6 && sys.equipment.dual === true) ? cstate.isOn : (byte & (1 << j)) > 0;
+                    //let isOn = (byte & (1 << j)) > 0;
                     cstate.isOn = isOn;
                     cstate.name = circuit.name;
                     cstate.nameId = circuit.nameId;
