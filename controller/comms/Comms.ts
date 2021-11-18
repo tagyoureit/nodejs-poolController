@@ -46,7 +46,7 @@ export class Connection {
                 await conn.endAsync();
                 await conn.openAsync();
             }
-            catch (err) {};
+            catch (err) { logger.error(`Error resetting RS485 port on inactivity: ${err.message}`); };
         }, conn._cfg.inactivityRetry * 1000);
     }
     public isRTS: boolean = true;
@@ -102,7 +102,7 @@ export class Connection {
                 this.isRTS = true;
                 logger.info(`Net connect (socat) ready and communicating: ${this._cfg.netHost}:${this._cfg.netPort}`);
                 nc.on('data', (data) => {
-                    this.resetConnTimer();
+                    //this.resetConnTimer();
                     if (data.length > 0 && !this.isPaused) this.emitter.emit('packetread', data);
                 });
             });
@@ -115,7 +115,7 @@ export class Connection {
             });
             nc.on('end', () => { // Happens when the other end of the socket closes.
                 this.isOpen = false;
-                this.resetConnTimer();
+                //this.resetConnTimer();
                 logger.info(`Net connect (socat) end event was fired`);
             });
             //nc.on('drain', () => { logger.info(`The drain event was fired.`); });
@@ -123,15 +123,28 @@ export class Connection {
             // Occurs when there is no activity.  This should not reset the connection, the previous implementation did so and
             // left the connection in a weird state where the previous connection was processing events and the new connection was
             // doing so as well.  This isn't an error it is a warning as the RS485 bus will most likely be communicating at all times.
-            nc.on('timeout', () => { logger.warn(`Net connect (socat) Connection Idle: ${this._cfg.netHost}:${this._cfg.netPort}`); });
+            //nc.on('timeout', () => { logger.warn(`Net connect (socat) Connection Idle: ${this._cfg.netHost}:${this._cfg.netPort}`); });
+            nc.setTimeout(Math.max(this._cfg.inactivityRetry, 10) * 1000, async () => {
+                logger.warn(`Net connect (socat) connection idle: ${this._cfg.netHost}:${this._cfg.netPort} retrying connection.`);
+                try {
+                    await conn.endAsync();
+                    await conn.openAsync();
+                } catch (err) { logger.error(`Net connect (socat) error retrying connection ${err.message}`); }
+            });
+
             return await new Promise<boolean>((resolve, _) => {
                 // We only connect an error once as we will destroy this connection on error then recreate a new socket on failure.
                 nc.once('error', (err) => {
-                    logger.error(`Net connect (socat) Connection: ${err}. ${this._cfg.inactivityRetry > 0 ? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; inactivityRetry set to ${this._cfg.inactivityRetry}`}`);
-                    this.resetConnTimer();
+                    //logger.error(`Net connect (socat) Connection: ${err}. ${this._cfg.inactivityRetry > 0 ? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; inactivityRetry set to ${this._cfg.inactivityRetry}`}`);
+                    //this.resetConnTimer();
                     this.isOpen = false;
                     // if the promise has already been fulfilled, but the error happens later, we don't want to call the promise again.
                     if (typeof resolve !== 'undefined') { resolve(false); }
+                    if (this._cfg.inactivityRetry > 0) {
+                        logger.error(`Net connect (socat) connection error: ${err}.  Retry in ${this._cfg.inactivityRetry} seconds`);
+                        setTimeout(async () => { try { await conn.openAsync(); } catch (err) { } }, this._cfg.inactivityRetry * 1000);
+                    }
+                    else logger.error(`Net connect (socat) connection error: ${err}.  Never retrying -- No retry time set`);
                 });
                 nc.connect(conn._cfg.netPort, conn._cfg.netHost, () => {
                     if (typeof this._port !== 'undefined') logger.warn('Net connect (socat) recovered from lost connection.');
@@ -306,7 +319,6 @@ export class Connection {
                 if (success) {
                     if (typeof conn.buffer !== 'undefined') conn.buffer.close();
                 }
-
                 return success;
             }
             return true;
