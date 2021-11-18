@@ -53,7 +53,7 @@ export class IntelliChemStateMessage {
 
             /* RKS: This is processed in the IntellichemMessage.processTouch() and is the results of asking for the IntelliChem configuration.
             case 147: // OCP is broadcasting it's known ic values...  Need to change our settings if virtual.
-                // 147 is a proto:broadcast message; 
+                // 147 is a proto:broadcast message;
                 // it has exactly the same format as 18 but there is payload[0] which is inserted at the beginning.  Likely the chem controller id.
                 if (msg.dest < 144 || msg.dest > 158) return;
                 IntelliChemStateMessage.processControllerChange(msg);
@@ -70,7 +70,7 @@ export class IntelliChemStateMessage {
                 //let scontroller = state.chemControllers.getItemById(controller.id, true);
                 //if (scontroller.lastComm + (30 * 1000) < new Date().getTime()) {
                 //    // We have not talked to the chem controller in 30 seconds so we have lost communication.
-                //    scontroller.status = scontroller.alarms.comms = 1;                   
+                //    scontroller.status = scontroller.alarms.comms = 1;
                 //}
                 controller.ph.tank.capacity = controller.orp.tank.capacity = 6;
                 controller.ph.tank.units = controller.orp.tank.units = '';
@@ -129,7 +129,7 @@ export class IntelliChemStateMessage {
         schem.type = chem.type = sys.board.valueMaps.chemControllerTypes.getValue('intellichem');
         chem.name = chem.name || `IntelliChem ${chem.address - 143}`; // default to true id if no name is set
         schem.lastComm = new Date().getTime();
-        schem.status = schem.alarms.comms = 0; 
+        schem.status = schem.alarms.comms = 0;
         chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
         chem.ph.tank.units = chem.orp.tank.units = '';
         chem.ph.tank.alarmEmptyEnabled = false;
@@ -167,7 +167,7 @@ export class IntelliChemStateMessage {
         chem.cyanuricAcid = msg.extractPayloadByte(26);
         //      27-28 : Alkalinity
         chem.alkalinity = (msg.extractPayloadByte(27) * 256) + msg.extractPayloadByte(28);
-        //      29 : Salt level = 20 
+        //      29 : Salt level = 20
         if (sys.chlorinators.length > 0) {
             let chlor = state.chlorinators.find(elem => elem.id === 1);
             schem.orp.probe.saltLevel = (typeof chlor !== 'undefined') ? chlor.saltLevel : msg.extractPayloadByte(29) * 50;
