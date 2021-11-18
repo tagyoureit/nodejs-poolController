@@ -226,10 +226,16 @@ export class EquipmentStateMessage {
                             tbody.name = cbody.name;
                             tbody.circuit = cbody.circuit = 1;
                             tbody.heatStatus = (msg.extractPayloadByte(11) & 0xF0) >> 4;
-                            if ((msg.extractPayloadByte(2) & 0x01) === 1) {
+                            if (!sys.equipment.dual) {
+                                if ((msg.extractPayloadByte(2) & 0x01) === 1) {
+                                    tbody.temp = sys.equipment.shared ? state.temps.waterSensor1 : state.temps.waterSensor2;
+                                    tbody.isOn = true;
+                                } else tbody.isOn = false;
+                            } else if (state.circuits.getItemById(1).isOn === true) {
                                 tbody.temp = sys.equipment.shared ? state.temps.waterSensor1 : state.temps.waterSensor2;
                                 tbody.isOn = true;
-                            } else tbody.isOn = false;
+                            }
+                            else tbody.isOn = false;
                         }
                         if (sys.bodies.length > 2) {
                             state.temps.waterSensor3 = fnTempFromByte(msg.extractPayloadByte(20));
@@ -540,6 +546,7 @@ export class EquipmentStateMessage {
                 //        sys.board.filters.syncFilterStates();
                 //        sys.board.heaters.syncHeaterStates();
                 //    //}
+                //    if (oldstate !== pstate.isOn) pstate.emitEquipmentChange();
                 //}
                 // At this point normally on is ignored.  Not sure what this does.
                 let cover1 = sys.covers.getItemById(1);
@@ -573,9 +580,9 @@ export class EquipmentStateMessage {
                 let circuit = sys.circuits.getItemById(circuitId, false, { isActive: false });
                 if (circuit.isActive !== false) {
                     let cstate = state.circuits.getItemById(circuitId, circuit.isActive);
-                    // For IntelliCenter i10D the body state for circuit 6 is on the 204 message.
-                    //let isOn = (circuitId === 6 && sys.equipment.dual === true) ? cstate.isOn : (byte & (1 << j)) > 0;
-                    let isOn = (byte & (1 << j)) > 0;
+                    // For IntelliCenter i10D body circuits are not reported here.
+                    let isOn = ((circuitId === 6 || circuitId === 1) && sys.equipment.dual === true) ? cstate.isOn : (byte & (1 << j)) > 0;
+                    //let isOn = (byte & (1 << j)) > 0;
                     cstate.isOn = isOn;
                     cstate.name = circuit.name;
                     cstate.nameId = circuit.nameId;

@@ -96,8 +96,8 @@ export class IntelliChemStateMessage {
         //      6-7 : ORP Setpoint : byte(6) x 256 + byte(7)
         //      8 : Unknown = 0
         //      9 : Unknown = 0
-        //      10-11 : pH Dose time seconds. The number of seconds since the dose started. byte(11) x 256 + byte(12)
-        //      12 : Unknown
+        //      10-11 : pH Dose time seconds. The number of seconds since the dose started. byte(10) x 256 + byte(11)
+        //      12: Unknown
         //      13 : Unknown
         //      14-15 : ORP Dose time seconds.  The number of seconds since the dose started. byte(14) x 256 + byte(15)
         //      16-17 : pH Dose volume (unknown units) - These appear to be mL.
@@ -179,8 +179,7 @@ export class IntelliChemStateMessage {
         //      32 : Alarms = 8 = (no alarm)
         const alarms = schem.alarms;
         alarms.flow = msg.extractPayloadByte(32) & 0x01;
-        if(alarms.flow === 0)
-            schem.flowDetected = true;
+        if (alarms.flow === 0) schem.flowDetected = true;
         alarms.pH = msg.extractPayloadByte(32) & 0x06;
         alarms.orp = msg.extractPayloadByte(32) & 0x18;
         alarms.pHTank = msg.extractPayloadByte(32) & 0x20;
@@ -203,7 +202,7 @@ export class IntelliChemStateMessage {
         schem.ph.manualDosing = (msg.extractPayloadByte(35) & 0x08) === 1 ? true : false;
         chem.orp.useChlorinator = (msg.extractPayloadByte(35) & 0x10) === 1 ? true : false;
         chem.HMIAdvancedDisplay = (msg.extractPayloadByte(35) & 0x20) === 1 ? true : false;
-        chem.ph.phSupply = (msg.extractPayloadByte(35) & 0x40) === 1 ? true : false; // acid pH dosing = 1; base pH dosing = 0;
+        chem.ph.phSupply = (msg.extractPayloadByte(35) & 0x40) === 1 ? 'acid' : 'base'; // acid pH dosing = 1; base pH dosing = 0;
         //      36-37 : Firmware = 80,1 = 1.080
         chem.firmware = `${msg.extractPayloadByte(37)}.${msg.extractPayloadByte(36).toString().padStart(3, '0')}`
         //      38 : Water Chemistry Warning
@@ -241,7 +240,7 @@ export class IntelliChemStateMessage {
         else if (schem.ph.dosingStatus !== 0 && phPrev.status === 0) {
             if (typeof schem.ph.currentDose !== 'undefined') {
                 // We just ended a dose so write it out to the chem logs.
-                schem.ph.endDose( Timestamp.now.addSeconds(-(schem.ph.doseTime - phPrev.time)).toDate(), 'completed',
+                schem.ph.endDose(Timestamp.now.addSeconds(-(schem.ph.doseTime - phPrev.time)).toDate(), 'completed',
                     schem.ph.volumeDosed - phPrev.vol, (schem.ph.timeDosed - phPrev.time) * 1000);
             }
         }
@@ -264,13 +263,13 @@ export class IntelliChemStateMessage {
         else if (schem.orp.dosingStatus !== 0 && orpPrev.status === 0) {
             if (typeof schem.orp.currentDose !== 'undefined') {
                 // We just ended a dose so write it out to the chem logs.
-                schem.orp.endDose( Timestamp.now.addSeconds(-(schem.orp.doseTime - orpPrev.time)).toDate(), 'completed',
+                schem.orp.endDose(Timestamp.now.addSeconds(-(schem.orp.doseTime - orpPrev.time)).toDate(), 'completed',
                     schem.orp.volumeDosed - orpPrev.vol, (schem.orp.timeDosed - orpPrev.time) * 1000);
             }
         }
         else if (schem.orp.dosingStatus === 0) {
             // We are still dosing so add the time and volume to the dose.
-            schem.orp.appendDose( schem.orp.doseVolume - orpPrev.vol, (schem.orp.timeDosed - orpPrev.time) * 1000 );
+            schem.orp.appendDose(schem.orp.doseVolume - orpPrev.vol, (schem.orp.timeDosed - orpPrev.time) * 1000);
         }
         else {
             // Make sure we don't have a current dose going.
