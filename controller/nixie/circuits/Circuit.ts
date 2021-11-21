@@ -56,6 +56,12 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
         }
         catch (err) { logger.error(`setCircuitAsync: ${err.message}`); return Promise.reject(err); }
     }
+    public async checkCircuitEggTimerExpirationAsync(cstate: ICircuitState) {
+     try {
+        let c: NixieCircuit = this.find(elem => elem.id === cstate.id) as NixieCircuit;
+        await c.checkCircuitEggTimerExpirationAsync(cstate);
+    } catch (err) { logger.error(`NCP: Error syncing circuit states: ${err}`); }
+    }
     public async initAsync(circuits: CircuitCollection) {
         try {
             for (let i = 0; i < circuits.length; i++) {
@@ -178,6 +184,17 @@ export class NixieCircuit extends NixieEquipment {
             }
             return res;
         } catch (err) { logger.error(`Nixie: Error setting circuit state ${cstate.id}-${cstate.name} to ${val}`); }
+    }
+    public async checkCircuitEggTimerExpirationAsync(cstate: ICircuitState) {
+        // if circuit end time is past current time, either the schedule is finished
+        // (this should already be turned off) or the egg timer has expired
+        try {
+            if (!cstate.isActive || !cstate.isOn) return;
+            if (cstate.endTime.toDate() < new Timestamp().toDate()) {
+                await sys.board.circuits.setCircuitStateAsync(cstate.id, false);
+                cstate.emitEquipmentChange();
+            }
+        } catch (err) { logger.error(`Error syncing circuit: ${err}`); }
     }
     private async checkHardwareStatusAsync(connectionId: string, deviceBinding: string) {
         try {

@@ -51,11 +51,11 @@ export class byteValueMap extends Map<number, any> {
     let arrKeys = Array.from(this.keys());
     return typeof arrKeys.find(elem => elem === val) !== 'undefined';
   }
-    public encode(val: string | number | { val: any, name: string }, def?: number) {
-        let v = this.findItem(val);
-        if (typeof v === 'undefined') logger.debug(`Invalid enumeration: val = ${val} map = ${JSON.stringify(this)}`);
-        return typeof v === 'undefined' ? def : v.val;
-    }
+  public encode(val: string | number | { val: any, name: string }, def?: number) {
+    let v = this.findItem(val);
+    if (typeof v === 'undefined') logger.debug(`Invalid enumeration: val = ${val} map = ${JSON.stringify(this)}`);
+    return typeof v === 'undefined' ? def : v.val;
+  }
   public findItem(val: string | number | { val: any, name: string }) {
     if (val === null || typeof val === 'undefined') return;
     else if (typeof val === 'number') return this.transform(val);
@@ -291,25 +291,25 @@ export class byteValueMaps {
     [254, { name: 'unknown', desc: 'unknown' }],
     [255, { name: 'none', desc: 'None' }]
   ]);
-    public colorLogicThemes = new byteValueMap([
-        [0, { name: 'cloudwhite', desc: 'Cloud White', type: 'colorlogic', sequence: 7 }],
-        [1, { name: 'deepsea', desc: 'Deep Sea', type: 'colorlogic', sequence: 2 }],
-        [2, { name: 'royalblue', desc: 'Royal Blue', type: 'colorlogic', sequence: 3 }],
-        [3, { name: 'afernoonskies', desc: 'Afternoon Skies', type: 'colorlogic', sequence: 4 }],
-        [4, { name: 'aquagreen', desc: 'Aqua Green', type: 'colorlogic', sequence: 5 }],
-        [5, { name: 'emerald', desc: 'Emerald', type: 'colorlogic', sequence: 6 }],
-        [6, { name: 'warmred', desc: 'Warm Red', type: 'colorlogic', sequence: 8 }],
-        [7, { name: 'flamingo', desc: 'Flamingo', type: 'colorlogic', sequence: 9 }],
-        [8, { name: 'vividviolet', desc: 'Vivid Violet', type: 'colorlogic', sequence: 10 }],
-        [9, { name: 'sangria', desc: 'Sangria', type: 'colorlogic', sequence: 11 }],
-        [10, { name: 'twilight', desc: 'Twilight', type: 'colorlogic', sequence: 12 }],
-        [11, { name: 'tranquility', desc: 'Tranquility', type: 'colorlogic', sequence: 13 }],
-        [12, { name: 'gemstone', desc: 'Gemstone', type: 'colorlogic', sequence: 14 }],
-        [13, { name: 'usa', desc: 'USA', type: 'colorlogic', sequence: 15 }],
-        [14, { name: 'mardigras', desc: 'Mardi Gras', type: 'colorlogic', sequence: 16 }],
-        [15, { name: 'cabaret', desc: 'Cabaret', type: 'colorlogic', sequence: 17 }],
-        [255, { name: 'none', desc: 'None' }]
-    ]);
+  public colorLogicThemes = new byteValueMap([
+    [0, { name: 'cloudwhite', desc: 'Cloud White', type: 'colorlogic', sequence: 7 }],
+    [1, { name: 'deepsea', desc: 'Deep Sea', type: 'colorlogic', sequence: 2 }],
+    [2, { name: 'royalblue', desc: 'Royal Blue', type: 'colorlogic', sequence: 3 }],
+    [3, { name: 'afernoonskies', desc: 'Afternoon Skies', type: 'colorlogic', sequence: 4 }],
+    [4, { name: 'aquagreen', desc: 'Aqua Green', type: 'colorlogic', sequence: 5 }],
+    [5, { name: 'emerald', desc: 'Emerald', type: 'colorlogic', sequence: 6 }],
+    [6, { name: 'warmred', desc: 'Warm Red', type: 'colorlogic', sequence: 8 }],
+    [7, { name: 'flamingo', desc: 'Flamingo', type: 'colorlogic', sequence: 9 }],
+    [8, { name: 'vividviolet', desc: 'Vivid Violet', type: 'colorlogic', sequence: 10 }],
+    [9, { name: 'sangria', desc: 'Sangria', type: 'colorlogic', sequence: 11 }],
+    [10, { name: 'twilight', desc: 'Twilight', type: 'colorlogic', sequence: 12 }],
+    [11, { name: 'tranquility', desc: 'Tranquility', type: 'colorlogic', sequence: 13 }],
+    [12, { name: 'gemstone', desc: 'Gemstone', type: 'colorlogic', sequence: 14 }],
+    [13, { name: 'usa', desc: 'USA', type: 'colorlogic', sequence: 15 }],
+    [14, { name: 'mardigras', desc: 'Mardi Gras', type: 'colorlogic', sequence: 16 }],
+    [15, { name: 'cabaret', desc: 'Cabaret', type: 'colorlogic', sequence: 17 }],
+    [255, { name: 'none', desc: 'None' }]
+  ]);
 
   public lightColors: byteValueMap = new byteValueMap([
     [0, { name: 'white', desc: 'White' }],
@@ -467,17 +467,17 @@ export class byteValueMaps {
     [3, { name: 'unknown', desc: 'unknown' }]
   ]);
   public chlorinatorModel: byteValueMap = new byteValueMap([
-      [0, { name: 'unknown', desc: 'unknown', capacity: 0, chlorinePerDay: 0, chlorinePerSec: 0 }],
-      [1, { name: 'intellichlor--15', desc: 'IntelliChlor IC15', capacity: 15000, chlorinePerDay: 0.60, chlorinePerSec: 0.60 / 86400 }],
-      [2, { name: 'intellichlor--20', desc: 'IntelliChlor IC20', capacity: 20000, chlorinePerDay: 0.70, chlorinePerSec: 0.70 / 86400 }],
-      [3, { name: 'intellichlor--40', desc: 'IntelliChlor IC40', capacity: 40000, chlorinePerDay: 1.40, chlorinePerSec: 1.4 / 86400 }],
-      [4, { name: 'intellichlor--60', desc: 'IntelliChlor IC60', capacity: 60000, chlorinePerDay: 2, chlorinePerSec: 2 / 86400 }],
-      [5, { name: 'aquarite-t15', desc: 'AquaRite T15', capacity: 40000, chlorinePerDay: 1.47, chlorinePerSec: 1.47 / 86400 }],
-      [6, { name: 'aquarite-t9', desc: 'AquaRite T9', capacity: 30000, chlorinePerDay: 0.98, chlorinePerSec: 0.98 / 86400 }],
-      [7, { name: 'aquarite-t5', desc: 'AquaRite T5', capacity: 20000, chlorinePerDay: 0.735, chlorinePerSec: 0.735 / 86400 }],
-      [8, { name: 'aquarite-t3', desc: 'AquaRite T3', capacity: 15000, chlorinePerDay: 0.53, chlorinePerSec: 0.53 / 86400 }],
-      [9, { name: 'aquarite-925', desc: 'AquaRite 925', capacity: 25000, chlorinePerDay: 0.98, chlorinePerSec: 0.98 / 86400 }],
-      [10, { name: 'aquarite-940', desc: 'AquaRite 940', capacity: 40000, chlorinePerDay: 1.47, chlorinePerSec: 1.47 / 86400 }]
+    [0, { name: 'unknown', desc: 'unknown', capacity: 0, chlorinePerDay: 0, chlorinePerSec: 0 }],
+    [1, { name: 'intellichlor--15', desc: 'IntelliChlor IC15', capacity: 15000, chlorinePerDay: 0.60, chlorinePerSec: 0.60 / 86400 }],
+    [2, { name: 'intellichlor--20', desc: 'IntelliChlor IC20', capacity: 20000, chlorinePerDay: 0.70, chlorinePerSec: 0.70 / 86400 }],
+    [3, { name: 'intellichlor--40', desc: 'IntelliChlor IC40', capacity: 40000, chlorinePerDay: 1.40, chlorinePerSec: 1.4 / 86400 }],
+    [4, { name: 'intellichlor--60', desc: 'IntelliChlor IC60', capacity: 60000, chlorinePerDay: 2, chlorinePerSec: 2 / 86400 }],
+    [5, { name: 'aquarite-t15', desc: 'AquaRite T15', capacity: 40000, chlorinePerDay: 1.47, chlorinePerSec: 1.47 / 86400 }],
+    [6, { name: 'aquarite-t9', desc: 'AquaRite T9', capacity: 30000, chlorinePerDay: 0.98, chlorinePerSec: 0.98 / 86400 }],
+    [7, { name: 'aquarite-t5', desc: 'AquaRite T5', capacity: 20000, chlorinePerDay: 0.735, chlorinePerSec: 0.735 / 86400 }],
+    [8, { name: 'aquarite-t3', desc: 'AquaRite T3', capacity: 15000, chlorinePerDay: 0.53, chlorinePerSec: 0.53 / 86400 }],
+    [9, { name: 'aquarite-925', desc: 'AquaRite 925', capacity: 25000, chlorinePerDay: 0.98, chlorinePerSec: 0.98 / 86400 }],
+    [10, { name: 'aquarite-940', desc: 'AquaRite 940', capacity: 40000, chlorinePerDay: 1.47, chlorinePerSec: 1.47 / 86400 }]
   ])
   public customNames: byteValueMap = new byteValueMap();
   public circuitNames: byteValueMap = new byteValueMap();
@@ -495,10 +495,10 @@ export class byteValueMaps {
     [0, { name: 'off', desc: 'Off' }],
     [1, { name: 'on', desc: 'On' }]
   ]);
-    public systemUnits: byteValueMap = new byteValueMap([
-        [0, { name: 'english', desc: 'English' }],
-        [4, { name: 'metric', desc: 'Metric' }]
-    ]);
+  public systemUnits: byteValueMap = new byteValueMap([
+    [0, { name: 'english', desc: 'English' }],
+    [4, { name: 'metric', desc: 'Metric' }]
+  ]);
   public tempUnits: byteValueMap = new byteValueMap([
     [0, { name: 'F', desc: 'Fahrenheit' }],
     [4, { name: 'C', desc: 'Celsius' }]
@@ -574,13 +574,13 @@ export class byteValueMaps {
     [6, { name: 'qt', desc: 'Quarts' }],
     [7, { name: 'pt', desc: 'Pints' }]
   ]);
-    public pressureUnits: byteValueMap = new byteValueMap([
-        [0, { name: 'psi', desc: 'Pounds per Sqare Inch' }],
-        [1, { name: 'Pa', desc: 'Pascal' }],
-        [2, { name: 'kPa', desc: 'Kilo-pascals' }],
-        [3, { name: 'atm', desc: 'Atmospheres' }],
-        [4, { name: 'bar', desc: 'Barometric' }]
-    ]);
+  public pressureUnits: byteValueMap = new byteValueMap([
+    [0, { name: 'psi', desc: 'Pounds per Sqare Inch' }],
+    [1, { name: 'Pa', desc: 'Pascal' }],
+    [2, { name: 'kPa', desc: 'Kilo-pascals' }],
+    [3, { name: 'atm', desc: 'Atmospheres' }],
+    [4, { name: 'bar', desc: 'Barometric' }]
+  ]);
 
   public areaUnits: byteValueMap = new byteValueMap([
     [0, { name: '', desc: 'No Units' }],
@@ -818,36 +818,37 @@ export class SystemBoard {
   /// This method processes the status message periodically.  The role of this method is to verify the circuit, valve, and heater
   /// relays.  This method does not control RS485 operations such as pumps and chlorinators.  These are done through the respective
   /// equipment polling functions.
-    public async processStatusAsync() {
-        let self = this;
-        try {
-            if (this._statusCheckRef > 0) return;
-            this.suspendStatus(true);
-            if (typeof this._statusTimer !== 'undefined' && this._statusTimer) clearTimeout(this._statusTimer);
-            // Go through all the assigned equipment and verify the current state.
-            sys.board.system.keepManualTime();
-            await sys.board.bodies.syncFreezeProtection();
-            await sys.board.syncEquipmentItems();
-            await sys.board.schedules.syncScheduleStates();
-            state.emitControllerChange();
-            state.emitEquipmentChanges();
-        } catch (err) { state.status = 255; logger.error(`Error performing processStatusAsync ${err.message}`); }
-        finally {
-            this.suspendStatus(false);
-            if (this.statusInterval > 0) this._statusTimer = setTimeout(async () => await self.processStatusAsync(), this.statusInterval);
-        }
+  public async processStatusAsync() {
+    let self = this;
+    try {
+      if (this._statusCheckRef > 0) return;
+      this.suspendStatus(true);
+      if (typeof this._statusTimer !== 'undefined' && this._statusTimer) clearTimeout(this._statusTimer);
+      // Go through all the assigned equipment and verify the current state.
+      sys.board.system.keepManualTime();
+      await sys.board.bodies.syncFreezeProtection();
+      await sys.board.syncEquipmentItems();
+      await sys.board.schedules.syncScheduleStates();
+      await sys.board.circuits.checkEggTimerExpirationAsync();
+      state.emitControllerChange();
+      state.emitEquipmentChanges();
+    } catch (err) { state.status = 255; logger.error(`Error performing processStatusAsync ${err.message}`); }
+    finally {
+      this.suspendStatus(false);
+      if (this.statusInterval > 0) this._statusTimer = setTimeout(async () => await self.processStatusAsync(), this.statusInterval);
     }
-    public async syncEquipmentItems() {
-        try {
-            await sys.board.circuits.syncCircuitRelayStates();
-            await sys.board.features.syncGroupStates();
-            await sys.board.circuits.syncVirtualCircuitStates();
-            await sys.board.valves.syncValveStates();
-            await sys.board.filters.syncFilterStates();
-            await sys.board.heaters.syncHeaterStates();
-        }
-        catch (err) { logger.error(`Error synchronizing equipment items: ${err.message}`); }
+  }
+  public async syncEquipmentItems() {
+    try {
+      await sys.board.circuits.syncCircuitRelayStates();
+      await sys.board.features.syncGroupStates();
+      await sys.board.circuits.syncVirtualCircuitStates();
+      await sys.board.valves.syncValveStates();
+      await sys.board.filters.syncFilterStates();
+      await sys.board.heaters.syncHeaterStates();
     }
+    catch (err) { logger.error(`Error synchronizing equipment items: ${err.message}`); }
+  }
   public async setControllerType(obj): Promise<Equipment> {
     try {
       if (obj.controllerType !== sys.controllerType)
@@ -925,813 +926,813 @@ export class BoardCommands {
   constructor(parent: SystemBoard) { this.board = parent; }
 }
 export class SystemCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }): Promise<RestoreResults> {
-        let res = new RestoreResults();
+  public async restore(rest: { poolConfig: any, poolState: any }): Promise<RestoreResults> {
+    let res = new RestoreResults();
+    try {
+      let ctx = await sys.board.system.validateRestore(rest);
+      // Restore the general stuff.
+      if (ctx.general.update.length > 0) await sys.board.system.setGeneralAsync(ctx.general.update[0]);
+      for (let i = 0; i < ctx.customNames.update.length; i++) {
+        let cn = ctx.customNames.update[i];
         try {
-            let ctx = await sys.board.system.validateRestore(rest);
-            // Restore the general stuff.
-            if (ctx.general.update.length > 0) await sys.board.system.setGeneralAsync(ctx.general.update[0]);
-            for (let i = 0; i < ctx.customNames.update.length; i++) {
-                let cn = ctx.customNames.update[i];
-                try {
-                    await sys.board.system.setCustomNameAsync(cn);
-                    res.addModuleSuccess('customName', `Update: ${cn.id}-${cn.name}`);
-                } catch (err) { res.addModuleError('customName', `Update: ${cn.id}-${cn.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.customNames.add.length; i++) {
-                let cn = ctx.customNames.add[i];
-                try {
-                    await sys.board.system.setCustomNameAsync(cn);
-                    res.addModuleSuccess('customName', `Add: ${cn.id}-${cn.name}`);
-                } catch (err) { res.addModuleError('customName', `Add: ${cn.id}-${cn.name}: ${err.message}`); }
-            }
-            await sys.board.bodies.restore(rest, ctx, res);
-            await sys.board.filters.restore(rest, ctx, res);
-            await sys.board.circuits.restore(rest, ctx, res);
-            await sys.board.heaters.restore(rest, ctx, res);
-            await sys.board.features.restore(rest, ctx, res);
-            await sys.board.pumps.restore(rest, ctx, res);
-            await sys.board.valves.restore(rest, ctx, res);
-            await sys.board.chlorinator.restore(rest, ctx, res);
-            await sys.board.chemControllers.restore(rest, ctx, res);
-            await sys.board.schedules.restore(rest, ctx, res);
-            return res;
-            //await sys.board.covers.restore(rest, ctx);
-        } catch (err) { logger.error(`Error restoring njsPC server: ${err.message}`); res.addModuleError('system', err.message); return Promise.reject(err);}
-    }
-    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<any> {
+          await sys.board.system.setCustomNameAsync(cn);
+          res.addModuleSuccess('customName', `Update: ${cn.id}-${cn.name}`);
+        } catch (err) { res.addModuleError('customName', `Update: ${cn.id}-${cn.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.customNames.add.length; i++) {
+        let cn = ctx.customNames.add[i];
         try {
-            let ctx: any = { board: { errors: [], warnings: [] } };
+          await sys.board.system.setCustomNameAsync(cn);
+          res.addModuleSuccess('customName', `Add: ${cn.id}-${cn.name}`);
+        } catch (err) { res.addModuleError('customName', `Add: ${cn.id}-${cn.name}: ${err.message}`); }
+      }
+      await sys.board.bodies.restore(rest, ctx, res);
+      await sys.board.filters.restore(rest, ctx, res);
+      await sys.board.circuits.restore(rest, ctx, res);
+      await sys.board.heaters.restore(rest, ctx, res);
+      await sys.board.features.restore(rest, ctx, res);
+      await sys.board.pumps.restore(rest, ctx, res);
+      await sys.board.valves.restore(rest, ctx, res);
+      await sys.board.chlorinator.restore(rest, ctx, res);
+      await sys.board.chemControllers.restore(rest, ctx, res);
+      await sys.board.schedules.restore(rest, ctx, res);
+      return res;
+      //await sys.board.covers.restore(rest, ctx);
+    } catch (err) { logger.error(`Error restoring njsPC server: ${err.message}`); res.addModuleError('system', err.message); return Promise.reject(err);}
+  }
+  public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<any> {
+    try {
+      let ctx: any = { board: { errors: [], warnings: [] } };
 
-            // Step 1 - Verify that the boards are the same.  For instance you do not want to restore an IntelliTouch to an IntelliCenter.
-            let cfg = rest.poolConfig;
-            if (sys.controllerType === cfg.controllerType) {
-                ctx.customNames = { errors: [], warnings: [], add: [], update: [], remove: [] };
-                let customNames = sys.customNames.get();
-                for (let i = 0; i < rest.poolConfig.customNames.length; i++) {
-                    let cn = customNames.find(elem => elem.id === rest.poolConfig.customNames[i].id);
-                    if (typeof cn === 'undefined') ctx.customNames.add.push(rest.poolConfig.customNames[i]);
-                    else if (JSON.stringify(rest.poolConfig.customNames[i]) !== JSON.stringify(cn)) ctx.customNames.update.push(cn);
-                }
-                ctx.general = { errors: [], warnings: [], add: [], update: [], remove: [] };
-                if (JSON.stringify(sys.general.get()) !== JSON.stringify(cfg.pool)) ctx.general.update.push(cfg.pool);
-                ctx.bodies = await sys.board.bodies.validateRestore(rest);
-                ctx.pumps = await sys.board.pumps.validateRestore(rest);
-                await sys.board.circuits.validateRestore(rest, ctx);
-                ctx.features = await sys.board.features.validateRestore(rest);
-                ctx.chlorinators = await sys.board.chlorinator.validateRestore(rest);
-                ctx.heaters = await sys.board.heaters.validateRestore(rest);
-                ctx.valves = await sys.board.valves.validateRestore(rest);
-               
-                //ctx.covers = await sys.board.covers.validateRestore(rest);
-                ctx.chemControllers = await sys.board.chemControllers.validateRestore(rest);
-                ctx.filters = await sys.board.filters.validateRestore(rest);
-                ctx.schedules = await sys.board.schedules.validateRestore(rest);
-            }
-            else ctx.board.errors.push(`Panel Types do not match cannot restore bakup from ${sys.controllerType} to ${rest.poolConfig.controllerType}`);
-            
-            return ctx;
-           
-        } catch (err) { logger.error(`Error validating restore file: ${err.message}`); return Promise.reject(err);}
+      // Step 1 - Verify that the boards are the same.  For instance you do not want to restore an IntelliTouch to an IntelliCenter.
+      let cfg = rest.poolConfig;
+      if (sys.controllerType === cfg.controllerType) {
+        ctx.customNames = { errors: [], warnings: [], add: [], update: [], remove: [] };
+        let customNames = sys.customNames.get();
+        for (let i = 0; i < rest.poolConfig.customNames.length; i++) {
+          let cn = customNames.find(elem => elem.id === rest.poolConfig.customNames[i].id);
+          if (typeof cn === 'undefined') ctx.customNames.add.push(rest.poolConfig.customNames[i]);
+          else if (JSON.stringify(rest.poolConfig.customNames[i]) !== JSON.stringify(cn)) ctx.customNames.update.push(cn);
+        }
+        ctx.general = { errors: [], warnings: [], add: [], update: [], remove: [] };
+        if (JSON.stringify(sys.general.get()) !== JSON.stringify(cfg.pool)) ctx.general.update.push(cfg.pool);
+        ctx.bodies = await sys.board.bodies.validateRestore(rest);
+        ctx.pumps = await sys.board.pumps.validateRestore(rest);
+        await sys.board.circuits.validateRestore(rest, ctx);
+        ctx.features = await sys.board.features.validateRestore(rest);
+        ctx.chlorinators = await sys.board.chlorinator.validateRestore(rest);
+        ctx.heaters = await sys.board.heaters.validateRestore(rest);
+        ctx.valves = await sys.board.valves.validateRestore(rest);
 
-    }
-    public cancelDelay(): Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay); }
-    public setDateTimeAsync(obj: any): Promise<any> { return Promise.resolve(); }
-    public keepManualTime() {
-        try {
-            // every minute, updated the time from the system clock in server mode
-            // but only for Virtual.  Likely 'manual' on *Center means OCP time
-            if (sys.general.options.clockSource !== 'server') return;
-            state.time.setTimeFromSystemClock();
-            sys.board.system.setTZ();
-        } catch (err) { logger.error(`Error setting manual time: ${err.message}`); }
-    }
-    public setTZ() {
-        let tzOffsetObj = state.time.calcTZOffset();
-        if (sys.general.options.clockSource === 'server' || typeof sys.general.location.timeZone === 'undefined') {
-            let tzs = sys.board.valueMaps.timeZones.toArray();
-            sys.general.location.timeZone = tzs.find(tz => tz.utcOffset === tzOffsetObj.tzOffset).val;
-        }
-        if (sys.general.options.clockSource === 'server' || typeof sys.general.options.adjustDST === 'undefined') {
-            sys.general.options.adjustDST = tzOffsetObj.adjustDST;
-        }
-    }
-    public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
-    public async setGeneralAsync(obj: any): Promise<General> {
-        let general = sys.general.get();
-        if (typeof obj.alias === 'string') sys.general.alias = obj.alias;
-        if (typeof obj.options !== 'undefined') await sys.board.system.setOptionsAsync(obj.options);
-        if (typeof obj.location !== 'undefined') await sys.board.system.setLocationAsync(obj.location);
-        if (typeof obj.owner !== 'undefined') await sys.board.system.setOwnerAsync(obj.owner);
-        return new Promise<General>(function (resolve, reject) { resolve(sys.general); });
-    }
-    public async setTempSensorsAsync(obj: any): Promise<TempSensorCollection> {
-        if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.equipment.tempSensors.getCalibration('water1')) {
-            sys.equipment.tempSensors.setCalibration('water1', parseFloat(obj.waterTempAdj1));
-        }
-        if (typeof obj.waterTempAdj2 != 'undefined' && obj.waterTempAdj2 !== sys.equipment.tempSensors.getCalibration('water2')) {
-            sys.equipment.tempSensors.setCalibration('water2', parseFloat(obj.waterTempAdj2));
-        }
-        if (typeof obj.waterTempAdj3 != 'undefined' && obj.waterTempAdj3 !== sys.equipment.tempSensors.getCalibration('water3')) {
-            sys.equipment.tempSensors.setCalibration('water3', parseFloat(obj.waterTempAdj3));
-        }
-        if (typeof obj.waterTempAdj4 != 'undefined' && obj.waterTempAdj4 !== sys.equipment.tempSensors.getCalibration('water4')) {
-            sys.equipment.tempSensors.setCalibration('water4', parseFloat(obj.waterTempAdj4));
-        }
-        if (typeof obj.solarTempAdj1 != 'undefined' && obj.solarTempAdj1 !== sys.equipment.tempSensors.getCalibration('solar1')) {
-            sys.equipment.tempSensors.setCalibration('solar1', parseFloat(obj.solarTempAdj1));
-        }
-        if (typeof obj.solarTempAdj2 != 'undefined' && obj.solarTempAdj2 !== sys.equipment.tempSensors.getCalibration('solar2')) {
-            sys.equipment.tempSensors.setCalibration('solar2', parseFloat(obj.solarTempAdj2));
-        }
-        if (typeof obj.solarTempAdj3 != 'undefined' && obj.solarTempAdj3 !== sys.equipment.tempSensors.getCalibration('solar3')) {
-            sys.equipment.tempSensors.setCalibration('solar3', parseFloat(obj.solarTempAdj3));
-        }
-        if (typeof obj.solarTempAdj4 != 'undefined' && obj.solarTempAdj4 !== sys.equipment.tempSensors.getCalibration('solar4')) {
-            sys.equipment.tempSensors.setCalibration('solar4', parseFloat(obj.solarTempAdj4));
-        }
-        if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.equipment.tempSensors.getCalibration('air')) {
-            sys.equipment.tempSensors.setCalibration('air', parseFloat(obj.airTempAdj));
-        }
-        return new Promise<TempSensorCollection>((resolve, reject) => { resolve(sys.equipment.tempSensors); });
-    }
-    public async setOptionsAsync(obj: any): Promise<Options> {
-        if (obj.clockSource === 'server') sys.board.system.setTZ();
-        sys.board.system.setTempSensorsAsync(obj);
-        sys.general.options.set(obj);
-        let bodyUnits = sys.general.options.units === 0 ? 1 : 2;
-        for (let i = 0; i < sys.bodies.length; i++) sys.bodies.getItemByIndex(i).capacityUnits = bodyUnits;
-        state.temps.units = sys.general.options.units === 0 ? 1 : 4;
-        return new Promise<Options>(function (resolve, reject) { resolve(sys.general.options); });
-    }
-    public async setLocationAsync(obj: any): Promise<Location> {
-        sys.general.location.set(obj);
-        return new Promise<Location>(function (resolve, reject) { resolve(sys.general.location); });
-    }
-    public async setOwnerAsync(obj: any): Promise<Owner> {
-        sys.general.owner.set(obj);
-        return new Promise<Owner>(function (resolve, reject) { resolve(sys.general.owner); });
-    }
-    public async setTempsAsync(obj: any): Promise<TemperatureState> {
-        return new Promise<TemperatureState>((resolve, reject) => {
-            for (let prop in obj) {
-                switch (prop) {
-                    case 'air':
-                    case 'airSensor':
-                    case 'airSensor1':
-                        {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-                            state.temps.air = sys.equipment.tempSensors.getCalibration('air') + temp;
-                        }
-                        break;
-                    case 'waterSensor1':
-                        {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-                            state.temps.waterSensor1 = sys.equipment.tempSensors.getCalibration('water1') + temp;
-                            let body = state.temps.bodies.getItemById(1);
-                            if (body.isOn) body.temp = state.temps.waterSensor1;
-                            else if (sys.equipment.shared) {
-                                body = state.temps.bodies.getItemById(2);
-                                if (body.isOn) body.temp = state.temps.waterSensor1;
-                            }
-                        }
-                        break;
-                    case 'waterSensor2':
-                        {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-                            state.temps.waterSensor2 = sys.equipment.tempSensors.getCalibration('water2') + temp;
-                            if (!state.equipment.shared) {
-                                let body = state.temps.bodies.getItemById(2);
-                                if (body.isOn) body.temp = state.temps.waterSensor2;
-                            }
-                        }
-                        break;
-                    case 'waterSensor3':
-                        {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-                            state.temps.waterSensor3 = sys.equipment.tempSensors.getCalibration('water3') + temp;
-                            let body = state.temps.bodies.getItemById(3);
-                            if (body.isOn) body.temp = state.temps.waterSensor3;
-                        }
-                        break;
-                    case 'waterSensor4':
-                        {
+        //ctx.covers = await sys.board.covers.validateRestore(rest);
+        ctx.chemControllers = await sys.board.chemControllers.validateRestore(rest);
+        ctx.filters = await sys.board.filters.validateRestore(rest);
+        ctx.schedules = await sys.board.schedules.validateRestore(rest);
+      }
+      else ctx.board.errors.push(`Panel Types do not match cannot restore bakup from ${sys.controllerType} to ${rest.poolConfig.controllerType}`);
 
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-                            state.temps.waterSensor4 = sys.equipment.tempSensors.getCalibration('water4') + temp;
-                            let body = state.temps.bodies.getItemById(4);
-                            if (body.isOn) body.temp = state.temps.waterSensor4;
-                        }
-                        break;
+      return ctx;
 
-                    case 'solarSensor1':
-                    case 'solar1':
-                    case 'solar':
-                        {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-                            state.temps.solar = sys.equipment.tempSensors.getCalibration('solar1') + temp;
-                        }
-                        break;
-                    case 'solar2':
-                    case 'solarSensor2':
-                        {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-                            state.temps.solarSensor2 = sys.equipment.tempSensors.getCalibration('solar2') + temp;
-                        }
-                        break;
-                    case 'solar3':
-                    case 'solarSensor3':
-                        {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-                            state.temps.solarSensor3 = sys.equipment.tempSensors.getCalibration('solar3') + temp;
-                        }
-                        break;
-                    case 'solar4':
-                    case 'solarSensor4':
-                        {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-                            state.temps.solarSensor4 = sys.equipment.tempSensors.getCalibration('solar4') + temp;
-                        }
-                        break;
-                }
-            }
-            sys.board.heaters.syncHeaterStates();
-            resolve(state.temps);
-        });
+    } catch (err) { logger.error(`Error validating restore file: ${err.message}`); return Promise.reject(err);}
+
+  }
+  public cancelDelay(): Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay); }
+  public setDateTimeAsync(obj: any): Promise<any> { return Promise.resolve(); }
+  public keepManualTime() {
+    try {
+      // every minute, updated the time from the system clock in server mode
+      // but only for Virtual.  Likely 'manual' on *Center means OCP time
+      if (sys.general.options.clockSource !== 'server') return;
+      state.time.setTimeFromSystemClock();
+      sys.board.system.setTZ();
+    } catch (err) { logger.error(`Error setting manual time: ${err.message}`); }
+  }
+  public setTZ() {
+    let tzOffsetObj = state.time.calcTZOffset();
+    if (sys.general.options.clockSource === 'server' || typeof sys.general.location.timeZone === 'undefined') {
+      let tzs = sys.board.valueMaps.timeZones.toArray();
+      sys.general.location.timeZone = tzs.find(tz => tz.utcOffset === tzOffsetObj.tzOffset).val;
     }
-    public getSensors() {
-        let sensors = [{ name: 'Air Sensor', temp: state.temps.air, tempAdj: sys.equipment.tempSensors.getCalibration('air'), binding: 'airTempAdj' }];
-        if (sys.equipment.shared) {
-            if (sys.equipment.maxBodies > 2)
-                sensors.push({ name: 'Water Sensor 1', temp: state.temps.waterSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('water1'), binding: 'waterTempAdj1' },
-                    { name: 'Water Sensor 2', temp: state.temps.waterSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('water2'), binding: 'waterTempAdj2' },
-                    { name: 'Water Sensor 3', temp: state.temps.waterSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('water3'), binding: 'waterTempAdj3' });
-            else
-                sensors.push({ name: 'Water Sensor', temp: state.temps.waterSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('water1'), binding: 'waterTempAdj1' });
-            if (sys.equipment.maxBodies > 3)
-                sensors.push({ name: 'Water Sensor 4', temp: state.temps.waterSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('water4'), binding: 'waterTempAdj4' });
-
-            if (sys.board.heaters.isSolarInstalled()) {
-                if (sys.equipment.maxBodies > 2) {
-                    sensors.push({ name: 'Solar Sensor 1', temp: state.temps.solar, tempAdj: sys.equipment.tempSensors.getCalibration('solar1'), binding: 'solarTempAdj1' },
-                        { name: 'Solar Sensor 2', temp: state.temps.solarSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('solar2'), binding: 'solarTempAdj2' });
-                }
-                else
-                    sensors.push({ name: 'Solar Sensor', temp: state.temps.solar, tempAdj: sys.equipment.tempSensors.getCalibration('solar1'), binding: 'solarTempAdj1' });
-                if (sys.equipment.maxBodies > 3)
-                    sensors.push({ name: 'Solar Sensor 4', temp: state.temps.solarSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('solar4'), binding: 'solarTempAdj4' });
+    if (sys.general.options.clockSource === 'server' || typeof sys.general.options.adjustDST === 'undefined') {
+      sys.general.options.adjustDST = tzOffsetObj.adjustDST;
+    }
+  }
+  public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
+  public async setGeneralAsync(obj: any): Promise<General> {
+    let general = sys.general.get();
+    if (typeof obj.alias === 'string') sys.general.alias = obj.alias;
+    if (typeof obj.options !== 'undefined') await sys.board.system.setOptionsAsync(obj.options);
+    if (typeof obj.location !== 'undefined') await sys.board.system.setLocationAsync(obj.location);
+    if (typeof obj.owner !== 'undefined') await sys.board.system.setOwnerAsync(obj.owner);
+    return new Promise<General>(function (resolve, reject) { resolve(sys.general); });
+  }
+  public async setTempSensorsAsync(obj: any): Promise<TempSensorCollection> {
+    if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.equipment.tempSensors.getCalibration('water1')) {
+      sys.equipment.tempSensors.setCalibration('water1', parseFloat(obj.waterTempAdj1));
+    }
+    if (typeof obj.waterTempAdj2 != 'undefined' && obj.waterTempAdj2 !== sys.equipment.tempSensors.getCalibration('water2')) {
+      sys.equipment.tempSensors.setCalibration('water2', parseFloat(obj.waterTempAdj2));
+    }
+    if (typeof obj.waterTempAdj3 != 'undefined' && obj.waterTempAdj3 !== sys.equipment.tempSensors.getCalibration('water3')) {
+      sys.equipment.tempSensors.setCalibration('water3', parseFloat(obj.waterTempAdj3));
+    }
+    if (typeof obj.waterTempAdj4 != 'undefined' && obj.waterTempAdj4 !== sys.equipment.tempSensors.getCalibration('water4')) {
+      sys.equipment.tempSensors.setCalibration('water4', parseFloat(obj.waterTempAdj4));
+    }
+    if (typeof obj.solarTempAdj1 != 'undefined' && obj.solarTempAdj1 !== sys.equipment.tempSensors.getCalibration('solar1')) {
+      sys.equipment.tempSensors.setCalibration('solar1', parseFloat(obj.solarTempAdj1));
+    }
+    if (typeof obj.solarTempAdj2 != 'undefined' && obj.solarTempAdj2 !== sys.equipment.tempSensors.getCalibration('solar2')) {
+      sys.equipment.tempSensors.setCalibration('solar2', parseFloat(obj.solarTempAdj2));
+    }
+    if (typeof obj.solarTempAdj3 != 'undefined' && obj.solarTempAdj3 !== sys.equipment.tempSensors.getCalibration('solar3')) {
+      sys.equipment.tempSensors.setCalibration('solar3', parseFloat(obj.solarTempAdj3));
+    }
+    if (typeof obj.solarTempAdj4 != 'undefined' && obj.solarTempAdj4 !== sys.equipment.tempSensors.getCalibration('solar4')) {
+      sys.equipment.tempSensors.setCalibration('solar4', parseFloat(obj.solarTempAdj4));
+    }
+    if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.equipment.tempSensors.getCalibration('air')) {
+      sys.equipment.tempSensors.setCalibration('air', parseFloat(obj.airTempAdj));
+    }
+    return new Promise<TempSensorCollection>((resolve, reject) => { resolve(sys.equipment.tempSensors); });
+  }
+  public async setOptionsAsync(obj: any): Promise<Options> {
+    if (obj.clockSource === 'server') sys.board.system.setTZ();
+    sys.board.system.setTempSensorsAsync(obj);
+    sys.general.options.set(obj);
+    let bodyUnits = sys.general.options.units === 0 ? 1 : 2;
+    for (let i = 0; i < sys.bodies.length; i++) sys.bodies.getItemByIndex(i).capacityUnits = bodyUnits;
+    state.temps.units = sys.general.options.units === 0 ? 1 : 4;
+    return new Promise<Options>(function (resolve, reject) { resolve(sys.general.options); });
+  }
+  public async setLocationAsync(obj: any): Promise<Location> {
+    sys.general.location.set(obj);
+    return new Promise<Location>(function (resolve, reject) { resolve(sys.general.location); });
+  }
+  public async setOwnerAsync(obj: any): Promise<Owner> {
+    sys.general.owner.set(obj);
+    return new Promise<Owner>(function (resolve, reject) { resolve(sys.general.owner); });
+  }
+  public async setTempsAsync(obj: any): Promise<TemperatureState> {
+    return new Promise<TemperatureState>((resolve, reject) => {
+      for (let prop in obj) {
+        switch (prop) {
+          case 'air':
+          case 'airSensor':
+          case 'airSensor1':
+            {
+              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+              state.temps.air = sys.equipment.tempSensors.getCalibration('air') + temp;
             }
+            break;
+          case 'waterSensor1':
+            {
+              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+              state.temps.waterSensor1 = sys.equipment.tempSensors.getCalibration('water1') + temp;
+              let body = state.temps.bodies.getItemById(1);
+              if (body.isOn) body.temp = state.temps.waterSensor1;
+              else if (sys.equipment.shared) {
+                body = state.temps.bodies.getItemById(2);
+                if (body.isOn) body.temp = state.temps.waterSensor1;
+              }
+            }
+            break;
+          case 'waterSensor2':
+            {
+              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+              state.temps.waterSensor2 = sys.equipment.tempSensors.getCalibration('water2') + temp;
+              if (!state.equipment.shared) {
+                let body = state.temps.bodies.getItemById(2);
+                if (body.isOn) body.temp = state.temps.waterSensor2;
+              }
+            }
+            break;
+          case 'waterSensor3':
+            {
+              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+              state.temps.waterSensor3 = sys.equipment.tempSensors.getCalibration('water3') + temp;
+              let body = state.temps.bodies.getItemById(3);
+              if (body.isOn) body.temp = state.temps.waterSensor3;
+            }
+            break;
+          case 'waterSensor4':
+            {
+
+              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+              state.temps.waterSensor4 = sys.equipment.tempSensors.getCalibration('water4') + temp;
+              let body = state.temps.bodies.getItemById(4);
+              if (body.isOn) body.temp = state.temps.waterSensor4;
+            }
+            break;
+
+          case 'solarSensor1':
+          case 'solar1':
+          case 'solar':
+            {
+              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+              state.temps.solar = sys.equipment.tempSensors.getCalibration('solar1') + temp;
+            }
+            break;
+          case 'solar2':
+          case 'solarSensor2':
+            {
+              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+              state.temps.solarSensor2 = sys.equipment.tempSensors.getCalibration('solar2') + temp;
+            }
+            break;
+          case 'solar3':
+          case 'solarSensor3':
+            {
+              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+              state.temps.solarSensor3 = sys.equipment.tempSensors.getCalibration('solar3') + temp;
+            }
+            break;
+          case 'solar4':
+          case 'solarSensor4':
+            {
+              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+              state.temps.solarSensor4 = sys.equipment.tempSensors.getCalibration('solar4') + temp;
+            }
+            break;
         }
-        else if (sys.equipment.dual) {
-            sensors.push({ name: 'Water Sensor 1', temp: state.temps.waterSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('water1'), binding: 'waterTempAdj1' },
-                { name: 'Water Sensor 2', temp: state.temps.waterSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('water2'), binding: 'waterTempAdj2' });
-            if (sys.equipment.maxBodies > 2)
-                sensors.push({ name: 'Water Sensor 3', temp: state.temps.waterSensor3, tempAdj: sys.equipment.tempSensors.getCalibration('water3'), binding: 'waterTempAdj3' });
-            if (sys.equipment.maxBodies > 3)
-                sensors.push({ name: 'Water Sensor 4', temp: state.temps.waterSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('water4'), binding: 'waterTempAdj4' });
-            if (sys.board.heaters.isSolarInstalled()) {
-                sensors.push({ name: 'Solar Sensor 1', temp: state.temps.solar, tempAdj: sys.equipment.tempSensors.getCalibration('solar1'), binding: 'solarTempAdj1' },
-                    { name: 'Solar Sensor 2', temp: state.temps.solarSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('solar2'), binding: 'solarTempAdj2' });
-                if (sys.equipment.maxBodies > 2)
-                    sensors.push({ name: 'Solar Sensor 3', temp: state.temps.solarSensor3, tempAdj: sys.equipment.tempSensors.getCalibration('solar3'), binding: 'solarTempAdj3' });
-                if (sys.equipment.maxBodies > 3)
-                    sensors.push({ name: 'Solar Sensor 4', temp: state.temps.solarSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('solar4'), binding: 'solarTempAdj4' });
-            }
-        }
-        else {
-            if (sys.equipment.maxBodies > 1) {
-                sensors.push({ name: 'Water Sensor 1', temp: state.temps.waterSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('water1'), binding: 'waterTempAdj1' },
-                    { name: 'Water Sensor 2', temp: state.temps.waterSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('water2'), binding: 'waterTempAdj2' });
-                if (sys.equipment.maxBodies > 2)
-                    sensors.push({ name: 'Water Sensor 3', temp: state.temps.waterSensor3, tempAdj: sys.equipment.tempSensors.getCalibration('water3'), binding: 'waterTempAdj3' });
-                if (sys.equipment.maxBodies > 3)
-                    sensors.push({ name: 'Water Sensor 4', temp: state.temps.waterSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('water4'), binding: 'waterTempAdj4' });
+      }
+      sys.board.heaters.syncHeaterStates();
+      resolve(state.temps);
+    });
+  }
+  public getSensors() {
+    let sensors = [{ name: 'Air Sensor', temp: state.temps.air, tempAdj: sys.equipment.tempSensors.getCalibration('air'), binding: 'airTempAdj' }];
+    if (sys.equipment.shared) {
+      if (sys.equipment.maxBodies > 2)
+        sensors.push({ name: 'Water Sensor 1', temp: state.temps.waterSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('water1'), binding: 'waterTempAdj1' },
+          { name: 'Water Sensor 2', temp: state.temps.waterSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('water2'), binding: 'waterTempAdj2' },
+          { name: 'Water Sensor 3', temp: state.temps.waterSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('water3'), binding: 'waterTempAdj3' });
+      else
+        sensors.push({ name: 'Water Sensor', temp: state.temps.waterSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('water1'), binding: 'waterTempAdj1' });
+      if (sys.equipment.maxBodies > 3)
+        sensors.push({ name: 'Water Sensor 4', temp: state.temps.waterSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('water4'), binding: 'waterTempAdj4' });
 
-                if (sys.board.heaters.isSolarInstalled()) {
-                    sensors.push({ name: 'Solar Sensor 1', temp: state.temps.solarSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('solar1'), binding: 'solarTempAdj1' },
-                        { name: 'Solar Sensor 2', temp: state.temps.solarSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('solar2'), binding: 'solarTempAdj2' });
-                    if (sys.equipment.maxBodies > 2)
-                        sensors.push({ name: 'Solar Sensor 3', temp: state.temps.solarSensor3, tempAdj: sys.equipment.tempSensors.getCalibration('solar3'), binding: 'solarTempAdj3' });
-                    if (sys.equipment.maxBodies > 3)
-                        sensors.push({ name: 'Water Sensor 4', temp: state.temps.solarSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('solar4'), binding: 'solarTempAdj4' });
-                }
-            }
-            else {
-                sensors.push({ name: 'Water Sensor', temp: state.temps.waterSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('water1'), binding: 'waterTempAdj1' });
-                if (sys.board.heaters.isSolarInstalled())
-                    sensors.push({ name: 'Solar Sensor', temp: state.temps.solar, tempAdj: sys.equipment.tempSensors.getCalibration('solar1'), binding: 'solarTempAdj1' });
-            }
+      if (sys.board.heaters.isSolarInstalled()) {
+        if (sys.equipment.maxBodies > 2) {
+          sensors.push({ name: 'Solar Sensor 1', temp: state.temps.solar, tempAdj: sys.equipment.tempSensors.getCalibration('solar1'), binding: 'solarTempAdj1' },
+            { name: 'Solar Sensor 2', temp: state.temps.solarSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('solar2'), binding: 'solarTempAdj2' });
         }
-        return sensors;
+        else
+          sensors.push({ name: 'Solar Sensor', temp: state.temps.solar, tempAdj: sys.equipment.tempSensors.getCalibration('solar1'), binding: 'solarTempAdj1' });
+        if (sys.equipment.maxBodies > 3)
+          sensors.push({ name: 'Solar Sensor 4', temp: state.temps.solarSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('solar4'), binding: 'solarTempAdj4' });
+      }
     }
-    public async setCustomNamesAsync(names: any[]): Promise<CustomNameCollection> {
-        if (!Array.isArray(names)) return Promise.reject(new InvalidEquipmentDataError(`Data is not an array`, 'customNames', names))
-        let arr = [];
-        for (let i = 0; i < names.length; i++) { arr.push(sys.board.system.setCustomNameAsync(names[i])); }
-        return new Promise<CustomNameCollection>(async (resolve, reject) => {
-            try {
-                await Promise.all(arr).catch(err => reject(err));
-                // sys.board.system.syncCustomNamesValueMap(); Each custom name promise is already syncing the bytevalue array
+    else if (sys.equipment.dual) {
+      sensors.push({ name: 'Water Sensor 1', temp: state.temps.waterSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('water1'), binding: 'waterTempAdj1' },
+        { name: 'Water Sensor 2', temp: state.temps.waterSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('water2'), binding: 'waterTempAdj2' });
+      if (sys.equipment.maxBodies > 2)
+        sensors.push({ name: 'Water Sensor 3', temp: state.temps.waterSensor3, tempAdj: sys.equipment.tempSensors.getCalibration('water3'), binding: 'waterTempAdj3' });
+      if (sys.equipment.maxBodies > 3)
+        sensors.push({ name: 'Water Sensor 4', temp: state.temps.waterSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('water4'), binding: 'waterTempAdj4' });
+      if (sys.board.heaters.isSolarInstalled()) {
+        sensors.push({ name: 'Solar Sensor 1', temp: state.temps.solar, tempAdj: sys.equipment.tempSensors.getCalibration('solar1'), binding: 'solarTempAdj1' },
+          { name: 'Solar Sensor 2', temp: state.temps.solarSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('solar2'), binding: 'solarTempAdj2' });
+        if (sys.equipment.maxBodies > 2)
+          sensors.push({ name: 'Solar Sensor 3', temp: state.temps.solarSensor3, tempAdj: sys.equipment.tempSensors.getCalibration('solar3'), binding: 'solarTempAdj3' });
+        if (sys.equipment.maxBodies > 3)
+          sensors.push({ name: 'Solar Sensor 4', temp: state.temps.solarSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('solar4'), binding: 'solarTempAdj4' });
+      }
+    }
+    else {
+      if (sys.equipment.maxBodies > 1) {
+        sensors.push({ name: 'Water Sensor 1', temp: state.temps.waterSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('water1'), binding: 'waterTempAdj1' },
+          { name: 'Water Sensor 2', temp: state.temps.waterSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('water2'), binding: 'waterTempAdj2' });
+        if (sys.equipment.maxBodies > 2)
+          sensors.push({ name: 'Water Sensor 3', temp: state.temps.waterSensor3, tempAdj: sys.equipment.tempSensors.getCalibration('water3'), binding: 'waterTempAdj3' });
+        if (sys.equipment.maxBodies > 3)
+          sensors.push({ name: 'Water Sensor 4', temp: state.temps.waterSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('water4'), binding: 'waterTempAdj4' });
 
-                resolve(sys.customNames);
-            }
-            catch (err) { reject(err); }
-        });
+        if (sys.board.heaters.isSolarInstalled()) {
+          sensors.push({ name: 'Solar Sensor 1', temp: state.temps.solarSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('solar1'), binding: 'solarTempAdj1' },
+            { name: 'Solar Sensor 2', temp: state.temps.solarSensor2, tempAdj: sys.equipment.tempSensors.getCalibration('solar2'), binding: 'solarTempAdj2' });
+          if (sys.equipment.maxBodies > 2)
+            sensors.push({ name: 'Solar Sensor 3', temp: state.temps.solarSensor3, tempAdj: sys.equipment.tempSensors.getCalibration('solar3'), binding: 'solarTempAdj3' });
+          if (sys.equipment.maxBodies > 3)
+            sensors.push({ name: 'Water Sensor 4', temp: state.temps.solarSensor4, tempAdj: sys.equipment.tempSensors.getCalibration('solar4'), binding: 'solarTempAdj4' });
+        }
+      }
+      else {
+        sensors.push({ name: 'Water Sensor', temp: state.temps.waterSensor1, tempAdj: sys.equipment.tempSensors.getCalibration('water1'), binding: 'waterTempAdj1' });
+        if (sys.board.heaters.isSolarInstalled())
+          sensors.push({ name: 'Solar Sensor', temp: state.temps.solar, tempAdj: sys.equipment.tempSensors.getCalibration('solar1'), binding: 'solarTempAdj1' });
+      }
     }
-    public async setCustomNameAsync(data: any): Promise<CustomName> {
-        return new Promise<CustomName>((resolve, reject) => {
-            let id = parseInt(data.id, 10);
-            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Invalid Custom Name Id', data.id, 'customName'));
-            if (id > sys.equipment.maxCustomNames) return reject(new InvalidEquipmentIdError('Custom Name Id out of range', data.id, 'customName'));
-            let cname = sys.customNames.getItemById(id, true);
-            cname.name = data.name;
-            sys.board.system.syncCustomNamesValueMap();
-            return resolve(cname);
-        });
-    }
-    public syncCustomNamesValueMap() {
-        sys.customNames.sortById();
-        sys.board.valueMaps.customNames = new byteValueMap(
-            sys.customNames.get().map((el, idx) => {
-                return [idx + 200, { name: el.name, desc: el.name }];
-            })
-        );
-    }
+    return sensors;
+  }
+  public async setCustomNamesAsync(names: any[]): Promise<CustomNameCollection> {
+    if (!Array.isArray(names)) return Promise.reject(new InvalidEquipmentDataError(`Data is not an array`, 'customNames', names))
+    let arr = [];
+    for (let i = 0; i < names.length; i++) { arr.push(sys.board.system.setCustomNameAsync(names[i])); }
+    return new Promise<CustomNameCollection>(async (resolve, reject) => {
+      try {
+        await Promise.all(arr).catch(err => reject(err));
+        // sys.board.system.syncCustomNamesValueMap(); Each custom name promise is already syncing the bytevalue array
+
+        resolve(sys.customNames);
+      }
+      catch (err) { reject(err); }
+    });
+  }
+  public async setCustomNameAsync(data: any): Promise<CustomName> {
+    return new Promise<CustomName>((resolve, reject) => {
+      let id = parseInt(data.id, 10);
+      if (isNaN(id)) return reject(new InvalidEquipmentIdError('Invalid Custom Name Id', data.id, 'customName'));
+      if (id > sys.equipment.maxCustomNames) return reject(new InvalidEquipmentIdError('Custom Name Id out of range', data.id, 'customName'));
+      let cname = sys.customNames.getItemById(id, true);
+      cname.name = data.name;
+      sys.board.system.syncCustomNamesValueMap();
+      return resolve(cname);
+    });
+  }
+  public syncCustomNamesValueMap() {
+    sys.customNames.sortById();
+    sys.board.valueMaps.customNames = new byteValueMap(
+      sys.customNames.get().map((el, idx) => {
+        return [idx + 200, { name: el.name, desc: el.name }];
+      })
+    );
+  }
 }
 export class BodyCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+  public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+    try {
+      // First delete the bodies that should be removed.
+      for (let i = 0; i < ctx.bodies.remove.length; i++) {
+        let body = ctx.bodies.remove[i];
         try {
-            // First delete the bodies that should be removed.
-            for (let i = 0; i < ctx.bodies.remove.length; i++) {
-                let body = ctx.bodies.remove[i];
-                try {
-                    sys.bodies.removeItemById(body.id);
-                    state.temps.bodies.removeItemById(body.id);
-                    res.addModuleSuccess('body', `Remove: ${body.id}-${body.name}`);
-                } catch (err) { res.addModuleError('body', `Remove: ${body.id}-${body.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.bodies.update.length; i++) {
-                let body = ctx.bodies.update[i];
-                try {
-                    await sys.board.bodies.setBodyAsync(body);
-                    res.addModuleSuccess('body', `Update: ${body.id}-${body.name}`);
-                } catch (err) { res.addModuleError('body', `Update: ${body.id}-${body.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.bodies.add.length; i++) {
-                let body = ctx.bodies.add[i];
-                try {
-                    // pull a little trick to first add the data then perform the update.
-                    sys.bodies.getItemById(body.id, true);
-                    await sys.board.bodies.setBodyAsync(body);
-                } catch (err) { res.addModuleError('body', `Add: ${body.id}-${body.name}: ${err.message}`); }
-            }
-            return true;
-        } catch (err) { logger.error(`Error restoring bodies: ${err.message}`); res.addModuleError('system', `Error restoring bodies: ${err.message}`); return false; }
-    }
-    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any}> {
+          sys.bodies.removeItemById(body.id);
+          state.temps.bodies.removeItemById(body.id);
+          res.addModuleSuccess('body', `Remove: ${body.id}-${body.name}`);
+        } catch (err) { res.addModuleError('body', `Remove: ${body.id}-${body.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.bodies.update.length; i++) {
+        let body = ctx.bodies.update[i];
         try {
-            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-            // Look at bodies.
-            let cfg = rest.poolConfig;
-            for (let i = 0; i < cfg.bodies.length; i++) {
-                let r = cfg.bodies[i];
-                let c = sys.bodies.find(elem => r.id === elem.id);
-                if (typeof c === 'undefined') ctx.add.push(r);
-                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-            }
-            for (let i = 0; i < sys.bodies.length; i++) {
-                let c = sys.bodies.getItemByIndex(i);
-                let r = cfg.bodies.find(elem => elem.id == c.id);
-                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-            }
-            return ctx;
-        } catch (err) { logger.error(`Error validating bodies for restore: ${err.message}`); }
-    }
-    public freezeProtectBodyOn: Date;
-    public freezeProtectStart: Date;
-    public async syncFreezeProtection() {
+          await sys.board.bodies.setBodyAsync(body);
+          res.addModuleSuccess('body', `Update: ${body.id}-${body.name}`);
+        } catch (err) { res.addModuleError('body', `Update: ${body.id}-${body.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.bodies.add.length; i++) {
+        let body = ctx.bodies.add[i];
         try {
-            // Go through all the features and circuits to make sure we have the freeze protect set appropriately.  The freeze
-            // flag will have already been set whether this is a Nixie setup or there is an OCP involved.
+          // pull a little trick to first add the data then perform the update.
+          sys.bodies.getItemById(body.id, true);
+          await sys.board.bodies.setBodyAsync(body);
+        } catch (err) { res.addModuleError('body', `Add: ${body.id}-${body.name}: ${err.message}`); }
+      }
+      return true;
+    } catch (err) { logger.error(`Error restoring bodies: ${err.message}`); res.addModuleError('system', `Error restoring bodies: ${err.message}`); return false; }
+  }
+  public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any}> {
+    try {
+      let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+      // Look at bodies.
+      let cfg = rest.poolConfig;
+      for (let i = 0; i < cfg.bodies.length; i++) {
+        let r = cfg.bodies[i];
+        let c = sys.bodies.find(elem => r.id === elem.id);
+        if (typeof c === 'undefined') ctx.add.push(r);
+        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+      }
+      for (let i = 0; i < sys.bodies.length; i++) {
+        let c = sys.bodies.getItemByIndex(i);
+        let r = cfg.bodies.find(elem => elem.id == c.id);
+        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+      }
+      return ctx;
+    } catch (err) { logger.error(`Error validating bodies for restore: ${err.message}`); }
+  }
+  public freezeProtectBodyOn: Date;
+  public freezeProtectStart: Date;
+  public async syncFreezeProtection() {
+    try {
+      // Go through all the features and circuits to make sure we have the freeze protect set appropriately.  The freeze
+      // flag will have already been set whether this is a Nixie setup or there is an OCP involved.
 
-            // First turn on/off any features that are in our control that should be under our control.  If this is an OCP we
-            // do not create features beyond those controlled by the OCP so we don't need to check these in that condition.  That is
-            // why it first checks the controller type.
-            let freeze = utils.makeBool(state.freeze);
-            if (sys.controllerType === ControllerType.Nixie) {
-                // If we are a Nixie controller we need to evaluate the current freeze settings against the air temperature.
-                if (typeof state.temps.air !== 'undefined') freeze = state.temps.air <= sys.general.options.freezeThreshold;
-                else freeze = false;
+      // First turn on/off any features that are in our control that should be under our control.  If this is an OCP we
+      // do not create features beyond those controlled by the OCP so we don't need to check these in that condition.  That is
+      // why it first checks the controller type.
+      let freeze = utils.makeBool(state.freeze);
+      if (sys.controllerType === ControllerType.Nixie) {
+        // If we are a Nixie controller we need to evaluate the current freeze settings against the air temperature.
+        if (typeof state.temps.air !== 'undefined') freeze = state.temps.air <= sys.general.options.freezeThreshold;
+        else freeze = false;
 
-                // We need to know when we first turned the freeze protection on. This is because we will be rotating between pool and spa
-                // on shared body systems when both pool and spa have freeze protection checked.
-                if (state.freeze !== freeze) {
-                    this.freezeProtectStart = freeze ? new Date() : undefined;
-                    state.freeze = freeze;
-                }
-                for (let i = 0; i < sys.features.length; i++) {
-                    let feature = sys.features.getItemByIndex(i);
-                    let fstate = state.features.getItemById(feature.id, true);
-                    if (!feature.freeze || !feature.isActive === true || feature.master !== 1) {
-                        fstate.freezeProtect = false;
-                        continue; // This is not affected by freeze conditions.
-                    }
-                    if (freeze && !fstate.isOn) {
-                        // This feature should be on because we are freezing.
-                        fstate.freezeProtect = true;
-                        await sys.board.features.setFeatureStateAsync(feature.id, true);
-                    }
-                    else if (!freeze && fstate.freezeProtect) {
-                        // This feature was turned on by freeze protection.  We need to turn it off because it has warmed up.
-                        fstate.freezeProtect = false;
-                        await sys.board.features.setFeatureStateAsync(feature.id, false);
-                    }
-                }
-            }
-            let bodyRotationChecked = false;
-            for (let i = 0; i < sys.circuits.length; i++) {
-                let circ = sys.circuits.getItemByIndex(i);
-                let cstate = state.circuits.getItemById(circ.id);
-                if (!circ.freeze || !circ.isActive === true || circ.master !== 1) {
-                    cstate.freezeProtect = false;
-                    continue; // This is not affected by freeze conditions.
-                }
-                if (sys.equipment.shared && freeze && (circ.id === 1 || circ.id === 6)) {
-                    // Exit out of here because we already checked the body rotation.  We only want to do this once since it can be expensive turning
-                    // on a particular body.
-                    if (bodyRotationChecked) continue;
-                    // These are our body circuits so we need to check to see if they need to be rotated between pool and spa.
-                    let pool = circ.id === 6 ? circ : sys.circuits.getItemById(6);
-                    let spa = circ.id === 1 ? circ : sys.circuits.getItemById(1);
-                    if (pool.freeze && spa.freeze) {
-                        // We only need to rotate between pool and spa when they are both checked.
-                        let pstate = circ.id === 6 ? cstate : state.circuits.getItemById(6);
-                        let sstate = circ.id === 1 ? cstate : state.circuits.getItemById(1);
-                        if (!pstate.isOn && !sstate.isOn) {
-                            // Neither the pool or spa are on so we will turn on the pool first.
-                            pstate.freezeProtect = true;
-                            this.freezeProtectBodyOn = new Date();
-                            await sys.board.circuits.setCircuitStateAsync(6, true);
-                        }
-                        else {
-                            // If neither of the bodies were turned on for freeze protection then we need to ignore this. 
-                            if (!pstate.freezeProtect && !sstate.freezeProtect) {
-                                this.freezeProtectBodyOn = undefined;
-                                continue;
-                            }
-
-                            // One of the two bodies is on so we need to check for the rotation.  If it is time to rotate do the rotation.
-                            if (typeof this.freezeProtectBodyOn === 'undefined') this.freezeProtectBodyOn = new Date();
-                            let dt = new Date().getTime();
-                            if (dt - 1000 * 60 * 15 > this.freezeProtectBodyOn.getTime()) {
-                                logger.info(`Swapping bodies for freeze protection pool:${pstate.isOn} spa:${sstate.isOn} interval: ${utils.formatDuration(dt - this.freezeProtectBodyOn.getTime() / 1000)}`);
-                                // 10 minutes has elapsed so we will be rotating to the other body.
-                                if (pstate.isOn) {
-                                    // The setCircuitState method will handle turning off the pool body.
-                                    sstate.freezeProtect = true;
-                                    pstate.freezeProtect = false;
-                                    await sys.board.circuits.setCircuitStateAsync(1, true);
-                                }
-                                else {
-                                    sstate.freezeProtect = false;
-                                    pstate.freezeProtect = true;
-                                    await sys.board.circuits.setCircuitStateAsync(6, true);
-                                }
-                                // Set a new date as this will be our rotation check now.
-                                this.freezeProtectBodyOn = new Date();
-                            }
-                        }
-                    }
-                    else {
-                        // Only this circuit is selected for freeze protection so we don't need any special treatment.
-                        cstate.freezeProtect = true;
-                        if (!cstate.isOn) await sys.board.circuits.setCircuitStateAsync(circ.id, true);
-                    }
-                    bodyRotationChecked = true;
-                }
-                else if (freeze && !cstate.isOn) {
-                    // This circuit should be on because we are freezing.
-                    cstate.freezeProtect = true;
-                    await sys.board.features.setFeatureStateAsync(circ.id, true);
-                }
-                else if (!freeze && cstate.freezeProtect) {
-                    // This feature was turned on by freeze protection.  We need to turn it off because it has warmed up.
-                    await sys.board.circuits.setCircuitStateAsync(circ.id, false);
-                    cstate.freezeProtect = false;
-                }
-            }
+        // We need to know when we first turned the freeze protection on. This is because we will be rotating between pool and spa
+        // on shared body systems when both pool and spa have freeze protection checked.
+        if (state.freeze !== freeze) {
+          this.freezeProtectStart = freeze ? new Date() : undefined;
+          state.freeze = freeze;
         }
-        catch (err) { logger.error(`syncFreezeProtection: Error synchronizing freeze protection states`); }
-    }
-
-    public async initFilters() {
-        try {
-            let filter: Filter;
-            let sFilter: FilterState;
-            if (sys.equipment.maxBodies > 0) {
-                filter = sys.filters.getItemById(1, true, { filterType: 3, name: sys.equipment.shared ? 'Filter' : 'Filter 1' });
-                sFilter = state.filters.getItemById(1, true, { id: 1, name: filter.name });
-                filter.isActive = true;
-                filter.master = sys.board.equipmentMaster;
-                filter.body = sys.equipment.shared ? sys.board.valueMaps.bodies.transformByName('poolspa') : 0;
-                //sFilter = state.filters.getItemById(1, true);
-                sFilter.body = filter.body;
-                sFilter.filterType = filter.filterType;
-                sFilter.name = filter.name;
-                if (sys.equipment.dual) {
-                    filter = sys.filters.getItemById(2, true, { filterType: 3, name: 'Filter 2' });
-                    filter.isActive = true;
-                    filter.master = sys.board.equipmentMaster;
-                    filter.body = 1;
-                    sFilter = state.filters.getItemById(2, true);
-                    sFilter.body = filter.body;
-                    sFilter.filterType = filter.filterType;
-                    sFilter.name = filter.name;
-
-                }
-                else {
-                    sys.filters.removeItemById(2);
-                    state.filters.removeItemById(2);
-                }
+        for (let i = 0; i < sys.features.length; i++) {
+          let feature = sys.features.getItemByIndex(i);
+          let fstate = state.features.getItemById(feature.id, true);
+          if (!feature.freeze || !feature.isActive === true || feature.master !== 1) {
+            fstate.freezeProtect = false;
+            continue; // This is not affected by freeze conditions.
+          }
+          if (freeze && !fstate.isOn) {
+            // This feature should be on because we are freezing.
+            fstate.freezeProtect = true;
+            await sys.board.features.setFeatureStateAsync(feature.id, true);
+          }
+          else if (!freeze && fstate.freezeProtect) {
+            // This feature was turned on by freeze protection.  We need to turn it off because it has warmed up.
+            fstate.freezeProtect = false;
+            await sys.board.features.setFeatureStateAsync(feature.id, false);
+          }
+        }
+      }
+      let bodyRotationChecked = false;
+      for (let i = 0; i < sys.circuits.length; i++) {
+        let circ = sys.circuits.getItemByIndex(i);
+        let cstate = state.circuits.getItemById(circ.id);
+        if (!circ.freeze || !circ.isActive === true || circ.master !== 1) {
+          cstate.freezeProtect = false;
+          continue; // This is not affected by freeze conditions.
+        }
+        if (sys.equipment.shared && freeze && (circ.id === 1 || circ.id === 6)) {
+          // Exit out of here because we already checked the body rotation.  We only want to do this once since it can be expensive turning
+          // on a particular body.
+          if (bodyRotationChecked) continue;
+          // These are our body circuits so we need to check to see if they need to be rotated between pool and spa.
+          let pool = circ.id === 6 ? circ : sys.circuits.getItemById(6);
+          let spa = circ.id === 1 ? circ : sys.circuits.getItemById(1);
+          if (pool.freeze && spa.freeze) {
+            // We only need to rotate between pool and spa when they are both checked.
+            let pstate = circ.id === 6 ? cstate : state.circuits.getItemById(6);
+            let sstate = circ.id === 1 ? cstate : state.circuits.getItemById(1);
+            if (!pstate.isOn && !sstate.isOn) {
+              // Neither the pool or spa are on so we will turn on the pool first.
+              pstate.freezeProtect = true;
+              this.freezeProtectBodyOn = new Date();
+              await sys.board.circuits.setCircuitStateAsync(6, true);
             }
             else {
-                sys.filters.removeItemById(1);
-                state.filters.removeItemById(1);
-                sys.filters.removeItemById(2);
-                state.filters.removeItemById(2);
-            }
-        } catch (err) { logger.error(`Error initializing filters`); }
-    }
-    public async setBodyAsync(obj: any): Promise<Body> {
-        return new Promise<Body>(function (resolve, reject) {
-            let id = parseInt(obj.id, 10); 1
-            if (isNaN(id)) reject(new InvalidEquipmentIdError('Body Id has not been defined', obj.id, 'Body'));
-            let body = sys.bodies.getItemById(id, false);
-            body.set(obj);
-            resolve(body);
-        });
-    }
-    public mapBodyAssociation(val: any): any {
-        if (typeof val === 'undefined') return;
-        let ass = sys.board.bodies.getBodyAssociations();
-        let nval = parseInt(val, 10);
-        if (!isNaN(nval)) {
-            return ass.find(elem => elem.val === nval);
-        }
-        else if (typeof val === 'string') return ass.find(elem => elem.name === val);
-        else if (typeof val.val !== 'undefined') {
-            nval = parseInt(val.val);
-            return ass.find(elem => elem.val === val) !== undefined;
-        }
-        else if (typeof val.name !== 'undefined') return ass.find(elem => elem.name === val.name);
-    }
-    // This method provides a list of enumerated values for configuring associations
-    // tied to the current configuration.  It is used to supply only the valid values
-    // for tying things like heaters, chem controllers, ss & ds pumps to a particular body within
-    // the plumbing.
-    public getBodyAssociations() {
-        let ass = [];
-        let assoc = sys.board.valueMaps.bodies.toArray();
-        for (let i = 0; i < assoc.length; i++) {
-            let body;
-            let code = assoc[i];
-            switch (code.name) {
-                case 'body1':
-                case 'pool':
-                    body = sys.bodies.getItemById(1);
-                    code.desc = body.name;
-                    ass.push(code);
-                    break;
-                case 'body2':
-                case 'spa':
-                    if (sys.equipment.maxBodies >= 2) {
-                        body = sys.bodies.getItemById(2);
-                        code.desc = body.name;
-                        ass.push(code);
-                    }
-                    break;
-                case 'body3':
-                    if (sys.equipment.maxBodies >= 3) {
-                        body = sys.bodies.getItemById(3);
-                        code.desc = body.name;
-                        ass.push(code);
-                    }
-                    break;
-                case 'body4':
-                    if (sys.equipment.maxBodies >= 4) {
-                        body = sys.bodies.getItemById(3);
-                        code.desc = body.name;
-                        ass.push(code);
-                    }
-                    break;
-                case 'poolspa':
-                    if (sys.equipment.shared && sys.equipment.maxBodies >= 2) {
-                        body = sys.bodies.getItemById(1);
-                        let body2 = sys.bodies.getItemById(2);
-                        code.desc = `${body.name}/${body2.name}`;
-                        ass.push(code);
-                    }
-                    break;
-            }
-        }
-        return ass;
-    }
-    public async setHeatModeAsync(body: Body, mode: number): Promise<BodyTempState> {
-        let bdy = sys.bodies.getItemById(body.id);
-        let bstate = state.temps.bodies.getItemById(body.id);
-        bdy.heatMode = bstate.heatMode = mode;
-        sys.board.heaters.syncHeaterStates();
-        state.emitEquipmentChanges();
-        return Promise.resolve(bstate);
-    }
-    public async setHeatSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
-        let bdy = sys.bodies.getItemById(body.id);
-        let bstate = state.temps.bodies.getItemById(body.id);
-        bdy.setPoint = bstate.setPoint = setPoint;
-        state.emitEquipmentChanges();
-        sys.board.heaters.syncHeaterStates();
-        return Promise.resolve(bstate);
-    }
-    public async setCoolSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
-        let bdy = sys.bodies.getItemById(body.id);
-        let bstate = state.temps.bodies.getItemById(body.id);
-        bdy.coolSetpoint = bstate.coolSetpoint = setPoint;
-        state.emitEquipmentChanges();
-        sys.board.heaters.syncHeaterStates();
-        return Promise.resolve(bstate);
-    }
-    public getHeatSources(bodyId: number) {
-        let heatSources = [];
-        let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
-        heatSources.push(this.board.valueMaps.heatSources.transformByName('nochange'));
-        if (heatTypes.total > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('off'));
-        if (heatTypes.gas > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('heater'));
-        if (heatTypes.solar > 0) {
-            let hm = this.board.valueMaps.heatSources.transformByName('solar');
-            heatSources.push(hm);
-            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('solarpref'));
-        }
-        if (heatTypes.heatpump > 0) {
-            let hm = this.board.valueMaps.heatSources.transformByName('heatpump');
-            heatSources.push(hm);
-            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('heatpumppref'));
-        }
-        if (heatTypes.ultratemp > 0) {
-            let hm = this.board.valueMaps.heatSources.transformByName('ultratemp');
-            heatSources.push(hm);
-            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('ultratemppref'));
-        }
-        return heatSources;
-    }
-    public getHeatModes(bodyId: number) {
-        let heatModes = [];
-        // RKS: 09-26-20 This will need to be overloaded in IntelliCenterBoard when the other heater types are identified. (e.g. ultratemp, hybrid, maxetherm, and mastertemp)
-        heatModes.push(this.board.valueMaps.heatModes.transformByName('off')); // In IC fw 1.047 off is no longer 0.
-        let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
-        if (heatTypes.gas > 0)
-            heatModes.push(this.board.valueMaps.heatModes.transformByName('heater'));
-        if (heatTypes.solar > 0) {
-            let hm = this.board.valueMaps.heatModes.transformByName('solar');
-            heatModes.push(hm);
-            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('solarpref'));
-        }
-        if (heatTypes.heatpump > 0) {
-            let hm = this.board.valueMaps.heatModes.transformByName('heatpump');
-            heatModes.push(hm);
-            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('heatpumppref'));
-        }
-        if (heatTypes.ultratemp > 0) {
-            let hm = this.board.valueMaps.heatModes.transformByName('ultratemp');
-            heatModes.push(hm);
-            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('ultratemppref'));
-        }
-        return heatModes;
-    }
-    public getPoolStates(): BodyTempState[] {
-        let arrPools = [];
-        for (let i = 0; i < state.temps.bodies.length; i++) {
-            let bstate = state.temps.bodies.getItemByIndex(i);
-            if (bstate.circuit === 6)
-                arrPools.push(bstate);
-        }
-        return arrPools;
-    }
-    public getSpaStates(): BodyTempState[] {
-        let arrSpas = [];
-        for (let i = 0; i < state.temps.bodies.length; i++) {
-            let bstate = state.temps.bodies.getItemByIndex(i);
-            if (bstate.circuit === 1) {
-                arrSpas.push(bstate);
-            }
-        }
-        return arrSpas;
-    }
-    public getBodyState(bodyCode: number): BodyTempState {
-        let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
-        switch (assoc.name) {
-            case 'body1':
-            case 'pool':
-                return state.temps.bodies.getItemById(1);
-            case 'body2':
-            case 'spa':
-                return state.temps.bodies.getItemById(2);
-            case 'body3':
-                return state.temps.bodies.getItemById(3);
-            case 'body4':
-                return state.temps.bodies.getItemById(4);
-            case 'poolspa':
-                if (sys.equipment.shared && sys.equipment.maxBodies >= 2) {
-                    let body = state.temps.bodies.getItemById(1);
-                    if (body.isOn) return body;
-                    body = state.temps.bodies.getItemById(2);
-                    if (body.isOn) return body;
-                    return state.temps.bodies.getItemById(1);
+              // If neither of the bodies were turned on for freeze protection then we need to ignore this. 
+              if (!pstate.freezeProtect && !sstate.freezeProtect) {
+                this.freezeProtectBodyOn = undefined;
+                continue;
+              }
+
+              // One of the two bodies is on so we need to check for the rotation.  If it is time to rotate do the rotation.
+              if (typeof this.freezeProtectBodyOn === 'undefined') this.freezeProtectBodyOn = new Date();
+              let dt = new Date().getTime();
+              if (dt - 1000 * 60 * 15 > this.freezeProtectBodyOn.getTime()) {
+                logger.info(`Swapping bodies for freeze protection pool:${pstate.isOn} spa:${sstate.isOn} interval: ${utils.formatDuration(dt - this.freezeProtectBodyOn.getTime() / 1000)}`);
+                // 10 minutes has elapsed so we will be rotating to the other body.
+                if (pstate.isOn) {
+                  // The setCircuitState method will handle turning off the pool body.
+                  sstate.freezeProtect = true;
+                  pstate.freezeProtect = false;
+                  await sys.board.circuits.setCircuitStateAsync(1, true);
                 }
-                else
-                    return state.temps.bodies.getItemById(1);
+                else {
+                  sstate.freezeProtect = false;
+                  pstate.freezeProtect = true;
+                  await sys.board.circuits.setCircuitStateAsync(6, true);
+                }
+                // Set a new date as this will be our rotation check now.
+                this.freezeProtectBodyOn = new Date();
+              }
+            }
+          }
+          else {
+            // Only this circuit is selected for freeze protection so we don't need any special treatment.
+            cstate.freezeProtect = true;
+            if (!cstate.isOn) await sys.board.circuits.setCircuitStateAsync(circ.id, true);
+          }
+          bodyRotationChecked = true;
         }
-    }
-    public isBodyOn(bodyCode: number): boolean {
-        let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
-        switch (assoc.name) {
-            case 'body1':
-            case 'pool':
-                return state.temps.bodies.getItemById(1).isOn;
-            case 'body2':
-            case 'spa':
-                return state.temps.bodies.getItemById(2).isOn;
-            case 'body3':
-                return state.temps.bodies.getItemById(3).isOn;
-            case 'body4':
-                return state.temps.bodies.getItemById(4).isOn;
-            case 'poolspa':
-                if (sys.equipment.shared && sys.equipment.maxBodies >= 2)
-                    return state.temps.bodies.getItemById(1).isOn || state.temps.bodies.getItemById(2).isOn;
-                else
-                    return state.temps.bodies.getItemById(1).isOn;
+        else if (freeze && !cstate.isOn) {
+          // This circuit should be on because we are freezing.
+          cstate.freezeProtect = true;
+          await sys.board.features.setFeatureStateAsync(circ.id, true);
         }
-        return false;
+        else if (!freeze && cstate.freezeProtect) {
+          // This feature was turned on by freeze protection.  We need to turn it off because it has warmed up.
+          await sys.board.circuits.setCircuitStateAsync(circ.id, false);
+          cstate.freezeProtect = false;
+        }
+      }
     }
+    catch (err) { logger.error(`syncFreezeProtection: Error synchronizing freeze protection states`); }
+  }
+
+  public async initFilters() {
+    try {
+      let filter: Filter;
+      let sFilter: FilterState;
+      if (sys.equipment.maxBodies > 0) {
+        filter = sys.filters.getItemById(1, true, { filterType: 3, name: sys.equipment.shared ? 'Filter' : 'Filter 1' });
+        sFilter = state.filters.getItemById(1, true, { id: 1, name: filter.name });
+        filter.isActive = true;
+        filter.master = sys.board.equipmentMaster;
+        filter.body = sys.equipment.shared ? sys.board.valueMaps.bodies.transformByName('poolspa') : 0;
+        //sFilter = state.filters.getItemById(1, true);
+        sFilter.body = filter.body;
+        sFilter.filterType = filter.filterType;
+        sFilter.name = filter.name;
+        if (sys.equipment.dual) {
+          filter = sys.filters.getItemById(2, true, { filterType: 3, name: 'Filter 2' });
+          filter.isActive = true;
+          filter.master = sys.board.equipmentMaster;
+          filter.body = 1;
+          sFilter = state.filters.getItemById(2, true);
+          sFilter.body = filter.body;
+          sFilter.filterType = filter.filterType;
+          sFilter.name = filter.name;
+
+        }
+        else {
+          sys.filters.removeItemById(2);
+          state.filters.removeItemById(2);
+        }
+      }
+      else {
+        sys.filters.removeItemById(1);
+        state.filters.removeItemById(1);
+        sys.filters.removeItemById(2);
+        state.filters.removeItemById(2);
+      }
+    } catch (err) { logger.error(`Error initializing filters`); }
+  }
+  public async setBodyAsync(obj: any): Promise<Body> {
+    return new Promise<Body>(function (resolve, reject) {
+      let id = parseInt(obj.id, 10); 1
+      if (isNaN(id)) reject(new InvalidEquipmentIdError('Body Id has not been defined', obj.id, 'Body'));
+      let body = sys.bodies.getItemById(id, false);
+      body.set(obj);
+      resolve(body);
+    });
+  }
+  public mapBodyAssociation(val: any): any {
+    if (typeof val === 'undefined') return;
+    let ass = sys.board.bodies.getBodyAssociations();
+    let nval = parseInt(val, 10);
+    if (!isNaN(nval)) {
+      return ass.find(elem => elem.val === nval);
+    }
+    else if (typeof val === 'string') return ass.find(elem => elem.name === val);
+    else if (typeof val.val !== 'undefined') {
+      nval = parseInt(val.val);
+      return ass.find(elem => elem.val === val) !== undefined;
+    }
+    else if (typeof val.name !== 'undefined') return ass.find(elem => elem.name === val.name);
+  }
+  // This method provides a list of enumerated values for configuring associations
+  // tied to the current configuration.  It is used to supply only the valid values
+  // for tying things like heaters, chem controllers, ss & ds pumps to a particular body within
+  // the plumbing.
+  public getBodyAssociations() {
+    let ass = [];
+    let assoc = sys.board.valueMaps.bodies.toArray();
+    for (let i = 0; i < assoc.length; i++) {
+      let body;
+      let code = assoc[i];
+      switch (code.name) {
+        case 'body1':
+        case 'pool':
+          body = sys.bodies.getItemById(1);
+          code.desc = body.name;
+          ass.push(code);
+          break;
+        case 'body2':
+        case 'spa':
+          if (sys.equipment.maxBodies >= 2) {
+            body = sys.bodies.getItemById(2);
+            code.desc = body.name;
+            ass.push(code);
+          }
+          break;
+        case 'body3':
+          if (sys.equipment.maxBodies >= 3) {
+            body = sys.bodies.getItemById(3);
+            code.desc = body.name;
+            ass.push(code);
+          }
+          break;
+        case 'body4':
+          if (sys.equipment.maxBodies >= 4) {
+            body = sys.bodies.getItemById(3);
+            code.desc = body.name;
+            ass.push(code);
+          }
+          break;
+        case 'poolspa':
+          if (sys.equipment.shared && sys.equipment.maxBodies >= 2) {
+            body = sys.bodies.getItemById(1);
+            let body2 = sys.bodies.getItemById(2);
+            code.desc = `${body.name}/${body2.name}`;
+            ass.push(code);
+          }
+          break;
+      }
+    }
+    return ass;
+  }
+  public async setHeatModeAsync(body: Body, mode: number): Promise<BodyTempState> {
+    let bdy = sys.bodies.getItemById(body.id);
+    let bstate = state.temps.bodies.getItemById(body.id);
+    bdy.heatMode = bstate.heatMode = mode;
+    sys.board.heaters.syncHeaterStates();
+    state.emitEquipmentChanges();
+    return Promise.resolve(bstate);
+  }
+  public async setHeatSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
+    let bdy = sys.bodies.getItemById(body.id);
+    let bstate = state.temps.bodies.getItemById(body.id);
+    bdy.setPoint = bstate.setPoint = setPoint;
+    state.emitEquipmentChanges();
+    sys.board.heaters.syncHeaterStates();
+    return Promise.resolve(bstate);
+  }
+  public async setCoolSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
+    let bdy = sys.bodies.getItemById(body.id);
+    let bstate = state.temps.bodies.getItemById(body.id);
+    bdy.coolSetpoint = bstate.coolSetpoint = setPoint;
+    state.emitEquipmentChanges();
+    sys.board.heaters.syncHeaterStates();
+    return Promise.resolve(bstate);
+  }
+  public getHeatSources(bodyId: number) {
+    let heatSources = [];
+    let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
+    heatSources.push(this.board.valueMaps.heatSources.transformByName('nochange'));
+    if (heatTypes.total > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('off'));
+    if (heatTypes.gas > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('heater'));
+    if (heatTypes.solar > 0) {
+      let hm = this.board.valueMaps.heatSources.transformByName('solar');
+      heatSources.push(hm);
+      if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('solarpref'));
+    }
+    if (heatTypes.heatpump > 0) {
+      let hm = this.board.valueMaps.heatSources.transformByName('heatpump');
+      heatSources.push(hm);
+      if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('heatpumppref'));
+    }
+    if (heatTypes.ultratemp > 0) {
+      let hm = this.board.valueMaps.heatSources.transformByName('ultratemp');
+      heatSources.push(hm);
+      if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('ultratemppref'));
+    }
+    return heatSources;
+  }
+  public getHeatModes(bodyId: number) {
+    let heatModes = [];
+    // RKS: 09-26-20 This will need to be overloaded in IntelliCenterBoard when the other heater types are identified. (e.g. ultratemp, hybrid, maxetherm, and mastertemp)
+    heatModes.push(this.board.valueMaps.heatModes.transformByName('off')); // In IC fw 1.047 off is no longer 0.
+    let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
+    if (heatTypes.gas > 0)
+      heatModes.push(this.board.valueMaps.heatModes.transformByName('heater'));
+    if (heatTypes.solar > 0) {
+      let hm = this.board.valueMaps.heatModes.transformByName('solar');
+      heatModes.push(hm);
+      if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('solarpref'));
+    }
+    if (heatTypes.heatpump > 0) {
+      let hm = this.board.valueMaps.heatModes.transformByName('heatpump');
+      heatModes.push(hm);
+      if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('heatpumppref'));
+    }
+    if (heatTypes.ultratemp > 0) {
+      let hm = this.board.valueMaps.heatModes.transformByName('ultratemp');
+      heatModes.push(hm);
+      if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('ultratemppref'));
+    }
+    return heatModes;
+  }
+  public getPoolStates(): BodyTempState[] {
+    let arrPools = [];
+    for (let i = 0; i < state.temps.bodies.length; i++) {
+      let bstate = state.temps.bodies.getItemByIndex(i);
+      if (bstate.circuit === 6)
+        arrPools.push(bstate);
+    }
+    return arrPools;
+  }
+  public getSpaStates(): BodyTempState[] {
+    let arrSpas = [];
+    for (let i = 0; i < state.temps.bodies.length; i++) {
+      let bstate = state.temps.bodies.getItemByIndex(i);
+      if (bstate.circuit === 1) {
+        arrSpas.push(bstate);
+      }
+    }
+    return arrSpas;
+  }
+  public getBodyState(bodyCode: number): BodyTempState {
+    let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
+    switch (assoc.name) {
+      case 'body1':
+      case 'pool':
+        return state.temps.bodies.getItemById(1);
+      case 'body2':
+      case 'spa':
+        return state.temps.bodies.getItemById(2);
+      case 'body3':
+        return state.temps.bodies.getItemById(3);
+      case 'body4':
+        return state.temps.bodies.getItemById(4);
+      case 'poolspa':
+        if (sys.equipment.shared && sys.equipment.maxBodies >= 2) {
+          let body = state.temps.bodies.getItemById(1);
+          if (body.isOn) return body;
+          body = state.temps.bodies.getItemById(2);
+          if (body.isOn) return body;
+          return state.temps.bodies.getItemById(1);
+        }
+        else
+          return state.temps.bodies.getItemById(1);
+    }
+  }
+  public isBodyOn(bodyCode: number): boolean {
+    let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
+    switch (assoc.name) {
+      case 'body1':
+      case 'pool':
+        return state.temps.bodies.getItemById(1).isOn;
+      case 'body2':
+      case 'spa':
+        return state.temps.bodies.getItemById(2).isOn;
+      case 'body3':
+        return state.temps.bodies.getItemById(3).isOn;
+      case 'body4':
+        return state.temps.bodies.getItemById(4).isOn;
+      case 'poolspa':
+        if (sys.equipment.shared && sys.equipment.maxBodies >= 2)
+          return state.temps.bodies.getItemById(1).isOn || state.temps.bodies.getItemById(2).isOn;
+        else
+          return state.temps.bodies.getItemById(1).isOn;
+    }
+    return false;
+  }
 }
 export class PumpCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+  public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+    try {
+      // First delete the pumps that should be removed.
+      for (let i = 0; i < ctx.pumps.remove.length; i++) {
+        let p = ctx.pumps.remove[i];
         try {
-            // First delete the pumps that should be removed.
-            for (let i = 0; i < ctx.pumps.remove.length; i++) {
-                let p = ctx.pumps.remove[i];
-                try {
-                    await sys.board.pumps.deletePumpAsync(p);
-                    res.addModuleSuccess('pump', `Remove: ${p.id}-${p.name}`);
-                } catch (err) { res.addModuleError('pump', `Remove: ${p.id}-${p.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.pumps.update.length; i++) {
-                let p = ctx.pumps.update[i];
-                try {
-                    await sys.board.pumps.setPumpAsync(p);
-                    res.addModuleSuccess('pump', `Update: ${p.id}-${p.name}`);
-                } catch (err) { res.addModuleError('pump', `Update: ${p.id}-${p.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.pumps.add.length; i++) {
-                let p = ctx.pumps.add[i];
-                try {
-                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-                    // it won't error out.
-                    sys.pumps.getItemById(p, true);
-                    await sys.board.pumps.setPumpAsync(p);
-                    res.addModuleSuccess('pump', `Add: ${p.id}-${p.name}`);
-                } catch (err) { res.addModuleError('pump', `Add: ${p.id}-${p.name}: ${err.message}`); }
-            }
-            return true;
-        } catch (err) { logger.error(`Error restoring pumps: ${err.message}`); res.addModuleError('system', `Error restoring pumps: ${err.message}`); return false; }
-    }
-    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+          await sys.board.pumps.deletePumpAsync(p);
+          res.addModuleSuccess('pump', `Remove: ${p.id}-${p.name}`);
+        } catch (err) { res.addModuleError('pump', `Remove: ${p.id}-${p.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.pumps.update.length; i++) {
+        let p = ctx.pumps.update[i];
         try {
-            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-            // Look at pumps.
-            let cfg = rest.poolConfig;
-            for (let i = 0; i < cfg.pumps.length; i++) {
-                let r = cfg.pumps[i];
-                let c = sys.pumps.find(elem => r.id === elem.id);
-                if (typeof c === 'undefined') ctx.add.push(r);
-                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-            }
-            for (let i = 0; i < sys.pumps.length; i++) {
-                let c = sys.pumps.getItemByIndex(i);
-                let r = cfg.pumps.find(elem => elem.id == c.id);
-                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-            }
-            return ctx;
-        } catch (err) { logger.error(`Error validating pumps for restore: ${err.message}`); }
-    }
+          await sys.board.pumps.setPumpAsync(p);
+          res.addModuleSuccess('pump', `Update: ${p.id}-${p.name}`);
+        } catch (err) { res.addModuleError('pump', `Update: ${p.id}-${p.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.pumps.add.length; i++) {
+        let p = ctx.pumps.add[i];
+        try {
+          // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+          // it won't error out.
+          sys.pumps.getItemById(p, true);
+          await sys.board.pumps.setPumpAsync(p);
+          res.addModuleSuccess('pump', `Add: ${p.id}-${p.name}`);
+        } catch (err) { res.addModuleError('pump', `Add: ${p.id}-${p.name}: ${err.message}`); }
+      }
+      return true;
+    } catch (err) { logger.error(`Error restoring pumps: ${err.message}`); res.addModuleError('system', `Error restoring pumps: ${err.message}`); return false; }
+  }
+  public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+    try {
+      let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+      // Look at pumps.
+      let cfg = rest.poolConfig;
+      for (let i = 0; i < cfg.pumps.length; i++) {
+        let r = cfg.pumps[i];
+        let c = sys.pumps.find(elem => r.id === elem.id);
+        if (typeof c === 'undefined') ctx.add.push(r);
+        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+      }
+      for (let i = 0; i < sys.pumps.length; i++) {
+        let c = sys.pumps.getItemByIndex(i);
+        let r = cfg.pumps.find(elem => elem.id == c.id);
+        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+      }
+      return ctx;
+    } catch (err) { logger.error(`Error validating pumps for restore: ${err.message}`); }
+  }
 
   public getPumpTypes() { return this.board.valueMaps.pumpTypes.toArray(); }
   public getCircuitUnits(pump?: Pump) {
@@ -1857,289 +1858,328 @@ export class PumpCommands extends BoardCommands {
   }
 }
 export class CircuitCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+  public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+    try {
+      // First delete the circuit/lightGroups that should be removed.
+      for (let i = 0; i < ctx.circuitGroups.remove.length; i++) {
+        let c = ctx.circuitGroups.remove[i];
         try {
-            // First delete the circuit/lightGroups that should be removed.
-            for (let i = 0; i < ctx.circuitGroups.remove.length; i++) {
-                let c = ctx.circuitGroups.remove[i];
-                try {
-                    await sys.board.circuits.deleteCircuitGroupAsync(c);
-                    res.addModuleSuccess('circuitGroup', `Remove: ${c.id}-${c.name}`);
-                } catch (err) { res.addModuleError('circuitGroup', `Remove: ${c.id}-${c.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.lightGroups.remove.length; i++) {
-                let c = ctx.lightGroups.remove[i];
-                try {
-                    await sys.board.circuits.deleteLightGroupAsync(c);
-                    res.addModuleSuccess('lightGroup', `Remove: ${c.id}-${c.name}`);
-                } catch (err) { res.addModuleError('lightGroup', `Remove: ${c.id}-${c.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.circuits.remove.length; i++) {
-                let c = ctx.circuits.remove[i];
-                try {
-                    await sys.board.circuits.deleteCircuitAsync(c);
-                    res.addModuleSuccess('circuit', `Remove: ${c.id}-${c.name}`);
-                } catch (err) { res.addModuleError('circuit', `Remove: ${c.id}-${c.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.circuits.add.length; i++) {
-                let c = ctx.circuits.add[i];
-                try {
-                    await sys.board.circuits.setCircuitAsync(c);
-                    res.addModuleSuccess('circuit', `Add: ${c.id}-${c.name}`);
-                } catch (err) { res.addModuleError('circuit', `Add: ${c.id}-${c.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.circuitGroups.add.length; i++) {
-                let c = ctx.circuitGroups.add[i];
-                try {
-                    await sys.board.circuits.setCircuitGroupAsync(c);
-                    res.addModuleSuccess('circuitGroup', `Add: ${c.id}-${c.name}`);
-                } catch (err) { res.addModuleError('circuitGroup', `Add: ${c.id}-${c.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.lightGroups.add.length; i++) {
-                let c = ctx.lightGroups.add[i];
-                try {
-                    await sys.board.circuits.setLightGroupAsync(c);
-                    res.addModuleSuccess('lightGroup', `Add: ${c.id}-${c.name}`);
-                } catch (err) { res.addModuleError('lightGroup', `Add: ${c.id}-${c.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.circuits.update.length; i++) {
-                let c = ctx.circuits.update[i];
-                try {
-                    await sys.board.circuits.setCircuitAsync(c);
-                    res.addModuleSuccess('circuit', `Update: ${c.id}-${c.name}`);
-                } catch (err) { res.addModuleError('circuit', `Update: ${c.id}-${c.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.circuitGroups.update.length; i++) {
-                let c = ctx.circuitGroups.update[i];
-                try {
-                    await sys.board.circuits.setCircuitGroupAsync(c);
-                    res.addModuleSuccess('circuitGroup', `Update: ${c.id}-${c.name}`);
-                } catch (err) { res.addModuleError('circuitGroup', `Update: ${c.id}-${c.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.lightGroups.add.length; i++) {
-                let c = ctx.lightGroups.update[i];
-                try {
-                    await sys.board.circuits.setLightGroupAsync(c);
-                    res.addModuleSuccess('lightGroup', `Update: ${c.id}-${c.name}`);
-                } catch (err) { res.addModuleError('lightGroup', `Update: ${c.id}-${c.name}: ${err.message}`); }
-            }
-            return true;
-        } catch (err) { logger.error(`Error restoring circuits: ${err.message}`); res.addModuleError('system', `Error restoring circuits/features: ${err.message}`); return false; }
-    }
-    public async validateRestore(rest: { poolConfig: any, poolState: any }, ctxRoot): Promise<boolean> {
+          await sys.board.circuits.deleteCircuitGroupAsync(c);
+          res.addModuleSuccess('circuitGroup', `Remove: ${c.id}-${c.name}`);
+        } catch (err) { res.addModuleError('circuitGroup', `Remove: ${c.id}-${c.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.lightGroups.remove.length; i++) {
+        let c = ctx.lightGroups.remove[i];
         try {
-            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-            // Look at circuits.
-            let cfg = rest.poolConfig;
-            for (let i = 0; i < cfg.circuits.length; i++) {
-                let r = cfg.circuits[i];
-                let c = sys.circuits.find(elem => r.id === elem.id);
-                if (typeof c === 'undefined') ctx.add.push(r);
-                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-            }
-            for (let i = 0; i < sys.circuits.length; i++) {
-                let c = sys.circuits.getItemByIndex(i);
-                let r = cfg.circuits.find(elem => elem.id == c.id);
-                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-            }
-            ctxRoot.circuits = ctx;
-            ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-            for (let i = 0; i < cfg.circuitGroups.length; i++) {
-                let r = cfg.circuitGroups[i];
-                let c = sys.circuitGroups.find(elem => r.id === elem.id);
-                if (typeof c === 'undefined') ctx.add.push(r);
-                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-            }
-            for (let i = 0; i < sys.circuitGroups.length; i++) {
-                let c = sys.circuitGroups.getItemByIndex(i);
-                let r = cfg.circuitGroups.find(elem => elem.id == c.id);
-                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-            }
-            ctxRoot.circuitGroups = ctx;
-            ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-            for (let i = 0; i < cfg.lightGroups.length; i++) {
-                let r = cfg.lightGroups[i];
-                let c = sys.lightGroups.find(elem => r.id === elem.id);
-                if (typeof c === 'undefined') ctx.add.push(r);
-                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-            }
-            for (let i = 0; i < sys.lightGroups.length; i++) {
-                let c = sys.lightGroups.getItemByIndex(i);
-                let r = cfg.lightGroups.find(elem => elem.id == c.id);
-                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-            }
-            ctxRoot.lightGroups = ctx;
-            return true;
-        } catch (err) { logger.error(`Error validating circuits for restore: ${err.message}`); }
-    }
-    public async syncCircuitRelayStates() {
+          await sys.board.circuits.deleteLightGroupAsync(c);
+          res.addModuleSuccess('lightGroup', `Remove: ${c.id}-${c.name}`);
+        } catch (err) { res.addModuleError('lightGroup', `Remove: ${c.id}-${c.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.circuits.remove.length; i++) {
+        let c = ctx.circuits.remove[i];
         try {
-            for (let i = 0; i < sys.circuits.length; i++) {
-                // Run through all the controlled circuits to see whether they should be triggered or not.
-                let circ = sys.circuits.getItemByIndex(i);
-                if (circ.master === 1 && circ.isActive) {
-                    let cstate = state.circuits.getItemById(circ.id);
-                    if (cstate.isOn) await ncp.circuits.setCircuitStateAsync(cstate, cstate.isOn);
-                }
-            }
-        } catch (err) { logger.error(`syncCircuitRelayStates: Error synchronizing circuit relays ${err.message}`); }
-    }
-    public syncVirtualCircuitStates() {
+          await sys.board.circuits.deleteCircuitAsync(c);
+          res.addModuleSuccess('circuit', `Remove: ${c.id}-${c.name}`);
+        } catch (err) { res.addModuleError('circuit', `Remove: ${c.id}-${c.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.circuits.add.length; i++) {
+        let c = ctx.circuits.add[i];
         try {
-            let arrCircuits = sys.board.valueMaps.virtualCircuits.toArray();
-            let poolStates = sys.board.bodies.getPoolStates();
-            let spaStates = sys.board.bodies.getSpaStates();
-            // The following should work for all board types if the virtualCiruit valuemaps use common names.  The circuit ids can be
-            // different as well as the descriptions but these should have common names since they are all derived from existing states.
+          await sys.board.circuits.setCircuitAsync(c);
+          res.addModuleSuccess('circuit', `Add: ${c.id}-${c.name}`);
+        } catch (err) { res.addModuleError('circuit', `Add: ${c.id}-${c.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.circuitGroups.add.length; i++) {
+        let c = ctx.circuitGroups.add[i];
+        try {
+          await sys.board.circuits.setCircuitGroupAsync(c);
+          res.addModuleSuccess('circuitGroup', `Add: ${c.id}-${c.name}`);
+        } catch (err) { res.addModuleError('circuitGroup', `Add: ${c.id}-${c.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.lightGroups.add.length; i++) {
+        let c = ctx.lightGroups.add[i];
+        try {
+          await sys.board.circuits.setLightGroupAsync(c);
+          res.addModuleSuccess('lightGroup', `Add: ${c.id}-${c.name}`);
+        } catch (err) { res.addModuleError('lightGroup', `Add: ${c.id}-${c.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.circuits.update.length; i++) {
+        let c = ctx.circuits.update[i];
+        try {
+          await sys.board.circuits.setCircuitAsync(c);
+          res.addModuleSuccess('circuit', `Update: ${c.id}-${c.name}`);
+        } catch (err) { res.addModuleError('circuit', `Update: ${c.id}-${c.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.circuitGroups.update.length; i++) {
+        let c = ctx.circuitGroups.update[i];
+        try {
+          await sys.board.circuits.setCircuitGroupAsync(c);
+          res.addModuleSuccess('circuitGroup', `Update: ${c.id}-${c.name}`);
+        } catch (err) { res.addModuleError('circuitGroup', `Update: ${c.id}-${c.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.lightGroups.add.length; i++) {
+        let c = ctx.lightGroups.update[i];
+        try {
+          await sys.board.circuits.setLightGroupAsync(c);
+          res.addModuleSuccess('lightGroup', `Update: ${c.id}-${c.name}`);
+        } catch (err) { res.addModuleError('lightGroup', `Update: ${c.id}-${c.name}: ${err.message}`); }
+      }
+      return true;
+    } catch (err) { logger.error(`Error restoring circuits: ${err.message}`); res.addModuleError('system', `Error restoring circuits/features: ${err.message}`); return false; }
+  }
+  public async validateRestore(rest: { poolConfig: any, poolState: any }, ctxRoot): Promise<boolean> {
+    try {
+      let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+      // Look at circuits.
+      let cfg = rest.poolConfig;
+      for (let i = 0; i < cfg.circuits.length; i++) {
+        let r = cfg.circuits[i];
+        let c = sys.circuits.find(elem => r.id === elem.id);
+        if (typeof c === 'undefined') ctx.add.push(r);
+        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+      }
+      for (let i = 0; i < sys.circuits.length; i++) {
+        let c = sys.circuits.getItemByIndex(i);
+        let r = cfg.circuits.find(elem => elem.id == c.id);
+        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+      }
+      ctxRoot.circuits = ctx;
+      ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+      for (let i = 0; i < cfg.circuitGroups.length; i++) {
+        let r = cfg.circuitGroups[i];
+        let c = sys.circuitGroups.find(elem => r.id === elem.id);
+        if (typeof c === 'undefined') ctx.add.push(r);
+        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+      }
+      for (let i = 0; i < sys.circuitGroups.length; i++) {
+        let c = sys.circuitGroups.getItemByIndex(i);
+        let r = cfg.circuitGroups.find(elem => elem.id == c.id);
+        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+      }
+      ctxRoot.circuitGroups = ctx;
+      ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+      for (let i = 0; i < cfg.lightGroups.length; i++) {
+        let r = cfg.lightGroups[i];
+        let c = sys.lightGroups.find(elem => r.id === elem.id);
+        if (typeof c === 'undefined') ctx.add.push(r);
+        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+      }
+      for (let i = 0; i < sys.lightGroups.length; i++) {
+        let c = sys.lightGroups.getItemByIndex(i);
+        let r = cfg.lightGroups.find(elem => elem.id == c.id);
+        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+      }
+      ctxRoot.lightGroups = ctx;
+      return true;
+    } catch (err) { logger.error(`Error validating circuits for restore: ${err.message}`); }
+  }
+  public async checkEggTimerExpirationAsync() {
+    // turn off any circuits that have reached their egg timer;
+    // Nixie circuits we have 100% control over; 
+    // but features/cg/lg may override OCP control
+    try {
+      for (let i = 0; i < sys.circuits.length; i++) {
+        let c = sys.circuits.getItemByIndex(i);
+        let cstate = state.circuits.getItemByIndex(i);
+        if (!cstate.isActive || !cstate.isOn) continue;
+        if (c.master === 1) {
+          await ncp.circuits.checkCircuitEggTimerExpirationAsync(cstate);
+        }
+      }
+      for (let i = 0; i < sys.features.length; i++) {
+        let fstate = state.features.getItemByIndex(i);
+        if (!fstate.isActive || !fstate.isOn) continue;
+        if (fstate.endTime.toDate() < new Timestamp().toDate()) {
+          await sys.board.circuits.setCircuitStateAsync(fstate.id, false);
+          fstate.emitEquipmentChange();
+        }
+      }
+      for (let i = 0; i < sys.circuitGroups.length; i++) {
+        let cgstate = state.circuitGroups.getItemByIndex(i);
+        if (!cgstate.isActive || !cgstate.isOn) continue;
+        if (cgstate.endTime.toDate() < new Timestamp().toDate()) {
+          await sys.board.circuits.setCircuitGroupStateAsync(cgstate.id, false);
+          cgstate.emitEquipmentChange();
+        }
+      }
+      for (let i = 0; i < sys.lightGroups.length; i++) {
+        let lgstate = state.lightGroups.getItemByIndex(i);
+        if (!lgstate.isActive || !lgstate.isOn) continue;
+        if (lgstate.endTime.toDate() < new Timestamp().toDate()) {
+          await sys.board.circuits.setLightGroupStateAsync(lgstate.id, false);
+          lgstate.emitEquipmentChange();
+        }
+      }
+    } catch (err) { logger.error(`checkEggTimerExpiration: Error synchronizing circuit relays ${err.message}`); }
+  }
+  public async syncCircuitRelayStates() {
+    try {
+      for (let i = 0; i < sys.circuits.length; i++) {
+        // Run through all the controlled circuits to see whether they should be triggered or not.
+        let circ = sys.circuits.getItemByIndex(i);
+        if (circ.master === 1 && circ.isActive) {
+          let cstate = state.circuits.getItemById(circ.id);
+          if (cstate.isOn) await ncp.circuits.setCircuitStateAsync(cstate, cstate.isOn);
+        }
+      }
+    } catch (err) { logger.error(`syncCircuitRelayStates: Error synchronizing circuit relays ${err.message}`); }
+  }
+  public syncVirtualCircuitStates() {
+    try {
+      let arrCircuits = sys.board.valueMaps.virtualCircuits.toArray();
+      let poolStates = sys.board.bodies.getPoolStates();
+      let spaStates = sys.board.bodies.getSpaStates();
+      // The following should work for all board types if the virtualCiruit valuemaps use common names.  The circuit ids can be
+      // different as well as the descriptions but these should have common names since they are all derived from existing states.
 
-            // This also removes virtual circuits depending on whether heaters exsits on the bodies.  Not sure why we are doing this
-            // as the body data contains whether a body is heated or not.  Perhapse some attached interface is using
-            // the virtual circuit list as a means to determine whether solar is available.  That is totally flawed if that is the case.
-            for (let i = 0; i < arrCircuits.length; i++) {
-                let vc = arrCircuits[i];
-                let remove = false;
-                let bState = false;
-                let cstate: VirtualCircuitState = null;
-                switch (vc.name) {
-                    case 'poolHeater':
-                        // If any pool is heating up.
-                        remove = true;
-                        for (let j = 0; j < poolStates.length; j++) {
-                            if (poolStates[j].heaterOptions.total > 0) remove = false;
-                        }
-                        if (!remove) {
-                            // Determine whether the pool heater is on.
-                            for (let j = 0; j < poolStates.length; j++)
-                                if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'heater') bState = true;
-                        }
-                        break;
-                    case 'spaHeater':
-                        remove = true;
-                        for (let j = 0; j < spaStates.length; j++) {
-                            if (spaStates[j].heaterOptions.total > 0) remove = false;
-                        }
-                        if (!remove) {
-                            // Determine whether the spa heater is on.
-                            for (let j = 0; j < spaStates.length; j++) {
-                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'heater') bState = true;
-                            }
-                        }
-                        break;
-                    case 'freeze':
-                        // If freeze protection has been turned on.
-                        bState = state.freeze;
-                        break;
-                    case 'poolSpa':
-                        // If any pool or spa is on
-                        for (let j = 0; j < poolStates.length && !bState; j++) {
-                            if (poolStates[j].isOn) bState = true;
-                        }
-                        for (let j = 0; j < spaStates.length && !bState; j++) {
-                            if (spaStates[j].isOn) bState = true;
-                        }
-                        break;
-                    case 'solarHeat':
-                    case 'solar':
-                        // If solar is on for any body
-                        remove = true;
-                        for (let j = 0; j < poolStates.length; j++) {
-                            if (poolStates[j].heaterOptions.solar + poolStates[j].heaterOptions.heatpump > 0) remove = false;
-                        }
-                        if (remove) {
-                            for (let j = 0; j < spaStates.length; j++) {
-                                if (spaStates[j].heaterOptions.solar + spaStates[j].heaterOptions.heatpump > 0) remove = false;
-                            }
-                        }
-                        if (!remove) {
-                            for (let j = 0; j < poolStates.length && !bState; j++) {
-                                if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'solar') bState = true;
-                            }
-                            for (let j = 0; j < spaStates.length && !bState; j++) {
-                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') bState = true;
-                            }
-                        }
-                        break;
-                    case 'heater':
-                        remove = true;
-                        for (let j = 0; j < poolStates.length; j++) {
-                            if (poolStates[j].heaterOptions.total > 0) remove = false;
-                        }
-                        if (remove) {
-                            for (let j = 0; j < spaStates.length; j++) {
-                                if (spaStates[j].heaterOptions.total > 0) remove = false;
-                            }
-                        }
-                        if (!remove) {
-                            for (let j = 0; j < poolStates.length && !bState; j++) {
-                                let heat = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
-                                if (heat !== 'off') bState = true;
-                            }
-                            for (let j = 0; j < spaStates.length && !bState; j++) {
-                                let heat = sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus);
-                                if (heat !== 'off') bState = true;
-                            }
-                        }
-                        break;
-                    default:
-                        remove = true;
-                        break;
-                }
-                if (remove)
-                    state.virtualCircuits.removeItemById(vc.val);
-                else {
-                    cstate = state.virtualCircuits.getItemById(vc.val, true);
-                    if (cstate !== null) {
-                        cstate.isOn = bState;
-                        cstate.type = vc.val;
-                        cstate.name = vc.desc;
-                    }
-                }
+      // This also removes virtual circuits depending on whether heaters exsits on the bodies.  Not sure why we are doing this
+      // as the body data contains whether a body is heated or not.  Perhapse some attached interface is using
+      // the virtual circuit list as a means to determine whether solar is available.  That is totally flawed if that is the case.
+      for (let i = 0; i < arrCircuits.length; i++) {
+        let vc = arrCircuits[i];
+        let remove = false;
+        let bState = false;
+        let cstate: VirtualCircuitState = null;
+        switch (vc.name) {
+          case 'poolHeater':
+            // If any pool is heating up.
+            remove = true;
+            for (let j = 0; j < poolStates.length; j++) {
+              if (poolStates[j].heaterOptions.total > 0) remove = false;
             }
-        } catch (err) { logger.error(`Error syncronizing virtual circuits`); }
-    }
-    public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
-        sys.board.suspendStatus(true);
-        try {
-            // We need to do some routing here as it is now critical that circuits, groups, and features
-            // have their own processing.  The virtual controller used to only deal with one circuit.
-            if (sys.board.equipmentIds.circuitGroups.isInRange(id))
-                return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
-            else if (sys.board.equipmentIds.features.isInRange(id))
-                return await sys.board.features.setFeatureStateAsync(id, val);
-            let circuit: ICircuit = sys.circuits.getInterfaceById(id, false, { isActive: false });
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit or Feature id ${id} not valid`, id, 'Circuit'));
-            let circ = state.circuits.getInterfaceById(id, circuit.isActive !== false);
-            let newState = utils.makeBool(val);
-            // First, if we are turning the circuit on, lets determine whether the circuit is a pool or spa circuit and if this is a shared system then we need
-            // to turn off the other body first.
-            //[12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
-            //[13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
-            let func = sys.board.valueMaps.circuitFunctions.get(circuit.type);
-            if (newState && (func.name === 'pool' || func.name === 'spa') && sys.equipment.shared === true) {
-                // If we are shared we need to turn off the other circuit.
-                let offType = func.name === 'pool' ? sys.board.valueMaps.circuitFunctions.getValue('spa') : sys.board.valueMaps.circuitFunctions.getValue('pool');
-                let off = sys.circuits.get().filter(elem => elem.type === offType);
-                // Turn the circuits off that are part of the shared system.  We are going back to the board
-                // just in case we got here for a circuit that isn't on the current defined panel.
-                for (let i = 0; i < off.length; i++) {
-                    let coff = off[i];
-                    await sys.board.circuits.setCircuitStateAsync(coff.id, false);
-                }
+            if (!remove) {
+              // Determine whether the pool heater is on.
+              for (let j = 0; j < poolStates.length; j++)
+                if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'heater') bState = true;
             }
-            if (id === 6) state.temps.bodies.getItemById(1, true).isOn = val;
-            else if (id === 1) state.temps.bodies.getItemById(2, true).isOn = val;
-            // Let the main nixie controller set the circuit state and affect the relays if it needs to.
-            await ncp.circuits.setCircuitStateAsync(circ, newState);
-            await sys.board.syncEquipmentItems();
-            return state.circuits.getInterfaceById(circ.id);
+            break;
+          case 'spaHeater':
+            remove = true;
+            for (let j = 0; j < spaStates.length; j++) {
+              if (spaStates[j].heaterOptions.total > 0) remove = false;
+            }
+            if (!remove) {
+              // Determine whether the spa heater is on.
+              for (let j = 0; j < spaStates.length; j++) {
+                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'heater') bState = true;
+              }
+            }
+            break;
+          case 'freeze':
+            // If freeze protection has been turned on.
+            bState = state.freeze;
+            break;
+          case 'poolSpa':
+            // If any pool or spa is on
+            for (let j = 0; j < poolStates.length && !bState; j++) {
+              if (poolStates[j].isOn) bState = true;
+            }
+            for (let j = 0; j < spaStates.length && !bState; j++) {
+              if (spaStates[j].isOn) bState = true;
+            }
+            break;
+          case 'solarHeat':
+          case 'solar':
+            // If solar is on for any body
+            remove = true;
+            for (let j = 0; j < poolStates.length; j++) {
+              if (poolStates[j].heaterOptions.solar + poolStates[j].heaterOptions.heatpump > 0) remove = false;
+            }
+            if (remove) {
+              for (let j = 0; j < spaStates.length; j++) {
+                if (spaStates[j].heaterOptions.solar + spaStates[j].heaterOptions.heatpump > 0) remove = false;
+              }
+            }
+            if (!remove) {
+              for (let j = 0; j < poolStates.length && !bState; j++) {
+                if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'solar') bState = true;
+              }
+              for (let j = 0; j < spaStates.length && !bState; j++) {
+                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') bState = true;
+              }
+            }
+            break;
+          case 'heater':
+            remove = true;
+            for (let j = 0; j < poolStates.length; j++) {
+              if (poolStates[j].heaterOptions.total > 0) remove = false;
+            }
+            if (remove) {
+              for (let j = 0; j < spaStates.length; j++) {
+                if (spaStates[j].heaterOptions.total > 0) remove = false;
+              }
+            }
+            if (!remove) {
+              for (let j = 0; j < poolStates.length && !bState; j++) {
+                let heat = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
+                if (heat !== 'off') bState = true;
+              }
+              for (let j = 0; j < spaStates.length && !bState; j++) {
+                let heat = sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus);
+                if (heat !== 'off') bState = true;
+              }
+            }
+            break;
+          default:
+            remove = true;
+            break;
         }
-        catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
-        finally {
-            ncp.pumps.syncPumpStates();
-            sys.board.suspendStatus(false);
-            state.emitEquipmentChanges();
+        if (remove)
+          state.virtualCircuits.removeItemById(vc.val);
+        else {
+          cstate = state.virtualCircuits.getItemById(vc.val, true);
+          if (cstate !== null) {
+            cstate.isOn = bState;
+            cstate.type = vc.val;
+            cstate.name = vc.desc;
+          }
         }
+      }
+    } catch (err) { logger.error(`Error syncronizing virtual circuits`); }
+  }
+  public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+    sys.board.suspendStatus(true);
+    try {
+      // We need to do some routing here as it is now critical that circuits, groups, and features
+      // have their own processing.  The virtual controller used to only deal with one circuit.
+      if (sys.board.equipmentIds.circuitGroups.isInRange(id))
+        return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
+      else if (sys.board.equipmentIds.features.isInRange(id))
+        return await sys.board.features.setFeatureStateAsync(id, val);
+      let circuit: ICircuit = sys.circuits.getInterfaceById(id, false, { isActive: false });
+      if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit or Feature id ${id} not valid`, id, 'Circuit'));
+      let circ = state.circuits.getInterfaceById(id, circuit.isActive !== false);
+      let newState = utils.makeBool(val);
+      // First, if we are turning the circuit on, lets determine whether the circuit is a pool or spa circuit and if this is a shared system then we need
+      // to turn off the other body first.
+      //[12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
+      //[13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
+      let func = sys.board.valueMaps.circuitFunctions.get(circuit.type);
+      if (newState && (func.name === 'pool' || func.name === 'spa') && sys.equipment.shared === true) {
+        // If we are shared we need to turn off the other circuit.
+        let offType = func.name === 'pool' ? sys.board.valueMaps.circuitFunctions.getValue('spa') : sys.board.valueMaps.circuitFunctions.getValue('pool');
+        let off = sys.circuits.get().filter(elem => elem.type === offType);
+        // Turn the circuits off that are part of the shared system.  We are going back to the board
+        // just in case we got here for a circuit that isn't on the current defined panel.
+        for (let i = 0; i < off.length; i++) {
+          let coff = off[i];
+          await sys.board.circuits.setCircuitStateAsync(coff.id, false);
+        }
+      }
+      if (id === 6) state.temps.bodies.getItemById(1, true).isOn = val;
+      else if (id === 1) state.temps.bodies.getItemById(2, true).isOn = val;
+      // Let the main nixie controller set the circuit state and affect the relays if it needs to.
+      await ncp.circuits.setCircuitStateAsync(circ, newState);
+      await sys.board.syncEquipmentItems();
+      return state.circuits.getInterfaceById(circ.id);
     }
+    catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
+    finally {
+      ncp.pumps.syncPumpStates();
+      sys.board.suspendStatus(false);
+      state.emitEquipmentChanges();
+    }
+  }
   public async toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
     let circ = state.circuits.getInterfaceById(id);
     return await this.setCircuitStateAsync(id, !(circ.isOn || false));
@@ -2211,58 +2251,58 @@ export class CircuitCommands extends BoardCommands {
   public getLightThemes(type?: number) { return sys.board.valueMaps.lightThemes.toArray(); }
   public getCircuitFunctions() { return sys.board.valueMaps.circuitFunctions.toArray(); }
   public getCircuitNames() { return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()]; }
-    public async setCircuitAsync(data: any): Promise<ICircuit> {
-        try {
-            let id = parseInt(data.id, 10);
-            if (id <= 0 || typeof data.id === 'undefined') {
-                // We are adding a new circuit.  If we are operating as a nixie controller then we need to start this
-                // circuit outside the range of circuits that can be defined on the panel.  For any of the non-OCP controllers
-                // these are added within the range of the circuits starting with 1.  For all others these are added with an id > 255.
-                switch (state.equipment.controllerType) {
-                    case 'intellicenter':
-                    case 'intellitouch':
-                    case 'easytouch':
-                        id = sys.circuits.getNextEquipmentId(new EquipmentIdRange(255, 300));
-                        break;
-                    default:
-                        id = sys.circuits.getNextEquipmentId(sys.board.equipmentIds.circuits, [1, 6]);
-                        break;
-                }
-            }
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit'));
-            //if (!sys.board.equipmentIds.circuits.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit id is out of range: ${id}`, data.id, 'Circuit'));;
-            if (typeof data.id !== 'undefined') {
-                let circuit = sys.circuits.getItemById(id, true);
-                let scircuit = state.circuits.getItemById(id, true);
-                scircuit.isActive = circuit.isActive = true;
-                circuit.master = 1;
-                scircuit.isOn = false;
-                if (data.name) circuit.name = scircuit.name = data.name;
-                else if (!circuit.name && !data.name) circuit.name = scircuit.name = `circuit${data.id}`;
-                if (typeof data.type !== 'undefined' || typeof circuit.type === 'undefined') {
-                    circuit.type = scircuit.type = parseInt(data.type, 10) || 0;
-                }
-                if (id === 6) circuit.type = sys.board.valueMaps.circuitFunctions.getValue('pool');
-                if (id === 1 && sys.equipment.shared) circuit.type = sys.board.valueMaps.circuitFunctions.getValue('spa');
-                if (typeof data.freeze !== 'undefined' || typeof circuit.freeze === 'undefined') circuit.freeze = utils.makeBool(data.freeze) || false;
-                if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures) || true;
-                if (typeof data.dontStop !== 'undefined' && utils.makeBool(data.dontStop) === true) data.eggTimer = 1440;
-                if (typeof data.eggTimer !== 'undefined' || typeof circuit.eggTimer === 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10) || 0;
-                if (typeof data.connectionId !== 'undefined') circuit.connectionId = data.connectionId;
-                if (typeof data.deviceBinding !== 'undefined') circuit.deviceBinding = data.deviceBinding;
-                if (typeof data.showInFeatures !== 'undefined') scircuit.showInFeatures = circuit.showInFeatures = utils.makeBool(data.showInFeatures);
-                circuit.dontStop = circuit.eggTimer === 1440;
-
-                sys.emitEquipmentChange();
-                state.emitEquipmentChanges();
-                if (circuit.master === 1) await ncp.circuits.setCircuitAsync(circuit, data);
-                return Promise.resolve(circuit);
-            }
-            else
-                return Promise.reject(new Error('Circuit id has not been defined'));
+  public async setCircuitAsync(data: any): Promise<ICircuit> {
+    try {
+      let id = parseInt(data.id, 10);
+      if (id <= 0 || typeof data.id === 'undefined') {
+        // We are adding a new circuit.  If we are operating as a nixie controller then we need to start this
+        // circuit outside the range of circuits that can be defined on the panel.  For any of the non-OCP controllers
+        // these are added within the range of the circuits starting with 1.  For all others these are added with an id > 255.
+        switch (state.equipment.controllerType) {
+          case 'intellicenter':
+          case 'intellitouch':
+          case 'easytouch':
+            id = sys.circuits.getNextEquipmentId(new EquipmentIdRange(255, 300));
+            break;
+          default:
+            id = sys.circuits.getNextEquipmentId(sys.board.equipmentIds.circuits, [1, 6]);
+            break;
         }
-        catch (err) { logger.error(`setCircuitAsync error with ${data}. ${err}`); return Promise.reject(err); }
+      }
+      if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit'));
+      //if (!sys.board.equipmentIds.circuits.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit id is out of range: ${id}`, data.id, 'Circuit'));;
+      if (typeof data.id !== 'undefined') {
+        let circuit = sys.circuits.getItemById(id, true);
+        let scircuit = state.circuits.getItemById(id, true);
+        scircuit.isActive = circuit.isActive = true;
+        circuit.master = 1;
+        scircuit.isOn = false;
+        if (data.name) circuit.name = scircuit.name = data.name;
+        else if (!circuit.name && !data.name) circuit.name = scircuit.name = `circuit${data.id}`;
+        if (typeof data.type !== 'undefined' || typeof circuit.type === 'undefined') {
+          circuit.type = scircuit.type = parseInt(data.type, 10) || 0;
+        }
+        if (id === 6) circuit.type = sys.board.valueMaps.circuitFunctions.getValue('pool');
+        if (id === 1 && sys.equipment.shared) circuit.type = sys.board.valueMaps.circuitFunctions.getValue('spa');
+        if (typeof data.freeze !== 'undefined' || typeof circuit.freeze === 'undefined') circuit.freeze = utils.makeBool(data.freeze) || false;
+        if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures) || true;
+        if (typeof data.dontStop !== 'undefined' && utils.makeBool(data.dontStop) === true) data.eggTimer = 1440;
+        if (typeof data.eggTimer !== 'undefined' || typeof circuit.eggTimer === 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10) || 0;
+        if (typeof data.connectionId !== 'undefined') circuit.connectionId = data.connectionId;
+        if (typeof data.deviceBinding !== 'undefined') circuit.deviceBinding = data.deviceBinding;
+        if (typeof data.showInFeatures !== 'undefined') scircuit.showInFeatures = circuit.showInFeatures = utils.makeBool(data.showInFeatures);
+        circuit.dontStop = circuit.eggTimer === 1440;
+
+        sys.emitEquipmentChange();
+        state.emitEquipmentChanges();
+        if (circuit.master === 1) await ncp.circuits.setCircuitAsync(circuit, data);
+        return Promise.resolve(circuit);
+      }
+      else
+        return Promise.reject(new Error('Circuit id has not been defined'));
     }
+    catch (err) { logger.error(`setCircuitAsync error with ${data}. ${err}`); return Promise.reject(err); }
+  }
   public async setCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
     let group: CircuitGroup = null;
     let sgroup: CircuitGroupState = null;
@@ -2334,31 +2374,31 @@ export class CircuitCommands extends BoardCommands {
     }
     if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit light group id exceeded`, id, 'LightGroup'));
     if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'LightGroup'));
-      group = sys.lightGroups.getItemById(id, true);
-      let sgroup = state.lightGroups.getItemById(id, true);
-      return new Promise<LightGroup>((resolve, reject) => {
-          if (typeof obj.name !== 'undefined') sgroup.name = group.name = obj.name;
-          if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
-          if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
-          group.dontStop = group.eggTimer === 1440;
-          group.isActive = true;
-          if (typeof obj.circuits !== 'undefined') {
-              for (let i = 0; i < obj.circuits.length; i++) {
-                  let cobj = obj.circuits[i];
-                  let c: LightGroupCircuit;
-                  if (typeof cobj.id !== 'undefined') c = group.circuits.getItemById(parseInt(cobj.id, 10), true);
-                  else if (typeof cobj.circuit !== 'undefined') c = group.circuits.getItemByCircuitId(parseInt(cobj.circuit, 10), true);
-                  else c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
-                  if (typeof cobj.circuit !== 'undefined') c.circuit = cobj.circuit;
-                  if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10);
-                  if (typeof cobj.color !== 'undefined') c.color = parseInt(cobj.color, 10);
-                  if (typeof cobj.swimDelay !== 'undefined') c.swimDelay = parseInt(cobj.swimDelay, 10);
-                  if (typeof cobj.position !== 'undefined') c.position = parseInt(cobj.position, 10);
-              }
-              // group.circuits.length = obj.circuits.length; // RSG - removed as this will delete circuits that were not changed
-          }
-          resolve(group);
-      });
+    group = sys.lightGroups.getItemById(id, true);
+    let sgroup = state.lightGroups.getItemById(id, true);
+    return new Promise<LightGroup>((resolve, reject) => {
+      if (typeof obj.name !== 'undefined') sgroup.name = group.name = obj.name;
+      if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
+      if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
+      group.dontStop = group.eggTimer === 1440;
+      group.isActive = true;
+      if (typeof obj.circuits !== 'undefined') {
+        for (let i = 0; i < obj.circuits.length; i++) {
+          let cobj = obj.circuits[i];
+          let c: LightGroupCircuit;
+          if (typeof cobj.id !== 'undefined') c = group.circuits.getItemById(parseInt(cobj.id, 10), true);
+          else if (typeof cobj.circuit !== 'undefined') c = group.circuits.getItemByCircuitId(parseInt(cobj.circuit, 10), true);
+          else c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
+          if (typeof cobj.circuit !== 'undefined') c.circuit = cobj.circuit;
+          if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10);
+          if (typeof cobj.color !== 'undefined') c.color = parseInt(cobj.color, 10);
+          if (typeof cobj.swimDelay !== 'undefined') c.swimDelay = parseInt(cobj.swimDelay, 10);
+          if (typeof cobj.position !== 'undefined') c.position = parseInt(cobj.position, 10);
+        }
+        // group.circuits.length = obj.circuits.length; // RSG - removed as this will delete circuits that were not changed
+      }
+      resolve(group);
+    });
   }
   public async deleteCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
     let id = parseInt(obj.id, 10);
@@ -2592,55 +2632,55 @@ export class CircuitCommands extends BoardCommands {
   }
 }
 export class FeatureCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+  public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+    try {
+      // First delete the features that should be removed.
+      for (let i = 0; i < ctx.features.remove.length; i++) {
+        let f = ctx.features.remove[i];
         try {
-            // First delete the features that should be removed.
-            for (let i = 0; i < ctx.features.remove.length; i++) {
-                let f = ctx.features.remove[i];
-                try {
-                    await sys.board.features.deleteFeatureAsync(f);
-                    res.addModuleSuccess('feature', `Remove: ${f.id}-${f.name}`);
-                } catch (err) { res.addModuleError('feature', `Remove: ${f.id}-${f.name}: ${err.message}`) }
-            }
-            for (let i = 0; i < ctx.features.update.length; i++) {
-                let f = ctx.features.update[i];
-                try {
-                    await sys.board.features.setFeatureAsync(f);
-                    res.addModuleSuccess('feature', `Update: ${f.id}-${f.name}`);
-                } catch (err) { res.addModuleError('feature', `Update: ${f.id}-${f.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.features.add.length; i++) {
-                // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-                // it won't error out.
-                let f = ctx.features.add[i];
-                try {
-                    sys.features.getItemById(f, true);
-                    await sys.board.features.setFeatureAsync(f);
-                    res.addModuleSuccess('feature', `Add: ${f.id}-${f.name}`);
-                } catch (err) { res.addModuleError('feature', `Add: ${f.id}-${f.name}: ${err.message}`) }
-            }
-            return true;
-        } catch (err) { logger.error(`Error restoring features: ${err.message}`); res.addModuleError('system', `Error restoring features: ${err.message}`); return false; }
-    }
-    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+          await sys.board.features.deleteFeatureAsync(f);
+          res.addModuleSuccess('feature', `Remove: ${f.id}-${f.name}`);
+        } catch (err) { res.addModuleError('feature', `Remove: ${f.id}-${f.name}: ${err.message}`) }
+      }
+      for (let i = 0; i < ctx.features.update.length; i++) {
+        let f = ctx.features.update[i];
         try {
-            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-            // Look at features.
-            let cfg = rest.poolConfig;
-            for (let i = 0; i < cfg.features.length; i++) {
-                let r = cfg.features[i];
-                let c = sys.features.find(elem => r.id === elem.id);
-                if (typeof c === 'undefined') ctx.add.push(r);
-                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-            }
-            for (let i = 0; i < sys.features.length; i++) {
-                let c = sys.features.getItemByIndex(i);
-                let r = cfg.features.find(elem => elem.id == c.id);
-                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-            }
-            return ctx;
-        } catch (err) { logger.error(`Error validating features for restore: ${err.message}`); }
-    }
+          await sys.board.features.setFeatureAsync(f);
+          res.addModuleSuccess('feature', `Update: ${f.id}-${f.name}`);
+        } catch (err) { res.addModuleError('feature', `Update: ${f.id}-${f.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.features.add.length; i++) {
+        // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+        // it won't error out.
+        let f = ctx.features.add[i];
+        try {
+          sys.features.getItemById(f, true);
+          await sys.board.features.setFeatureAsync(f);
+          res.addModuleSuccess('feature', `Add: ${f.id}-${f.name}`);
+        } catch (err) { res.addModuleError('feature', `Add: ${f.id}-${f.name}: ${err.message}`) }
+      }
+      return true;
+    } catch (err) { logger.error(`Error restoring features: ${err.message}`); res.addModuleError('system', `Error restoring features: ${err.message}`); return false; }
+  }
+  public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+    try {
+      let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+      // Look at features.
+      let cfg = rest.poolConfig;
+      for (let i = 0; i < cfg.features.length; i++) {
+        let r = cfg.features[i];
+        let c = sys.features.find(elem => r.id === elem.id);
+        if (typeof c === 'undefined') ctx.add.push(r);
+        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+      }
+      for (let i = 0; i < sys.features.length; i++) {
+        let c = sys.features.getItemByIndex(i);
+        let r = cfg.features.find(elem => elem.id == c.id);
+        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+      }
+      return ctx;
+    } catch (err) { logger.error(`Error validating features for restore: ${err.message}`); }
+  }
 
   public async setFeatureAsync(obj: any): Promise<Feature> {
     let id = parseInt(obj.id, 10);
@@ -2757,56 +2797,56 @@ export class FeatureCommands extends BoardCommands {
   }
 }
 export class ChlorinatorCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+  public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+    try {
+      // First delete the chlorinators that should be removed.
+      for (let i = 0; i < ctx.chlorinators.remove.length; i++) {
+        let c = ctx.chlorinators.remove[i];
         try {
-            // First delete the chlorinators that should be removed.
-            for (let i = 0; i < ctx.chlorinators.remove.length; i++) {
-                let c = ctx.chlorinators.remove[i];
-                try {
-                    await sys.board.chlorinator.deleteChlorAsync(c);
-                    res.addModuleSuccess('chlorinator', `Remove: ${c.id}-${c.name}`);
-                } catch (err) { res.addModuleError('chlorinator', `Remove: ${c.id}-${c.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.chlorinators.update.length; i++) {
-                let c = ctx.chlorinators.update[i];
-                try {
-                    await sys.board.chlorinator.setChlorAsync(c);
-                    res.addModuleSuccess('chlorinator', `Update: ${c.id}-${c.name}`);
-                } catch (err) { res.addModuleError('chlorinator', `Update: ${c.id}-${c.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.chlorinators.add.length; i++) {
-                let c = ctx.chlorinators.add[i];
-                try {
-                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-                    // it won't error out.
-                    sys.chlorinators.getItemById(c.id, true);
-                    await sys.board.chlorinator.setChlorAsync(c);
-                    res.addModuleSuccess('chlorinator', `Add: ${c.id}-${c.name}`);
-                } catch (err) { res.addModuleError('chlorinator', `Add: ${c.id}-${c.name}: ${err.message}`); }
-            }
-            return true;
-        } catch (err) { logger.error(`Error restoring chlorinators: ${err.message}`); res.addModuleError('system', `Error restoring chlorinators: ${err.message}`); return false; }
-    }
+          await sys.board.chlorinator.deleteChlorAsync(c);
+          res.addModuleSuccess('chlorinator', `Remove: ${c.id}-${c.name}`);
+        } catch (err) { res.addModuleError('chlorinator', `Remove: ${c.id}-${c.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.chlorinators.update.length; i++) {
+        let c = ctx.chlorinators.update[i];
+        try {
+          await sys.board.chlorinator.setChlorAsync(c);
+          res.addModuleSuccess('chlorinator', `Update: ${c.id}-${c.name}`);
+        } catch (err) { res.addModuleError('chlorinator', `Update: ${c.id}-${c.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.chlorinators.add.length; i++) {
+        let c = ctx.chlorinators.add[i];
+        try {
+          // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+          // it won't error out.
+          sys.chlorinators.getItemById(c.id, true);
+          await sys.board.chlorinator.setChlorAsync(c);
+          res.addModuleSuccess('chlorinator', `Add: ${c.id}-${c.name}`);
+        } catch (err) { res.addModuleError('chlorinator', `Add: ${c.id}-${c.name}: ${err.message}`); }
+      }
+      return true;
+    } catch (err) { logger.error(`Error restoring chlorinators: ${err.message}`); res.addModuleError('system', `Error restoring chlorinators: ${err.message}`); return false; }
+  }
 
-    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
-        try {
-            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-            // Look at chlorinators.
-            let cfg = rest.poolConfig;
-            for (let i = 0; i < cfg.chlorinators.length; i++) {
-                let r = cfg.chlorinators[i];
-                let c = sys.chlorinators.find(elem => r.id === elem.id);
-                if (typeof c === 'undefined') ctx.add.push(r);
-                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-            }
-            for (let i = 0; i < sys.chlorinators.length; i++) {
-                let c = sys.chlorinators.getItemByIndex(i);
-                let r = cfg.chlorinators.find(elem => elem.id == c.id);
-                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-            }
-            return ctx;
-        } catch (err) { logger.error(`Error validating chlorinators for restore: ${err.message}`); }
-    }
+  public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+    try {
+      let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+      // Look at chlorinators.
+      let cfg = rest.poolConfig;
+      for (let i = 0; i < cfg.chlorinators.length; i++) {
+        let r = cfg.chlorinators[i];
+        let c = sys.chlorinators.find(elem => r.id === elem.id);
+        if (typeof c === 'undefined') ctx.add.push(r);
+        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+      }
+      for (let i = 0; i < sys.chlorinators.length; i++) {
+        let c = sys.chlorinators.getItemByIndex(i);
+        let r = cfg.chlorinators.find(elem => elem.id == c.id);
+        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+      }
+      return ctx;
+    } catch (err) { logger.error(`Error validating chlorinators for restore: ${err.message}`); }
+  }
 
   public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
     try {
@@ -2850,55 +2890,55 @@ export class ChlorinatorCommands extends BoardCommands {
   }
 }
 export class ScheduleCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+  public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+    try {
+      // First delete the schedules that should be removed.
+      for (let i = 0; i < ctx.schedules.remove.length; i++) {
+        let s = ctx.schedules.remove[i];
         try {
-            // First delete the schedules that should be removed.
-            for (let i = 0; i < ctx.schedules.remove.length; i++) {
-                let s = ctx.schedules.remove[i];
-                try {
-                    await sys.board.schedules.deleteScheduleAsync(ctx.schedules.remove[i]);
-                    res.addModuleSuccess('schedule', `Remove: ${s.id}-${s.circuitId}`);
-                } catch (err) { res.addModuleError('schedule', `Remove: ${s.id}-${s.circuitId} ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.schedules.update.length; i++) {
-                let s = ctx.schedules.update[i];
-                try {
-                    await sys.board.schedules.setScheduleAsync(s);
-                    res.addModuleSuccess('schedule', `Update: ${s.id}-${s.circuitId}`);
-                } catch (err) { res.addModuleError('schedule', `Update: ${s.id}-${s.circuitId} ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.schedules.add.length; i++) {
-                let s = ctx.schedules.add[i];
-                try {
-                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-                    // it won't error out.
-                    sys.schedules.getItemById(s.id, true);
-                    await sys.board.schedules.setScheduleAsync(s);
-                    res.addModuleSuccess('schedule', `Add: ${s.id}-${s.circuitId}`);
-                } catch (err) { res.addModuleError('schedule', `Add: ${s.id}-${s.circuitId} ${err.message}`); }
-            }
-            return true;
-        } catch (err) { logger.error(`Error restoring schedules: ${err.message}`); res.addModuleError('system', `Error restoring schedules: ${err.message}`); return false; }
-    }
-    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+          await sys.board.schedules.deleteScheduleAsync(ctx.schedules.remove[i]);
+          res.addModuleSuccess('schedule', `Remove: ${s.id}-${s.circuitId}`);
+        } catch (err) { res.addModuleError('schedule', `Remove: ${s.id}-${s.circuitId} ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.schedules.update.length; i++) {
+        let s = ctx.schedules.update[i];
         try {
-            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-            // Look at schedules.
-            let cfg = rest.poolConfig;
-            for (let i = 0; i < cfg.schedules.length; i++) {
-                let r = cfg.schedules[i];
-                let c = sys.schedules.find(elem => r.id === elem.id);
-                if (typeof c === 'undefined') ctx.add.push(r);
-                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-            }
-            for (let i = 0; i < sys.schedules.length; i++) {
-                let c = sys.schedules.getItemByIndex(i);
-                let r = cfg.schedules.find(elem => elem.id == c.id);
-                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-            }
-            return ctx;
-        } catch (err) { logger.error(`Error validating schedules for restore: ${err.message}`); }
-    }
+          await sys.board.schedules.setScheduleAsync(s);
+          res.addModuleSuccess('schedule', `Update: ${s.id}-${s.circuitId}`);
+        } catch (err) { res.addModuleError('schedule', `Update: ${s.id}-${s.circuitId} ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.schedules.add.length; i++) {
+        let s = ctx.schedules.add[i];
+        try {
+          // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+          // it won't error out.
+          sys.schedules.getItemById(s.id, true);
+          await sys.board.schedules.setScheduleAsync(s);
+          res.addModuleSuccess('schedule', `Add: ${s.id}-${s.circuitId}`);
+        } catch (err) { res.addModuleError('schedule', `Add: ${s.id}-${s.circuitId} ${err.message}`); }
+      }
+      return true;
+    } catch (err) { logger.error(`Error restoring schedules: ${err.message}`); res.addModuleError('system', `Error restoring schedules: ${err.message}`); return false; }
+  }
+  public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+    try {
+      let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+      // Look at schedules.
+      let cfg = rest.poolConfig;
+      for (let i = 0; i < cfg.schedules.length; i++) {
+        let r = cfg.schedules[i];
+        let c = sys.schedules.find(elem => r.id === elem.id);
+        if (typeof c === 'undefined') ctx.add.push(r);
+        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+      }
+      for (let i = 0; i < sys.schedules.length; i++) {
+        let c = sys.schedules.getItemByIndex(i);
+        let r = cfg.schedules.find(elem => elem.id == c.id);
+        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+      }
+      return ctx;
+    } catch (err) { logger.error(`Error validating schedules for restore: ${err.message}`); }
+  }
 
   public transformDays(val: any): number {
     if (typeof val === 'number') return val;
@@ -2980,73 +3020,73 @@ export class ScheduleCommands extends BoardCommands {
       }
     };
   }
-    public async setScheduleAsync(data: any): Promise<Schedule> {
-        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-        if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
-        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
-        let sched = sys.schedules.getItemById(id, data.id <= 0);
-        let ssched = state.schedules.getItemById(id, data.id <= 0);
-        let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
-        if (typeof schedType === 'undefined') schedType = 0; // Repeats
+  public async setScheduleAsync(data: any): Promise<Schedule> {
+    let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+    if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
+    if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
+    let sched = sys.schedules.getItemById(id, data.id <= 0);
+    let ssched = state.schedules.getItemById(id, data.id <= 0);
+    let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
+    if (typeof schedType === 'undefined') schedType = 0; // Repeats
 
-        let startTimeType = typeof data.startTimeType !== 'undefined' ? data.startTimeType : sched.startTimeType;
-        let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
-        let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
-        if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
-        let heatSource = typeof data.heatSource !== 'undefined' ? data.heatSource : sched.heatSource;
-        let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
-        let coolSetpoint = typeof data.coolSetpoint !== 'undefined' ? data.coolSetpoint : sched.coolSetpoint || 100;
-        let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
-        let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
-        let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
-        let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays);
-        let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? data.changeHeatSetpoint : false;
-        let display = typeof data.display !== 'undefined' ? data.display : sched.display || 0;
+    let startTimeType = typeof data.startTimeType !== 'undefined' ? data.startTimeType : sched.startTimeType;
+    let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
+    let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
+    if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
+    let heatSource = typeof data.heatSource !== 'undefined' ? data.heatSource : sched.heatSource;
+    let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
+    let coolSetpoint = typeof data.coolSetpoint !== 'undefined' ? data.coolSetpoint : sched.coolSetpoint || 100;
+    let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
+    let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
+    let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
+    let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays);
+    let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? data.changeHeatSetpoint : false;
+    let display = typeof data.display !== 'undefined' ? data.display : sched.display || 0;
 
-        // Ensure all the defaults.
-        if (isNaN(startDate.getTime())) startDate = new Date();
-        if (typeof startTime === 'undefined') startTime = 480; // 8am
-        if (typeof endTime === 'undefined') endTime = 1020; // 5pm
-        if (typeof startTimeType === 'undefined') startTimeType = 0; // Manual
-        if (typeof endTimeType === 'undefined') endTimeType = 0; // Manual
+    // Ensure all the defaults.
+    if (isNaN(startDate.getTime())) startDate = new Date();
+    if (typeof startTime === 'undefined') startTime = 480; // 8am
+    if (typeof endTime === 'undefined') endTime = 1020; // 5pm
+    if (typeof startTimeType === 'undefined') startTimeType = 0; // Manual
+    if (typeof endTimeType === 'undefined') endTimeType = 0; // Manual
 
-        // At this point we should have all the data.  Validate it.
-        if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType));
-        if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType));
-        if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType));
-        if (!sys.board.valueMaps.heatSources.valExists(heatSource)) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource));
-        if (heatSetpoint < 0 || heatSetpoint > 104) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint));
-        if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined)
-            return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit));
-        if (schedType === 128 && schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
+    // At this point we should have all the data.  Validate it.
+    if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType));
+    if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType));
+    if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType));
+    if (!sys.board.valueMaps.heatSources.valExists(heatSource)) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource));
+    if (heatSetpoint < 0 || heatSetpoint > 104) return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint));
+    if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined)
+      return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit));
+    if (schedType === 128 && schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
 
-        // If we made it to here we are valid and the schedula and it state should exist.
-        sched = sys.schedules.getItemById(id, true);
-        ssched = state.schedules.getItemById(id, true);
-        sched.circuit = ssched.circuit = circuit;
-        sched.scheduleDays = ssched.scheduleDays = schedDays;
-        sched.scheduleType = ssched.scheduleType = schedType;
-        sched.changeHeatSetpoint = ssched.changeHeatSetpoint = changeHeatSetpoint;
-        sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
-        sched.coolSetpoint = ssched.coolSetpoint = coolSetpoint;
-        sched.heatSource = ssched.heatSource = heatSource;
-        sched.startTime = ssched.startTime = startTime;
-        sched.endTime = ssched.endTime = endTime;
-        sched.startTimeType = ssched.startTimeType = startTimeType;
-        sched.endTimeType = ssched.endTimeType = endTimeType;
-        sched.startDate = ssched.startDate = startDate;
-        sched.startYear = startDate.getFullYear();
-        sched.startMonth = startDate.getMonth() + 1;
-        sched.startDay = startDate.getDate();
-        sched.isActive = sched.startTime !== 0;
+    // If we made it to here we are valid and the schedula and it state should exist.
+    sched = sys.schedules.getItemById(id, true);
+    ssched = state.schedules.getItemById(id, true);
+    sched.circuit = ssched.circuit = circuit;
+    sched.scheduleDays = ssched.scheduleDays = schedDays;
+    sched.scheduleType = ssched.scheduleType = schedType;
+    sched.changeHeatSetpoint = ssched.changeHeatSetpoint = changeHeatSetpoint;
+    sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
+    sched.coolSetpoint = ssched.coolSetpoint = coolSetpoint;
+    sched.heatSource = ssched.heatSource = heatSource;
+    sched.startTime = ssched.startTime = startTime;
+    sched.endTime = ssched.endTime = endTime;
+    sched.startTimeType = ssched.startTimeType = startTimeType;
+    sched.endTimeType = ssched.endTimeType = endTimeType;
+    sched.startDate = ssched.startDate = startDate;
+    sched.startYear = startDate.getFullYear();
+    sched.startMonth = startDate.getMonth() + 1;
+    sched.startDay = startDate.getDate();
+    sched.isActive = sched.startTime !== 0;
 
-        ssched.display = sched.display = display;
-        if (typeof sched.startDate === 'undefined')
-            sched.master = 1;
-        await ncp.schedules.setScheduleAsync(sched, data);
-        ssched.emitEquipmentChange();
-        return sched;
-    }
+    ssched.display = sched.display = display;
+    if (typeof sched.startDate === 'undefined')
+      sched.master = 1;
+    await ncp.schedules.setScheduleAsync(sched, data);
+    ssched.emitEquipmentChange();
+    return sched;
+  }
   public deleteScheduleAsync(data: any): Promise<Schedule> {
     let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
     if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
@@ -3134,651 +3174,651 @@ export class ScheduleCommands extends BoardCommands {
   }
 }
 export class HeaterCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+  public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+    try {
+      // First delete the heaters that should be removed.
+      for (let i = 0; i < ctx.heaters.remove.length; i++) {
+        let h = ctx.heaters.remove[i];
         try {
-            // First delete the heaters that should be removed.
-            for (let i = 0; i < ctx.heaters.remove.length; i++) {
-                let h = ctx.heaters.remove[i];
-                try {
-                    await sys.board.heaters.deleteHeaterAsync(h);
-                    res.addModuleSuccess('heater', `Remove: ${h.id}-${h.name}`);
-                } catch (err) { res.addModuleError('heater', `Remove: ${h.id}-${h.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.heaters.update.length; i++) {
-                let h = ctx.heaters.update[i];
-                try {
-                    await sys.board.heaters.setHeaterAsync(h);
-                    res.addModuleSuccess('heater', `Update: ${h.id}-${h.name}`);
-                } catch (err) { res.addModuleError('heater', `Update: ${h.id}-${h.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.heaters.add.length; i++) {
-                let h = ctx.heaters.add[i];
-                try {
-                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-                    // it won't error out.
-                    sys.heaters.getItemById(h, true);
-                    await sys.board.heaters.setHeaterAsync(h);
-                    res.addModuleSuccess('heater', `Add: ${h.id}-${h.name}`);
-                } catch (err) { res.addModuleError('heater', `Add: ${h.id}-${h.name}: ${err.message}`); }
-            }
+          await sys.board.heaters.deleteHeaterAsync(h);
+          res.addModuleSuccess('heater', `Remove: ${h.id}-${h.name}`);
+        } catch (err) { res.addModuleError('heater', `Remove: ${h.id}-${h.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.heaters.update.length; i++) {
+        let h = ctx.heaters.update[i];
+        try {
+          await sys.board.heaters.setHeaterAsync(h);
+          res.addModuleSuccess('heater', `Update: ${h.id}-${h.name}`);
+        } catch (err) { res.addModuleError('heater', `Update: ${h.id}-${h.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.heaters.add.length; i++) {
+        let h = ctx.heaters.add[i];
+        try {
+          // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+          // it won't error out.
+          sys.heaters.getItemById(h, true);
+          await sys.board.heaters.setHeaterAsync(h);
+          res.addModuleSuccess('heater', `Add: ${h.id}-${h.name}`);
+        } catch (err) { res.addModuleError('heater', `Add: ${h.id}-${h.name}: ${err.message}`); }
+      }
+      return true;
+    } catch (err) {  logger.error(`Error restoring heaters: ${err.message}`); res.addModuleError('system', `Error restoring heaters: ${err.message}`); return false; }
+  }
+  public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+    try {
+      let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+      // Look at heaters.
+      let cfg = rest.poolConfig;
+      for (let i = 0; i < cfg.heaters.length; i++) {
+        let r = cfg.heaters[i];
+        let c = sys.heaters.find(elem => r.id === elem.id);
+        if (typeof c === 'undefined') ctx.add.push(r);
+        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+      }
+      for (let i = 0; i < sys.heaters.length; i++) {
+        let c = sys.heaters.getItemByIndex(i);
+        let r = cfg.heaters.find(elem => elem.id == c.id);
+        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+      }
+      return ctx;
+    } catch (err) { logger.error(`Error validating heaters for restore: ${err.message}`); }
+  }
+
+  public getInstalledHeaterTypes(body?: number): any {
+    let heaters = sys.heaters.get();
+    let types = sys.board.valueMaps.heaterTypes.toArray();
+    let inst = { total: 0 };
+    for (let i = 0; i < types.length; i++) if (types[i].name !== 'none') inst[types[i].name] = 0;
+    for (let i = 0; i < heaters.length; i++) {
+      let heater = heaters[i];
+      if (typeof body !== 'undefined' && heater.body !== 'undefined') {
+        if ((heater.body !== 32 && body !== heater.body + 1) || (heater.body === 32 && body > 2)) continue;
+      }
+      let type = types.find(elem => elem.val === heater.type);
+      if (typeof type !== 'undefined') {
+        if (inst[type.name] === 'undefined') inst[type.name] = 0;
+        inst[type.name] = inst[type.name] + 1;
+        if (heater.coolingEnabled === true && type.hasCoolSetpoint === true) inst['hasCoolSetpoint'] = true;
+        inst.total++;
+      }
+    }
+    return inst;
+  }
+  public isSolarInstalled(body?: number): boolean {
+    let heaters = sys.heaters.get();
+    let types = sys.board.valueMaps.heaterTypes.toArray();
+    for (let i = 0; i < heaters.length; i++) {
+      let heater = heaters[i];
+      if (typeof body !== 'undefined' && body !== heater.body) continue;
+      let type = types.find(elem => elem.val === heater.type);
+      if (typeof type !== 'undefined') {
+        switch (type.name) {
+          case 'solar':
             return true;
-        } catch (err) {  logger.error(`Error restoring heaters: ${err.message}`); res.addModuleError('system', `Error restoring heaters: ${err.message}`); return false; }
+        }
+      }
     }
-    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
-        try {
-            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-            // Look at heaters.
-            let cfg = rest.poolConfig;
-            for (let i = 0; i < cfg.heaters.length; i++) {
-                let r = cfg.heaters[i];
-                let c = sys.heaters.find(elem => r.id === elem.id);
-                if (typeof c === 'undefined') ctx.add.push(r);
-                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-            }
-            for (let i = 0; i < sys.heaters.length; i++) {
-                let c = sys.heaters.getItemByIndex(i);
-                let r = cfg.heaters.find(elem => elem.id == c.id);
-                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-            }
-            return ctx;
-        } catch (err) { logger.error(`Error validating heaters for restore: ${err.message}`); }
+  }
+  public isHeatPumpInstalled(body?: number): boolean {
+    let heaters = sys.heaters.get();
+    let types = sys.board.valueMaps.heaterTypes.toArray();
+    for (let i = 0; i < heaters.length; i++) {
+      let heater = heaters[i];
+      if (typeof body !== 'undefined' && body !== heater.body) continue;
+      let type = types.find(elem => elem.val === heater.type);
+      if (typeof type !== 'undefined') {
+        switch (type.name) {
+          case 'heatpump':
+            return true;
+        }
+      }
+    }
+  }
+  public setHeater(heater: Heater, obj?: any) {
+    if (typeof obj !== undefined) {
+      for (var s in obj)
+        heater[s] = obj[s];
+    }
+  }
+  public async setHeaterAsync(obj: any): Promise<Heater> {
+    try {
+      let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
+      if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
+      else if (id < 256 && id > 0) return Promise.reject(new InvalidEquipmentIdError('Virtual Heaters controlled by njspc must have an Id > 256.', obj.id, 'Heater'));
+      let heater: Heater;
+      if (id <= 0) {
+        // We are adding a heater.  In this case all heaters are virtual.
+        let vheaters = sys.heaters.filter(h => h.master === 1);
+        id = vheaters.length + 256;
+      }
+      heater = sys.heaters.getItemById(id, true);
+      if (typeof obj !== undefined) {
+        for (var s in obj) {
+          if (s === 'id') continue;
+          heater[s] = obj[s];
+        }
+      }
+      let hstate = state.heaters.getItemById(id, true);
+      //hstate.isVirtual = heater.isVirtual = true;
+      hstate.name = heater.name;
+      hstate.type = heater.type;
+      heater.master = 1;
+      if (heater.master === 1) await ncp.heaters.setHeaterAsync(heater, obj);
+      await sys.board.heaters.updateHeaterServices();
+      await sys.board.heaters.syncHeaterStates();
+      return heater;
+    } catch (err) { return Promise.reject(new Error(`Error setting heater configuration: ${err}`)); }
+  }
+  public async deleteHeaterAsync(obj: any): Promise<Heater> {
+    try {
+      let id = parseInt(obj.id, 10);
+      if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
+      let heater = sys.heaters.getItemById(id);
+      heater.isActive = false;
+      if (heater.master === 1) await ncp.heaters.deleteHeaterAsync(heater.id);
+      sys.heaters.removeItemById(id);
+      state.heaters.removeItemById(id);
+      sys.board.heaters.updateHeaterServices();
+      sys.board.heaters.syncHeaterStates();
+      return heater;
+    } catch (err) { return Promise.reject(`Error deleting heater: ${err.message}`) }
+  }
+  public updateHeaterServices() {
+    let htypes = sys.board.heaters.getInstalledHeaterTypes();
+    let solarInstalled = htypes.solar > 0;
+    let heatPumpInstalled = htypes.heatpump > 0;
+    let gasHeaterInstalled = htypes.gas > 0;
+
+    if (sys.heaters.length > 0) sys.board.valueMaps.heatSources = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
+    if (gasHeaterInstalled) sys.board.valueMaps.heatSources.set(3, { name: 'heater', desc: 'Heater' });
+    if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
+    else if (solarInstalled) sys.board.valueMaps.heatSources.set(5, { name: 'solar', desc: 'Solar' });
+    if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
+    else if (heatPumpInstalled) sys.board.valueMaps.heatSources.set(9, { name: 'heatpump', desc: 'Heat Pump' });
+    sys.board.valueMaps.heatSources.set(32, { name: 'nochange', desc: 'No Change' });
+
+    sys.board.valueMaps.heatModes = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
+    if (gasHeaterInstalled) sys.board.valueMaps.heatModes.set(3, { name: 'heater', desc: 'Heater' });
+    if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
+    else if (solarInstalled) sys.board.valueMaps.heatModes.set(5, { name: 'solar', desc: 'Solar' });
+    if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
+    else if (heatPumpInstalled) sys.board.valueMaps.heatModes.set(9, { name: 'heatpump', desc: 'Heat Pump' });
+    // Now set the body data.
+    for (let i = 0; i < sys.bodies.length; i++) {
+      let body = sys.bodies.getItemByIndex(i);
+      let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
+      let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
+      btemp.heaterOptions = opts;
+    }
+    this.setActiveTempSensors();
+  }
+  public initTempSensors() {
+    // Add in the potential sensors and delete the ones that shouldn't exist.
+    let maxPairs = sys.equipment.maxBodies + (sys.equipment.shared ? -1 : 0);
+    sys.equipment.tempSensors.getItemById('air', true, { id: 'air', isActive: true, calibration: 0 }).name = 'Air';
+    sys.equipment.tempSensors.getItemById('water1', true, { id: 'water1', isActive: true, calibration: 0 }).name = maxPairs == 1 ? 'Water' : 'Body 1';
+    sys.equipment.tempSensors.getItemById('solar1', true, { id: 'solar1', isActive: false, calibration: 0 }).name = maxPairs == 1 ? 'Solar' : 'Solar 1';
+    if (maxPairs > 1) {
+      sys.equipment.tempSensors.getItemById('water2', true, { id: 'water2', isActive: false, calibration: 0 }).name = 'Body 2';
+      sys.equipment.tempSensors.getItemById('solar2', true, { id: 'solar2', isActive: false, calibration: 0 }).name = 'Solar 2';
+    }
+    else {
+      sys.equipment.tempSensors.removeItemById('water2');
+      sys.equipment.tempSensors.removeItemById('solar2');
+    }
+    if (maxPairs > 2) {
+      sys.equipment.tempSensors.getItemById('water3', true, { id: 'water3', isActive: false, calibration: 0 }).name = 'Body 3';
+      sys.equipment.tempSensors.getItemById('solar3', true, { id: 'solar3', isActive: false, calibration: 0 }).name = 'Solar 3';
+    }
+    else {
+      sys.equipment.tempSensors.removeItemById('water3');
+      sys.equipment.tempSensors.removeItemById('solar3');
+    }
+    if (maxPairs > 3) {
+      sys.equipment.tempSensors.getItemById('water4', true, { id: 'water4', isActive: false, calibration: 0 }).name = 'Body 4';
+      sys.equipment.tempSensors.getItemById('solar4', true, { id: 'solar4', isActive: false, calibration: 0 }).name = 'Solar 4';
+    }
+    else {
+      sys.equipment.tempSensors.removeItemById('water4');
+      sys.equipment.tempSensors.removeItemById('solar4');
     }
 
-    public getInstalledHeaterTypes(body?: number): any {
-        let heaters = sys.heaters.get();
-        let types = sys.board.valueMaps.heaterTypes.toArray();
-        let inst = { total: 0 };
-        for (let i = 0; i < types.length; i++) if (types[i].name !== 'none') inst[types[i].name] = 0;
-        for (let i = 0; i < heaters.length; i++) {
-            let heater = heaters[i];
-            if (typeof body !== 'undefined' && heater.body !== 'undefined') {
-                if ((heater.body !== 32 && body !== heater.body + 1) || (heater.body === 32 && body > 2)) continue;
-            }
-            let type = types.find(elem => elem.val === heater.type);
-            if (typeof type !== 'undefined') {
-                if (inst[type.name] === 'undefined') inst[type.name] = 0;
-                inst[type.name] = inst[type.name] + 1;
-                if (heater.coolingEnabled === true && type.hasCoolSetpoint === true) inst['hasCoolSetpoint'] = true;
-                inst.total++;
-            }
-        }
-        return inst;
+  }
+  // Sets the active temp sensors based upon the installed equipment.  At this point all
+  // detectable temp sensors should exist.
+  public setActiveTempSensors() {
+    let htypes;
+    // We are iterating backwards through the sensors array on purpose.  We do this just in case we need
+    // to remove a sensor during the iteration.  This way the index values will not be impacted and we can
+    // safely remove from the array we are iterating.
+    for (let i = sys.equipment.tempSensors.length - 1; i >= 0; i--) {
+      let sensor = sys.equipment.tempSensors.getItemByIndex(i);
+      // The names are normalized in this array.
+      switch (sensor.id) {
+        case 'air':
+          sensor.isActive = true;
+          break;
+        case 'water1':
+          sensor.isActive = sys.equipment.maxBodies > 0;
+          break;
+        case 'water2':
+          sensor.isActive = sys.equipment.shared ? sys.equipment.maxBodies > 2 : sys.equipment.maxBodies > 1;
+          break;
+        case 'water3':
+          sensor.isActive = sys.equipment.shared ? sys.equipment.maxBodies > 3 : sys.equipment.maxBodies > 2;
+          break;
+        case 'water4':
+          // It's a little weird but technically you should be able to install 3 expansions and a i10D personality
+          // board.  If this situation ever comes up we will see if it works. Whether it reports is another story
+          // since the 2 message is short a byte for this.
+          sensor.isActive = sys.equipment.shared ? sys.equipment.maxBodies > 4 : sys.equipment.maxBodies > 3;
+          break;
+        // Solar sensors are funny ducks. This is because they are for both heatpumps and solar and the equipment
+        // can be installed on specific bodies.  This will be true for heaters installed in expansion panels for *Touch, dual body systems,
+        // and any IntelliCenter with more than one body.  At some point simply implementing the multi-body functions for touch will make
+        // this all work. This will only be with i10D or expansion panels.
+        case 'solar1':
+          // The first solar sensor is a funny duck in that it should be active for shared systems
+          // if either body has an active solar heater or heatpump.
+          htypes = sys.board.heaters.getInstalledHeaterTypes(1);
+          if ('solar' in htypes || 'heatpump' in htypes) sensor.isActive = true;
+          else if (sys.equipment.shared) {
+            htypes = sys.board.heaters.getInstalledHeaterTypes(2);
+            sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
+          }
+          else sensor.isActive = false;
+          break;
+        case 'solar2':
+          if (sys.equipment.maxBodies > 1 + (sys.equipment.shared ? 1 : 0)) {
+            htypes = sys.board.heaters.getInstalledHeaterTypes(2 + (sys.equipment.shared ? 1 : 0));
+            sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
+          }
+          else sensor.isActive = false;
+          break;
+        case 'solar3':
+          if (sys.equipment.maxBodies > 2 + (sys.equipment.shared ? 1 : 0)) {
+            htypes = sys.board.heaters.getInstalledHeaterTypes(3 + (sys.equipment.shared ? 1 : 0));
+            sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
+          }
+          else sensor.isActive = false;
+          break;
+        case 'solar4':
+          if (sys.equipment.maxBodies > 3 + (sys.equipment.shared ? 1 : 0)) {
+            htypes = sys.board.heaters.getInstalledHeaterTypes(4 + (sys.equipment.shared ? 1 : 0));
+            sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
+          }
+          else sensor.isActive = false;
+          break;
+        default:
+          if (typeof sensor.id === 'undefined') sys.equipment.tempSensors.removeItemByIndex(i);
+          break;
+      }
     }
-    public isSolarInstalled(body?: number): boolean {
-        let heaters = sys.heaters.get();
-        let types = sys.board.valueMaps.heaterTypes.toArray();
-        for (let i = 0; i < heaters.length; i++) {
-            let heater = heaters[i];
-            if (typeof body !== 'undefined' && body !== heater.body) continue;
-            let type = types.find(elem => elem.val === heater.type);
-            if (typeof type !== 'undefined') {
-                switch (type.name) {
-                    case 'solar':
-                        return true;
-                }
-            }
-        }
-    }
-    public isHeatPumpInstalled(body?: number): boolean {
-        let heaters = sys.heaters.get();
-        let types = sys.board.valueMaps.heaterTypes.toArray();
-        for (let i = 0; i < heaters.length; i++) {
-            let heater = heaters[i];
-            if (typeof body !== 'undefined' && body !== heater.body) continue;
-            let type = types.find(elem => elem.val === heater.type);
-            if (typeof type !== 'undefined') {
-                switch (type.name) {
-                    case 'heatpump':
-                        return true;
-                }
-            }
-        }
-    }
-    public setHeater(heater: Heater, obj?: any) {
-        if (typeof obj !== undefined) {
-            for (var s in obj)
-                heater[s] = obj[s];
-        }
-    }
-    public async setHeaterAsync(obj: any): Promise<Heater> {
-        try {
-            let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
-            else if (id < 256 && id > 0) return Promise.reject(new InvalidEquipmentIdError('Virtual Heaters controlled by njspc must have an Id > 256.', obj.id, 'Heater'));
-            let heater: Heater;
-            if (id <= 0) {
-                // We are adding a heater.  In this case all heaters are virtual.
-                let vheaters = sys.heaters.filter(h => h.master === 1);
-                id = vheaters.length + 256;
-            }
-            heater = sys.heaters.getItemById(id, true);
-            if (typeof obj !== undefined) {
-                for (var s in obj) {
-                    if (s === 'id') continue;
-                    heater[s] = obj[s];
-                }
-            }
-            let hstate = state.heaters.getItemById(id, true);
-            //hstate.isVirtual = heater.isVirtual = true;
-            hstate.name = heater.name;
-            hstate.type = heater.type;
-            heater.master = 1;
-            if (heater.master === 1) await ncp.heaters.setHeaterAsync(heater, obj);
-            await sys.board.heaters.updateHeaterServices();
-            await sys.board.heaters.syncHeaterStates();
-            return heater;
-        } catch (err) { return Promise.reject(new Error(`Error setting heater configuration: ${err}`)); }
-    }
-    public async deleteHeaterAsync(obj: any): Promise<Heater> {
-        try {
-            let id = parseInt(obj.id, 10);
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
-            let heater = sys.heaters.getItemById(id);
-            heater.isActive = false;
-            if (heater.master === 1) await ncp.heaters.deleteHeaterAsync(heater.id);
-            sys.heaters.removeItemById(id);
-            state.heaters.removeItemById(id);
-            sys.board.heaters.updateHeaterServices();
-            sys.board.heaters.syncHeaterStates();
-            return heater;
-        } catch (err) { return Promise.reject(`Error deleting heater: ${err.message}`) }
-    }
-    public updateHeaterServices() {
-        let htypes = sys.board.heaters.getInstalledHeaterTypes();
-        let solarInstalled = htypes.solar > 0;
-        let heatPumpInstalled = htypes.heatpump > 0;
-        let gasHeaterInstalled = htypes.gas > 0;
+  }
+  // This updates the heater states based upon the installed heaters.  This is true for heaters that are tied to the OCP
+  // and those that are not.
+  public syncHeaterStates() {
+    try {
+      // Go through the installed heaters and bodies to determine whether they should be on.  If there is a
+      // heater that is not controlled by the OCP then we need to determine whether it should be on.
+      let heaters = sys.heaters.toArray();
+      let bodies = state.temps.bodies.toArray();
+      let hon = [];
+      for (let i = 0; i < bodies.length; i++) {
+        let body: BodyTempState = bodies[i];
+        let cfgBody: Body = sys.bodies.getItemById(body.id);
+        let isHeating = false;
+        if (body.isOn) {
+          if (typeof body.temp === 'undefined' && heaters.length > 0) logger.warn(`The body temperature for ${body.name} cannot be determined. Heater status for this body cannot be calculated.`);
+          for (let j = 0; j < heaters.length; j++) {
+            let heater: Heater = heaters[j];
+            if (heater.isActive === false) continue;
+            let isOn = false;
+            let isCooling = false;
+            let sensorTemp = state.temps.waterSensor1;
+            if (body.id === 4) sensorTemp = state.temps.waterSensor4;
+            if (body.id === 3) sensorTemp = state.temps.waterSensor3;
+            if (body.id === 2 && !sys.equipment.shared) sensorTemp = state.temps.waterSensor2;
 
-        if (sys.heaters.length > 0) sys.board.valueMaps.heatSources = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
-        if (gasHeaterInstalled) sys.board.valueMaps.heatSources.set(3, { name: 'heater', desc: 'Heater' });
-        if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-        else if (solarInstalled) sys.board.valueMaps.heatSources.set(5, { name: 'solar', desc: 'Solar' });
-        if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
-        else if (heatPumpInstalled) sys.board.valueMaps.heatSources.set(9, { name: 'heatpump', desc: 'Heat Pump' });
-        sys.board.valueMaps.heatSources.set(32, { name: 'nochange', desc: 'No Change' });
-
-        sys.board.valueMaps.heatModes = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
-        if (gasHeaterInstalled) sys.board.valueMaps.heatModes.set(3, { name: 'heater', desc: 'Heater' });
-        if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-        else if (solarInstalled) sys.board.valueMaps.heatModes.set(5, { name: 'solar', desc: 'Solar' });
-        if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
-        else if (heatPumpInstalled) sys.board.valueMaps.heatModes.set(9, { name: 'heatpump', desc: 'Heat Pump' });
-        // Now set the body data.
-        for (let i = 0; i < sys.bodies.length; i++) {
-            let body = sys.bodies.getItemByIndex(i);
-            let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
-            let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
-            btemp.heaterOptions = opts;
-        }
-        this.setActiveTempSensors();
-    }
-    public initTempSensors() {
-        // Add in the potential sensors and delete the ones that shouldn't exist.
-        let maxPairs = sys.equipment.maxBodies + (sys.equipment.shared ? -1 : 0);
-        sys.equipment.tempSensors.getItemById('air', true, { id: 'air', isActive: true, calibration: 0 }).name = 'Air';
-        sys.equipment.tempSensors.getItemById('water1', true, { id: 'water1', isActive: true, calibration: 0 }).name = maxPairs == 1 ? 'Water' : 'Body 1';
-        sys.equipment.tempSensors.getItemById('solar1', true, { id: 'solar1', isActive: false, calibration: 0 }).name = maxPairs == 1 ? 'Solar' : 'Solar 1';
-        if (maxPairs > 1) {
-            sys.equipment.tempSensors.getItemById('water2', true, { id: 'water2', isActive: false, calibration: 0 }).name = 'Body 2';
-            sys.equipment.tempSensors.getItemById('solar2', true, { id: 'solar2', isActive: false, calibration: 0 }).name = 'Solar 2';
-        }
-        else {
-            sys.equipment.tempSensors.removeItemById('water2');
-            sys.equipment.tempSensors.removeItemById('solar2');
-        }
-        if (maxPairs > 2) {
-            sys.equipment.tempSensors.getItemById('water3', true, { id: 'water3', isActive: false, calibration: 0 }).name = 'Body 3';
-            sys.equipment.tempSensors.getItemById('solar3', true, { id: 'solar3', isActive: false, calibration: 0 }).name = 'Solar 3';
-        }
-        else {
-            sys.equipment.tempSensors.removeItemById('water3');
-            sys.equipment.tempSensors.removeItemById('solar3');
-        }
-        if (maxPairs > 3) {
-            sys.equipment.tempSensors.getItemById('water4', true, { id: 'water4', isActive: false, calibration: 0 }).name = 'Body 4';
-            sys.equipment.tempSensors.getItemById('solar4', true, { id: 'solar4', isActive: false, calibration: 0 }).name = 'Solar 4';
-        }
-        else {
-            sys.equipment.tempSensors.removeItemById('water4');
-            sys.equipment.tempSensors.removeItemById('solar4');
-        }
-
-    }
-    // Sets the active temp sensors based upon the installed equipment.  At this point all
-    // detectable temp sensors should exist.
-    public setActiveTempSensors() {
-        let htypes;
-        // We are iterating backwards through the sensors array on purpose.  We do this just in case we need
-        // to remove a sensor during the iteration.  This way the index values will not be impacted and we can
-        // safely remove from the array we are iterating.
-        for (let i = sys.equipment.tempSensors.length - 1; i >= 0; i--) {
-            let sensor = sys.equipment.tempSensors.getItemByIndex(i);
-            // The names are normalized in this array.
-            switch (sensor.id) {
-                case 'air':
-                    sensor.isActive = true;
-                    break;
-                case 'water1':
-                    sensor.isActive = sys.equipment.maxBodies > 0;
-                    break;
-                case 'water2':
-                    sensor.isActive = sys.equipment.shared ? sys.equipment.maxBodies > 2 : sys.equipment.maxBodies > 1;
-                    break;
-                case 'water3':
-                    sensor.isActive = sys.equipment.shared ? sys.equipment.maxBodies > 3 : sys.equipment.maxBodies > 2;
-                    break;
-                case 'water4':
-                    // It's a little weird but technically you should be able to install 3 expansions and a i10D personality
-                    // board.  If this situation ever comes up we will see if it works. Whether it reports is another story
-                    // since the 2 message is short a byte for this.
-                    sensor.isActive = sys.equipment.shared ? sys.equipment.maxBodies > 4 : sys.equipment.maxBodies > 3;
-                    break;
-                // Solar sensors are funny ducks. This is because they are for both heatpumps and solar and the equipment
-                // can be installed on specific bodies.  This will be true for heaters installed in expansion panels for *Touch, dual body systems,
-                // and any IntelliCenter with more than one body.  At some point simply implementing the multi-body functions for touch will make
-                // this all work. This will only be with i10D or expansion panels.
-                case 'solar1':
-                    // The first solar sensor is a funny duck in that it should be active for shared systems
-                    // if either body has an active solar heater or heatpump.
-                    htypes = sys.board.heaters.getInstalledHeaterTypes(1);
-                    if ('solar' in htypes || 'heatpump' in htypes) sensor.isActive = true;
-                    else if (sys.equipment.shared) {
-                        htypes = sys.board.heaters.getInstalledHeaterTypes(2);
-                        sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
-                    }
-                    else sensor.isActive = false;
-                    break;
-                case 'solar2':
-                    if (sys.equipment.maxBodies > 1 + (sys.equipment.shared ? 1 : 0)) {
-                        htypes = sys.board.heaters.getInstalledHeaterTypes(2 + (sys.equipment.shared ? 1 : 0));
-                        sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
-                    }
-                    else sensor.isActive = false;
-                    break;
-                case 'solar3':
-                    if (sys.equipment.maxBodies > 2 + (sys.equipment.shared ? 1 : 0)) {
-                        htypes = sys.board.heaters.getInstalledHeaterTypes(3 + (sys.equipment.shared ? 1 : 0));
-                        sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
-                    }
-                    else sensor.isActive = false;
-                    break;
-                case 'solar4':
-                    if (sys.equipment.maxBodies > 3 + (sys.equipment.shared ? 1 : 0)) {
-                        htypes = sys.board.heaters.getInstalledHeaterTypes(4 + (sys.equipment.shared ? 1 : 0));
-                        sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
-                    }
-                    else sensor.isActive = false;
-                    break;
-                default:
-                    if (typeof sensor.id === 'undefined') sys.equipment.tempSensors.removeItemByIndex(i);
-                    break;
+            // Determine whether the heater can be used on this body.
+            let isAssociated = false;
+            let b = sys.board.valueMaps.bodies.transform(heater.body);
+            switch (b.name) {
+              case 'body1':
+              case 'pool':
+                if (body.id === 1) isAssociated = true;
+                break;
+              case 'body2':
+              case 'spa':
+                if (body.id === 2) isAssociated = true;
+                break;
+              case 'poolspa':
+                if (body.id === 1 || body.id === 2) isAssociated = true;
+                break;
+              case 'body3':
+                if (body.id === 3) isAssociated = true;
+                break;
+              case 'body4':
+                if (body.id === 4) isAssociated = true;
+                break;
             }
-        }
-    }
-    // This updates the heater states based upon the installed heaters.  This is true for heaters that are tied to the OCP
-    // and those that are not.
-    public syncHeaterStates() {
-        try {
-            // Go through the installed heaters and bodies to determine whether they should be on.  If there is a
-            // heater that is not controlled by the OCP then we need to determine whether it should be on.
-            let heaters = sys.heaters.toArray();
-            let bodies = state.temps.bodies.toArray();
-            let hon = [];
-            for (let i = 0; i < bodies.length; i++) {
-                let body: BodyTempState = bodies[i];
-                let cfgBody: Body = sys.bodies.getItemById(body.id);
-                let isHeating = false;
-                if (body.isOn) {
-                    if (typeof body.temp === 'undefined' && heaters.length > 0) logger.warn(`The body temperature for ${body.name} cannot be determined. Heater status for this body cannot be calculated.`);
-                    for (let j = 0; j < heaters.length; j++) {
-                        let heater: Heater = heaters[j];
-                        if (heater.isActive === false) continue;
-                        let isOn = false;
-                        let isCooling = false;
-                        let sensorTemp = state.temps.waterSensor1;
-                        if (body.id === 4) sensorTemp = state.temps.waterSensor4;
-                        if (body.id === 3) sensorTemp = state.temps.waterSensor3;
-                        if (body.id === 2 && !sys.equipment.shared) sensorTemp = state.temps.waterSensor2;
-
-                        // Determine whether the heater can be used on this body.
-                        let isAssociated = false;
-                        let b = sys.board.valueMaps.bodies.transform(heater.body);
-                        switch (b.name) {
-                            case 'body1':
-                            case 'pool':
-                                if (body.id === 1) isAssociated = true;
-                                break;
-                            case 'body2':
-                            case 'spa':
-                                if (body.id === 2) isAssociated = true;
-                                break;
-                            case 'poolspa':
-                                if (body.id === 1 || body.id === 2) isAssociated = true;
-                                break;
-                            case 'body3':
-                                if (body.id === 3) isAssociated = true;
-                                break;
-                            case 'body4':
-                                if (body.id === 4) isAssociated = true;
-                                break;
-                        }
-                        // logger.silly(`Heater ${heater.name} is ${isAssociated === true ? '' : 'not '}associated with ${body.name}`);
-                        if (isAssociated) {
-                            let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
-                            let status = sys.board.valueMaps.heatStatus.transform(body.heatStatus);
-                            let hstate = state.heaters.getItemById(heater.id, true);
-                            if (heater.master === 1) {
-                                // We need to do our own calculation as to whether it is on.  This is for Nixie heaters.
-                                let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
-                                switch (htype.name) {
-                                    case 'solar':
-                                        if (mode === 'solar' || mode === 'solarpref') {
-                                            // Measure up against start and stop temp deltas for effective solar heating.
-                                            if (body.temp < cfgBody.heatSetpoint &&
-                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
-                                                isHeating = true;
-                                            }
-                                            else if (heater.coolingEnabled && body.temp > cfgBody.coolSetpoint && state.heliotrope.isNight &&
-                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
-                                                isHeating = true;
-                                                isCooling = true;
-                                            }
-                                        }
-                                        break;
-                                    case 'ultratemp':
-                                        // We need to determine whether we are going to use the air temp or the solar temp
-                                        // for the sensor.
-                                        let deltaTemp = Math.max(state.temps.air, state.temps.solar || 0);
-                                        if (mode === 'ultratemp' || mode === 'ultratemppref') {
-                                            if (body.temp < cfgBody.heatSetpoint &&
-                                                deltaTemp > body.temp + heater.differentialTemp || 0) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
-                                                isHeating = true;
-                                                isCooling = false;
-                                            }
-                                            else if (body.temp > cfgBody.coolSetpoint && heater.coolingEnabled) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpcool');
-                                                isHeating = true;
-                                                isCooling = true;
-                                            }
-                                        }
-                                        break;
-                                    case 'mastertemp':
-                                    case 'maxetherm':
-                                    case 'gas':
-                                        if (mode === 'heater') {
-                                            if (body.temp < cfgBody.setPoint) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                                                isHeating = true;
-                                            }
-                                        }
-                                        else if (mode === 'solarpref' || mode === 'heatpumppref') {
-                                            // If solar should be running gas heater should be off.
-                                            if (body.temp < cfgBody.setPoint &&
-                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) isOn = false;
-                                            else if (body.temp < cfgBody.setPoint) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                                                isHeating = true;
-                                            }
-                                        }
-                                        break;
-                                    case 'heatpump':
-                                        if (mode === 'heatpump' || mode === 'heatpumppref') {
-                                            if (body.temp < cfgBody.setPoint &&
-                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                                                isHeating = true;
-                                            }
-                                        }
-                                        break;
-                                    default:
-                                        isOn = utils.makeBool(hstate.isOn);
-                                        break;
-                                }
-                                logger.debug(`Heater Type: ${htype.name} Mode:${mode} Temp: ${body.temp} Setpoint: ${cfgBody.setPoint} Status: ${body.heatStatus}`);
-                            }
-                            else {
-                                let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
-                                switch (htype.name) {
-                                    case 'mastertemp':
-                                    case 'maxetherm':
-                                    case 'gas':
-                                        if (status === 'heater') isHeating = isOn = true;
-                                        break;
-                                    case 'hybrid':
-                                    case 'ultratemp':
-                                    case 'heatpump':
-                                        if (mode === 'ultratemp' || mode === 'ultratemppref' || mode === 'heatpump' || mode === 'heatpumppref') {
-                                            if (status === 'heater') isHeating = isOn = true;
-                                            else if (status === 'cooling') isCooling = isOn = true;
-                                        }
-                                        break;
-                                    case 'solar':
-                                        if (mode === 'solar' || mode === 'solarpref') {
-                                            if (status === 'solar') isHeating = isOn = true;
-                                            else if (status === 'cooling') isCooling = isOn = true;
-                                        }
-                                        break;
-                                }
-                            }
-                            if (isOn === true && typeof hon.find(elem => elem === heater.id) === 'undefined') {
-                                hon.push(heater.id);
-                                if (heater.master === 1 && isOn) (async () => {
-                                    try {
-                                        await ncp.heaters.setHeaterStateAsync(hstate, isOn, isCooling);
-                                    } catch (err) { logger.error(err.message); }
-                                })();
-                                else hstate.isOn = isOn;
-                            }
-                        }
+            // logger.silly(`Heater ${heater.name} is ${isAssociated === true ? '' : 'not '}associated with ${body.name}`);
+            if (isAssociated) {
+              let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
+              let status = sys.board.valueMaps.heatStatus.transform(body.heatStatus);
+              let hstate = state.heaters.getItemById(heater.id, true);
+              if (heater.master === 1) {
+                // We need to do our own calculation as to whether it is on.  This is for Nixie heaters.
+                let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
+                switch (htype.name) {
+                  case 'solar':
+                    if (mode === 'solar' || mode === 'solarpref') {
+                      // Measure up against start and stop temp deltas for effective solar heating.
+                      if (body.temp < cfgBody.heatSetpoint &&
+                        state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                        isOn = true;
+                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                        isHeating = true;
+                      }
+                      else if (heater.coolingEnabled && body.temp > cfgBody.coolSetpoint && state.heliotrope.isNight &&
+                        state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                        isOn = true;
+                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
+                        isHeating = true;
+                        isCooling = true;
+                      }
                     }
+                    break;
+                  case 'ultratemp':
+                    // We need to determine whether we are going to use the air temp or the solar temp
+                    // for the sensor.
+                    let deltaTemp = Math.max(state.temps.air, state.temps.solar || 0);
+                    if (mode === 'ultratemp' || mode === 'ultratemppref') {
+                      if (body.temp < cfgBody.heatSetpoint &&
+                        deltaTemp > body.temp + heater.differentialTemp || 0) {
+                        isOn = true;
+                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                        isHeating = true;
+                        isCooling = false;
+                      }
+                      else if (body.temp > cfgBody.coolSetpoint && heater.coolingEnabled) {
+                        isOn = true;
+                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpcool');
+                        isHeating = true;
+                        isCooling = true;
+                      }
+                    }
+                    break;
+                  case 'mastertemp':
+                  case 'maxetherm':
+                  case 'gas':
+                    if (mode === 'heater') {
+                      if (body.temp < cfgBody.setPoint) {
+                        isOn = true;
+                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                        isHeating = true;
+                      }
+                    }
+                    else if (mode === 'solarpref' || mode === 'heatpumppref') {
+                      // If solar should be running gas heater should be off.
+                      if (body.temp < cfgBody.setPoint &&
+                        state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) isOn = false;
+                      else if (body.temp < cfgBody.setPoint) {
+                        isOn = true;
+                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                        isHeating = true;
+                      }
+                    }
+                    break;
+                  case 'heatpump':
+                    if (mode === 'heatpump' || mode === 'heatpumppref') {
+                      if (body.temp < cfgBody.setPoint &&
+                        state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                        isOn = true;
+                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                        isHeating = true;
+                      }
+                    }
+                    break;
+                  default:
+                    isOn = utils.makeBool(hstate.isOn);
+                    break;
                 }
-                // When the controller is a virtual one we need to control the heat status ourselves.
-                if (!isHeating && (sys.controllerType === ControllerType.Virtual || sys.controllerType === ControllerType.Nixie)) body.heatStatus = 0;
-            }
-            // Turn off any heaters that should be off.  The code above only turns heaters on.
-            for (let i = 0; i < heaters.length; i++) {
-                let heater: Heater = heaters[i];
-                if (typeof hon.find(elem => elem === heater.id) === 'undefined') {
-                    let hstate = state.heaters.getItemById(heater.id, true);
-                    if (heater.master === 1) (async () => {
-                        try {
-                            await ncp.heaters.setHeaterStateAsync(hstate, false, false);
-                        } catch (err) { logger.error(err.message); }
-                    })();
-                    else hstate.isOn = false;
+                logger.debug(`Heater Type: ${htype.name} Mode:${mode} Temp: ${body.temp} Setpoint: ${cfgBody.setPoint} Status: ${body.heatStatus}`);
+              }
+              else {
+                let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
+                switch (htype.name) {
+                  case 'mastertemp':
+                  case 'maxetherm':
+                  case 'gas':
+                    if (status === 'heater') isHeating = isOn = true;
+                    break;
+                  case 'hybrid':
+                  case 'ultratemp':
+                  case 'heatpump':
+                    if (mode === 'ultratemp' || mode === 'ultratemppref' || mode === 'heatpump' || mode === 'heatpumppref') {
+                      if (status === 'heater') isHeating = isOn = true;
+                      else if (status === 'cooling') isCooling = isOn = true;
+                    }
+                    break;
+                  case 'solar':
+                    if (mode === 'solar' || mode === 'solarpref') {
+                      if (status === 'solar') isHeating = isOn = true;
+                      else if (status === 'cooling') isCooling = isOn = true;
+                    }
+                    break;
                 }
+              }
+              if (isOn === true && typeof hon.find(elem => elem === heater.id) === 'undefined') {
+                hon.push(heater.id);
+                if (heater.master === 1 && isOn) (async () => {
+                  try {
+                    await ncp.heaters.setHeaterStateAsync(hstate, isOn, isCooling);
+                  } catch (err) { logger.error(err.message); }
+                })();
+                else hstate.isOn = isOn;
+              }
             }
-        } catch (err) { logger.error(`Error synchronizing heater states`); }
-    }
+          }
+        }
+        // When the controller is a virtual one we need to control the heat status ourselves.
+        if (!isHeating && (sys.controllerType === ControllerType.Nixie)) body.heatStatus = 0;
+      }
+      // Turn off any heaters that should be off.  The code above only turns heaters on.
+      for (let i = 0; i < heaters.length; i++) {
+        let heater: Heater = heaters[i];
+        if (typeof hon.find(elem => elem === heater.id) === 'undefined') {
+          let hstate = state.heaters.getItemById(heater.id, true);
+          if (heater.master === 1) (async () => {
+            try {
+              await ncp.heaters.setHeaterStateAsync(hstate, false, false);
+            } catch (err) { logger.error(err.message); }
+          })();
+          else hstate.isOn = false;
+        }
+      }
+    } catch (err) { logger.error(`Error synchronizing heater states`); }
+  }
 }
 export class ValveCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+  public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+    try {
+      // First delete the valves that should be removed.
+      for (let i = 0; i < ctx.valves.remove.length; i++) {
+        let v = ctx.valves.remove[i];
         try {
-            // First delete the valves that should be removed.
-            for (let i = 0; i < ctx.valves.remove.length; i++) {
-                let v = ctx.valves.remove[i];
-                try {
-                    await sys.board.valves.deleteValveAsync(v);
-                    res.addModuleSuccess('valve', `Remove: ${v.id}-${v.name}`);
-                } catch (err) { res.addModuleError('valve', `Remove: ${v.id}-${v.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.valves.update.length; i++) {
-                let v = ctx.valves.update[i];
-                try {
-                    await sys.board.valves.setValveAsync(v);
-                    res.addModuleSuccess('valve', `Update: ${v.id}-${v.name}`);
-                } catch (err) { res.addModuleError('valve', `Update: ${v.id}-${v.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.valves.add.length; i++) {
-                let v = ctx.valves.add[i];
-                try {
-                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-                    // it won't error out.
-                    sys.valves.getItemById(ctx.valves.add[i].id, true);
-                    await sys.board.valves.setValveAsync(v);
-                    res.addModuleSuccess('valve', `Add: ${v.id}-${v.name}`);
-                } catch (err) { res.addModuleError('valve', `Add: ${v.id}-${v.name}: ${err.message}`); }
-            }
-            return true;
-        } catch (err) { logger.error(`Error restoring valves: ${err.message}`); res.addModuleError('system', `Error restoring valves: ${err.message}`); return false; }
-    }
+          await sys.board.valves.deleteValveAsync(v);
+          res.addModuleSuccess('valve', `Remove: ${v.id}-${v.name}`);
+        } catch (err) { res.addModuleError('valve', `Remove: ${v.id}-${v.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.valves.update.length; i++) {
+        let v = ctx.valves.update[i];
+        try {
+          await sys.board.valves.setValveAsync(v);
+          res.addModuleSuccess('valve', `Update: ${v.id}-${v.name}`);
+        } catch (err) { res.addModuleError('valve', `Update: ${v.id}-${v.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.valves.add.length; i++) {
+        let v = ctx.valves.add[i];
+        try {
+          // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+          // it won't error out.
+          sys.valves.getItemById(ctx.valves.add[i].id, true);
+          await sys.board.valves.setValveAsync(v);
+          res.addModuleSuccess('valve', `Add: ${v.id}-${v.name}`);
+        } catch (err) { res.addModuleError('valve', `Add: ${v.id}-${v.name}: ${err.message}`); }
+      }
+      return true;
+    } catch (err) { logger.error(`Error restoring valves: ${err.message}`); res.addModuleError('system', `Error restoring valves: ${err.message}`); return false; }
+  }
 
-    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
-        try {
-            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-            // Look at valves.
-            let cfg = rest.poolConfig;
-            for (let i = 0; i < cfg.valves.length; i++) {
-                let r = cfg.valves[i];
-                let c = sys.valves.find(elem => r.id === elem.id);
-                if (typeof c === 'undefined') ctx.add.push(r);
-                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-            }
-            for (let i = 0; i < sys.valves.length; i++) {
-                let c = sys.valves.getItemByIndex(i);
-                let r = cfg.valves.find(elem => elem.id == c.id);
-                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-            }
-            return ctx;
-        } catch (err) { logger.error(`Error validating valves for restore: ${err.message}`); }
-    }
+  public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+    try {
+      let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+      // Look at valves.
+      let cfg = rest.poolConfig;
+      for (let i = 0; i < cfg.valves.length; i++) {
+        let r = cfg.valves[i];
+        let c = sys.valves.find(elem => r.id === elem.id);
+        if (typeof c === 'undefined') ctx.add.push(r);
+        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+      }
+      for (let i = 0; i < sys.valves.length; i++) {
+        let c = sys.valves.getItemByIndex(i);
+        let r = cfg.valves.find(elem => elem.id == c.id);
+        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+      }
+      return ctx;
+    } catch (err) { logger.error(`Error validating valves for restore: ${err.message}`); }
+  }
 
-    public async setValveStateAsync(valve: Valve, vstate: ValveState, isDiverted: boolean) {
-        if (valve.master === 1) await ncp.valves.setValveStateAsync(vstate, isDiverted);
-        else
-            vstate.isDiverted = isDiverted;
-    }
-    public async setValveAsync(obj: any): Promise<Valve> {
-        try {
-            let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
-            obj.master = 1;
-            if (isNaN(id) || id <= 0) id = Math.max(sys.valves.getMaxId(false, 49) + 1, 50);
+  public async setValveStateAsync(valve: Valve, vstate: ValveState, isDiverted: boolean) {
+    if (valve.master === 1) await ncp.valves.setValveStateAsync(vstate, isDiverted);
+    else
+      vstate.isDiverted = isDiverted;
+  }
+  public async setValveAsync(obj: any): Promise<Valve> {
+    try {
+      let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+      obj.master = 1;
+      if (isNaN(id) || id <= 0) id = Math.max(sys.valves.getMaxId(false, 49) + 1, 50);
 
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Nixie: Valve Id has not been defined ${id}`, obj.id, 'Valve'));
-            // Check the Nixie Control Panel to make sure the valve exist there.  If it needs to be added then we should add it.
-            let valve = sys.valves.getItemById(id, true);
-            // Set all the valve properies.
-            let vstate = state.valves.getItemById(valve.id, true);
-            valve.isActive = true;
-            valve.circuit = typeof obj.circuit !== 'undefined' ? obj.circuit : valve.circuit;
-            valve.name = typeof obj.name !== 'undefined' ? obj.name : valve.name;
-            valve.connectionId = typeof obj.connectionId ? obj.connectionId : valve.connectionId;
-            valve.deviceBinding = typeof obj.deviceBinding !== 'undefined' ? obj.deviceBinding : valve.deviceBinding;
-            valve.pinId = typeof obj.pinId !== 'undefined' ? obj.pinId : valve.pinId;
-            await ncp.valves.setValveAsync(valve, obj);
-            sys.board.valves.syncValveStates();
-            return valve;
-        } catch (err) { logger.error(`Nixie: Error setting valve definition. ${err.message}`); return Promise.reject(err); }
-    }
+      if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Nixie: Valve Id has not been defined ${id}`, obj.id, 'Valve'));
+      // Check the Nixie Control Panel to make sure the valve exist there.  If it needs to be added then we should add it.
+      let valve = sys.valves.getItemById(id, true);
+      // Set all the valve properies.
+      let vstate = state.valves.getItemById(valve.id, true);
+      valve.isActive = true;
+      valve.circuit = typeof obj.circuit !== 'undefined' ? obj.circuit : valve.circuit;
+      valve.name = typeof obj.name !== 'undefined' ? obj.name : valve.name;
+      valve.connectionId = typeof obj.connectionId ? obj.connectionId : valve.connectionId;
+      valve.deviceBinding = typeof obj.deviceBinding !== 'undefined' ? obj.deviceBinding : valve.deviceBinding;
+      valve.pinId = typeof obj.pinId !== 'undefined' ? obj.pinId : valve.pinId;
+      await ncp.valves.setValveAsync(valve, obj);
+      sys.board.valves.syncValveStates();
+      return valve;
+    } catch (err) { logger.error(`Nixie: Error setting valve definition. ${err.message}`); return Promise.reject(err); }
+  }
 
-    public async deleteValveAsync(obj: any): Promise<Valve> {
-        let id = parseInt(obj.id, 10);
-        try {
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
-            let valve = sys.valves.getItemById(id, false);
-            let vstate = state.valves.getItemById(id);
-            if (valve.master === 1) await ncp.valves.deleteValveAsync(id);
-            valve.isActive = false;
-            vstate.hasChanged = true;
-            vstate.emitEquipmentChange();
-            sys.valves.removeItemById(id);
-            state.valves.removeItemById(id);
-            return valve;
-        } catch (err) { return Promise.reject(new Error(`Error deleting valve: ${err.message}`)); }
-        // The following code will make sure we do not encroach on any valves defined by the OCP.
-    }
-    public async syncValveStates() {
-        try {
-            for (let i = 0; i < sys.valves.length; i++) {
-                // Run through all the valves to see whether they should be triggered or not.
-                let valve = sys.valves.getItemByIndex(i);
-                if (valve.isActive) {
-                    let vstate = state.valves.getItemById(valve.id, true);
-                    let isDiverted = vstate.isDiverted;
-                    if (typeof valve.circuit !== 'undefined' && valve.circuit > 0) {
-                        if (sys.equipment.shared && valve.isIntake === true)
-                            isDiverted = utils.makeBool(state.circuits.getItemById(1).isOn); // If the spa is on then the intake is diverted.
-                        else if (sys.equipment.shared && valve.isReturn === true) {
-                            // Check to see if there is a spillway circuit or feature on.  If it is on then the return will be diverted no mater what.
-                            let spillway = typeof state.circuits.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined' ||
-                                typeof state.features.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined';
-                            isDiverted = utils.makeBool(spillway || state.circuits.getItemById(1).isOn);
-                        }
-                        else {
-                            let circ = state.circuits.getInterfaceById(valve.circuit);
-                            isDiverted = utils.makeBool(circ.isOn);
-                        }
-                    }
-                    else
-                        isDiverted = false;
-                    vstate.type = valve.type;
-                    vstate.name = valve.name;
-                    await sys.board.valves.setValveStateAsync(valve, vstate, isDiverted);
-                }
+  public async deleteValveAsync(obj: any): Promise<Valve> {
+    let id = parseInt(obj.id, 10);
+    try {
+      if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Valve Id has not been defined', obj.id, 'Valve'));
+      let valve = sys.valves.getItemById(id, false);
+      let vstate = state.valves.getItemById(id);
+      if (valve.master === 1) await ncp.valves.deleteValveAsync(id);
+      valve.isActive = false;
+      vstate.hasChanged = true;
+      vstate.emitEquipmentChange();
+      sys.valves.removeItemById(id);
+      state.valves.removeItemById(id);
+      return valve;
+    } catch (err) { return Promise.reject(new Error(`Error deleting valve: ${err.message}`)); }
+    // The following code will make sure we do not encroach on any valves defined by the OCP.
+  }
+  public async syncValveStates() {
+    try {
+      for (let i = 0; i < sys.valves.length; i++) {
+        // Run through all the valves to see whether they should be triggered or not.
+        let valve = sys.valves.getItemByIndex(i);
+        if (valve.isActive) {
+          let vstate = state.valves.getItemById(valve.id, true);
+          let isDiverted = vstate.isDiverted;
+          if (typeof valve.circuit !== 'undefined' && valve.circuit > 0) {
+            if (sys.equipment.shared && valve.isIntake === true)
+              isDiverted = utils.makeBool(state.circuits.getItemById(1).isOn); // If the spa is on then the intake is diverted.
+            else if (sys.equipment.shared && valve.isReturn === true) {
+              // Check to see if there is a spillway circuit or feature on.  If it is on then the return will be diverted no mater what.
+              let spillway = typeof state.circuits.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined' ||
+                typeof state.features.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined';
+              isDiverted = utils.makeBool(spillway || state.circuits.getItemById(1).isOn);
             }
-        } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
-    }
+            else {
+              let circ = state.circuits.getInterfaceById(valve.circuit);
+              isDiverted = utils.makeBool(circ.isOn);
+            }
+          }
+          else
+            isDiverted = false;
+          vstate.type = valve.type;
+          vstate.name = valve.name;
+          await sys.board.valves.setValveStateAsync(valve, vstate, isDiverted);
+        }
+      }
+    } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
+  }
 }
 export class ChemControllerCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+  public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+    try {
+      // First delete the chemControllers that should be removed.
+      for (let i = 0; i < ctx.chemControllers.remove.length; i++) {
+        let c = ctx.chemControllers.remove[i];
         try {
-            // First delete the chemControllers that should be removed.
-            for (let i = 0; i < ctx.chemControllers.remove.length; i++) {
-                let c = ctx.chemControllers.remove[i];
-                try {
-                    await sys.board.chemControllers.deleteChemControllerAsync(c);
-                    res.addModuleSuccess('chemController', `Remove: ${c.id}-${c.name}`);
-                } catch (err) { res.addModuleError('chemController', `Remove: ${c.id}-${c.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.chemControllers.update.length; i++) {
-                let c = ctx.chemControllers.update[i];
-                try {
-                    await sys.board.chemControllers.setChemControllerAsync(c);
-                    res.addModuleSuccess('chemController', `Update: ${c.id}-${c.name}`);
-                } catch (err) { res.addModuleError('chemController', `Update: ${c.id}-${c.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.chemControllers.add.length; i++) {
-                let c = ctx.chemControllers.add[i];
-                try {
-                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-                    // it won't error out.
-                    sys.chemControllers.getItemById(c, true);
-                    await sys.board.chemControllers.setChemControllerAsync(c);
-                    res.addModuleSuccess('chemController', `Add: ${c.id}-${c.name}`);
-                } catch (err) { res.addModuleError('chemController', `Add: ${c.id}-${c.name}: ${err.message}`); }
-            }
-            return true;
-        } catch (err) { logger.error(`Error restoring chemControllers: ${err.message}`); res.addModuleError('system', `Error restoring chemControllers: ${err.message}`); return false; }
-    }
-    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+          await sys.board.chemControllers.deleteChemControllerAsync(c);
+          res.addModuleSuccess('chemController', `Remove: ${c.id}-${c.name}`);
+        } catch (err) { res.addModuleError('chemController', `Remove: ${c.id}-${c.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.chemControllers.update.length; i++) {
+        let c = ctx.chemControllers.update[i];
         try {
-            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-            // Look at chemControllers.
-            let cfg = rest.poolConfig;
-            for (let i = 0; i < cfg.chemControllers.length; i++) {
-                let r = cfg.chemControllers[i];
-                let c = sys.chemControllers.find(elem => r.id === elem.id);
-                if (typeof c === 'undefined') ctx.add.push(r);
-                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-            }
-            for (let i = 0; i < sys.chemControllers.length; i++) {
-                let c = sys.chemControllers.getItemByIndex(i);
-                let r = cfg.chemControllers.find(elem => elem.id == c.id);
-                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-            }
-            return ctx;
-        } catch (err) { logger.error(`Error validating chemControllers for restore: ${err.message}`); }
-    }
+          await sys.board.chemControllers.setChemControllerAsync(c);
+          res.addModuleSuccess('chemController', `Update: ${c.id}-${c.name}`);
+        } catch (err) { res.addModuleError('chemController', `Update: ${c.id}-${c.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.chemControllers.add.length; i++) {
+        let c = ctx.chemControllers.add[i];
+        try {
+          // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+          // it won't error out.
+          sys.chemControllers.getItemById(c, true);
+          await sys.board.chemControllers.setChemControllerAsync(c);
+          res.addModuleSuccess('chemController', `Add: ${c.id}-${c.name}`);
+        } catch (err) { res.addModuleError('chemController', `Add: ${c.id}-${c.name}: ${err.message}`); }
+      }
+      return true;
+    } catch (err) { logger.error(`Error restoring chemControllers: ${err.message}`); res.addModuleError('system', `Error restoring chemControllers: ${err.message}`); return false; }
+  }
+  public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+    try {
+      let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+      // Look at chemControllers.
+      let cfg = rest.poolConfig;
+      for (let i = 0; i < cfg.chemControllers.length; i++) {
+        let r = cfg.chemControllers[i];
+        let c = sys.chemControllers.find(elem => r.id === elem.id);
+        if (typeof c === 'undefined') ctx.add.push(r);
+        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+      }
+      for (let i = 0; i < sys.chemControllers.length; i++) {
+        let c = sys.chemControllers.getItemByIndex(i);
+        let r = cfg.chemControllers.find(elem => elem.id == c.id);
+        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+      }
+      return ctx;
+    } catch (err) { logger.error(`Error validating chemControllers for restore: ${err.message}`); }
+  }
 
   public async deleteChemControllerAsync(data: any): Promise<ChemController> {
     try {
@@ -3918,197 +3958,197 @@ export class ChemControllerCommands extends BoardCommands {
   }
 }
 export class FilterCommands extends BoardCommands {
-    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+  public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+    try {
+      // First delete the filters that should be removed.
+      for (let i = 0; i < ctx.filters.remove.length; i++) {
+        let filter = ctx.filters.remove[i];
         try {
-            // First delete the filters that should be removed.
-            for (let i = 0; i < ctx.filters.remove.length; i++) {
-                let filter = ctx.filters.remove[i];
-                try {
-                    sys.filters.removeItemById(filter.id);
-                    state.filters.removeItemById(filter.id);
-                    res.addModuleSuccess('filter', `Remove: ${filter.id}-${filter.name}`);
-                } catch (err) { res.addModuleError('filter', `Remove: ${filter.id}-${filter.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.filters.update.length; i++) {
-                let filter = ctx.filters.update[i];
-                try {
-                    await sys.board.filters.setFilterAsync(filter);
-                    res.addModuleSuccess('filter', `Update: ${filter.id}-${filter.name}`);
-                } catch (err) { res.addModuleError('filter', `Update: ${filter.id}-${filter.name}: ${err.message}`); }
-            }
-            for (let i = 0; i < ctx.filters.add.length; i++) {
-                let filter = ctx.filters.add[i];
-                try {
-                    // pull a little trick to first add the data then perform the update.
-                    sys.filters.getItemById(filter.id, true);
-                    await sys.board.filters.setFilterAsync(filter);
-                    res.addModuleSuccess('filter', `Add: ${filter.id}-${filter.name}`);
-                } catch (err) { res.addModuleError('filter', `Add: ${filter.id}-${filter.name}: ${err.message}`); }
-            }
-            return true;
-        } catch (err) { logger.error(`Error restoring filters: ${err.message}`); res.addModuleError('system', `Error restoring filters: ${err.message}`); return false; }
-    }
-    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+          sys.filters.removeItemById(filter.id);
+          state.filters.removeItemById(filter.id);
+          res.addModuleSuccess('filter', `Remove: ${filter.id}-${filter.name}`);
+        } catch (err) { res.addModuleError('filter', `Remove: ${filter.id}-${filter.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.filters.update.length; i++) {
+        let filter = ctx.filters.update[i];
         try {
-            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-            // Look at filters.
-            let cfg = rest.poolConfig;
-            for (let i = 0; i < cfg.filters.length; i++) {
-                let r = cfg.filters[i];
-                let c = sys.filters.find(elem => r.id === elem.id);
-                if (typeof c === 'undefined') ctx.add.push(r);
-                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-            }
-            for (let i = 0; i < sys.filters.length; i++) {
-                let c = sys.filters.getItemByIndex(i);
-                let r = cfg.filters.find(elem => elem.id == c.id);
-                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-            }
-            return ctx;
-        } catch (err) { logger.error(`Error validating filters for restore: ${err.message}`); }
-    }
+          await sys.board.filters.setFilterAsync(filter);
+          res.addModuleSuccess('filter', `Update: ${filter.id}-${filter.name}`);
+        } catch (err) { res.addModuleError('filter', `Update: ${filter.id}-${filter.name}: ${err.message}`); }
+      }
+      for (let i = 0; i < ctx.filters.add.length; i++) {
+        let filter = ctx.filters.add[i];
+        try {
+          // pull a little trick to first add the data then perform the update.
+          sys.filters.getItemById(filter.id, true);
+          await sys.board.filters.setFilterAsync(filter);
+          res.addModuleSuccess('filter', `Add: ${filter.id}-${filter.name}`);
+        } catch (err) { res.addModuleError('filter', `Add: ${filter.id}-${filter.name}: ${err.message}`); }
+      }
+      return true;
+    } catch (err) { logger.error(`Error restoring filters: ${err.message}`); res.addModuleError('system', `Error restoring filters: ${err.message}`); return false; }
+  }
+  public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+    try {
+      let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+      // Look at filters.
+      let cfg = rest.poolConfig;
+      for (let i = 0; i < cfg.filters.length; i++) {
+        let r = cfg.filters[i];
+        let c = sys.filters.find(elem => r.id === elem.id);
+        if (typeof c === 'undefined') ctx.add.push(r);
+        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+      }
+      for (let i = 0; i < sys.filters.length; i++) {
+        let c = sys.filters.getItemByIndex(i);
+        let r = cfg.filters.find(elem => elem.id == c.id);
+        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+      }
+      return ctx;
+    } catch (err) { logger.error(`Error validating filters for restore: ${err.message}`); }
+  }
 
-    public async syncFilterStates() {
-        try {
-            for (let i = 0; i < sys.filters.length; i++) {
-                // Run through all the valves to see whether they should be triggered or not.
-                let filter = sys.filters.getItemByIndex(i);
-                if (filter.isActive && !isNaN(filter.id)) {
-                    let fstate = state.filters.getItemById(filter.id, true);
-                    // Check to see if the associated body is on.
-                    await sys.board.filters.setFilterStateAsync(filter, fstate, sys.board.bodies.isBodyOn(filter.body));
-                }
-            }
-        } catch (err) { logger.error(`syncFilterStates: Error synchronizing filters ${err.message}`); }
-    }
-    public async setFilterPressure(id: number, pressure: number, units?: string) {
-        try {
-            let filter = sys.filters.find(elem => elem.id === id);
-            if (typeof filter === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`setFilterPressure: Invalid equipmentId ${id}`, id, 'Filter'));
-            if (isNaN(pressure)) return Promise.reject(new InvalidEquipmentDataError(`setFilterPressure: Invalid filter pressure ${pressure} for ${filter.name}`, 'Filter', pressure));
-            let sfilter = state.filters.getItemById(filter.id, true);
-            // Convert the pressure to the units that we have set on the filter for the pressure units.
-            let pu = sys.board.valueMaps.pressureUnits.transform(filter.pressureUnits || 0);
-            if (typeof units === 'undefined' || units === '') units = pu.name;
-            sfilter.pressureUnits = filter.pressureUnits;
-            sfilter.pressure = Math.round(pressure * 1000) / 1000; // Round this to 3 decimal places just in case we are getting stupid scales.
-            // Check to see if our circuit is the only thing on.  If it is then we will be setting our current clean pressure to the incoming pressure and calculating a percentage.
-            // Rules for the circuit.
-            // 1. The assigned circuit must be on.
-            // 2. There must not be a current freeze condition
-            // 3. No heaters can be on.
-            // 4. The assigned circuit must be on exclusively but we will be ignoring any of the light circuit types for the exclusivity.
-            let cstate = state.circuits.getInterfaceById(filter.pressureCircuitId);
-            if (cstate.isOn && state.freeze !== true) {
-                // Ok so our circuit is on.  We need to check to see if any other circuits are on.  This includes heaters.  The reason for this is that even with
-                // a gas heater there may be a heater bypass that will screw up our numbers.  Certainly reflow on a solar heater will skew the numbers.
-                let hon = state.temps.bodies.toArray().find(elem => elem.isOn && (elem.heatStatus || 0) !== 0);
-                if (typeof hon === 'undefined') {
-                    // Put together the circuit types that could be lights.  We don't want these.
-                    let ctypes = [];
-                    let funcs = sys.board.valueMaps.circuitFunctions.toArray();
-                    for (let i = 0; i < funcs.length; i++) {
-                        let f = funcs[i];
-                        if (f.isLight) ctypes.push(f.val);
-                    }
-                    let con = state.circuits.find(elem => elem.isOn === true && elem.id !== filter.pressureCircuitId && elem.id !== 1 && elem.id !== 6 && !ctypes.includes(elem.type));
-                    if (typeof con === 'undefined') {
-                        // This check is the one that will be the most problematic.  For this reason we are only going to check features that are not generic.  If they are spillway
-                        // it definitely has to be off.
-                        let feats = state.features.toArray();
-                        let fon = false;
-                        for (let i = 0; i < feats.length && fon === false; i++) {
-                            let f = feats[i];
-                            if (!f.isOn) continue;
-                            if (f.id === filter.pressureCircuitId) continue;
-                            if (f.type !== 0) fon = true;
-                            // Check to see if this feature is used on a valve.  This will make it
-                            // not include this pressure either.  We do not care whether the valve is diverted or not.
-                            if (typeof sys.valves.find(elem => elem.circuitId === f.id) !== 'undefined')
-                                fon = true;
-                            else {
-                                // Finally if the feature happens to be used on a pump then we don't want it either.
-                                let pumps = sys.pumps.get();
-                                for (let j = 0; j < pumps.length; j++) {
-                                    let pmp = pumps[j];
-                                    if (typeof pmp.circuits !== 'undefined') {
-                                        if (typeof pmp.circuits.find(elem => elem.circuit === f.id) !== 'undefined') {
-                                            fon = true;
-                                            break;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        if (!fon) {
-                            // Finally we have a value we can believe in.
-                            sfilter.refPressure = pressure;
-                        }
-                    }
-                    else {
-                        logger.verbose(`Circuit ${con.id}-${con.name} is currently on filter pressure for cleaning ignored.`);
-                    }
-                }
-                else {
-                    logger.verbose(`Heater for body ${hon.name} is currently on ${hon.heatStatus} filter pressure for cleaning skipped.`);
-                }
-            }
-            sfilter.emitEquipmentChange();
+  public async syncFilterStates() {
+    try {
+      for (let i = 0; i < sys.filters.length; i++) {
+        // Run through all the valves to see whether they should be triggered or not.
+        let filter = sys.filters.getItemByIndex(i);
+        if (filter.isActive && !isNaN(filter.id)) {
+          let fstate = state.filters.getItemById(filter.id, true);
+          // Check to see if the associated body is on.
+          await sys.board.filters.setFilterStateAsync(filter, fstate, sys.board.bodies.isBodyOn(filter.body));
         }
-        catch (err) { logger.error(`setFilterPressure: Error setting filter #${id} pressure to ${pressure}${units || ''}`); }
+      }
+    } catch (err) { logger.error(`syncFilterStates: Error synchronizing filters ${err.message}`); }
+  }
+  public async setFilterPressure(id: number, pressure: number, units?: string) {
+    try {
+      let filter = sys.filters.find(elem => elem.id === id);
+      if (typeof filter === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`setFilterPressure: Invalid equipmentId ${id}`, id, 'Filter'));
+      if (isNaN(pressure)) return Promise.reject(new InvalidEquipmentDataError(`setFilterPressure: Invalid filter pressure ${pressure} for ${filter.name}`, 'Filter', pressure));
+      let sfilter = state.filters.getItemById(filter.id, true);
+      // Convert the pressure to the units that we have set on the filter for the pressure units.
+      let pu = sys.board.valueMaps.pressureUnits.transform(filter.pressureUnits || 0);
+      if (typeof units === 'undefined' || units === '') units = pu.name;
+      sfilter.pressureUnits = filter.pressureUnits;
+      sfilter.pressure = Math.round(pressure * 1000) / 1000; // Round this to 3 decimal places just in case we are getting stupid scales.
+      // Check to see if our circuit is the only thing on.  If it is then we will be setting our current clean pressure to the incoming pressure and calculating a percentage.
+      // Rules for the circuit.
+      // 1. The assigned circuit must be on.
+      // 2. There must not be a current freeze condition
+      // 3. No heaters can be on.
+      // 4. The assigned circuit must be on exclusively but we will be ignoring any of the light circuit types for the exclusivity.
+      let cstate = state.circuits.getInterfaceById(filter.pressureCircuitId);
+      if (cstate.isOn && state.freeze !== true) {
+        // Ok so our circuit is on.  We need to check to see if any other circuits are on.  This includes heaters.  The reason for this is that even with
+        // a gas heater there may be a heater bypass that will screw up our numbers.  Certainly reflow on a solar heater will skew the numbers.
+        let hon = state.temps.bodies.toArray().find(elem => elem.isOn && (elem.heatStatus || 0) !== 0);
+        if (typeof hon === 'undefined') {
+          // Put together the circuit types that could be lights.  We don't want these.
+          let ctypes = [];
+          let funcs = sys.board.valueMaps.circuitFunctions.toArray();
+          for (let i = 0; i < funcs.length; i++) {
+            let f = funcs[i];
+            if (f.isLight) ctypes.push(f.val);
+          }
+          let con = state.circuits.find(elem => elem.isOn === true && elem.id !== filter.pressureCircuitId && elem.id !== 1 && elem.id !== 6 && !ctypes.includes(elem.type));
+          if (typeof con === 'undefined') {
+            // This check is the one that will be the most problematic.  For this reason we are only going to check features that are not generic.  If they are spillway
+            // it definitely has to be off.
+            let feats = state.features.toArray();
+            let fon = false;
+            for (let i = 0; i < feats.length && fon === false; i++) {
+              let f = feats[i];
+              if (!f.isOn) continue;
+              if (f.id === filter.pressureCircuitId) continue;
+              if (f.type !== 0) fon = true;
+              // Check to see if this feature is used on a valve.  This will make it
+              // not include this pressure either.  We do not care whether the valve is diverted or not.
+              if (typeof sys.valves.find(elem => elem.circuitId === f.id) !== 'undefined')
+                fon = true;
+              else {
+                // Finally if the feature happens to be used on a pump then we don't want it either.
+                let pumps = sys.pumps.get();
+                for (let j = 0; j < pumps.length; j++) {
+                  let pmp = pumps[j];
+                  if (typeof pmp.circuits !== 'undefined') {
+                    if (typeof pmp.circuits.find(elem => elem.circuit === f.id) !== 'undefined') {
+                      fon = true;
+                      break;
+                    }
+                  }
+                }
+              }
+            }
+            if (!fon) {
+              // Finally we have a value we can believe in.
+              sfilter.refPressure = pressure;
+            }
+          }
+          else {
+            logger.verbose(`Circuit ${con.id}-${con.name} is currently on filter pressure for cleaning ignored.`);
+          }
+        }
+        else {
+          logger.verbose(`Heater for body ${hon.name} is currently on ${hon.heatStatus} filter pressure for cleaning skipped.`);
+        }
+      }
+      sfilter.emitEquipmentChange();
     }
-    public async setFilterStateAsync(filter: Filter, fstate: FilterState, isOn: boolean) { fstate.isOn = isOn; }
-    public async setFilterAsync(data: any): Promise<Filter> {
-        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-        if (id <= 0) id = sys.filters.length + 1; // set max filters?
-        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid filter id: ${data.id}`, data.id, 'Filter'));
-        let filter = sys.filters.getItemById(id, id > 0);
-        let sfilter = state.filters.getItemById(id, id > 0);
-        let filterType = typeof data.filterType !== 'undefined' ? parseInt(data.filterType, 10) : filter.filterType;
-        if (typeof filterType === 'undefined') filterType = sys.board.valueMaps.filterTypes.getValue('unknown');
+    catch (err) { logger.error(`setFilterPressure: Error setting filter #${id} pressure to ${pressure}${units || ''}`); }
+  }
+  public async setFilterStateAsync(filter: Filter, fstate: FilterState, isOn: boolean) { fstate.isOn = isOn; }
+  public async setFilterAsync(data: any): Promise<Filter> {
+    let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+    if (id <= 0) id = sys.filters.length + 1; // set max filters?
+    if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid filter id: ${data.id}`, data.id, 'Filter'));
+    let filter = sys.filters.getItemById(id, id > 0);
+    let sfilter = state.filters.getItemById(id, id > 0);
+    let filterType = typeof data.filterType !== 'undefined' ? parseInt(data.filterType, 10) : filter.filterType;
+    if (typeof filterType === 'undefined') filterType = sys.board.valueMaps.filterTypes.getValue('unknown');
 
-        // The only way to delete a filter is to call deleteFilterAsync.
-        //if (typeof data.isActive !== 'undefined') {
-        //    if (utils.makeBool(data.isActive) === false) {
-        //        sys.filters.removeItemById(id);
-        //        state.filters.removeItemById(id);
-        //        return;
-        //    }
-        //}
+    // The only way to delete a filter is to call deleteFilterAsync.
+    //if (typeof data.isActive !== 'undefined') {
+    //    if (utils.makeBool(data.isActive) === false) {
+    //        sys.filters.removeItemById(id);
+    //        state.filters.removeItemById(id);
+    //        return;
+    //    }
+    //}
 
-        let body = typeof data.body !== 'undefined' ? data.body : filter.body;
-        let name = typeof data.name !== 'undefined' ? data.name : filter.name;
-        if (typeof body === 'undefined') body = 32;
-        // At this point we should have all the data.  Validate it.
-        if (!sys.board.valueMaps.filterTypes.valExists(filterType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid filter type; ${filterType}`, 'Filter', filterType));
+    let body = typeof data.body !== 'undefined' ? data.body : filter.body;
+    let name = typeof data.name !== 'undefined' ? data.name : filter.name;
+    if (typeof body === 'undefined') body = 32;
+    // At this point we should have all the data.  Validate it.
+    if (!sys.board.valueMaps.filterTypes.valExists(filterType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid filter type; ${filterType}`, 'Filter', filterType));
 
-        filter.pressureUnits = typeof data.pressureUnits !== 'undefined' ? data.pressureUnits || 0 : filter.pressureUnits || 0;
-        filter.pressureCircuitId = parseInt(data.pressureCircuitId || filter.pressureCircuitId || 6, 10);
-        filter.cleanPressure = parseFloat(data.cleanPressure || filter.cleanPressure || 0);
-        filter.dirtyPressure = parseFloat(data.dirtyPressure || filter.dirtyPressure || 0);
+    filter.pressureUnits = typeof data.pressureUnits !== 'undefined' ? data.pressureUnits || 0 : filter.pressureUnits || 0;
+    filter.pressureCircuitId = parseInt(data.pressureCircuitId || filter.pressureCircuitId || 6, 10);
+    filter.cleanPressure = parseFloat(data.cleanPressure || filter.cleanPressure || 0);
+    filter.dirtyPressure = parseFloat(data.dirtyPressure || filter.dirtyPressure || 0);
 
-        filter.filterType = sfilter.filterType = filterType;
-        filter.body = sfilter.body = body;
-        filter.name = sfilter.name = name;
-        filter.capacity = typeof data.capacity === 'number' ? data.capacity : filter.capacity;
-        filter.capacityUnits = typeof data.capacityUnits !== 'undefined' ? data.capacityUnits : filter.capacity;
-        filter.connectionId = typeof data.connectionId !== 'undefined' ? data.connectionId : filter.connectionId;
-        filter.deviceBinding = typeof data.deviceBinding !== 'undefined' ? data.deviceBinding : filter.deviceBinding;
-        sfilter.pressureUnits = filter.pressureUnits;
-        sfilter.calcCleanPercentage();
-        sfilter.emitEquipmentChange();
-        return filter; // Always return the config when we are dealing with the config not state.
-    }
-    public async deleteFilterAsync(data: any): Promise<Filter> {
-        try {
-            let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-            let filter = sys.filters.getItemById(id);
-            let sfilter = state.filters.getItemById(filter.id);
-            filter.isActive = false;
-            sys.filters.removeItemById(id);
-            state.filters.removeItemById(id);
-            sfilter.emitEquipmentChange();
-            return filter;
-        } catch (err) { logger.error(`deleteFilterAsync: Error deleting filter ${err.message}`); }
-    }
+    filter.filterType = sfilter.filterType = filterType;
+    filter.body = sfilter.body = body;
+    filter.name = sfilter.name = name;
+    filter.capacity = typeof data.capacity === 'number' ? data.capacity : filter.capacity;
+    filter.capacityUnits = typeof data.capacityUnits !== 'undefined' ? data.capacityUnits : filter.capacity;
+    filter.connectionId = typeof data.connectionId !== 'undefined' ? data.connectionId : filter.connectionId;
+    filter.deviceBinding = typeof data.deviceBinding !== 'undefined' ? data.deviceBinding : filter.deviceBinding;
+    sfilter.pressureUnits = filter.pressureUnits;
+    sfilter.calcCleanPercentage();
+    sfilter.emitEquipmentChange();
+    return filter; // Always return the config when we are dealing with the config not state.
+  }
+  public async deleteFilterAsync(data: any): Promise<Filter> {
+    try {
+      let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+      let filter = sys.filters.getItemById(id);
+      let sfilter = state.filters.getItemById(filter.id);
+      filter.isActive = false;
+      sys.filters.removeItemById(id);
+      state.filters.removeItemById(id);
+      sfilter.emitEquipmentChange();
+      return filter;
+    } catch (err) { logger.error(`deleteFilterAsync: Error deleting filter ${err.message}`); }
+  }
 }

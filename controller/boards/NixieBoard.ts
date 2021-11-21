@@ -881,6 +881,7 @@ export class NixieCircuitCommands extends CircuitCommands {
         if (grp.dataName !== 'circuitGroupConfig') return await sys.board.circuits.setLightGroupStateAsync(id, val);
         let gstate = state.circuitGroups.getItemById(grp.id, grp.isActive !== false);
         let circuits = grp.circuits.toArray();
+        sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(gstate.id), gstate, val);
         gstate.isOn = val;
         let arr = [];
         for (let i = 0; i < circuits.length; i++) {
@@ -903,6 +904,7 @@ export class NixieCircuitCommands extends CircuitCommands {
         if (grp.dataName === 'circuitGroupConfig') return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
         let gstate = state.lightGroups.getItemById(grp.id, grp.isActive !== false);
         let circuits = grp.circuits.toArray();
+        sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(gstate.id), gstate, val);
         gstate.isOn = val;
         let arr = [];
         for (let i = 0; i < circuits.length; i++) {
@@ -992,7 +994,7 @@ export class NixieFeatureCommands extends FeatureCommands {
                 // Iterate the circuits and break out should we find a condition
                 // where the group should be off.
                 for (let j = 0; j < circuits.length && bIsOn === true; j++) {
-                    let circuit: CircuitGroupCircuit = grp.circuits.getItemById(j);
+                    let circuit: CircuitGroupCircuit = grp.circuits.getItemByIndex(j);
                     let cstate = state.circuits.getInterfaceById(circuit.circuit);
                     if (circuit.desiredState === 1) { // The circuit should be on.
                         if (!utils.makeBool(cstate.isOn)) bIsOn = false;
@@ -1014,7 +1016,7 @@ export class NixieFeatureCommands extends FeatureCommands {
             if (grp.isActive) {
                 let bIsOn = true;
                 for (let j = 0; j < circuits.length && bIsOn === true; j++) {
-                    let circuit: LightGroupCircuit = grp.circuits.getItemById(j);
+                    let circuit: LightGroupCircuit = grp.circuits.getItemByIndex(j);
                     let cstate = state.circuits.getInterfaceById(circuit.circuit);
                     if (!utils.makeBool(cstate.isOn)) bIsOn = false;
                 }
