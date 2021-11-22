@@ -2489,6 +2489,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         //let spaSetpoint = isDosing ? 100 : disabled ? 0 : parseInt(obj.spaSetpoint, 10);
         let poolSetpoint = typeof obj.poolSetpoint !== 'undefined' ? parseInt(obj.poolSetpoint, 10) : chlor.poolSetpoint;
         let spaSetpoint = typeof obj.spaSetpoint !== 'undefined' ? parseInt(obj.spaSetpoint, 10) : chlor.spaSetpoint;
+        if (poolSetpoint === 0) console.log(obj);
 
         let model = typeof obj.model !== 'undefined' ? obj.model : chlor.model;
         let chlorType = typeof obj.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(obj.type) : chlor.type || 0;
