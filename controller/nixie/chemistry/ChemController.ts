@@ -1424,6 +1424,7 @@ export class NixieChemChlor extends NixieChildEquipment {
     }
     public async turnOff(schem: ChemicalState): Promise<ChlorinatorState> {
         try {
+            logger.info(`Turning off the chlorinator`);
             let chlor = sys.chlorinators.getItemById(1);
             let schlor = state.chlorinators.getItemById(1);
             if (schlor.currentOutput === 0 && schlor.targetOutput === 0 && !schlor.superChlor && chlor.disabled && !chlor.isDosing) {
