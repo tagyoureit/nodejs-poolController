@@ -38,6 +38,8 @@ export class ChlorinatorMessage {
                         if (!chlor.disabled && !chlor.isDosing) {
                             // RKS: We don't want to change the setpoints if our chem controller disabled
                             // the chlorinator.  These should be 0.
+                            if (msg.extractPayloadByte(i + 10) === 0) logger.info(`Changing pool setpoint to 0 ${msg.extractPayloadByte(i + 10)}`);
+
                             chlor.poolSetpoint = msg.extractPayloadByte(i + 10);
                             chlor.spaSetpoint = msg.extractPayloadByte(i + 14);
                         }
