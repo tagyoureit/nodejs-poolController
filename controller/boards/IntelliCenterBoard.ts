@@ -1395,6 +1395,19 @@ class IntelliCenterSystemCommands extends SystemCommands {
 }
 class IntelliCenterCircuitCommands extends CircuitCommands {
     declare board: IntelliCenterBoard;
+    // Need to override this as IntelliCenter manages all the egg timers for all circuit types.
+    public async checkEggTimerExpirationAsync() {
+        try {
+            for (let i = 0; i < sys.circuits.length; i++) {
+                let c = sys.circuits.getItemByIndex(i);
+                let cstate = state.circuits.getItemByIndex(i);
+                if (!cstate.isActive || !cstate.isOn) continue;
+                if (c.master === 1) {
+                    await ncp.circuits.checkCircuitEggTimerExpirationAsync(cstate);
+                }
+            }
+        } catch (err) { logger.error(`checkEggTimerExpiration: Error synchronizing circuit relays ${err.message}`); }
+    }
     public async setCircuitAsync(data: any): Promise<ICircuit> {
         let id = parseInt(data.id, 10);
         let circuit = sys.circuits.getItemById(id, false);
