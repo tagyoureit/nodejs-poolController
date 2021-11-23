@@ -274,31 +274,30 @@ export class ExternalMessage {
     private static processHeater(msg: Inbound) {
         // So a user is changing the heater info.  Lets
         // hijack it and get it ourselves.
-        let heater = sys.heaters.getItemById(msg.extractPayloadByte(2) + 1);
-        heater.type = msg.extractPayloadByte(3);
-        heater.body = msg.extractPayloadByte(4);
-        heater.cooldownDelay = msg.extractPayloadByte(5);
-        heater.startTempDelta = msg.extractPayloadByte(6);
-        heater.stopTempDelta = msg.extractPayloadByte(7);
-        heater.coolingEnabled = msg.extractPayloadByte(8) > 0;
-        heater.differentialTemp = msg.extractPayloadByte(9);
-        heater.address = msg.extractPayloadByte(10);
-        heater.name = msg.extractPayloadString(11, 16);
-        heater.efficiencyMode = msg.extractPayloadByte(27);
-        heater.maxBoostTemp = msg.extractPayloadByte(28);
-        heater.economyTime = msg.extractPayloadByte(29);
-        if (heater.type === 0) {
-            sys.heaters.removeItemById(heater.id);
-            state.heaters.removeItemById(heater.id);
+        let isActive = msg.extractPayloadByte(3) !== 0;
+        let heaterId = msg.extractPayloadByte(2) + 1;
+        if (isActive) {
+            let heater = sys.heaters.getItemById(heaterId, true);
+            let hstate = state.heaters.getItemById(heater.id, true);
+
+            hstate.type = heater.type = msg.extractPayloadByte(3);
+            heater.body = msg.extractPayloadByte(4);
+            heater.cooldownDelay = msg.extractPayloadByte(5);
+            heater.startTempDelta = msg.extractPayloadByte(6);
+            heater.stopTempDelta = msg.extractPayloadByte(7);
+            heater.coolingEnabled = msg.extractPayloadByte(8) > 0;
+            heater.differentialTemp = msg.extractPayloadByte(9);
+            heater.address = msg.extractPayloadByte(10);
+            hstate.name = heater.name = msg.extractPayloadString(11, 16);
+            heater.efficiencyMode = msg.extractPayloadByte(27);
+            heater.maxBoostTemp = msg.extractPayloadByte(28);
+            heater.economyTime = msg.extractPayloadByte(29);
+            heater.master = 0;
         }
         else {
-            let hstate = state.heaters.getItemById(heater.id, true);
-            hstate.name = heater.name;
-            //heater.isVirtual = hstate.isVirtual = false;
-            hstate.name = heater.name;
-            hstate.type = heater.type;
+            sys.heaters.removeItemById(heaterId);
+            state.heaters.removeItemById(heaterId);
         }
-
         sys.board.heaters.updateHeaterServices();
         // Check anyway to make sure we got it all.
         //setTimeout(() => sys.checkConfiguration(), 500);

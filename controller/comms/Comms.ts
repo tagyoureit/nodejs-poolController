@@ -43,7 +43,6 @@ export class Connection {
         if (conn.connTimer !== null) clearTimeout(conn.connTimer);
         if (!conn._cfg.mockPort && conn._cfg.inactivityRetry > 0 && !conn._closing) conn.connTimer = setTimeout(async () => {
             try {
-                await conn.endAsync();
                 await conn.openAsync();
             }
             catch (err) { logger.error(`Error resetting RS485 port on inactivity: ${err.message}`); };

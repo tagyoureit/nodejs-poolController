@@ -70,7 +70,7 @@ export class IntelliCenterBoard extends SystemBoard {
         ]);
         // RSG - same as systemBoard definition; can delete.
         this.valueMaps.heatModes = new byteValueMap([
-            [0, { name: 'off', desc: 'Off' }],
+            [1, { name: 'off', desc: 'Off' }],
             [3, { name: 'heater', desc: 'Heater' }],
             [5, { name: 'solar', desc: 'Solar Only' }],
             [12, { name: 'solarpref', desc: 'Solar Preferred' }]
@@ -213,8 +213,9 @@ export class IntelliCenterBoard extends SystemBoard {
             [1, { name: 'heater', desc: 'Heater' }],
             [2, { name: 'solar', desc: 'Solar' }],
             [3, { name: 'cooling', desc: 'Cooling' }],
+            [6, { name: 'mtheat', desc: 'Heater' }],
             [4, { name: 'hpheat', desc: 'Heating' }],
-            [8, { name: 'hpcool', desc: 'Cooling'}]
+            [8, { name: 'hpcool', desc: 'Cooling' }]
         ]);
         this.valueMaps.scheduleTypes = new byteValueMap([
             [0, { name: 'runonce', desc: 'Run Once', startDate: true, startTime: true, endTime: true, days: false, heatSource: true, heatSetpoint: true }],
@@ -3510,6 +3511,8 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         let heatPumpInstalled = htypes.heatpump > 0;
         let gasHeaterInstalled = htypes.gas > 0;
         let ultratempInstalled = htypes.ultratemp > 0;
+        let mastertempInstalled = htypes.mastertemp > 0;
+
 
         // RKS: 09-26-20 This is a hack to maintain backward compatability with fw versions 1.04 and below.  Ultratemp is not
         // supported on 1.04 and below.
@@ -3533,9 +3536,10 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             // 3 = Solar Heater
             // 4 = Solar Preferred
             // 5 = Heat Pump
-           
+
             if (sys.heaters.length > 0) sys.board.valueMaps.heatSources = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
             if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[2, { name: 'heater', desc: 'Heater' }]]);
+            if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[11, { name: 'mtheater', desc: 'MasterTemp' }]]);
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar Only', hasCoolSetpoint: htypes.hasCoolSetpoint }], [4, { name: 'solarpref', desc: 'Solar Preferred', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
             else if (solarInstalled) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar', hasCoolsetpoint: htypes.hasCoolSetpoint }]]);
             if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Pref' }]]);
@@ -3546,11 +3550,12 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
 
             sys.board.valueMaps.heatModes = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
             if (gasHeaterInstalled) sys.board.valueMaps.heatModes.merge([[2, { name: 'heater', desc: 'Heater' }]]);
-            if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar Only' }], [4, { name: 'solarpref', desc: 'Solar Preferred' }]]);
+            if (mastertempInstalled) sys.board.valueMaps.heatModes.merge([11, { name: 'mtheater', desc: 'MasterTemp' }]);
+            if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled || mastertempInstalled)) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar Only' }], [4, { name: 'solarpref', desc: 'Solar Preferred' }]]);
             else if (solarInstalled) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar' }]]);
-            if (ultratempInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[5, { name: 'ultratemp', desc: 'UltraTemp Only'}], [6, { name: 'ultratemppref', desc: 'UltraTemp Pref' }]]);
+            if (ultratempInstalled && (gasHeaterInstalled || heatPumpInstalled || mastertempInstalled)) sys.board.valueMaps.heatModes.merge([[5, { name: 'ultratemp', desc: 'UltraTemp Only' }], [6, { name: 'ultratemppref', desc: 'UltraTemp Pref' }]]);
             else if (ultratempInstalled) sys.board.valueMaps.heatModes.merge([[5, { name: 'ultratemp', desc: 'UltraTemp' }]]);
-            if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
+            if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled || mastertempInstalled)) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
             else if (heatPumpInstalled) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
         }
         else {
