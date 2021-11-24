@@ -1,5 +1,12 @@
 # Changelog
 
+## 7.5.1
+1. Backup/restore fixes
+2. Egg timer expiration
+3. Bug Fixes
+4. dashPanel/messageManager Filter
+5. RS485 refactor
+
 ## 7.5
 1. Backup/restore
 2. Intellitouch add expansion modules
