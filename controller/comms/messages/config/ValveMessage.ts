@@ -174,7 +174,7 @@ export class ValveMessage {
         // for i10d.
         let ndx: number = 2;
         let id = 1;
-        for (let i = 0; i < sys.equipment.maxValves - 1; i++) {
+        for (let i = 0; i < sys.equipment.maxValves; i++) {
             if (id === 3 && !sys.equipment.shared) {
                 // The intake/return valves are skipped for non-shared systems.
                 sys.valves.removeItemById(3);

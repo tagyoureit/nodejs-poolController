@@ -3915,47 +3915,47 @@ export class ChemControllerCommands extends BoardCommands {
     if (!isNaN(id)) return sys.chemControllers.find(x => x.id === id);
     else if (!isNaN(address)) return sys.chemControllers.find(x => x.address === address);
   }
-  public async setChemControllerAsync(data: any): Promise<ChemController> {
-    // The following are the rules related to when an OCP is present.
-    // ==============================================================
-    // 1. IntelliChem cannot be controlled/polled via Nixie, since there is no enable/disable from the OCP at this point we don't know who is in control of polling.
-    // 2. With *Touch Commands will be sent directly to the IntelliChem controller in the hopes that the OCP will pick it up. Turns out this is not correct.  The TouchBoard now has the proper interface.
-    // 3. njspc will communicate to the OCP for IntelliChem control via the configuration interface.
+    public async setChemControllerAsync(data: any): Promise<ChemController> {
+        // The following are the rules related to when an OCP is present.
+        // ==============================================================
+        // 1. IntelliChem cannot be controlled/polled via Nixie, since there is no enable/disable from the OCP at this point we don't know who is in control of polling.
+        // 2. With *Touch Commands will be sent directly to the IntelliChem controller in the hopes that the OCP will pick it up. Turns out this is not correct.  The TouchBoard now has the proper interface.
+        // 3. njspc will communicate to the OCP for IntelliChem control via the configuration interface.
 
-    // The following are the rules related to when no OCP is present.
-    // =============================================================
-    // 1. All chemControllers will be controlled via Nixie (IntelliChem, REM Chem).
-    try {
-      let chem = sys.board.chemControllers.findChemController(data);
-      let isAdd = typeof chem === 'undefined';
-      let type = sys.board.valueMaps.chemControllerTypes.encode(isAdd ? data.type : chem.type);
-      if (typeof type === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`The chem controller type could not be determined ${data.type || type}`, 'chemController', type));
-      if (isAdd && sys.equipment.maxChemControllers <= sys.chemControllers.length) return Promise.reject(new InvalidEquipmentDataError(`The maximum number of chem controllers have been added to your controller`, 'chemController', sys.equipment.maxChemControllers));
-      let address = parseInt(data.address, 10);
-      let t = sys.board.valueMaps.chemControllerTypes.transform(type);
-      if (t.hasAddress) {
-        // First lets make sure the user supplied an address.
-        if (isNaN(address)) return Promise.reject(new InvalidEquipmentDataError(`${type.desc} chem controllers require a valid address`, 'chemController', data.address));
-        if (typeof sys.chemControllers.find(x => x.address === address && x.id !== (isAdd ? -1 : chem.id)) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`${type.desc} chem controller addresses must be unique`, 'chemController', data.address));
-      }
-      if (isAdd) {
-        // At this point we are going to add the chem controller no matter what.
-        data.id = sys.chemControllers.getNextControllerId(type);
-        chem = sys.chemControllers.getItemById(data.id, true);
-        chem.type = type;
-        if (t.hasAddress) chem.address = address;
-      }
-      chem.isActive = true;
-      // So here is the thing.  If you have an OCP then the IntelliChem must be controlled by that.
-      // the messages on the bus will talk back to the OCP so if you do not do this mayhem will ensue.
-      if (type.name === 'intellichem')
-        await this.setIntelliChemAsync(data);
-      else
-        await ncp.chemControllers.setControllerAsync(chem, data);
-      return Promise.resolve(chem);
+        // The following are the rules related to when no OCP is present.
+        // =============================================================
+        // 1. All chemControllers will be controlled via Nixie (IntelliChem, REM Chem).
+        try {
+            let chem = sys.board.chemControllers.findChemController(data);
+            let isAdd = typeof chem === 'undefined';
+            let type = sys.board.valueMaps.chemControllerTypes.encode(isAdd ? data.type : chem.type);
+            if (typeof type === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`The chem controller type could not be determined ${data.type || type}`, 'chemController', type));
+            if (isAdd && sys.equipment.maxChemControllers <= sys.chemControllers.length) return Promise.reject(new InvalidEquipmentDataError(`The maximum number of chem controllers have been added to your controller`, 'chemController', sys.equipment.maxChemControllers));
+            let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : isAdd ? undefined : chem.address;
+            let t = sys.board.valueMaps.chemControllerTypes.transform(type);
+            if (t.hasAddress) {
+                // First lets make sure the user supplied an address.
+                if (isNaN(address)) return Promise.reject(new InvalidEquipmentDataError(`${t.desc} chem controllers require a valid address`, 'chemController', data.address));
+                if (typeof sys.chemControllers.find(x => x.address === address && x.id !== (isAdd ? -1 : chem.id)) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`${type.desc} chem controller addresses must be unique`, 'chemController', data.address));
+            }
+            if (isAdd) {
+                // At this point we are going to add the chem controller no matter what.
+                data.id = sys.chemControllers.getNextControllerId(type);
+                chem = sys.chemControllers.getItemById(data.id, true);
+                chem.type = type;
+                if (t.hasAddress) chem.address = address;
+            }
+            chem.isActive = true;
+            // So here is the thing.  If you have an OCP then the IntelliChem must be controlled by that.
+            // the messages on the bus will talk back to the OCP so if you do not do this mayhem will ensue.
+            if (type.name === 'intellichem')
+                await this.setIntelliChemAsync(data);
+            else
+                await ncp.chemControllers.setControllerAsync(chem, data);
+            return Promise.resolve(chem);
+        }
+        catch (err) { return Promise.reject(err); }
     }
-    catch (err) { return Promise.reject(err); }
-  }
   public async setChemControllerStateAsync(data: any): Promise<ChemControllerState> {
     // For the most part all of the settable settings for IntelliChem are config settings.  REM is a bit of a different story so that
     // should map to the ncp

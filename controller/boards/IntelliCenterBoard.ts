@@ -1292,7 +1292,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
                     let out = Outbound.create({
                         action: 168,
                         retries: 5,
-                        payload: [12, 0, 10, parseInt(obj.timeZone, 10)],
+                        payload: [12, 0, 13, parseInt(obj.timeZone, 10)],
                         response: IntelliCenterBoard.getAckResponse(168),
                         onComplete: (err, msg) => {
                             if (err) reject(err);
