@@ -3803,7 +3803,11 @@ export class ChemControllerCommands extends BoardCommands {
         try {
           // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
           // it won't error out.
-          sys.chemControllers.getItemById(c, true);
+          let chem = sys.chemControllers.getItemById(c.id, true);
+          // RSG 11.24.21.  setChemControllerAsync will only set the type/address if it thinks it's new.   
+          // For a restore, if we set the type/address here it will pass the validation steps.
+          chem.type = c.type;
+          // chem.address = c.address;
           await sys.board.chemControllers.setChemControllerAsync(c);
           res.addModuleSuccess('chemController', `Add: ${c.id}-${c.name}`);
         } catch (err) { res.addModuleError('chemController', `Add: ${c.id}-${c.name}: ${err.message}`); }

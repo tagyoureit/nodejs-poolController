@@ -1272,6 +1272,7 @@ export class TouchCircuitCommands extends CircuitCommands {
             // response: [255,0,255][165,33,34,16,1,1][139][1,133]
             let id = parseInt(data.id, 10);
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit Id is invalid', data.id, 'Feature'));
+            if (id >= 255 || data.master === 1) return super.setCircuitAsync(data);
             let circuit = sys.circuits.getInterfaceById(id);
             // Alright check to see if we are adding a nixie circuit.
             if (id === -1 || circuit.master !== 0) {
@@ -1302,6 +1303,7 @@ export class TouchCircuitCommands extends CircuitCommands {
                             circuit.eggTimer = typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer || 720;
                             circuit.dontStop = (typeof data.dontStop !== 'undefined') ? utils.makeBool(data.dontStop) : circuit.eggTimer === 1620;
                             cstate.isActive = circuit.isActive = true;
+                            circuit.master = 0;
                             let eggTimer = sys.eggTimers.find(elem => elem.circuit === parseInt(data.id, 10));
                             try {
                                 if (circuit.eggTimer === 720) {

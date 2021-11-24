@@ -880,7 +880,7 @@ export class ConfigRoute {
                     // Just in case somebody deletes the backup section and doesn't put it back properly.
                     for (let i = 0; i < servers.length; i++) {
                         let srv = servers[i];
-                        if (typeof opts.servers.find(elem => elem.uuid === srv.uuid) === 'undefined') opts.servers.push({ name: srv.name, uuid: srv.uuid, backup: false });
+                        if (typeof opts.servers.find(elem => elem.uuid === srv.uuid) === 'undefined') opts.servers.push({ name: srv.name, uuid: srv.uuid, backup: false, host: srv.interface.options.host });
                     }
                     for (let i = opts.servers.length - 1; i >= 0; i--) {
                         let srv = opts.servers[i];

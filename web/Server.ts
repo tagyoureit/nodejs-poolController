@@ -291,7 +291,7 @@ export class WebServer {
     }
     public async backupServer(opts: any): Promise<BackupFile> {
         let ret = new BackupFile();
-        ret.options = extend(true, {}, opts, { version: 1.0, errors: [] });
+        ret.options = extend(true, {}, opts, { version: 1.1, errors: [] });
         //{ file: '', options: extend(true, {}, opts, { version: 1.0, errors: [] }) };
         let jszip = require("jszip");
         function pad(n) { return (n < 10 ? '0' : '') + n; }
@@ -396,14 +396,27 @@ export class WebServer {
                 for (let i = 0; i < opts.options.servers.length; i++) {
                     let s = opts.options.servers[i];
                     if (s.restore) {
-                        // Check to see if the server is on-line.
+                        let ctx: any = { server: { uuid: s.uuid, name: s.name, errors: [], warnings: [] } };
+                        // Check to see if the server is on-line. 
+                        // First, try by UUID.  
                         let srv = this.findServerByGuid(s.uuid) as REMInterfaceServer;
                         let cfg = rest.servers.find(elem => elem.uuid === s.uuid);
-                        let ctx: any = { server: { uuid: s.uuid, name: s.name, errors: [], warnings: [] } };
+                        // Second, try by host
+                        if (typeof srv === 'undefined' && parseFloat(opts.options.version) >= 1.1) {
+                            let srvs = this.findServersByType('rem') as REMInterfaceServer[];
+                            cfg = rest.servers.find(elem => elem.serverConfig.options.host === s.host);
+                            for (let j = 0; j < srvs.length; j++){
+                                if (srvs[j].cfg.options.host === cfg.serverConfig.options.host){
+                                    srv = srvs[j];
+                                    ctx.server.warnings.push(`REM Server from backup file (${srv.uuid}/${srv.cfg.options.host}) matched to current REM Server (${cfg.uuid}/${cfg.serverConfig.options.host}) by host name or IP and not UUID.  UUID in current config.json for REM will be updated.`)
+                                    break;
+                                }
+                            }
+                        } 
                         stats.servers.push(ctx);
                         if (typeof cfg === 'undefined' || typeof cfg.controllerConfig === 'undefined') ctx.server.errors.push(`Server configuration not found in zip file`);
                         else if (typeof srv === 'undefined') ctx.server.errors.push(`Server ${s.name} is not enabled in njsPC cannot restore.`);
-                        else if (!srv.isConnected) ctx.server.errors.push(`Server ${s.name} is not connected cannot restore.`);
+                        else if (!srv.isConnected) ctx.server.errors.push(`Server ${s.name} is not connected or cannot be found by UUID and cannot restore.  If this is a version 1.0 file, update your current REM UUID to match the backup REM UUID.`);
                         else {
                             let resp = await srv.validateRestore(cfg.controllerConfig);
                             if (typeof resp !== 'undefined') {
@@ -448,7 +461,26 @@ export class WebServer {
                         let srv = this.findServerByGuid(s.uuid) as REMInterfaceServer;
                         let cfg = rest.servers.find(elem => elem.uuid === s.uuid);
                         let ctx: any = { server: { uuid: s.uuid, name: s.name, errors: [], warnings: [] } };
+                        if (typeof srv === 'undefined' && parseFloat(opts.options.version) >= 1.1) {
+                            let srvs = this.findServersByType('rem') as REMInterfaceServer[];
+                            cfg = rest.servers.find(elem => elem.serverConfig.options.host === s.host);
+                            for (let j = 0; j < srvs.length; j++){
+                                if (srvs[j].cfg.options.host === cfg.serverConfig.options.host){
+                                    srv = srvs[j];
+                                    let oldSrvCfg = srv.cfg;
+                                    oldSrvCfg.enabled = false;
+                                    await this.updateServerInterface(oldSrvCfg); // unload prev server interface
+                                    srv.uuid = srv.cfg.uuid = cfg.uuid;
+                                    config.setSection('web.interfaces.rem', cfg.serverConfig);
+                                    await this.updateServerInterface(cfg.serverConfig); // reset server interface
+                                    srv = this.findServerByGuid(s.uuid) as REMInterfaceServer;
+                                    logger.info(`Restore REM: Current UUID updated to UUID of backup.`);
+                                    break;
+                                }
+                            }
+                        }
                         stats.servers.push(ctx);
+                        if (!srv.isConnected) await utils.sleep(6000); // rem server waits to connect 5s before isConnected will be true. Server.ts#1256 = REMInterfaceServer.init();  What's a better way to do this?
                         if (typeof cfg === 'undefined' || typeof cfg.controllerConfig === 'undefined') ctx.server.errors.push(`Server configuration not found in zip file`);
                         else if (typeof srv === 'undefined') ctx.server.errors.push(`Server ${s.name} is not enabled in njsPC cannot restore.`);
                         else if (!srv.isConnected) ctx.server.errors.push(`Server ${s.name} is not connected cannot restore.`);

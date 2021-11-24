@@ -51,7 +51,7 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
                 ncc = NixieChemControllerBase.create(this.controlPanel, chem);
                 this.push(ncc);
                 let ctype = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
-                logger.info(`A Chem controller was not found for id #${chem.id} starting ${ctype.desc}`);
+                logger.info(`Nixie Chem Controller was created at id #${chem.id} for type ${ctype.desc}`);
                 await ncc.setControllerAsync(data);
             }
             else {

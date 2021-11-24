@@ -1456,6 +1456,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                         scircuit.name = circuit.name = typeof data.name !== 'undefined' ? data.name.toString().substring(0, 16) : circuit.name;
                         scircuit.type = circuit.type = type;
                         scircuit.isActive = circuit.isActive = true;
+                        circuit.master = 0;
                         resolve(circuit);
                     }
                 }
