@@ -1,42 +1,42 @@
 {
-    "context": {
-        "name": "MQTT",
-        "options": {
-            "formatter": [
-                {
-                    "transform": ".toLowerCase()"
-                },
-                {
-                    "regexkey": "\\s",
-                    "replace": "",
-                    "description": "Remove whitespace"
-                },
-                {
-                    "regexkey": "\\/",
-                    "replace": "",
-                    "description": "Remove /"
-                },
-                {
-                    "regexkey": "\\+",
-                    "replace": "",
-                    "description": "Remove +"
-                },
-                {
-                    "regexkey": "\\$",
-                    "replace": "",
-                    "description": "Remove $"
-                },
-                {
-                    "regexkey": "\\#",
-                    "replace": "",
-                    "description": "Remove #"
-                }
-            ],
-            "rootTopic-DIRECTIONS": "You can override the root topic by renaming _rootTopic to rootTopic",
-            "_rootTopic": "@bind=(state.equipment.alias).replace(' ','-').replace('/','').toLowerCase();",
-            "clientId": "@bind='mqttjs_njsPC_'+Math.random().toString(16).substr(2, 8);"
+  "context": {
+    "name": "MQTT",
+    "options": {
+      "formatter": [
+        {
+          "transform": ".toLowerCase()"
+        },
+        {
+          "regexkey": "\\s",
+          "replace": "",
+          "description": "Remove whitespace"
+        },
+        {
+          "regexkey": "\\/",
+          "replace": "",
+          "description": "Remove /"
+        },
+        {
+          "regexkey": "\\+",
+          "replace": "",
+          "description": "Remove +"
+        },
+        {
+          "regexkey": "\\$",
+          "replace": "",
+          "description": "Remove $"
+        },
+        {
+          "regexkey": "\\#",
+          "replace": "",
+          "description": "Remove #"
         }
-    },
+      ],
+      "rootTopic-DIRECTIONS": "You can override the root topic by renaming _rootTopic to rootTopic",
+      "_rootTopic": "@bind=(state.equipment.alias).replace(' ','-').replace('/','').toLowerCase();",
+      "clientId": "@bind='mqttjs_njsPC_'+Math.random().toString(16).substr(2, 8);"
+    }
+  },
   "events": [
     {
       "name": "config",
@@ -67,7 +67,7 @@
         },
         {
           "topic": "state/startTime",
-          "message":  "@bind=data.startTime;"
+          "message": "@bind=data.startTime;"
         }
       ]
     },
@@ -579,6 +579,17 @@
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/warnings/chlorinatorCommError",
           "message": "@bind=data.warnings.chlorinatorCommError;"
+        }
+      ]
+    },
+    {
+      "name": "chemicalDose",
+      "description": "Event when a chemical is being dosed",
+      "topics": [
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.chem;",
+          "message": "@bind=data;",
+          "enabled": true
         }
       ]
     },

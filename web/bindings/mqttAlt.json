@@ -92,7 +92,7 @@
         {
           "topic": "state/circuits/@bind=data.id;/endTime",
           "message": "@bind=data.endTime;",
-          "description":  "The end time for the circuit."
+          "description": "The end time for the circuit."
         },
         {
           "topic": "state/circuits/@bind=data.id;/lightingTheme",
@@ -599,6 +599,17 @@
         {
           "topic": "state/chemControllers/@bind=data.id;/warnings/chlorinatorCommError",
           "message": "@bind=data.warnings.chlorinatorCommError;"
+        }
+      ]
+    },
+    {
+      "name": "chemicalDose",
+      "description": "Event when a chemical is being dosed",
+      "topics": [
+        {
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.chem;",
+          "message": "@bind=data;",
+          "enabled": true
         }
       ]
     },
