@@ -95,8 +95,8 @@ export class IntelliCenterBoard extends SystemBoard {
             [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true }],
             [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true, hasCoolSetpoint: true }],
             [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
-            [6, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
-            [7, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }]
+            [6, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }],
+            [7, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
         ]);
 
 
