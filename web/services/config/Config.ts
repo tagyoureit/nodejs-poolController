@@ -874,7 +874,7 @@ export class ConfigRoute {
         });
         app.get('/app/config/options/backup', async (req, res, next) => {
             try {
-                let opts = config.getSection('controller.backups', { automatic: false, interval: { days: 30, hours: 0, keepCount: 5, servers: [] } });
+                let opts = config.getSection('controller.backups', { automatic: false, interval: { days: 30, hours: 0 }, keepCount: 5, servers: [] });
                 let servers = await sys.ncp.getREMServers();
                 if (typeof servers !== 'undefined') {
                     // Just in case somebody deletes the backup section and doesn't put it back properly.
@@ -893,7 +893,7 @@ export class ConfigRoute {
         });
         app.get('/app/config/options/restore', async (req, res, next) => {
             try {
-                let opts = config.getSection('controller.backups', { automatic: false, interval: { days: 30, hours: 0, keepCount: 5, servers: [], backupFiles: [] } });
+                let opts = config.getSection('controller.backups', { automatic: false, interval: { days: 30, hours: 0 }, keepCount: 5, servers: [], backupFiles: [] });
                 let servers = await sys.ncp.getREMServers();
                 if (typeof servers !== 'undefined') {
                     for (let i = 0; i < servers.length; i++) {
@@ -914,7 +914,7 @@ export class ConfigRoute {
         app.put('/app/config/options/backup', async (req, res, next) => {
             try {
                 config.setSection('controller.backups', req.body);
-                let opts = config.getSection('controller.backups', { automatic: false, interval: { days: 30, hours: 0, keepCount: 5, servers: [] } });
+                let opts = config.getSection('controller.backups', { automatic: false, interval: { days: 30, hours: 0 }, keepCount: 5, servers: [] });
                 webApp.autoBackup = utils.makeBool(opts.automatic);
                 await webApp.checkAutoBackup();
                 return res.status(200).send(opts);
