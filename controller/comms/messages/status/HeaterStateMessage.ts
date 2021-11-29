@@ -22,15 +22,20 @@ export class HeaterStateMessage {
     public static process(msg: Inbound) {
         if (msg.protocol === Protocol.Heater) {
             switch (msg.action) {
-                case 114: // This is a message from a master controlling the heater
+                case 112: // This is a message from a master controlling MasterTemp
+                case 114: // This is a message from a master controlling UltraTemp
+                    msg.isProcessed = true;
+                    break;
+                case 116:
+                    HeaterStateMessage.processMasterTempStatus(msg);
                     break;
                 case 115:
-                    HeaterStateMessage.processHeaterStatus(msg);
+                    HeaterStateMessage.processUltraTempStatus(msg);
                     break;
             }
         }
     }
-    public static processHeaterStatus(msg: Inbound) {
+    public static processUltraTempStatus(msg: Inbound) {
         // RKS: 07-03-21 - We only know byte 2 at this point for Ultratemp for the 115 message we are processing here.  The 
         // byte  description
         // ------------------------------------------------
@@ -60,4 +65,23 @@ export class HeaterStateMessage {
         state.equipment.messages.removeItemByCode(`heater:${heater.id}:comms`);
         msg.isProcessed = true;
     }
+    public static processMasterTempStatus(msg: Inbound) {
+        //[255, 0, 255][165, 0, 16, 112, 116, 23][67, 0, 0, 0, 0, 0, 0, 0, 68, 0, 0, 0, 10, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0][2, 66]
+        // Byte 1 is the indicator to which setpoint it is heating to.
+        // Byte 8 increments over time when the heater is on.
+        // Byte 13 looks like the mode the heater is in for instance it is in cooldown mode.
+        //  0 = Normal
+        //  2 = ??????
+        //  6 = Cooldown
+        // Byte 14 looks like the cooldown delay in minutes.
+        let heater: Heater = sys.heaters.getItemByAddress(msg.source);
+        let sheater = state.heaters.getItemById(heater.id);
+        let byte = msg.extractPayloadByte(1);
+        sheater.isOn = byte >= 1;
+        sheater.isCooling = false;
+        sheater.commStatus = 0;
+        state.equipment.messages.removeItemByCode(`heater:${heater.id}:comms`);
+        msg.isProcessed = true;
+    }
+
 }

@@ -438,4 +438,74 @@ export class NixieUltratemp extends NixieHeatpump {
         catch (err) { logger.error(`Ultratemp closeAsync: ${err.message}`); return Promise.reject(err); }
     }
 }
-export class NixieMastertemp extends NixieGasHeater {}
+export class NixieMastertemp extends NixieGasHeater {
+    constructor(ncp: INixieControlPanel, heater: Heater) {
+        super(ncp, heater);
+        // Set the polling interval to 3 seconds.
+        this.pollEquipmentAsync();
+    }
+    public async pollEquipmentAsync() {
+        let self = this;
+        try {
+            this.suspendPolling = true;
+            if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
+            this._pollTimer = null;
+            if (this._suspendPolling > 1) return;
+            let sheater = state.heaters.getItemById(this.heater.id, !this.closing);
+            // If the body isn't on then we won't communicate with the chem controller.  There is no need
+            // since most of the time these are attached to the filter relay.
+            if (!this.closing) {
+                await this.setStatus(sheater);
+            }
+        }
+        catch (err) { logger.error(`Error polling MasterTemp heater - ${err}`); }
+        finally {
+            this.suspendPolling = false; if (!this.closing) this._pollTimer = setTimeout(async () => {
+                try { await self.pollEquipmentAsync() } catch (err) { }
+            }, this.pollingInterval || 10000);
+        }
+    }
+    public async setStatus(sheater: HeaterState): Promise<boolean> {
+        try {
+            let success = await new Promise<boolean>((resolve, reject) => {
+                let out = Outbound.create({
+                    protocol: Protocol.Heater,
+                    source: 16,
+                    dest: this.heater.address,
+                    action: 112,
+                    payload: [],
+                    retries: 3, // We are going to try 4 times.
+                    response: Response.create({ protocol: Protocol.Heater, action: 116 }),
+                    onAbort: () => { },
+                    onComplete: (err) => {
+                        if (err) {
+                            // If the MasterTemp is not responding we need to store that off but at this point we know none of the codes.  If a 115 does
+                            // come across this will be cleared by the processing of that message.
+                            sheater.commStatus = sys.board.valueMaps.equipmentCommStatus.getValue('commerr');
+                            state.equipment.messages.setMessageByCode(`heater:${sheater.id}:comms`, 'error', `Communication error with ${sheater.name}`);
+                            resolve(false);
+                        }
+                        else { resolve(true); }
+                    }
+                });
+                out.appendPayloadBytes(0, 11);
+                out.setPayloadByte(0, this.isOn ? 1 : 0);
+                out.setPayloadByte(1, sys.bodies.getItemById(1).heatSetpoint || 0);
+                out.setPayloadByte(2, sys.bodies.getItemById(2).heatSetpoint || 0);
+                conn.queueSendMessage(out);
+            });
+            return success;
+        } catch (err) { logger.error(`Communication error with MasterTemp : ${err.message}`); }
+    }
+    public async closeAsync() {
+        try {
+            this.suspendPolling = true;
+            this.closing = true;
+            if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
+            this._pollTimer = null;
+            logger.info(`Closing Heater ${this.heater.name}`);
+
+        }
+        catch (err) { logger.error(`MasterTemp closeAsync: ${err.message}`); return Promise.reject(err); }
+    }
+}

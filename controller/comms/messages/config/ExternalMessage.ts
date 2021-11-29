@@ -773,7 +773,7 @@ export class ExternalMessage {
                 break;
             case 21: // Body 2 Cool Setpoint
                 body = sys.bodies.getItemById(2, false);
-                body.setPoint = msg.extractPayloadByte(24);
+                body.coolSetpoint = msg.extractPayloadByte(24);
                 state.temps.bodies.getItemById(2).coolSetpoint = body.coolSetpoint;
                 state.emitEquipmentChanges();
                 msg.isProcessed = true;

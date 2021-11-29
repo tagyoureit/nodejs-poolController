@@ -1600,7 +1600,7 @@ export class BodyCommands extends BoardCommands {
         heatModes.push(this.board.valueMaps.heatModes.transformByName('off')); // In IC fw 1.047 off is no longer 0.
         let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
         if (heatTypes.gas > 0) heatModes.push(this.board.valueMaps.heatModes.transformByName('heater'));
-        if (heatTypes.mastertemp > 0) heatModes.push(this.board.valueMaps.heatModes.transformByName('mastertemp'));
+        if (heatTypes.mastertemp > 0) heatModes.push(this.board.valueMaps.heatModes.transformByName('mtheater'));
         if (heatTypes.solar > 0) {
             let hm = this.board.valueMaps.heatModes.transformByName('solar');
             heatModes.push(hm);

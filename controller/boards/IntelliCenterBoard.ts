@@ -3020,11 +3020,22 @@ class IntelliCenterBodyCommands extends BodyCommands {
     public async setHeatModeAsync(body: Body, mode: number): Promise<BodyTempState> {
         return new Promise<BodyTempState>((resolve, reject) => {
             const self = this;
-            let byte2 = 18;
-            let mode1 = sys.bodies.getItemById(1).setPoint || 100;
-            let mode2 = sys.bodies.getItemById(2).setPoint || 100;
-            let mode3 = sys.bodies.getItemById(3).setPoint || 100;
-            let mode4 = sys.bodies.getItemById(4).setPoint || 100;
+            let byte2 = 22;
+            let body1 = sys.bodies.getItemById(1);
+            let body2 = sys.bodies.getItemById(2);
+
+            let heat1 = body1.heatSetpoint || 78;
+            let cool1 = body1.coolSetpoint || 100;
+            let heat2 = body2.heatSetpoint || 78;
+            let cool2 = body2.coolSetpoint || 103;
+
+            let mode1 = body1.heatMode || 1;
+            let mode2 = body2.heatMode || 1;
+            let bitopts = 0;
+            if (sys.general.options.clockSource) bitopts += 32;
+            if (sys.general.options.clockMode === 24) bitopts += 64;
+            if (sys.general.options.adjustDST) bitopts += 128;
+
             switch (body.id) {
                 case 1:
                     byte2 = 22;
@@ -3034,19 +3045,12 @@ class IntelliCenterBodyCommands extends BodyCommands {
                     byte2 = 23;
                     mode2 = mode;
                     break;
-                case 3:
-                    byte2 = 24;
-                    mode3 = mode;
-                    break;
-                case 4:
-                    byte2 = 25;
-                    mode4 = mode;
-                    break;
             }
             let out = Outbound.create({
                 action: 168,
-                payload: [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0, 100, 100, 100, 100, mode1, mode2, mode3, mode4, 15, 0
-                    , 0, 0, 0, 100, 0, 0, 0, 0, 0, 0],
+                payload: [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, bitopts, 89, 27, 110, 3, 0, 0,
+                    heat1, cool1, heat2, cool2, mode1, mode2, 0, 0, 15,
+                    sys.general.options.pumpDelay ? 1 : 0, sys.general.options.cooldownDelay ? 1 : 0, 0, 100, 0, 0, 0, 0, sys.general.options.manualPriority ? 1 : 0, sys.general.options.manualHeat ? 1 : 0, 0],
                 retries: 5,
                 response: IntelliCenterBoard.getAckResponse(168),
                 onComplete: (err, msg) => {
@@ -3067,31 +3071,25 @@ class IntelliCenterBodyCommands extends BodyCommands {
         let byte2 = 18;
         let body1 = sys.bodies.getItemById(1);
         let body2 = sys.bodies.getItemById(2);
-        let body3 = sys.bodies.getItemById(3);
-        let body4 = sys.bodies.getItemById(4);
 
-        let temp1 = sys.bodies.getItemById(1).setPoint || 100;
-        let temp2 = sys.bodies.getItemById(2).setPoint || 100;
-        let temp3 = sys.bodies.getItemById(3).setPoint || 100;
-        let temp4 = sys.bodies.getItemById(4).setPoint || 100;
+        let heat1 = body1.heatSetpoint || 78;
+        let cool1 = body1.coolSetpoint || 100;
+        let heat2 = body2.heatSetpoint || 78;
+        let cool2 = body2.coolSetpoint || 103;
         switch (body.id) {
             case 1:
                 byte2 = 18;
-                temp1 = setPoint;
+                heat1 = setPoint;
                 break;
             case 2:
                 byte2 = 20;
-                temp2 = setPoint;
-                break;
-            case 3:
-                byte2 = 19;
-                temp3 = setPoint;
-                break;
-            case 4:
-                byte2 = 21;
-                temp4 = setPoint;
+                heat2 = setPoint;
                 break;
         }
+        let bitopts = 0;
+        if (sys.general.options.clockSource) bitopts += 32;
+        if (sys.general.options.clockMode === 24) bitopts += 64;
+        if (sys.general.options.adjustDST) bitopts += 128;
         //                                                             6                             15       17 18        21   22       24 25 
         //[255, 0, 255][165, 63, 15, 16, 168, 41][0, 0, 18, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176,  89, 27, 110, 3, 0, 0, 89, 100, 98, 100, 0, 0, 0, 0, 15, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0][5, 243]
         //[255, 0, 255][165, 63, 15, 16, 168, 41][0, 0, 18, 1, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 176, 235, 27, 167, 1, 0, 0, 89,  81, 98, 103, 5, 0, 0, 0, 15, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0][6, 48]
@@ -3099,8 +3097,8 @@ class IntelliCenterBodyCommands extends BodyCommands {
             action: 168,
             response: IntelliCenterBoard.getAckResponse(168),
             retries: 5,
-            payload: [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0,
-                temp1, temp3, temp2, temp4, body1.heatMode || 0, body2.heatMode || 0, body3.heatMode || 0, body4.heatMode || 0, 15,
+            payload: [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, bitopts, 89, 27, 110, 3, 0, 0,
+                heat1, cool1, heat2, cool2, body1.heatMode || 1, body2.heatMode || 1, 0, 0, 15,
                 sys.general.options.pumpDelay ? 1 : 0, sys.general.options.cooldownDelay ? 1 : 0, 0, 100, 0, 0, 0, 0, sys.general.options.manualPriority ? 1 : 0, sys.general.options.manualHeat ? 1 : 0, 0]
         });
         return new Promise<BodyTempState>((resolve, reject) => {
@@ -3116,23 +3114,14 @@ class IntelliCenterBodyCommands extends BodyCommands {
         });
     }
     public async setCoolSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
-        //[165, 1, 15, 16, 168, 41][0, 0, 19, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 176, 110, 30, 188, 3, 0, 0, 76, 99, 78, 100, 5, 5, 0, 0, 15, 1, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0][5, 33]
-        let byte2 = 19;
+        let byte2 = 18;
         let body1 = sys.bodies.getItemById(1);
         let body2 = sys.bodies.getItemById(2);
-        let body3 = sys.bodies.getItemById(3);
-        let body4 = sys.bodies.getItemById(3);
 
-        let temp1 = sys.bodies.getItemById(1).setPoint || 100;
-        let cool1 = sys.bodies.getItemById(1).coolSetpoint || 100;
-        let temp2 = sys.bodies.getItemById(2).setPoint || 100;
-        let cool2 = sys.bodies.getItemById(2).coolSetpoint || 100;
-
-        //Them
-        //[165, 63, 15, 16, 168, 41][0, 0, 19, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 176, 59, 30, 5, 5, 0, 0, 90, 102, 98, 81, 3, 1, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][4, 129]
-        //Us
-        //[165, 63, 15, 33, 168, 40][0, 0, 19, 1, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 5, 5, 0, 0, 90, 103, 98, 81, 3, 1, 0, 0, 15, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0][5, 249]
-        //[165, 63, 15, 33, 168, 40][0, 0, 19, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0, 90, 103, 98, 81, 3, 1, 0, 0, 15, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0][5, 249]
+        let heat1 = body1.heatSetpoint || 78;
+        let cool1 = body1.coolSetpoint || 100;
+        let heat2 = body2.heatSetpoint || 78;
+        let cool2 = body2.coolSetpoint || 103;
         switch (body.id) {
             case 1:
                 byte2 = 19;
@@ -3143,6 +3132,10 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 cool2 = setPoint;
                 break;
         }
+        let bitopts = 0;
+        if (sys.general.options.clockSource) bitopts += 32;
+        if (sys.general.options.clockMode === 24) bitopts += 64;
+        if (sys.general.options.adjustDST) bitopts += 128;
         //                                                             6                             15       17 18        21   22       24 25 
         //[255, 0, 255][165, 63, 15, 16, 168, 41][0, 0, 18, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, 176,  89, 27, 110, 3, 0, 0, 89, 100, 98, 100, 0, 0, 0, 0, 15, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0][5, 243]
         //[255, 0, 255][165, 63, 15, 16, 168, 41][0, 0, 18, 1, 0, 0,   0, 0, 0, 0, 0, 0, 0, 0, 176, 235, 27, 167, 1, 0, 0, 89,  81, 98, 103, 5, 0, 0, 0, 15, 0, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0][6, 48]
@@ -3150,8 +3143,8 @@ class IntelliCenterBodyCommands extends BodyCommands {
             action: 168,
             response: IntelliCenterBoard.getAckResponse(168),
             retries: 5,
-            payload: [0, 0, byte2, 1, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 176, 89, 27, 110, 3, 0, 0,
-                temp1, cool1, temp2, cool2, body1.heatMode || 0, body2.heatMode || 0, body3.heatMode || 0, body4.heatMode || 0, 15,
+            payload: [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, bitopts, 89, 27, 110, 3, 0, 0,
+                heat1, cool1, heat2, cool2, body1.heatMode || 1, body2.heatMode || 1, 0, 0, 15,
                 sys.general.options.pumpDelay ? 1 : 0, sys.general.options.cooldownDelay ? 1 : 0, 0, 100, 0, 0, 0, 0, sys.general.options.manualPriority ? 1 : 0, sys.general.options.manualHeat ? 1 : 0, 0]
         });
         return new Promise<BodyTempState>((resolve, reject) => {
@@ -3159,7 +3152,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 if (err) reject(err);
                 else {
                     let bstate = state.temps.bodies.getItemById(body.id);
-                    body.coolSetpoint = bstate.coolSetpoint = setPoint;
+                    body.heatSetpoint = bstate.heatSetpoint = setPoint;
                     resolve(bstate);
                 }
             };
@@ -3551,7 +3544,7 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
 
             sys.board.valueMaps.heatModes = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
             if (gasHeaterInstalled) sys.board.valueMaps.heatModes.merge([[2, { name: 'heater', desc: 'Heater' }]]);
-            if (mastertempInstalled) sys.board.valueMaps.heatModes.merge([11, { name: 'mtheater', desc: 'MasterTemp' }]);
+            if (mastertempInstalled) sys.board.valueMaps.heatModes.merge([[11, { name: 'mtheater', desc: 'MasterTemp' }]]);
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled || mastertempInstalled)) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar Only' }], [4, { name: 'solarpref', desc: 'Solar Preferred' }]]);
             else if (solarInstalled) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar' }]]);
             if (ultratempInstalled && (gasHeaterInstalled || heatPumpInstalled || mastertempInstalled)) sys.board.valueMaps.heatModes.merge([[5, { name: 'ultratemp', desc: 'UltraTemp Only' }], [6, { name: 'ultratemppref', desc: 'UltraTemp Pref' }]]);

@@ -239,7 +239,10 @@ export class NixiePump extends NixieEquipment {
             this._pollTimer = null;
             this._targetSpeed = 0;
             let pstate = state.pumps.getItemById(this.pump.id);
-            await this.setPumpStateAsync(pstate);
+            try {
+                await this.setPumpStateAsync(pstate);
+                // Since we are closing we need to not reject.
+            } catch (err) { logger.error(`Nixie Closing pump closeAsync: ${err.message}`); }
             // This will make sure the timer is dead and we are completely closed.
             this.closing = true;
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
