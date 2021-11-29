@@ -3554,7 +3554,7 @@ export class HeaterCommands extends BoardCommands {
                                         if (mode === 'mtheater') {
                                             if (body.temp < cfgBody.setPoint) {
                                                 isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heaterTypes.getValue('mtheater');
+                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('mtheat');
                                                 isHeating = true;
                                             }
                                         }
@@ -3599,7 +3599,7 @@ export class HeaterCommands extends BoardCommands {
                                 let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
                                 switch (htype.name) {
                                     case 'mastertemp':
-                                        if (status === 'mtheater') isHeating = isOn = true;
+                                        if (status === 'mtheat') isHeating = isOn = true;
                                         break;
                                     case 'maxetherm':
                                     case 'gas':
