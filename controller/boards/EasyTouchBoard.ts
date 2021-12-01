@@ -1253,18 +1253,20 @@ class TouchBodyCommands extends BodyCommands {
     }
 }
 export class TouchCircuitCommands extends CircuitCommands {
-    public getLightThemes(type?: number): any[] {
-        let themes = sys.board.valueMaps.lightThemes.toArray();
-        if (typeof type === 'undefined') return themes;
-        switch (type) {
-            case 8: // Magicstream
-                return themes.filter(theme => theme.type === 'magicstream');
-            case 16: // Intellibrite
-                return themes.filter(theme => theme.type === 'intellibrite');
-            default:
-                return [];
-        }
-    }
+    // RKS: 12-01-2021 This has been deprecated we are now driving this through metadata on the valuemaps.  This allows
+    // for multiple types of standardized on/off sequences with nixie controllers.
+    //public getLightThemes(type?: number): any[] {
+    //    let themes = sys.board.valueMaps.lightThemes.toArray();
+    //    if (typeof type === 'undefined') return themes;
+    //    switch (type) {
+    //        case 8: // Magicstream
+    //            return themes.filter(theme => theme.types.includes('magicstream'));
+    //        case 16: // Intellibrite
+    //            return themes.filter(theme => theme.types.includes('intellibrite'));
+    //        default:
+    //            return [];
+    //    }
+    //}
     public async setCircuitAsync(data: any): Promise<ICircuit> {
         try {
             // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]

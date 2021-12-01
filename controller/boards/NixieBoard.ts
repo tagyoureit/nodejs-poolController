@@ -42,16 +42,16 @@ export class NixieBoard extends SystemBoard {
             [2, { name: 'mastercleaner', desc: 'Master Cleaner' }],
             [3, { name: 'chemrelay', desc: 'Chem Relay' }],
             [4, { name: 'light', desc: 'Light', isLight: true }],
-            [5, { name: 'intellibrite', desc: 'Intellibrite', isLight: true }],
-            [6, { name: 'globrite', desc: 'GloBrite', isLight: true }],
+            [5, { name: 'intellibrite', desc: 'Intellibrite', isLight: true, theme:'intellibrite' }],
+            [6, { name: 'globrite', desc: 'GloBrite', isLight: true, theme: 'intellibrite' }],
             [7, { name: 'globritewhite', desc: 'GloBrite White', isLight: true }],
-            [8, { name: 'magicstream', desc: 'Magicstream', isLight: true }],
+            [8, { name: 'magicstream', desc: 'Magicstream', isLight: true, theme: 'magicstream' }],
             [9, { name: 'dimmer', desc: 'Dimmer', isLight: true }],
-            [10, { name: 'colorcascade', desc: 'ColorCascade', isLight: true }],
+            [10, { name: 'colorcascade', desc: 'ColorCascade', isLight: true, theme: 'intellibrite' }],
             [11, { name: 'mastercleaner2', desc: 'Master Cleaner 2' }],
             [12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
             [13, { name: 'spa', desc: 'Spa', hasHeatSource: true }],
-            [14, { name: 'colorlogic', desc: 'ColorLogic', isLight:true }]
+            [14, { name: 'colorlogic', desc: 'ColorLogic', isLight:true, theme: 'colorlogic' }]
         ]);
         this.valueMaps.pumpTypes = new byteValueMap([
             [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true, maxRelays: 1 }],
@@ -144,35 +144,35 @@ export class NixieBoard extends SystemBoard {
 
         this.valueMaps.lightThemes = new byteValueMap([
             // IntelliBrite Themes
-            [0, { name: 'white', desc: 'White', type: 'intellibrite', sequence: 11 }],
-            [1, { name: 'green', desc: 'Green', type: 'intellibrite', sequence: 9 }],
-            [2, { name: 'blue', desc: 'Blue', type: 'intellibrite', sequence: 8 }],
-            [3, { name: 'magenta', desc: 'Magenta', type: 'intellibrite', sequence: 12 }],
-            [4, { name: 'red', desc: 'Red', type: 'intellibrite', sequence: 10 }],
-            [5, { name: 'sam', desc: 'SAm Mode', type: 'intellibrite', sequence: 1 }],
-            [6, { name: 'party', desc: 'Party', type: 'intellibrite', sequence: 2 }],
-            [7, { name: 'romance', desc: 'Romance', type: 'intellibrite', sequence: 3 }],
-            [8, { name: 'caribbean', desc: 'Caribbean', type: 'intellibrite', sequence: 4 }],
-            [9, { name: 'american', desc: 'American', type: 'intellibrite', sequence: 5 }],
-            [10, { name: 'sunset', desc: 'Sunset', type: 'intellibrite', sequence: 6 }],
-            [11, { name: 'royal', desc: 'Royal', type: 'intellibrite', sequence: 7 }],
+            [0, { name: 'white', desc: 'White', types: ['intellibrite', 'magicstream'], sequence: 11 }],
+            [1, { name: 'green', desc: 'Green', types: ['intellibrite', 'magicstream'], sequence: 9 }],
+            [2, { name: 'blue', desc: 'Blue', types: ['intellibrite', 'magicstream'], sequence: 8 }],
+            [3, { name: 'magenta', desc: 'Magenta', types: ['intellibrite', 'magicstream'], sequence: 12 }],
+            [4, { name: 'red', desc: 'Red', types: ['intellibrite', 'magicstream'], sequence: 10 }],
+            [5, { name: 'sam', desc: 'SAm Mode', types: ['intellibrite', 'magicstream'], sequence: 1 }],
+            [6, { name: 'party', desc: 'Party', types: ['intellibrite', 'magicstream'], sequence: 2 }],
+            [7, { name: 'romance', desc: 'Romance', types: ['intellibrite', 'magicstream'], sequence: 3 }],
+            [8, { name: 'caribbean', desc: 'Caribbean', types: ['intellibrite', 'magicstream'], sequence: 4 }],
+            [9, { name: 'american', desc: 'American', types: ['intellibrite', 'magicstream'], sequence: 5 }],
+            [10, { name: 'sunset', desc: 'Sunset', types: ['intellibrite', 'magicstream'], sequence: 6 }],
+            [11, { name: 'royal', desc: 'Royal', types: ['intellibrite', 'magicstream'], sequence: 7 }],
             // ColorLogic Themes
-            [20, { name: 'cloudwhite', desc: 'Cloud White', type: 'colorlogic', sequence: 7 }],
-            [21, { name: 'deepsea', desc: 'Deep Sea', type: 'colorlogic', sequence: 2 }],
-            [22, { name: 'royalblue', desc: 'Royal Blue', type: 'colorlogic', sequence: 3 }],
-            [23, { name: 'afternoonskies', desc: 'Afternoon Skies', type: 'colorlogic', sequence: 4 }],
-            [24, { name: 'aquagreen', desc: 'Aqua Green', type: 'colorlogic', sequence: 5 }],
-            [25, { name: 'emerald', desc: 'Emerald', type: 'colorlogic', sequence: 6 }],
-            [26, { name: 'warmred', desc: 'Warm Red', type: 'colorlogic', sequence: 8 }],
-            [27, { name: 'flamingo', desc: 'Flamingo', type: 'colorlogic', sequence: 9 }],
-            [28, { name: 'vividviolet', desc: 'Vivid Violet', type: 'colorlogic', sequence: 10 }],
-            [29, { name: 'sangria', desc: 'Sangria', type: 'colorlogic', sequence: 11 }],
-            [30, { name: 'twilight', desc: 'Twilight', type: 'colorlogic', sequence: 12 }],
-            [31, { name: 'tranquility', desc: 'Tranquility', type: 'colorlogic', sequence: 13 }],
-            [32, { name: 'gemstone', desc: 'Gemstone', type: 'colorlogic', sequence: 14 }],
-            [33, { name: 'usa', desc: 'USA', type: 'colorlogic', sequence: 15 }],
-            [34, { name: 'mardigras', desc: 'Mardi Gras', type: 'colorlogic', sequence: 16 }],
-            [35, { name: 'coolcabaret', desc: 'Cabaret', type: 'colorlogic', sequence: 17 }],
+            [20, { name: 'cloudwhite', desc: 'Cloud White', types: ['colorlogic'], sequence: 7 }],
+            [21, { name: 'deepsea', desc: 'Deep Sea', types: ['colorlogic'], sequence: 2 }],
+            [22, { name: 'royalblue', desc: 'Royal Blue', types: ['colorlogic'], sequence: 3 }],
+            [23, { name: 'afternoonskies', desc: 'Afternoon Skies', types: ['colorlogic'], sequence: 4 }],
+            [24, { name: 'aquagreen', desc: 'Aqua Green', types: ['colorlogic'], sequence: 5 }],
+            [25, { name: 'emerald', desc: 'Emerald', types: ['colorlogic'], sequence: 6 }],
+            [26, { name: 'warmred', desc: 'Warm Red', types: ['colorlogic'], sequence: 8 }],
+            [27, { name: 'flamingo', desc: 'Flamingo', types: ['colorlogic'], sequence: 9 }],
+            [28, { name: 'vividviolet', desc: 'Vivid Violet', types: ['colorlogic'], sequence: 10 }],
+            [29, { name: 'sangria', desc: 'Sangria', types: ['colorlogic'], sequence: 11 }],
+            [30, { name: 'twilight', desc: 'Twilight', types: ['colorlogic'], sequence: 12 }],
+            [31, { name: 'tranquility', desc: 'Tranquility', types: ['colorlogic'], sequence: 13 }],
+            [32, { name: 'gemstone', desc: 'Gemstone', types: ['colorlogic'], sequence: 14 }],
+            [33, { name: 'usa', desc: 'USA', types: ['colorlogic'], sequence: 15 }],
+            [34, { name: 'mardigras', desc: 'Mardi Gras', types: ['colorlogic'], sequence: 16 }],
+            [35, { name: 'coolcabaret', desc: 'Cabaret', types: ['colorlogic'], sequence: 17 }],
 
             [255, { name: 'none', desc: 'None' }]
         ]);
@@ -533,6 +533,10 @@ export class NixieCircuitCommands extends CircuitCommands {
         return this.setCircuitStateAsync(id, !(circ.isOn || false));
     }
     public async setLightThemeAsync(id: number, theme: number) {
+        if (sys.board.equipmentIds.circuitGroups.isInRange(id)) {
+            await this.setLightGroupThemeAsync(id, theme);
+            return Promise.resolve(state.lightGroups.getItemById(id));
+        }
         let cstate = state.circuits.getItemById(id);
         let circ = sys.circuits.getItemById(id);
         let thm = sys.board.valueMaps.lightThemes.findItem(theme);
@@ -811,42 +815,32 @@ export class NixieCircuitCommands extends CircuitCommands {
     public async setLightGroupThemeAsync(id: number, theme: number): Promise<ICircuitState> {
         const grp = sys.lightGroups.getItemById(id);
         const sgrp = state.lightGroups.getItemById(id);
-        grp.lightingTheme = sgrp.lightingTheme = theme;
-        for (let i = 0; i < grp.circuits.length; i++) {
-            let c = grp.circuits.getItemByIndex(i);
-            let cstate = state.circuits.getItemById(c.circuit);
-            // if theme is 'off' light groups should not turn on
-            if (cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) === 'off')
+        //grp.lightingTheme = sgrp.lightingTheme = theme;
+        let thm = sys.board.valueMaps.lightThemes.transform(theme);
+        sgrp.action = sys.board.valueMaps.intellibriteActions.getValue('color');
+        try {
+            // Go through and set the theme for all lights in the group.
+            for (let i = 0; i < grp.circuits.length; i++) {
+                let c = grp.circuits.getItemByIndex(i);
+                //let cstate = state.circuits.getItemById(c.circuit);
+                await sys.board.circuits.setLightThemeAsync(c.circuit, theme);
                 await sys.board.circuits.setCircuitStateAsync(c.circuit, false);
-            else if (!cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) !== 'off') await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
+            }
+            await utils.sleep(5000);
+            // Turn the circuits all back on again.
+            for (let i = 0; i < grp.circuits.length; i++) {
+                let c = grp.circuits.getItemByIndex(i);
+                //let cstate = state.circuits.getItemById(c.circuit);
+                await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
+            }
+            sgrp.lightingTheme = theme;
+            return sgrp;
         }
-        sgrp.isOn = sys.board.valueMaps.lightThemes.getName(theme) === 'off' ? false : true;
-        // If we truly want to support themes in lightGroups we probably need to program
-        // the specific on/off toggles to enable that.  For now this will go through the motions but it's just a pretender.
-        switch (theme) {
-            case 0: // off
-            case 1: // on
-                break;
-            case 128: // sync
-                setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'sync'); });
-                break;
-            case 144: // swim
-                setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'swim'); });
-                break;
-            case 160: // swim
-                setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'set'); });
-                break;
-            case 190: // save
-            case 191: // recall
-                setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'other'); });
-                break;
-            default:
-                setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'color'); });
-            // other themes for magicstream?
+        catch (err) { return Promise.reject(err); }
+        finally {
+            sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+            sgrp.action = 0;
         }
-        sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
-        state.emitEquipmentChanges();
-        return Promise.resolve(sgrp);
     }
     public async setLightGroupAttribsAsync(group: LightGroup): Promise<LightGroup> {
         let grp = sys.lightGroups.getItemById(group.id);
@@ -862,20 +856,41 @@ export class NixieCircuitCommands extends CircuitCommands {
         }
         catch (err) { return Promise.reject(err); }
     }
-    public sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState> {
+    public async sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState> {
         let sgroup = state.lightGroups.getItemById(id);
+        let grp = sys.lightGroups.getItemById(id);
         let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
-        if (nop > 0) {
-            sgroup.action = nop;
-            sgroup.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
-            state.emitEquipmentChanges();
-            setTimeout(function () {
-                sgroup.action = 0;
-                sgroup.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
-                state.emitEquipmentChanges();
-            }, 20000); // It takes 20 seconds to sequence.
-        }
-        return Promise.resolve(sgroup);
+        try {
+            switch (operation) {
+                case 'sync':
+                    sgroup.action = nop;
+                    sgroup.emitEquipmentChange();
+                    for (let i = 0; i < grp.circuits.length; i++) {
+                        let c = grp.circuits.getItemByIndex(i);
+                        await sys.board.circuits.setCircuitStateAsync(c.circuit, false);
+                    }
+                    await utils.sleep(5000);
+                    // Turn the circuits all back on again.
+                    for (let i = 0; i < grp.circuits.length; i++) {
+                        let c = grp.circuits.getItemByIndex(i);
+                        //let cstate = state.circuits.getItemById(c.circuit);
+                        await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
+                    }
+                    break;
+                case 'set':
+                    sgroup.action = nop;
+                    sgroup.emitEquipmentChange();
+                    await utils.sleep(5000);
+                    break;
+                case 'swim':
+                    sgroup.action = nop;
+                    sgroup.emitEquipmentChange();
+                    await utils.sleep(5000);
+                    break;
+            }
+            return sgroup;
+        } catch (err) { Promise.reject(err); }
+        finally { sgroup.action = 0; sgroup.emitEquipmentChange(); }
     }
     public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
         let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });

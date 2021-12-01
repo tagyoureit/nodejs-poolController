@@ -1185,7 +1185,22 @@ export class Circuit extends EqItem implements ICircuit {
     public get deviceBinding(): string { return this.data.deviceBinding; }
     public set deviceBinding(val: string) { this.setDataVal('deviceBinding', val); }
     public get hasHeatSource() { return typeof sys.board.valueMaps.circuitFunctions.get(this.type || 0).hasHeatSource !== 'undefined' ? sys.board.valueMaps.circuitFunctions.get(this.type || 0).hasHeatSource : false };
-    public getLightThemes() { return sys.board.circuits.getLightThemes(this.type); }
+    public getLightThemes() {
+        // Lets do this universally driven by the metadata.
+        let cf = sys.board.valueMaps.circuitFunctions.transform(this.type);
+        if (cf.isLight && typeof cf.theme !== 'undefined') {
+            let arrThemes = sys.board.valueMaps.lightThemes.toArray();
+            let themes = [];
+            for (let i = 0; i < arrThemes.length; i++) {
+                let thm = arrThemes[i];
+                if (typeof thm.types !== 'undefined' && thm.types.length > 0 && thm.types.includes(cf.theme)) themes.push(thm);
+            }
+            return themes;
+        }
+        else return [];
+
+        //return sys.board.circuits.getLightThemes(this.type);
+    }
     public static getIdName(id: number) {
         // todo: adjust for intellitouch
         let defName = "Aux" + (id + 1).toString();
@@ -1664,7 +1679,33 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
     public get lightingTheme(): number | any { return this.data.lightingTheme; }
     public set lightingTheme(val: number | any) { this.setDataVal('lightingTheme', sys.board.valueMaps.lightThemes.encode(val)); }
     public get circuits(): LightGroupCircuitCollection { return new LightGroupCircuitCollection(this.data, "circuits"); }
-    public getLightThemes() { return sys.board.valueMaps.lightThemes.toArray(); }
+    public getLightThemes() {
+        // Go through the circuits and gather the themes.
+        // This method first looks at the circuits to determine their type (function)
+        // then it filters the list by the types associated with the circuits.  It does this because
+        // there can be combined ColorLogic and IntelliBrite lights.  The themes array has
+        // the circuit function.
+        let arrThemes = [];
+        for (let i = 0; i < this.circuits.length; i++) {
+            let circ = this.circuits.getItemByIndex(i);
+            let c = sys.circuits.getInterfaceById(circ.circuit);
+            let cf = sys.board.valueMaps.circuitFunctions.transform(c.type);
+            if (cf.isLight && typeof cf.theme !== 'undefined') {
+                if (!arrThemes.includes(cf.theme)) arrThemes.push(cf.theme);
+            }
+        }
+        // Alright now we need to get a listing of the themes.
+        let t = sys.board.valueMaps.lightThemes.toArray();
+        let ret = [];
+        for (let i = 0; i < t.length; i++) {
+            let thm = t[i];
+            if (typeof thm.types !== 'undefined' && thm.types.length > 0) {
+                // Look in the themes array of the theme.
+                if (arrThemes.some(x => thm.types.includes(x))) ret.push(thm);
+            }
+        }
+        return ret;
+    }
     public getExtended() {
         let group = this.get(true);
         group.type = sys.board.valueMaps.circuitGroupTypes.transform(group.type);

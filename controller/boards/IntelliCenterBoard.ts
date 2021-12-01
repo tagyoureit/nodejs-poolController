@@ -50,12 +50,12 @@ export class IntelliCenterBoard extends SystemBoard {
             [2, { name: 'mastercleaner', desc: 'Master Cleaner' }],
             [3, { name: 'chemrelay', desc: 'Chem Relay' }],
             [4, { name: 'light', desc: 'Light', isLight: true }],
-            [5, { name: 'intellibrite', desc: 'Intellibrite', isLight: true }],
-            [6, { name: 'globrite', desc: 'GloBrite', isLight: true }],
+            [5, { name: 'intellibrite', desc: 'Intellibrite', isLight: true, theme:'intellibrite' }],
+            [6, { name: 'globrite', desc: 'GloBrite', isLight: true, themes: 'intellibrite' }],
             [7, { name: 'globritewhite', desc: 'GloBrite White', isLight: true }],
-            [8, { name: 'magicstream', desc: 'Magicstream', isLight: true }],
+            [8, { name: 'magicstream', desc: 'Magicstream', isLight: true, theme:'intellibrite' }],
             [9, { name: 'dimmer', desc: 'Dimmer', isLight: true }],
-            [10, { name: 'colorcascade', desc: 'ColorCascade', isLight: true }],
+            [10, { name: 'colorcascade', desc: 'ColorCascade', isLight: true, theme:'intellibrite' }],
             [11, { name: 'mastercleaner2', desc: 'Master Cleaner 2' }],
             [12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
             [13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
@@ -173,18 +173,18 @@ export class IntelliCenterBoard extends SystemBoard {
             [2, { name: 'sunset', desc: 'Sunset' }]
         ]);
         this.valueMaps.lightThemes = new byteValueMap([
-            [0, { name: 'white', desc: 'White', sequence: 11 }],
-            [1, { name: 'green', desc: 'Green', sequence: 9 }],
-            [2, { name: 'blue', desc: 'Blue', sequence: 8 }],
-            [3, { name: 'magenta', desc: 'Magenta', sequence: 12 }],
-            [4, { name: 'red', desc: 'Red', sequence: 10 }],
-            [5, { name: 'sam', desc: 'SAm Mode', sequence: 1 }],
-            [6, { name: 'party', desc: 'Party', sequence: 2 }],
-            [7, { name: 'romance', desc: 'Romance', sequence: 3 }],
-            [8, { name: 'caribbean', desc: 'Caribbean', sequence: 4 }],
-            [9, { name: 'american', desc: 'American', sequence: 5 }],
-            [10, { name: 'sunset', desc: 'Sunset', sequence: 6 }],
-            [11, { name: 'royal', desc: 'Royal', sequence: 7 }],
+            [0, { name: 'white', desc: 'White', sequence: 11, types:['intellibrite', 'magicstream'] }],
+            [1, { name: 'green', desc: 'Green', sequence: 9, types: ['intellibrite', 'magicstream'] }],
+            [2, { name: 'blue', desc: 'Blue', sequence: 8, types: ['intellibrite', 'magicstream'] }],
+            [3, { name: 'magenta', desc: 'Magenta', sequence: 12, types: ['intellibrite', 'magicstream'] }],
+            [4, { name: 'red', desc: 'Red', sequence: 10, types: ['intellibrite', 'magicstream'] }],
+            [5, { name: 'sam', desc: 'SAm Mode', sequence: 1, types: ['intellibrite', 'magicstream'] }],
+            [6, { name: 'party', desc: 'Party', sequence: 2, types: ['intellibrite', 'magicstream'] }],
+            [7, { name: 'romance', desc: 'Romance', sequence: 3, types: ['intellibrite', 'magicstream'] }],
+            [8, { name: 'caribbean', desc: 'Caribbean', sequence: 4, types: ['intellibrite', 'magicstream'] }],
+            [9, { name: 'american', desc: 'American', sequence: 5, types: ['intellibrite', 'magicstream'] }],
+            [10, { name: 'sunset', desc: 'Sunset', sequence: 6, types: ['intellibrite', 'magicstream'] }],
+            [11, { name: 'royal', desc: 'Royal', sequence: 7, types: ['intellibrite', 'magicstream'] }],
             [255, { name: 'none', desc: 'None' }]
         ]);
         this.valueMaps.lightColors = new byteValueMap([
@@ -2002,17 +2002,18 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         }
         return Promise.resolve(sgroup);
     }
-    public getLightThemes(type: number): any[] {
-        switch (type) {
-            case 5: // Intellibrite
-            case 6: // Globrite
-            case 8: // Magicstream
-            case 10: // ColorCascade
-                return sys.board.valueMaps.lightThemes.toArray();
-            default:
-                return [];
-        }
-    }
+    // 12-01-21 RKS: This has been deprecated.  This allows for multiple vendor light themes driven by the metadata on the valuemaps.
+    //public getLightThemes(type: number): any[] {
+    //    switch (type) {
+    //        case 5: // Intellibrite
+    //        case 6: // Globrite
+    //        case 8: // Magicstream
+    //        case 10: // ColorCascade
+    //            return sys.board.valueMaps.lightThemes.toArray();
+    //        default:
+    //            return [];
+    //    }
+    //}
     private async verifyVersionAsync(): Promise<boolean> {
         return new Promise<boolean>((resolve, reject) => {
             let out = Outbound.create({

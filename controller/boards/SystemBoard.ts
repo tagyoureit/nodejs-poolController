@@ -231,25 +231,25 @@ export class byteValueMaps {
     [3, { val: 255, name: 'Error', desc: 'Error', percent: 0 }]
   ]);
 
-  public circuitFunctions: byteValueMap = new byteValueMap([
-    [0, { name: 'generic', desc: 'Generic' }],
-    [1, { name: 'spa', desc: 'Spa', hasHeatSource: true }],
-    [2, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
-    [5, { name: 'mastercleaner', desc: 'Master Cleaner' }],
-    [7, { name: 'light', desc: 'Light', isLight: true }],
-    [9, { name: 'samlight', desc: 'SAM Light', isLight: true }],
-    [10, { name: 'sallight', desc: 'SAL Light', isLight: true }],
-    [11, { name: 'photongen', desc: 'Photon Gen', isLight: true }],
-    [12, { name: 'colorwheel', desc: 'Color Wheel', isLight: true }],
-    [13, { name: 'valve', desc: 'Valve' }],
-    [14, { name: 'spillway', desc: 'Spillway' }],
-    [15, { name: 'floorcleaner', desc: 'Floor Cleaner' }],
-    [16, { name: 'intellibrite', desc: 'Intellibrite', isLight: true }],
-    [17, { name: 'magicstream', desc: 'Magicstream', isLight: true }],
-    [19, { name: 'notused', desc: 'Not Used' }],
-    [65, { name: 'lotemp', desc: 'Lo-Temp' }],
-    [66, { name: 'hightemp', desc: 'Hi-Temp' }]
-  ]);
+    public circuitFunctions: byteValueMap = new byteValueMap([
+        [0, { name: 'generic', desc: 'Generic' }],
+        [1, { name: 'spa', desc: 'Spa', hasHeatSource: true }],
+        [2, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
+        [5, { name: 'mastercleaner', desc: 'Master Cleaner' }],
+        [7, { name: 'light', desc: 'Light', isLight: true }],
+        [9, { name: 'samlight', desc: 'SAM Light', isLight: true }],
+        [10, { name: 'sallight', desc: 'SAL Light', isLight: true }],
+        [11, { name: 'photongen', desc: 'Photon Gen', isLight: true }],
+        [12, { name: 'colorwheel', desc: 'Color Wheel', isLight: true }],
+        [13, { name: 'valve', desc: 'Valve' }],
+        [14, { name: 'spillway', desc: 'Spillway' }],
+        [15, { name: 'floorcleaner', desc: 'Floor Cleaner' }],
+        [16, { name: 'intellibrite', desc: 'Intellibrite', isLight: true, themes: 'intellibrite' }],
+        [17, { name: 'magicstream', desc: 'Magicstream', isLight: true, themes:'magicstream' }],
+        [19, { name: 'notused', desc: 'Not Used' }],
+        [65, { name: 'lotemp', desc: 'Lo-Temp' }],
+        [66, { name: 'hightemp', desc: 'Hi-Temp' }]
+    ]);
 
   // Feature functions are used as the available options to define a circuit.
   public featureFunctions: byteValueMap = new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
@@ -265,51 +265,51 @@ export class byteValueMaps {
     [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -', assignableToPumpCircuit: false }],
     [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true }]
   ]);
-  public lightThemes: byteValueMap = new byteValueMap([
-    [0, { name: 'off', desc: 'Off', type: 'intellibrite' }],
-    [1, { name: 'on', desc: 'On', type: 'intellibrite' }],
-    [128, { name: 'colorsync', desc: 'Color Sync', type: 'intellibrite' }],
-    [144, { name: 'colorswim', desc: 'Color Swim', type: 'intellibrite' }],
-    [160, { name: 'colorset', desc: 'Color Set', type: 'intellibrite' }],
-    [177, { name: 'party', desc: 'Party', type: 'intellibrite', sequence: 2 }],
-    [178, { name: 'romance', desc: 'Romance', type: 'intellibrite', sequence: 3 }],
-    [179, { name: 'caribbean', desc: 'Caribbean', type: 'intellibrite', sequence: 4 }],
-    [180, { name: 'american', desc: 'American', type: 'intellibrite', sequence: 5 }],
-    [181, { name: 'sunset', desc: 'Sunset', type: 'intellibrite', sequence: 6 }],
-    [182, { name: 'royal', desc: 'Royal', type: 'intellibrite', sequence: 7 }],
-    [190, { name: 'save', desc: 'Save', type: 'intellibrite', sequence: 13 }],
-    [191, { name: 'recall', desc: 'Recall', type: 'intellibrite', sequence: 14 }],
-    [193, { name: 'blue', desc: 'Blue', type: 'intellibrite', sequence: 8 }],
-    [194, { name: 'green', desc: 'Green', type: 'intellibrite', sequence: 9 }],
-    [195, { name: 'red', desc: 'Red', type: 'intellibrite', sequence: 10 }],
-    [196, { name: 'white', desc: 'White', type: 'intellibrite', sequence: 11 }],
-    [197, { name: 'magenta', desc: 'Magenta', type: 'intellibrite', sequence: 12 }],
-    [208, { name: 'thumper', desc: 'Thumper', type: 'magicstream' }],
-    [209, { name: 'hold', desc: 'Hold', type: 'magicstream' }],
-    [210, { name: 'reset', desc: 'Reset', type: 'magicstream' }],
-    [211, { name: 'mode', desc: 'Mode', type: 'magicstream' }],
-    [254, { name: 'unknown', desc: 'unknown' }],
-    [255, { name: 'none', desc: 'None' }]
-  ]);
-  public colorLogicThemes = new byteValueMap([
-    [0, { name: 'cloudwhite', desc: 'Cloud White', type: 'colorlogic', sequence: 7 }],
-    [1, { name: 'deepsea', desc: 'Deep Sea', type: 'colorlogic', sequence: 2 }],
-    [2, { name: 'royalblue', desc: 'Royal Blue', type: 'colorlogic', sequence: 3 }],
-    [3, { name: 'afernoonskies', desc: 'Afternoon Skies', type: 'colorlogic', sequence: 4 }],
-    [4, { name: 'aquagreen', desc: 'Aqua Green', type: 'colorlogic', sequence: 5 }],
-    [5, { name: 'emerald', desc: 'Emerald', type: 'colorlogic', sequence: 6 }],
-    [6, { name: 'warmred', desc: 'Warm Red', type: 'colorlogic', sequence: 8 }],
-    [7, { name: 'flamingo', desc: 'Flamingo', type: 'colorlogic', sequence: 9 }],
-    [8, { name: 'vividviolet', desc: 'Vivid Violet', type: 'colorlogic', sequence: 10 }],
-    [9, { name: 'sangria', desc: 'Sangria', type: 'colorlogic', sequence: 11 }],
-    [10, { name: 'twilight', desc: 'Twilight', type: 'colorlogic', sequence: 12 }],
-    [11, { name: 'tranquility', desc: 'Tranquility', type: 'colorlogic', sequence: 13 }],
-    [12, { name: 'gemstone', desc: 'Gemstone', type: 'colorlogic', sequence: 14 }],
-    [13, { name: 'usa', desc: 'USA', type: 'colorlogic', sequence: 15 }],
-    [14, { name: 'mardigras', desc: 'Mardi Gras', type: 'colorlogic', sequence: 16 }],
-    [15, { name: 'cabaret', desc: 'Cabaret', type: 'colorlogic', sequence: 17 }],
-    [255, { name: 'none', desc: 'None' }]
-  ]);
+    public lightThemes: byteValueMap = new byteValueMap([
+        [0, { name: 'off', desc: 'Off', types: ['intellibrite'] }],
+        [1, { name: 'on', desc: 'On', types: ['intellibrite'] }],
+        [128, { name: 'colorsync', desc: 'Color Sync', types: ['intellibrite'] }],
+        [144, { name: 'colorswim', desc: 'Color Swim', types: ['intellibrite'] }],
+        [160, { name: 'colorset', desc: 'Color Set', types: ['intellibrite'] }],
+        [177, { name: 'party', desc: 'Party', types: ['intellibrite'], sequence: 2 }],
+        [178, { name: 'romance', desc: 'Romance', types: ['intellibrite'], sequence: 3 }],
+        [179, { name: 'caribbean', desc: 'Caribbean', types: ['intellibrite'], sequence: 4 }],
+        [180, { name: 'american', desc: 'American', types: ['intellibrite'], sequence: 5 }],
+        [181, { name: 'sunset', desc: 'Sunset', types: ['intellibrite'], sequence: 6 }],
+        [182, { name: 'royal', desc: 'Royal', types: ['intellibrite'], sequence: 7 }],
+        [190, { name: 'save', desc: 'Save', types: ['intellibrite'], sequence: 13 }],
+        [191, { name: 'recall', desc: 'Recall', types: ['intellibrite'], sequence: 14 }],
+        [193, { name: 'blue', desc: 'Blue', types: ['intellibrite'], sequence: 8 }],
+        [194, { name: 'green', desc: 'Green', types: ['intellibrite'], sequence: 9 }],
+        [195, { name: 'red', desc: 'Red', types: ['intellibrite'], sequence: 10 }],
+        [196, { name: 'white', desc: 'White', types: ['intellibrite'], sequence: 11 }],
+        [197, { name: 'magenta', desc: 'Magenta', types: ['intellibrite'], sequence: 12 }],
+        [208, { name: 'thumper', desc: 'Thumper', types: ['magicstream'] }],
+        [209, { name: 'hold', desc: 'Hold', types: ['magicstream'] }],
+        [210, { name: 'reset', desc: 'Reset', types: ['magicstream'] }],
+        [211, { name: 'mode', desc: 'Mode', types: ['magicstream'] }],
+        [254, { name: 'unknown', desc: 'unknown' }],
+        [255, { name: 'none', desc: 'None' }]
+    ]);
+    public colorLogicThemes = new byteValueMap([
+        [0, { name: 'cloudwhite', desc: 'Cloud White', types: ['colorlogic'], sequence: 7 }],
+        [1, { name: 'deepsea', desc: 'Deep Sea', types: ['colorlogic'], sequence: 2 }],
+        [2, { name: 'royalblue', desc: 'Royal Blue', types: ['colorlogic'], sequence: 3 }],
+        [3, { name: 'afernoonskies', desc: 'Afternoon Skies', types: ['colorlogic'], sequence: 4 }],
+        [4, { name: 'aquagreen', desc: 'Aqua Green', types: ['colorlogic'], sequence: 5 }],
+        [5, { name: 'emerald', desc: 'Emerald', types: ['colorlogic'], sequence: 6 }],
+        [6, { name: 'warmred', desc: 'Warm Red', types: ['colorlogic'], sequence: 8 }],
+        [7, { name: 'flamingo', desc: 'Flamingo', types: ['colorlogic'], sequence: 9 }],
+        [8, { name: 'vividviolet', desc: 'Vivid Violet', types: ['colorlogic'], sequence: 10 }],
+        [9, { name: 'sangria', desc: 'Sangria', types: ['colorlogic'], sequence: 11 }],
+        [10, { name: 'twilight', desc: 'Twilight', types: ['colorlogic'], sequence: 12 }],
+        [11, { name: 'tranquility', desc: 'Tranquility', types: ['colorlogic'], sequence: 13 }],
+        [12, { name: 'gemstone', desc: 'Gemstone', types: ['colorlogic'], sequence: 14 }],
+        [13, { name: 'usa', desc: 'USA', types: ['colorlogic'], sequence: 15 }],
+        [14, { name: 'mardigras', desc: 'Mardi Gras', types: ['colorlogic'], sequence: 16 }],
+        [15, { name: 'cabaret', desc: 'Cabaret', types: ['colorlogic'], sequence: 17 }],
+        [255, { name: 'none', desc: 'None' }]
+    ]);
 
   public lightColors: byteValueMap = new byteValueMap([
     [0, { name: 'white', desc: 'White' }],
@@ -1974,45 +1974,45 @@ export class CircuitCommands extends BoardCommands {
       return true;
     } catch (err) { logger.error(`Error validating circuits for restore: ${err.message}`); }
   }
-  public async checkEggTimerExpirationAsync() {
-    // turn off any circuits that have reached their egg timer;
-    // Nixie circuits we have 100% control over; 
-    // but features/cg/lg may override OCP control
-    try {
-      for (let i = 0; i < sys.circuits.length; i++) {
-        let c = sys.circuits.getItemByIndex(i);
-        let cstate = state.circuits.getItemByIndex(i);
-        if (!cstate.isActive || !cstate.isOn) continue;
-        if (c.master === 1) {
-          await ncp.circuits.checkCircuitEggTimerExpirationAsync(cstate);
-        }
-      }
-      for (let i = 0; i < sys.features.length; i++) {
-        let fstate = state.features.getItemByIndex(i);
-        if (!fstate.isActive || !fstate.isOn) continue;
-        if (fstate.endTime.toDate() < new Timestamp().toDate()) {
-          await sys.board.circuits.setCircuitStateAsync(fstate.id, false);
-          fstate.emitEquipmentChange();
-        }
-      }
-      for (let i = 0; i < sys.circuitGroups.length; i++) {
-        let cgstate = state.circuitGroups.getItemByIndex(i);
-        if (!cgstate.isActive || !cgstate.isOn) continue;
-        if (cgstate.endTime.toDate() < new Timestamp().toDate()) {
-          await sys.board.circuits.setCircuitGroupStateAsync(cgstate.id, false);
-          cgstate.emitEquipmentChange();
-        }
-      }
-      for (let i = 0; i < sys.lightGroups.length; i++) {
-        let lgstate = state.lightGroups.getItemByIndex(i);
-        if (!lgstate.isActive || !lgstate.isOn) continue;
-        if (lgstate.endTime.toDate() < new Timestamp().toDate()) {
-          await sys.board.circuits.setLightGroupStateAsync(lgstate.id, false);
-          lgstate.emitEquipmentChange();
-        }
-      }
-    } catch (err) { logger.error(`checkEggTimerExpiration: Error synchronizing circuit relays ${err.message}`); }
-  }
+    public async checkEggTimerExpirationAsync() {
+        // turn off any circuits that have reached their egg timer;
+        // Nixie circuits we have 100% control over; 
+        // but features/cg/lg may override OCP control
+        try {
+            for (let i = 0; i < sys.circuits.length; i++) {
+                let c = sys.circuits.getItemByIndex(i);
+                let cstate = state.circuits.getItemByIndex(i);
+                if (!cstate.isActive || !cstate.isOn || typeof cstate.endTime === 'undefined') continue;
+                if (c.master === 1) {
+                    await ncp.circuits.checkCircuitEggTimerExpirationAsync(cstate);
+                }
+            }
+            for (let i = 0; i < sys.features.length; i++) {
+                let fstate = state.features.getItemByIndex(i);
+                if (!fstate.isActive || !fstate.isOn || typeof fstate.endTime === 'undefined') continue;
+                if (fstate.endTime.toDate() < new Timestamp().toDate()) {
+                    await sys.board.circuits.setCircuitStateAsync(fstate.id, false);
+                    fstate.emitEquipmentChange();
+                }
+            }
+            for (let i = 0; i < sys.circuitGroups.length; i++) {
+                let cgstate = state.circuitGroups.getItemByIndex(i);
+                if (!cgstate.isActive || !cgstate.isOn || typeof cgstate.endTime === 'undefined') continue;
+                if (cgstate.endTime.toDate() < new Timestamp().toDate()) {
+                    await sys.board.circuits.setCircuitGroupStateAsync(cgstate.id, false);
+                    cgstate.emitEquipmentChange();
+                }
+            }
+            for (let i = 0; i < sys.lightGroups.length; i++) {
+                let lgstate = state.lightGroups.getItemByIndex(i);
+                if (!lgstate.isActive || !lgstate.isOn || typeof lgstate.endTime === 'undefined') continue;
+                if (lgstate.endTime.toDate() < new Timestamp().toDate()) {
+                    await sys.board.circuits.setLightGroupStateAsync(lgstate.id, false);
+                    lgstate.emitEquipmentChange();
+                }
+            }
+        } catch (err) { logger.error(`checkEggTimerExpiration: Error synchronizing circuit relays ${err.message}`); }
+    }
   public async syncCircuitRelayStates() {
     try {
       for (let i = 0; i < sys.circuits.length; i++) {

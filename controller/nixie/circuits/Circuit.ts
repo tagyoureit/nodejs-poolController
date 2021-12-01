@@ -60,7 +60,7 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
      try {
         let c: NixieCircuit = this.find(elem => elem.id === cstate.id) as NixieCircuit;
         await c.checkCircuitEggTimerExpirationAsync(cstate);
-    } catch (err) { logger.error(`NCP: Error syncing circuit states: ${err}`); }
+    } catch (err) { logger.error(`NCP: Error synching circuit states: ${err}`); }
     }
     public async initAsync(circuits: CircuitCollection) {
         try {
@@ -157,7 +157,15 @@ export class NixieCircuit extends NixieEquipment {
         } catch (err) { logger.error(`Nixie: Error sending circuit sequence ${this.id}: ${count}`); }
         finally { this._sequencing = false; }
     }
-    public async setCircuitStateAsync(cstate: ICircuitState, val: boolean, scheduled: boolean = false) : Promise<InterfaceServerResponse> {
+    public async setThemeAsync(cstate: ICircuitState, theme: number): Promise<InterfaceServerResponse> {
+        try {
+            
+
+
+            return new InterfaceServerResponse(200, 'Sucess');
+        } catch (err) { logger.error(`Nixie: Error setting light theme ${cstate.id}-${cstate.name} to ${theme}`); }
+    }
+    public async setCircuitStateAsync(cstate: ICircuitState, val: boolean, scheduled: boolean = false): Promise<InterfaceServerResponse> {
         try {
             if (val !== cstate.isOn) {
                 logger.info(`NCP: Setting Circuit ${cstate.name} to ${val}`);
@@ -190,9 +198,11 @@ export class NixieCircuit extends NixieEquipment {
         // (this should already be turned off) or the egg timer has expired
         try {
             if (!cstate.isActive || !cstate.isOn) return;
-            if (cstate.endTime.toDate() < new Timestamp().toDate()) {
-                await sys.board.circuits.setCircuitStateAsync(cstate.id, false);
-                cstate.emitEquipmentChange();
+            if (typeof cstate.endTime !== 'undefined') {
+                if (cstate.endTime.toDate() < new Timestamp().toDate()) {
+                    await sys.board.circuits.setCircuitStateAsync(cstate.id, false);
+                    cstate.emitEquipmentChange();
+                }
             }
         } catch (err) { logger.error(`Error syncing circuit: ${err}`); }
     }
