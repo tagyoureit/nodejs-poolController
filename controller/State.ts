@@ -1438,6 +1438,8 @@ export class HeaterState extends EqState {
             this.hasChanged = true;
         }
     }
+    public get bodyId(): number { return this.data.bodyId || 0 }
+    public set bodyId(val: number) { this.setDataVal('bodyId', val); }
 }
 export class FeatureStateCollection extends EqStateCollection<FeatureState> {
     public createItem(data: any): FeatureState { return new FeatureState(data); }

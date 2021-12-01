@@ -4,7 +4,7 @@ import { logger } from '../../../logger/Logger';
 
 import { NixieEquipment, NixieChildEquipment, NixieEquipmentCollection, INixieControlPanel } from "../NixieEquipment";
 import { Heater, HeaterCollection, sys } from "../../../controller/Equipment";
-import { HeaterState, state, } from "../../State";
+import { BodyTempState, HeaterState, state, } from "../../State";
 import { setTimeout, clearTimeout } from 'timers';
 import { NixieControlPanel } from '../Nixie';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
@@ -433,7 +433,6 @@ export class NixieUltratemp extends NixieHeatpump {
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
             logger.info(`Closing Heater ${this.heater.name}`);
-
         }
         catch (err) { logger.error(`Ultratemp closeAsync: ${err.message}`); return Promise.reject(err); }
     }
@@ -443,7 +442,21 @@ export class NixieMastertemp extends NixieGasHeater {
         super(ncp, heater);
         // Set the polling interval to 3 seconds.
         this.pollEquipmentAsync();
+        this.pollingInterval = 3000;
     }
+    public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean) {
+        try {
+            // Initialize the desired state.
+            this.isOn = isOn;
+            this.isCooling = false;
+            // Here we go we need to set the firemans switch state.
+            if (hstate.isOn !== isOn) {
+                logger.info(`Nixie: Set Heater ${hstate.id}-${hstate.name} to ${isOn}`);
+            }
+            hstate.isOn = isOn;
+        } catch (err) { return logger.error(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
+    }
+
     public async pollEquipmentAsync() {
         let self = this;
         try {
@@ -454,15 +467,13 @@ export class NixieMastertemp extends NixieGasHeater {
             let sheater = state.heaters.getItemById(this.heater.id, !this.closing);
             // If the body isn't on then we won't communicate with the chem controller.  There is no need
             // since most of the time these are attached to the filter relay.
-            if (!this.closing) {
-                await this.setStatus(sheater);
-            }
+            if (!this.closing) await this.setStatus(sheater);
         }
         catch (err) { logger.error(`Error polling MasterTemp heater - ${err}`); }
         finally {
             this.suspendPolling = false; if (!this.closing) this._pollTimer = setTimeout(async () => {
                 try { await self.pollEquipmentAsync() } catch (err) { }
-            }, this.pollingInterval || 10000);
+            }, this.pollingInterval || 3000);
         }
     }
     public async setStatus(sheater: HeaterState): Promise<boolean> {
@@ -489,7 +500,7 @@ export class NixieMastertemp extends NixieGasHeater {
                     }
                 });
                 out.appendPayloadBytes(0, 11);
-                out.setPayloadByte(0, this.isOn ? 1 : 0);
+                out.setPayloadByte(0, sheater.bodyId <= 2 ? sheater.bodyId : 0);
                 out.setPayloadByte(1, sys.bodies.getItemById(1).heatSetpoint || 0);
                 out.setPayloadByte(2, sys.bodies.getItemById(2).heatSetpoint || 0);
                 conn.queueSendMessage(out);

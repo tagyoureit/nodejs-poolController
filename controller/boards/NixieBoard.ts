@@ -202,6 +202,7 @@ export class NixieBoard extends SystemBoard {
             [1, { name: 'heater', desc: 'Heater' }],
             [2, { name: 'solar', desc: 'Solar' }],
             [3, { name: 'cooling', desc: 'Cooling' }],
+            [6, { name: 'mtheat', desc: 'Heater' }],
             [4, { name: 'hpheat', desc: 'Heating' }],
             [8, { name: 'hpcool', desc: 'Cooling' }]
         ]);

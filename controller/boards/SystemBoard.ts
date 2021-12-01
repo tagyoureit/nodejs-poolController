@@ -3625,10 +3625,14 @@ export class HeaterCommands extends BoardCommands {
                                 hon.push(heater.id);
                                 if (heater.master === 1 && isOn) (async () => {
                                     try {
+                                        hstate.bodyId = body.id;
                                         await ncp.heaters.setHeaterStateAsync(hstate, isOn, isCooling);
                                     } catch (err) { logger.error(err.message); }
                                 })();
-                                else hstate.isOn = isOn;
+                                else {
+                                    hstate.isOn = isOn;
+                                    hstate.bodyId = body.id;
+                                }
                             }
                         }
                     }
@@ -3644,9 +3648,13 @@ export class HeaterCommands extends BoardCommands {
                     if (heater.master === 1) (async () => {
                         try {
                             await ncp.heaters.setHeaterStateAsync(hstate, false, false);
+                            hstate.bodyId = 0;
                         } catch (err) { logger.error(err.message); }
                     })();
-                    else hstate.isOn = false;
+                    else {
+                        hstate.isOn = false;
+                        hstate.bodyId = 0;
+                    }
                 }
             }
         } catch (err) { logger.error(`Error synchronizing heater states`); }

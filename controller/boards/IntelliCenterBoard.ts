@@ -2523,7 +2523,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         if (typeof obj.disabled !== 'undefined') chlor.disabled = utils.makeBool(obj.disabled);
         if (typeof chlor.body === 'undefined') chlor.body = obj.body || 32;
         // Verify the data.
-        let body = sys.board.bodies.mapBodyAssociation(chlor.body);
+        let body = sys.board.bodies.mapBodyAssociation(typeof obj.body === 'undefined' ? chlor.body || 0 : obj.body);
         if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${chlor.body}`, 'chlorinator', chlor.body));
         if (poolSetpoint > 100 || poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
         if (spaSetpoint > 100 || spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
@@ -2542,6 +2542,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
                     else {
                         let schlor = state.chlorinators.getItemById(id, true);
                         let cchlor = sys.chlorinators.getItemById(id, true);
+                        schlor.body = chlor.body = body.val;
                         chlor.disabled = disabled;
                         chlor.model = model;
                         schlor.type = chlor.type = chlorType;
