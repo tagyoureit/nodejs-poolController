@@ -883,7 +883,9 @@ export class PumpState extends EqState {
         if (typeof this.data.status === 'undefined') {
             this.data.status = { name: 'ok', desc: 'Ok', val: 0 };
         }
+        if (typeof this.data.pumpOnDelay === 'undefined') this.data.pumpOnDelay = false;
     }
+    private _pumpOnDelayTimer: NodeJS.Timeout;
     private _threshold = 0.05;
     private exceedsThreshold(origVal: number, newVal: number) {
         return Math.abs((newVal - origVal) / origVal) > this._threshold;
@@ -943,6 +945,23 @@ export class PumpState extends EqState {
     }
     public get time(): number { return this.data.time; }
     public set time(val: number) { this.setDataVal('time', val, false); }
+    public get pumpOnDelay() { return this.data.pumpOnDelay; }
+    public set pumpOnDelay(val: boolean) {
+        if (val === false) {
+            if (typeof this._pumpOnDelayTimer !== 'undefined') clearTimeout(this._pumpOnDelayTimer);
+            this._pumpOnDelayTimer = undefined;
+        }
+        this.setDataVal('pumpOnDelay', val);
+    }
+    public setPumpOnDelayTimeout(delay: number) {
+        this.pumpOnDelay = true;
+        logger.info(`Pump ON Delay ${this.name} for ${delay / 1000} seconds`);
+        this._pumpOnDelayTimer = setTimeout(() => {
+            logger.info(`Pump ON Delay ${this.name} expired`);
+            this.pumpOnDelay = false;
+        }, delay);
+    }
+   
     public getExtended() {
         let pump = this.get(true);
         let cpump = sys.pumps.getItemById(pump.id);

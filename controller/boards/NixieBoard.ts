@@ -501,6 +501,25 @@ export class NixieCircuitCommands extends CircuitCommands {
             //[13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
             if (newState && (circuit.type === 12 || circuit.type === 13)) {
                 if (sys.equipment.shared === true) {
+                    let delayPumps = false;
+                    if (sys.general.options.pumpDelay === true) {
+                        // Now that this is off check the valve positions.  If they are not currently in the correct position we need to delay any attached pump
+                        // so that it does not come on for 30 seconds.
+                        let iValves = sys.valves.getIntake();
+                        for (let i = 0; i < iValves.length && !delayPumps; i++) {
+                            let vstate = state.valves.getItemById(iValves[i].id);
+                            if (vstate.isDiverted === true && circuit.type === 12) delayPumps = true;
+                            else if (vstate.isDiverted === false && circuit.type === 13) delayPumps = true;
+                        }
+                        if (!delayPumps) {
+                            let rValves = sys.valves.getReturn();
+                            for (let i = 0; i < rValves.length && !delayPumps; i++) {
+                                let vstate = state.valves.getItemById(rValves[i].id);
+                                if (vstate.isDiverted === true && circuit.type === 12) delayPumps = true;
+                                else if (vstate.isDiverted === false && circuit.type === 13) delayPumps = true;
+                            }
+                        }
+                    }
                     // If we are shared we need to turn off the other circuit.
                     let offType = circ.type === 12 ? 13 : 12;
                     let off = sys.circuits.get().filter(elem => elem.type === offType);
@@ -510,6 +529,48 @@ export class NixieCircuitCommands extends CircuitCommands {
                         let coff = off[i];
                         logger.info(`Turning off shared body ${coff.name} circuit`);
                         await sys.board.circuits.setCircuitStateAsync(coff.id, false);
+                    }
+                    if (delayPumps === true) {
+                        // Alright now we have to delay the pumps associated with the circuit. So lets iterate all our
+                        // pump states and see where we land.
+                        for (let i = 0; i < sys.pumps.length; i++) {
+                            let pump = sys.pumps.getItemByIndex(i);
+                            let pstate = state.pumps.getItemById(pump.id);
+                            let pt = sys.board.valueMaps.pumpTypes.get(pump.type);
+
+                            //    [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true, maxRelays: 1 }],
+                            //    [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 8, hasAddress: false, hasBody: false, maxRelays: 2 }],
+                            //    [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
+                            //    [4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
+                            //    [5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
+                            //    [100, { name: 'sf', desc: 'SuperFlo VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1 }]
+                            switch (pt.name) {
+                                case 'ss':
+                                case 'ds':
+                                    pstate.pumpOnDelay = true;
+                                    pstate.emitEquipmentChange();
+                                    pstate.setPumpOnDelayTimeout(sys.general.options.valveDelayTime);
+                                    break;
+                                default:
+                                    if (pt.maxCircuits > 0) {
+                                        for (let j = 0; j < pump.circuits.length; j++) {
+                                            let circ = pump.circuits.getItemByIndex(j);
+                                            if (circ.circuit === 6 || circ.circuit === 1) {
+                                                pstate.pumpOnDelay = true;
+                                                pstate.emitEquipmentChange();
+                                                pstate.setPumpOnDelayTimeout(sys.general.options.valveDelayTime);
+                                                break;
+                                            }
+                                        }
+                                    }
+                                    break;
+                            }
+
+                        }
+                       
+
+
+
                     }
                 }
                 //sys.board.virtualChlorinatorController.start();

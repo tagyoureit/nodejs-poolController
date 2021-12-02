@@ -215,8 +215,8 @@ export class NixiePump extends NixieEquipment {
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
             // let success = false;
-            this.setTargetSpeed();
             let pstate = state.pumps.getItemById(this.pump.id);
+            this.setTargetSpeed(pstate);
             await this.setPumpStateAsync(pstate);
         }
         catch (err) { logger.error(`Nixie Error running pump sequence - ${err}`); }
@@ -251,19 +251,43 @@ export class NixiePump extends NixieEquipment {
         catch (err) { logger.error(`Nixie Pump closeAsync: ${err.message}`); return Promise.reject(err); }
     }
     public logData(filename: string, data: any) { this.controlPanel.logData(filename, data); }
-    protected setTargetSpeed() { };
+    protected setTargetSpeed(pstate: PumpState) { };
+    protected isBodyOn(bodyCode: number) {
+        let assoc = sys.board.valueMaps.pumpBodies.transform(bodyCode);
+        switch (assoc.name) {
+            case 'body1':
+            case 'pool':
+                return state.temps.bodies.getItemById(1).isOn;
+            case 'body2':
+            case 'spa':
+                return state.temps.bodies.getItemById(2).isOn;
+            case 'body3':
+                return state.temps.bodies.getItemById(3).isOn;
+            case 'body4':
+                return state.temps.bodies.getItemById(4).isOn;
+            case 'poolspa':
+                if (sys.equipment.shared && sys.equipment.maxBodies >= 2) {
+                    return state.temps.bodies.getItemById(1).isOn === true || state.temps.bodies.getItemById(2).isOn === true;
+                }
+                else
+                    return state.temps.bodies.getItemById(1).isOn;
+        }
+        return false;
+    }
 }
 export class NixiePumpSS extends NixiePump {
-    public setTargetSpeed() {
+    public setTargetSpeed(pState: PumpState) {
         // Turn on ss pumps.
         let _newSpeed = 0;
-        let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
-        if (pt.hasBody) _newSpeed = sys.board.bodies.isBodyOn(this.pump.body) ? 1 : 0;
-        if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed > 0 ? 'on' : 'off'}.`);
+        if (!pState.pumpOnDelay) {
+            let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
+            if (pt.hasBody) _newSpeed = this.isBodyOn(this.pump.body) ? 1 : 0;
+            //console.log(`BODY: ${sys.board.bodies.isBodyOn(this.pump.body)} CODE: ${this.pump.body}`);
+        }
+        if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed > 0 ? 'on' : 'off'}. ${sys.board.bodies.isBodyOn(this.pump.body)}`);
         if (isNaN(_newSpeed)) _newSpeed = 0;
         this._targetSpeed = _newSpeed;
     }
-
     public async setPumpStateAsync(pstate: PumpState) {
         let relays: PumpRelay[] = this.pump.relays.get();
         let relayState = 0;
@@ -304,16 +328,20 @@ export class NixiePumpSS extends NixiePump {
     }
 }
 export class NixiePumpDS extends NixiePumpSS {
-    public setTargetSpeed() {
+    public setTargetSpeed(pState: PumpState) {
         // Turn on sf pumps.  The new speed will be the relays associated with the pump.  I believe when this comes out in the final
         // wash it should engage all the relays for all speeds associated with the pump.  The pump logic will determine which program is
         // the one to engage.
         let _newSpeed = 0;
-        let pumpCircuits: PumpCircuit[] = this.pump.circuits.get();
-        for (let i = 0; i < pumpCircuits.length; i++) {
-            let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
-            // relay speeds are bit-shifted 'or' based on 1,2,4,8
-            if (circ.isOn) _newSpeed |= (1 << pumpCircuits[i].relay - 1);
+        if (!pState.pumpOnDelay) {
+            let pumpCircuits: PumpCircuit[] = this.pump.circuits.get();
+            if (!pState.pumpOnDelay) {
+                for (let i = 0; i < pumpCircuits.length; i++) {
+                    let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
+                    // relay speeds are bit-shifted 'or' based on 1,2,4,8
+                    if (circ.isOn) _newSpeed |= (1 << pumpCircuits[i].relay - 1);
+                }
+            }
         }
         if (isNaN(_newSpeed)) _newSpeed = 0;
         this.logSpeed(_newSpeed);
@@ -355,7 +383,6 @@ export class NixiePumpRS485 extends NixiePump {
             return Promise.reject(err);
         }
         finally { this.suspendPolling = false; }
-    
     };
     protected async setDriveStateAsync(running: boolean = true) {
         return new Promise<void>((resolve, reject) => {
@@ -506,75 +533,82 @@ export class NixiePumpRS485 extends NixiePump {
     }
 }
 export class NixiePumpVS extends NixiePumpRS485 {
-    public setTargetSpeed() {
+    public setTargetSpeed(pState: PumpState) {
         let _newSpeed = 0;
-        let pumpCircuits = this.pump.circuits.get();
-        for (let i = 0; i < pumpCircuits.length; i++) {
-            let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
-            let pc = pumpCircuits[i];
-            if (circ.isOn) _newSpeed = Math.max(_newSpeed, pc.speed);
+        if (!pState.pumpOnDelay) {
+            let pumpCircuits = this.pump.circuits.get();
+
+            for (let i = 0; i < pumpCircuits.length; i++) {
+                let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
+                let pc = pumpCircuits[i];
+                if (circ.isOn) _newSpeed = Math.max(_newSpeed, pc.speed);
+            }
         }
         if (isNaN(_newSpeed)) _newSpeed = 0;
+        this._targetSpeed = _newSpeed;
         if (this._targetSpeed !== 0) Math.min(Math.max(this.pump.minSpeed, this._targetSpeed), this.pump.maxSpeed);
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed} RPM.`);
-        this._targetSpeed = _newSpeed;
     }
 }
 export class NixiePumpVF extends NixiePumpRS485 {
-    public setTargetSpeed() {
+    public setTargetSpeed(pState: PumpState) {
         let _newSpeed = 0;
-        let pumpCircuits = this.pump.circuits.get();
-        for (let i = 0; i < pumpCircuits.length; i++) {
-            let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
-            let pc = pumpCircuits[i];
-            if (circ.isOn) _newSpeed = Math.max(_newSpeed, pc.flow);
+        if (!pState.pumpOnDelay) {
+            let pumpCircuits = this.pump.circuits.get();
+            for (let i = 0; i < pumpCircuits.length; i++) {
+                let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
+                let pc = pumpCircuits[i];
+                if (circ.isOn) _newSpeed = Math.max(_newSpeed, pc.flow);
+            }
         }
         if (isNaN(_newSpeed)) _newSpeed = 0;
+        this._targetSpeed = _newSpeed;
         if (this._targetSpeed !== 0) Math.min(Math.max(this.pump.minFlow, this._targetSpeed), this.pump.maxFlow);
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed} GPM.`);
-        this._targetSpeed = _newSpeed;
     }
 }
 export class NixiePumpVSF extends NixiePumpRS485 {
-    public setTargetSpeed() {
+    public setTargetSpeed(pState: PumpState) {
         let _newSpeed = 0;
-        let pumpCircuits = this.pump.circuits.get();
-        let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
-        // VSF pumps present a problem.  In fact they do not currently operate properly on Touch panels.  On touch these need to either be all in RPM or GPM
-        // if there is a mix in the circuit array then they will not work.  In IntelliCenter if there is an RPM setting in the mix it will use RPM by converting
-        // the GPM to RPM but if there is none then it will use GPM.
         let maxRPM = 0;
         let maxGPM = 0;
         let flows = 0;
         let speeds = 0;
-        let toRPM = (flowRate: number, minSpeed: number = 450, maxSpeed: number = 3450) => {
-            let eff = .03317 * maxSpeed;
-            let rpm = Math.min((flowRate * maxSpeed) / eff, maxSpeed);
-            return rpm > 0 ? Math.max(rpm, minSpeed) : 0;
-        };
-        let toGPM = (speed: number, maxSpeed: number = 3450, minFlow: number = 15, maxFlow: number = 140) => {
-            let eff = .03317 * maxSpeed;
-            let gpm = Math.min((eff * speed) / maxSpeed, maxFlow);
-            return gpm > 0 ? Math.max(gpm, minFlow) : 0;
-        }
-        for (let i = 0; i < pumpCircuits.length; i++) {
-            let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
-            let pc = pumpCircuits[i];
-            if (circ.isOn) {
-                if (pc.units > 0) {
-                    maxGPM = Math.max(maxGPM, pc.flow);
-                    // Calculate an RPM from this flow.
-                    maxRPM = Math.max(maxGPM, toRPM(pc.flow, pt.minSpeed, pt.maxSpeed));
-                    flows++;
-                }
-                else {
-                    maxRPM = Math.max(maxRPM, pc.speed);
-                    maxGPM = Math.max(maxGPM, toGPM(pc.speed, pt.maxSpeed, pt.minFlow, pt.maxFlow));
-                    speeds++;
+        if (!pState.pumpOnDelay) {
+            let pumpCircuits = this.pump.circuits.get();
+            let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
+            // VSF pumps present a problem.  In fact they do not currently operate properly on Touch panels.  On touch these need to either be all in RPM or GPM
+            // if there is a mix in the circuit array then they will not work.  In IntelliCenter if there is an RPM setting in the mix it will use RPM by converting
+            // the GPM to RPM but if there is none then it will use GPM.
+            let toRPM = (flowRate: number, minSpeed: number = 450, maxSpeed: number = 3450) => {
+                let eff = .03317 * maxSpeed;
+                let rpm = Math.min((flowRate * maxSpeed) / eff, maxSpeed);
+                return rpm > 0 ? Math.max(rpm, minSpeed) : 0;
+            };
+            let toGPM = (speed: number, maxSpeed: number = 3450, minFlow: number = 15, maxFlow: number = 140) => {
+                let eff = .03317 * maxSpeed;
+                let gpm = Math.min((eff * speed) / maxSpeed, maxFlow);
+                return gpm > 0 ? Math.max(gpm, minFlow) : 0;
+            }
+            for (let i = 0; i < pumpCircuits.length; i++) {
+                let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
+                let pc = pumpCircuits[i];
+                if (circ.isOn) {
+                    if (pc.units > 0) {
+                        maxGPM = Math.max(maxGPM, pc.flow);
+                        // Calculate an RPM from this flow.
+                        maxRPM = Math.max(maxGPM, toRPM(pc.flow, pt.minSpeed, pt.maxSpeed));
+                        flows++;
+                    }
+                    else {
+                        maxRPM = Math.max(maxRPM, pc.speed);
+                        maxGPM = Math.max(maxGPM, toGPM(pc.speed, pt.maxSpeed, pt.minFlow, pt.maxFlow));
+                        speeds++;
+                    }
                 }
             }
+            _newSpeed = speeds > 0 || flows === 0 ? maxRPM : maxGPM;
         }
-        _newSpeed = speeds > 0 || flows === 0 ? maxRPM : maxGPM;
         if (isNaN(_newSpeed)) _newSpeed = 0;
         // Send the flow message if it is flow and the rpm message if it is rpm.
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed} ${flows > 0 ? 'GPM' : 'RPM'}.`);

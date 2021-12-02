@@ -1662,27 +1662,28 @@ export class BodyCommands extends BoardCommands {
           return state.temps.bodies.getItemById(1);
     }
   }
-  public isBodyOn(bodyCode: number): boolean {
-    let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
-    switch (assoc.name) {
-      case 'body1':
-      case 'pool':
-        return state.temps.bodies.getItemById(1).isOn;
-      case 'body2':
-      case 'spa':
-        return state.temps.bodies.getItemById(2).isOn;
-      case 'body3':
-        return state.temps.bodies.getItemById(3).isOn;
-      case 'body4':
-        return state.temps.bodies.getItemById(4).isOn;
-      case 'poolspa':
-        if (sys.equipment.shared && sys.equipment.maxBodies >= 2)
-          return state.temps.bodies.getItemById(1).isOn || state.temps.bodies.getItemById(2).isOn;
-        else
-          return state.temps.bodies.getItemById(1).isOn;
+    public isBodyOn(bodyCode: number): boolean {
+        let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
+        switch (assoc.name) {
+            case 'body1':
+            case 'pool':
+                return state.temps.bodies.getItemById(1).isOn;
+            case 'body2':
+            case 'spa':
+                return state.temps.bodies.getItemById(2).isOn;
+            case 'body3':
+                return state.temps.bodies.getItemById(3).isOn;
+            case 'body4':
+                return state.temps.bodies.getItemById(4).isOn;
+            case 'poolspa':
+                if (sys.equipment.shared && sys.equipment.maxBodies >= 2) {
+                    return state.temps.bodies.getItemById(1).isOn === true || state.temps.bodies.getItemById(2).isOn === true;
+                }
+                else
+                    return state.temps.bodies.getItemById(1).isOn;
+        }
+        return false;
     }
-    return false;
-  }
 }
 export class PumpCommands extends BoardCommands {
   public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {

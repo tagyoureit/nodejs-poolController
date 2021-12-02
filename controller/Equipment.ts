@@ -724,6 +724,7 @@ export class Options extends EqItem {
         if (typeof this.data.clockMode === 'undefined') this.data.clockMode = 12;
         if (typeof this.data.adjustDST === 'undefined') this.data.adjustDST = true;
         if (typeof this.data.freezeThreshold === 'undefined') this.data.freezeThreshold = 35;
+        if (typeof this.data.valveDelayTime === 'undefined') this.data.valveDelayTime = 30000;
     }
     public get clockMode(): number | any { return this.data.clockMode; }
     public set clockMode(val: number | any) { this.setDataVal('clockMode', sys.board.valueMaps.clockModes.encode(val)); }
@@ -744,7 +745,8 @@ export class Options extends EqItem {
     public set cooldownDelay(val: boolean) { this.setDataVal('cooldownDelay', val); }
     public get freezeThreshold(): number { return this.data.freezeThreshold; }
     public set freezeThreshold(val: number) { this.setDataVal('freezeThreshold', val); }
-
+    public get valveDelayTime(): number { return this.data.valveDelayTime; }
+    public set valveDelayTime(val: number) { this.setDataVal('valveDelayTime', val); }
     //public get airTempAdj(): number { return typeof this.data.airTempAdj === 'undefined' ? 0 : this.data.airTempAdj; }
     //public set airTempAdj(val: number) { this.setDataVal('airTempAdj', val); }
     //public get waterTempAdj1(): number { return typeof this.data.waterTempAdj1 === 'undefined' ? 0 : this.data.waterTempAdj1; }
@@ -1469,6 +1471,22 @@ export class Chlorinator extends EqItem {
 export class ValveCollection extends EqItemCollection<Valve> {
     constructor(data: any, name?: string) { super(data, name || "valves"); }
     public createItem(data: any): Valve { return new Valve(data); }
+    public getIntake(): Valve[] {
+        let valves = this.data.filter(x => x.isIntake === true);
+        let ret = [];
+        for (let i = 0; i < valves.length; i++) {
+            ret.push(this.getItemById(valves[i].id));
+        }
+        return ret;
+    }
+    public getReturn(): Valve[] {
+        let valves = this.data.filter(x => x.isReturn === true);
+        let ret = [];
+        for (let i = 0; i < valves.length; i++) {
+            ret.push(this.getItemById(valves[i].id));
+        }
+        return ret;
+    }
 }
 export class Valve extends EqItem {
     public dataName = 'valveConfig';
