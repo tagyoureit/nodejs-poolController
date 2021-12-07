@@ -727,7 +727,7 @@ export class Options extends EqItem {
         if (typeof this.data.pumpDelay === 'undefined') this.data.pumpDelay = false;
         if (typeof this.data.valveDelayTime === 'undefined') this.data.valveDelayTime = 30;
         // RKS: 12-04-21 If you are reading this in a few months delete the line below.
-        if (this.data.valveDelayTime > 1000) this.data.valveDelayTime = this.data.this.valveDelayTime / 1000;
+        if (this.data.valveDelayTime > 1000) this.data.valveDelayTime = this.data.valveDelayTime / 1000;
         if (typeof this.data.heaterStartDelay === 'undefined') this.data.heaterStartDelay = true;
         if (typeof this.data.cleanerStartDelay === 'undefined') this.data.cleanerStartDelay = true;
         if (typeof this.data.cleanerSolarDelay === 'undefined') this.data.cleanerSolarDelay = true;
