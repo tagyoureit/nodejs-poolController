@@ -507,7 +507,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             }
         } catch (err) { logger.error(`syncCircuitRelayStates: Error synchronizing circuit relays ${err.message}`); }
     }
-    public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+    public async setCircuitStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<ICircuitState> {
         sys.board.suspendStatus(true);
         try {
             // We need to do some routing here as it is now critical that circuits, groups, and features
@@ -533,11 +533,11 @@ export class NixieCircuitCommands extends CircuitCommands {
             switch (ctype) {
                 case 'pool':
                 case 'spa':
-                    await this.setBodyCircuitStateAsync(id, newState);
+                    await this.setBodyCircuitStateAsync(id, newState, ignoreDelays);
                     break;
                 case 'mastercleaner':
                 case 'mastercleaner2':
-                    await this.setCleanerCircuitStateAsync(id, newState);
+                    await this.setCleanerCircuitStateAsync(id, newState, ignoreDelays);
                     break;
                 default:
                     await ncp.circuits.setCircuitStateAsync(circ, newState);
@@ -554,7 +554,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             sys.board.suspendStatus(false);
         }
     }
-    protected async setCleanerCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+    protected async setCleanerCircuitStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<ICircuitState> {
         try {
             let cstate = state.circuits.getItemById(id);
             let circuit = sys.circuits.getItemById(id);
@@ -589,32 +589,33 @@ export class NixieCircuitCommands extends CircuitCommands {
                 // to turn on the cleaner.
                 let delayTime = 0;
                 let dtNow = new Date().getTime();
-                if (sys.general.options.cleanerSolarDelay && sys.general.options.cleanerSolarDelayTime > 0) {
-                    let circBody = state.circuits.getItemById(bstate.circuit);
-                    // If the body has not been on or the solar heater has not been on long enough then we need to delay the startup.
-                    if (sys.board.valueMaps.heatStatus.getName(bstate.heatStatus) === 'solar') {
-                        // Check for the solar delay.  We need to know when the heater first kicked in.  A cleaner and solar
-                        // heater can run at the same time but the heater must be on long enough for the timer to expire.
+                if (typeof ignoreDelays === 'undefined' || !ignoreDelays) {
+                    if (sys.general.options.cleanerSolarDelay && sys.general.options.cleanerSolarDelayTime > 0) {
+                        let circBody = state.circuits.getItemById(bstate.circuit);
+                        // If the body has not been on or the solar heater has not been on long enough then we need to delay the startup.
+                        if (sys.board.valueMaps.heatStatus.getName(bstate.heatStatus) === 'solar') {
+                            // Check for the solar delay.  We need to know when the heater first kicked in.  A cleaner and solar
+                            // heater can run at the same time but the heater must be on long enough for the timer to expire.
 
-                        // The reasoning behind this is so that the booster pump can be assured that there is sufficient pressure
-                        // for it to start and any air from the solar has had time to purge through the system.
-                        let heaters = sys.heaters.getSolarHeaters(bstate.id);
-                        let startTime = 0;
-                        for (let i = 0; i < heaters.length; i++) {
-                            let heater = heaters.getItemByIndex(i);
-                            let hstate = state.heaters.getItemById(heater.id);
-                            startTime = Math.max(startTime, hstate.startTime.getTime());
+                            // The reasoning behind this is so that the booster pump can be assured that there is sufficient pressure
+                            // for it to start and any air from the solar has had time to purge through the system.
+                            let heaters = sys.heaters.getSolarHeaters(bstate.id);
+                            let startTime = 0;
+                            for (let i = 0; i < heaters.length; i++) {
+                                let heater = heaters.getItemByIndex(i);
+                                let hstate = state.heaters.getItemById(heater.id);
+                                startTime = Math.max(startTime, hstate.startTime.getTime());
+                            }
+                            // Lets see if we have a solar start delay.
+                            delayTime = Math.max(Math.round(((sys.general.options.cleanerSolarDelayTime * 1000) - (dtNow - startTime))) / 1000, delayTime);
                         }
-                        // Lets see if we have a solar start delay.
-                        delayTime = Math.max(Math.round(((sys.general.options.cleanerSolarDelayTime * 1000) - (dtNow - startTime)))/1000, delayTime);
                     }
-
-                }
-                if (sys.general.options.cleanerStartDelay && sys.general.options.cleanerStartDelayTime) {
-                    let bcstate = state.circuits.getItemById(bstate.circuit);
-                    // So we should be started.  Lets determine whethere there should be any delay.
-                    delayTime = Math.max(Math.round(((sys.general.options.cleanerStartDelayTime * 1000) - (dtNow - bcstate.startTime.getTime()))/1000), delayTime);
-                    logger.info(`Cleaner delay time calculated to ${delayTime}`);
+                    if (sys.general.options.cleanerStartDelay && sys.general.options.cleanerStartDelayTime) {
+                        let bcstate = state.circuits.getItemById(bstate.circuit);
+                        // So we should be started.  Lets determine whethere there should be any delay.
+                        delayTime = Math.max(Math.round(((sys.general.options.cleanerStartDelayTime * 1000) - (dtNow - bcstate.startTime.getTime())) / 1000), delayTime);
+                        logger.info(`Cleaner delay time calculated to ${delayTime}`);
+                    }
                 }
                 if (delayTime > 5) delayMgr.setCleanerStartDelay(cstate, bstate.id, delayTime);
                 else await ncp.circuits.setCircuitStateAsync(cstate, true);
@@ -622,7 +623,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             return cstate;
         } catch (err) { return Promise.reject(`Nixie: Error setting cleaner circuit state: ${err.message}`); }
     }
-    protected async setBodyCircuitStateAsync(id: number, val: boolean): Promise<CircuitState> {
+    protected async setBodyCircuitStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<CircuitState> {
         try {
             let cstate = state.circuits.getItemById(id);
             let circuit = sys.circuits.getItemById(id);
@@ -634,7 +635,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                     // If we are turning on and this is a shared system it means that we need to turn off
                     // the other circuit.
                     let delayPumps = false;
-                    if (sys.general.options.pumpDelay === true) {
+                    if (sys.general.options.pumpDelay === true && ignoreDelays !== true) {
                         // Now that this is off check the valve positions.  If they are not currently in the correct position we need to delay any attached pump
                         // so that it does not come on while the valve is rotating.  Default 30 seconds.
                         let iValves = sys.valves.getIntake();
@@ -666,7 +667,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                         await this.turnOffCleanerCircuits(bsoff);
                         if (csoff.isOn) {
                             logger.verbose(`Turning off shared body ${coff.name} circuit`);
-                            if (bsoff.heaterCooldownDelay) {
+                            if (bsoff.heaterCooldownDelay && ignoreDelays !== true) {
                                 // In this condition we are requesting that the shared body start when the cooldown delay
                                 // has finished.  This will add this request to the cooldown delay code.  The setHeaterCooldownDelay
                                 // code is expected to be re-entrant and checks the id so that it does not clear
@@ -689,9 +690,11 @@ export class NixieCircuitCommands extends CircuitCommands {
                                 // if it does.  The delay manager will shut the body off and start the new body when it is done.
                                 let heaters = sys.board.heaters.getHeatersByCircuitId(circuit.id);
                                 let cooldownTime = 0;
-                                for (let j = 0; j < heaters.length; j++) {
-                                    let nheater = ncp.heaters.find(x => x.id === heaters[j].id) as NixieHeaterBase;
-                                    cooldownTime = Math.max(nheater.getCooldownTime(), cooldownTime);
+                                if (ignoreDelays !== true) {
+                                    for (let j = 0; j < heaters.length; j++) {
+                                        let nheater = ncp.heaters.find(x => x.id === heaters[j].id) as NixieHeaterBase;
+                                        cooldownTime = Math.max(nheater.getCooldownTime(), cooldownTime);
+                                    }
                                 }
                                 if (cooldownTime > 0) {
                                     // We need do start a cooldown cycle for the body.  If there is already

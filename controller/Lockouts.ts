@@ -155,7 +155,7 @@ export class HeaterCooldownDelay extends EquipmentDelay {
             // Now that the startup delay expired cancel the delay and shut off the circuit.
             (async () => {
                 try {
-                    await sys.board.circuits.setCircuitStateAsync(cstateOff.id, false);
+                    await sys.board.circuits.setCircuitStateAsync(cstateOff.id, false, true);
                     if (typeof this.bodyStateOn !== 'undefined') {
                         this.bodyStateOn.startDelay = state.circuits.getItemById(this.bodyStateOn.circuit).startDelay = false;
                         await sys.board.circuits.setCircuitStateAsync(this.bodyStateOn.circuit, true);
@@ -219,7 +219,7 @@ export class CleanerStartDelay extends EquipmentDelay implements ICleanerDelay {
             this.cleanerState.startDelay = false;
             (async () => {
                 try {
-                    await sys.board.circuits.setCircuitStateAsync(this.cleanerState.id, true);
+                    await sys.board.circuits.setCircuitStateAsync(this.cleanerState.id, true, true);
                     this.cleanerState.startDelay = false;
                 } catch (err) { logger.error(`Error executing Cleaner Start Delay completion: ${err}`); }
             })();
@@ -237,8 +237,7 @@ export class CleanerStartDelay extends EquipmentDelay implements ICleanerDelay {
         this.cleanerState.startDelay = false;
         (async () => {
             try {
-                await sys.board.circuits.setCircuitStateAsync(this.cleanerState.id, true);
-                this.cleanerState.startDelay = false;
+                await sys.board.circuits.setCircuitStateAsync(this.cleanerState.id, true, true);
             } catch (err) { logger.error(`Error executing Cleaner Start Delay completion: ${err}`); }
         })();
         delayMgr.deleteDelay(this.id);

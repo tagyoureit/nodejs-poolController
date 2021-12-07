@@ -2261,49 +2261,49 @@ export class CircuitCommands extends BoardCommands {
             }
         } catch (err) { logger.error(`Error syncronizing virtual circuits`); }
     }
-  public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
-    sys.board.suspendStatus(true);
-    try {
-      // We need to do some routing here as it is now critical that circuits, groups, and features
-      // have their own processing.  The virtual controller used to only deal with one circuit.
-      if (sys.board.equipmentIds.circuitGroups.isInRange(id))
-        return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
-      else if (sys.board.equipmentIds.features.isInRange(id))
-        return await sys.board.features.setFeatureStateAsync(id, val);
-      let circuit: ICircuit = sys.circuits.getInterfaceById(id, false, { isActive: false });
-      if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit or Feature id ${id} not valid`, id, 'Circuit'));
-      let circ = state.circuits.getInterfaceById(id, circuit.isActive !== false);
-      let newState = utils.makeBool(val);
-      // First, if we are turning the circuit on, lets determine whether the circuit is a pool or spa circuit and if this is a shared system then we need
-      // to turn off the other body first.
-      //[12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
-      //[13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
-      let func = sys.board.valueMaps.circuitFunctions.get(circuit.type);
-      if (newState && (func.name === 'pool' || func.name === 'spa') && sys.equipment.shared === true) {
-        // If we are shared we need to turn off the other circuit.
-        let offType = func.name === 'pool' ? sys.board.valueMaps.circuitFunctions.getValue('spa') : sys.board.valueMaps.circuitFunctions.getValue('pool');
-        let off = sys.circuits.get().filter(elem => elem.type === offType);
-        // Turn the circuits off that are part of the shared system.  We are going back to the board
-        // just in case we got here for a circuit that isn't on the current defined panel.
-        for (let i = 0; i < off.length; i++) {
-          let coff = off[i];
-          await sys.board.circuits.setCircuitStateAsync(coff.id, false);
+    public async setCircuitStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<ICircuitState> {
+        sys.board.suspendStatus(true);
+        try {
+            // We need to do some routing here as it is now critical that circuits, groups, and features
+            // have their own processing.  The virtual controller used to only deal with one circuit.
+            if (sys.board.equipmentIds.circuitGroups.isInRange(id))
+                return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
+            else if (sys.board.equipmentIds.features.isInRange(id))
+                return await sys.board.features.setFeatureStateAsync(id, val);
+            let circuit: ICircuit = sys.circuits.getInterfaceById(id, false, { isActive: false });
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit or Feature id ${id} not valid`, id, 'Circuit'));
+            let circ = state.circuits.getInterfaceById(id, circuit.isActive !== false);
+            let newState = utils.makeBool(val);
+            // First, if we are turning the circuit on, lets determine whether the circuit is a pool or spa circuit and if this is a shared system then we need
+            // to turn off the other body first.
+            //[12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
+            //[13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
+            let func = sys.board.valueMaps.circuitFunctions.get(circuit.type);
+            if (newState && (func.name === 'pool' || func.name === 'spa') && sys.equipment.shared === true) {
+                // If we are shared we need to turn off the other circuit.
+                let offType = func.name === 'pool' ? sys.board.valueMaps.circuitFunctions.getValue('spa') : sys.board.valueMaps.circuitFunctions.getValue('pool');
+                let off = sys.circuits.get().filter(elem => elem.type === offType);
+                // Turn the circuits off that are part of the shared system.  We are going back to the board
+                // just in case we got here for a circuit that isn't on the current defined panel.
+                for (let i = 0; i < off.length; i++) {
+                    let coff = off[i];
+                    await sys.board.circuits.setCircuitStateAsync(coff.id, false);
+                }
+            }
+            if (id === 6) state.temps.bodies.getItemById(1, true).isOn = val;
+            else if (id === 1) state.temps.bodies.getItemById(2, true).isOn = val;
+            // Let the main nixie controller set the circuit state and affect the relays if it needs to.
+            await ncp.circuits.setCircuitStateAsync(circ, newState);
+            await sys.board.syncEquipmentItems();
+            return state.circuits.getInterfaceById(circ.id);
         }
-      }
-      if (id === 6) state.temps.bodies.getItemById(1, true).isOn = val;
-      else if (id === 1) state.temps.bodies.getItemById(2, true).isOn = val;
-      // Let the main nixie controller set the circuit state and affect the relays if it needs to.
-      await ncp.circuits.setCircuitStateAsync(circ, newState);
-      await sys.board.syncEquipmentItems();
-      return state.circuits.getInterfaceById(circ.id);
+        catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
+        finally {
+            ncp.pumps.syncPumpStates();
+            sys.board.suspendStatus(false);
+            state.emitEquipmentChanges();
+        }
     }
-    catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
-    finally {
-      ncp.pumps.syncPumpStates();
-      sys.board.suspendStatus(false);
-      state.emitEquipmentChanges();
-    }
-  }
   public async toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
     let circ = state.circuits.getInterfaceById(id);
     return await this.setCircuitStateAsync(id, !(circ.isOn || false));
