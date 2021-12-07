@@ -10,6 +10,7 @@ import { NixieControlPanel } from '../Nixie';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
 import { conn } from '../../../controller/comms/Comms';
 import { Outbound, Protocol, Response } from '../../../controller/comms/messages/Messages';
+import { delayMgr } from '../../Lockouts';
 
 export class NixieHeaterCollection extends NixieEquipmentCollection<NixieHeaterBase> {
     public async deleteHeaterAsync(id: number) {
@@ -96,6 +97,8 @@ export class NixieHeaterBase extends NixieEquipment {
     protected bodyOnTime: number;
     protected isOn: boolean = false;
     protected isCooling: boolean = false;
+    protected lastHeatCycle: Date;
+    protected lastCoolCycle: Date;
     constructor(ncp: INixieControlPanel, heater: Heater) {
         super(ncp);
         this.heater = heater;
@@ -103,6 +106,7 @@ export class NixieHeaterBase extends NixieEquipment {
     public get suspendPolling(): boolean { return this._suspendPolling > 0; }
     public set suspendPolling(val: boolean) { this._suspendPolling = Math.max(0, this._suspendPolling + (val ? 1 : -1)); }
     public get id(): number { return typeof this.heater !== 'undefined' ? this.heater.id : -1; }
+    public getCooldownTime() { return 0; }
     public static create(ncp: INixieControlPanel, heater: Heater): NixieHeaterBase {
         let type = sys.board.valueMaps.heaterTypes.transform(heater.type);
         switch (type.name) {
@@ -144,34 +148,50 @@ export class NixieHeaterBase extends NixieEquipment {
 }
 export class NixieGasHeater extends NixieHeaterBase {
     public pollingInterval: number = 10000;
-    declare heater: Heater;
+    //declare heater: Heater;
     constructor(ncp: INixieControlPanel, heater: Heater) {
         super(ncp, heater);
         this.heater = heater;
         this.pollEquipmentAsync();
     }
     public get id(): number { return typeof this.heater !== 'undefined' ? this.heater.id : -1; }
+    public getCooldownTime(): number {
+        // Delays are always in terms of seconds so convert the minute to seconds.
+        if (this.heater.cooldownDelay === 0 || typeof this.lastHeatCycle === 'undefined') return 0;
+        let now = new Date().getTime();
+        let cooldown = this.isOn ? this.heater.cooldownDelay * 60000 : Math.round( ((this.lastHeatCycle.getDate() + this.heater.cooldownDelay * 60000) - now) / 1000);
+        return Math.min(Math.max(0, cooldown), this.heater.cooldownDelay * 60);
+    }
     public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean) {
         try {
             // Initialize the desired state.
             this.isOn = isOn;
             this.isCooling = false;
+            let target = hstate.startupDelay === false && isOn;
+            if (target && typeof hstate.endTime !== 'undefined') {
+                // Calculate a short cycle time so that the solar heater does not cycle
+                // too often.  For gas heaters this is 60 seconds.  This gives enough time
+                // for the heater control circuit to make a full cycle.
+                if (new Date().getTime() - hstate.endTime.getTime() < 60000) {
+                    logger.verbose(`${hstate.name} short cycle detected deferring turn on state`);
+                    target = false;
+                }
+            }
             // Here we go we need to set the firemans switch state.
-            if (hstate.isOn !== isOn) {
+            if (hstate.isOn !== target) {
                 logger.info(`Nixie: Set Heater ${hstate.id}-${hstate.name} to ${isOn}`);
             }
-            if (utils.isNullOrEmpty(this.heater.connectionId) || utils.isNullOrEmpty(this.heater.deviceBinding)) {
-                hstate.isOn = isOn;
-                return;
-            }
-            if (typeof this._lastState === 'undefined' || isOn || this._lastState !== isOn) {
-                let res = await NixieEquipment.putDeviceService(this.heater.connectionId, `/state/device/${this.heater.deviceBinding}`, { isOn: isOn, latch: isOn ? 10000 : undefined });
-                if (res.status.code === 200) this._lastState = hstate.isOn = isOn;
-                else logger.error(`Nixie Error setting heater state: ${res.status.code} -${res.status.message} ${res.error.message}`);
-            }
-            else {
-                hstate.isOn = isOn;
-                return;
+            if (typeof this._lastState === 'undefined' || target || this._lastState !== target) {
+                if (utils.isNullOrEmpty(this.heater.connectionId) || utils.isNullOrEmpty(this.heater.deviceBinding)) {
+                    this._lastState = hstate.isOn = target;
+                }
+                else {
+                    let res = await NixieEquipment.putDeviceService(this.heater.connectionId, `/state/device/${this.heater.deviceBinding}`,
+                        { isOn: target, latch: target ? 10000 : undefined });
+                    if (res.status.code === 200) this._lastState = hstate.isOn = target;
+                    else logger.error(`Nixie Error setting heater state: ${res.status.code} -${res.status.message} ${res.error.message}`);
+                }
+                if (target) this.lastHeatCycle = new Date();
             }
         } catch (err) { return logger.error(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
     }
@@ -228,25 +248,59 @@ export class NixieSolarHeater extends NixieHeaterBase {
     public get id(): number { return typeof this.heater !== 'undefined' ? this.heater.id : -1; }
     public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean, isCooling: boolean) {
         try {
+            let origState = hstate.isOn;
             // Initialize the desired state.
             this.isOn = isOn;
             this.isCooling = isCooling;
-            // Here we go we need to set the firemans switch state.
-            if (hstate.isOn !== isOn) {
+            let target = hstate.startupDelay === false && isOn;
+            if (target && typeof hstate.endTime !== 'undefined') {
+                // Calculate a short cycle time so that the solar heater does not cycle
+                // too often.  For solar heaters this is 60 seconds.  This gives enough time
+                // for the valve to rotate and start heating.  If the solar and water sensors are
+                // not having issues this should be plenty of time.
+                if (new Date().getTime() - hstate.endTime.getTime() < 60000) {
+                    logger.verbose(`${hstate.name} short cycle detected deferring turn on state`);
+                    target = false;
+                }
+            }
+
+            // Here we go we need to set the valve status that is attached to solar.
+            if (hstate.isOn !== target) {
                 logger.info(`Nixie: Set Heater ${hstate.id}-${hstate.name} to ${isOn}`);
             }
-            if (utils.isNullOrEmpty(this.heater.connectionId) || utils.isNullOrEmpty(this.heater.deviceBinding)) {
-                hstate.isOn = isOn;
-                return;
+            if (typeof this._lastState === 'undefined' || target || this._lastState !== target) {
+                if (utils.isNullOrEmpty(this.heater.connectionId) || utils.isNullOrEmpty(this.heater.deviceBinding)) {
+                    this._lastState = hstate.isOn = target;
+                }
+                else {
+                    let res = await NixieEquipment.putDeviceService(this.heater.connectionId, `/state/device/${this.heater.deviceBinding}`,
+                        { isOn: target, latch: target ? 10000 : undefined });
+                    if (res.status.code === 200) this._lastState = hstate.isOn = target;
+                    else logger.error(`Nixie Error setting heater state: ${res.status.code} -${res.status.message} ${res.error.message}`);
+                }
+                if (target) {
+                    if (isCooling) this.lastCoolCycle = new Date();
+                    else if (isOn) this.lastHeatCycle = new Date();
+                }
             }
-            if (typeof this._lastState === 'undefined' || isOn || this._lastState !== isOn) {
-                let res = await NixieEquipment.putDeviceService(this.heater.connectionId, `/state/device/${this.heater.deviceBinding}`, { isOn: isOn, latch: isOn ? 10000 : undefined });
-                if (res.status.code === 200) this._lastState = hstate.isOn = isOn;
-                else logger.error(`Nixie Error setting heater state: ${res.status.code} -${res.status.message} ${res.error.message}`);
-            }
-            else {
-                hstate.isOn = isOn;
-                return;
+            // In this instance we need to see if there are cleaner circuits that we need to turn off
+            // then delay for the current body because the solar just came on.
+            if (hstate.isOn && sys.general.options.cleanerSolarDelay && !origState) {
+                let arrTypes = sys.board.valueMaps.circuitFunctions.toArray().filter(x => { return x.name.indexOf('cleaner') !== -1 && x.body === hstate.bodyId });
+                let cleaners = sys.circuits.filter(x => { return arrTypes.findIndex(t => { return t.val === x.type }) !== -1 });
+                // Turn off all the cleaner circuits and set an on delay if they are on.
+                for (let i = 0; i < cleaners.length; i++) {
+                    let cleaner = cleaners.getItemByIndex(i);
+                    if (cleaner.isActive) {
+                        let cstate = state.circuits.getItemById(cleaner.id);
+                        if (cstate.isOn && sys.general.options.cleanerSolarDelayTime > 0) {
+                            // Turn off the circuit then set a delay.
+                            logger.info(`Setting cleaner solar delay for ${cleaner.name} to ${sys.general.options.cleanerSolarDelayTime}`);
+                            await sys.board.circuits.setCircuitStateAsync(cstate.id, false);
+                            delayMgr.setCleanerStartDelay(cstate, hstate.bodyId, sys.general.options.cleanerSolarDelayTime);
+                        }
+                    }
+                }
             }
         } catch (err) { return logger.error(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
     }
@@ -304,6 +358,11 @@ export class NixieHeatpump extends NixieHeaterBase {
             this.suspendPolling = true;
             this.isOn = isOn;
             this.isCooling = isCooling;
+            if (!hstate.startupDelay) {
+                if (isOn && !isCooling) this.lastHeatCycle = new Date();
+                else if (isCooling) this.lastCoolCycle = new Date();
+            }
+            // When this is implemented lets not forget to deal with the startup delay.  See UltraTemp for implementation.
         } catch (err) { return logger.error(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
         finally { this.suspendPolling = false; }
     }
@@ -420,7 +479,16 @@ export class NixieUltratemp extends NixieHeatpump {
                 });
                 out.appendPayloadBytes(0, 10);
                 out.setPayloadByte(0, 144);
-                out.setPayloadByte(1, this.isOn ? (this.isCooling ? 2 : 1) : 0, 0);
+                // If we are in startup delay simply tell the heater that it is off.
+                if (sheater.startupDelay)
+                    out.setPayloadByte(1, 0, 0);
+                else {
+                    if (this.isOn) {
+                        if (!this.isCooling) this.lastHeatCycle = new Date();
+                        else this.lastCoolCycle = new Date();
+                    }
+                    out.setPayloadByte(1, this.isOn ? (this.isCooling ? 2 : 1) : 0, 0);
+                }
                 conn.queueSendMessage(out);
             });
             return success;
@@ -444,6 +512,13 @@ export class NixieMastertemp extends NixieGasHeater {
         this.pollEquipmentAsync();
         this.pollingInterval = 3000;
     }
+    public getCooldownTime(): number {
+        // Delays are always in terms of seconds so convert the minute to seconds.
+        if (this.heater.cooldownDelay === 0 || typeof this.lastHeatCycle === 'undefined') return 0;
+        let now = new Date().getTime();
+        let cooldown = this.isOn ? this.heater.cooldownDelay * 60000 : Math.round(((this.lastHeatCycle.getDate() + this.heater.cooldownDelay * 60000) - now) / 1000);
+        return Math.min(Math.max(0, cooldown), this.heater.cooldownDelay * 60);
+    }
     public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean) {
         try {
             // Initialize the desired state.
@@ -453,10 +528,10 @@ export class NixieMastertemp extends NixieGasHeater {
             if (hstate.isOn !== isOn) {
                 logger.info(`Nixie: Set Heater ${hstate.id}-${hstate.name} to ${isOn}`);
             }
+            if (isOn && !hstate.startupDelay) this.lastHeatCycle = new Date();
             hstate.isOn = isOn;
         } catch (err) { return logger.error(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
     }
-
     public async pollEquipmentAsync() {
         let self = this;
         try {
@@ -465,8 +540,6 @@ export class NixieMastertemp extends NixieGasHeater {
             this._pollTimer = null;
             if (this._suspendPolling > 1) return;
             let sheater = state.heaters.getItemById(this.heater.id, !this.closing);
-            // If the body isn't on then we won't communicate with the chem controller.  There is no need
-            // since most of the time these are attached to the filter relay.
             if (!this.closing) await this.setStatus(sheater);
         }
         catch (err) { logger.error(`Error polling MasterTemp heater - ${err}`); }
@@ -500,7 +573,13 @@ export class NixieMastertemp extends NixieGasHeater {
                     }
                 });
                 out.appendPayloadBytes(0, 11);
-                out.setPayloadByte(0, sheater.bodyId <= 2 ? sheater.bodyId : 0);
+                // If we have a startup delay we need to simply send 0 to the heater to make sure that it is off.
+                if (sheater.startupDelay)
+                    out.setPayloadByte(0, 0);
+                else {
+                    // The cooldown delay is a bit hard to figure out here since I think the heater does it on its own.
+                    out.setPayloadByte(0, sheater.bodyId <= 2 ? sheater.bodyId : 0);
+                }
                 out.setPayloadByte(1, sys.bodies.getItemById(1).heatSetpoint || 0);
                 out.setPayloadByte(2, sys.bodies.getItemById(2).heatSetpoint || 0);
                 conn.queueSendMessage(out);

@@ -17,14 +17,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import * as extend from 'extend';
 import { EventEmitter } from 'events';
 import { ncp } from "../nixie/Nixie";
+import { NixieHeaterBase } from "../nixie/heaters/Heater";
 import { utils, Heliotrope, Timestamp } from '../Constants';
 import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, FilterCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ValveCommands, HeaterCommands, ChlorinatorCommands, ChemControllerCommands, EquipmentIdRange} from './SystemBoard';
 import { logger } from '../../logger/Logger';
-import { state, ChlorinatorState, ChemControllerState, TemperatureState, VirtualCircuitState, ICircuitState, ICircuitGroupState, LightGroupState, ValveState, FilterState } from '../State';
+import { state, ChlorinatorState, ChemControllerState, TemperatureState, VirtualCircuitState, CircuitState, ICircuitState, ICircuitGroupState, LightGroupState, ValveState, FilterState, BodyTempState } from '../State';
 import { sys, Equipment, Options, Owner, Location, CircuitCollection, TempSensorCollection, General, PoolSystem, Body, Pump, CircuitGroupCircuit, CircuitGroup, ChemController, Circuit, Feature, Valve, ICircuit, Heater, LightGroup, LightGroupCircuit, ControllerType, Filter } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
-import {conn} from '../comms/Comms';
+import { conn } from '../comms/Comms';
+import { delayMgr } from '../Lockouts';
 export class NixieBoard extends SystemBoard {
     constructor (system: PoolSystem){
         super(system);
@@ -39,19 +41,19 @@ export class NixieBoard extends SystemBoard {
         this.valueMaps.circuitFunctions = new byteValueMap([
             [0, { name: 'generic', desc: 'Generic' }],
             [1, { name: 'spillway', desc: 'Spillway' }],
-            [2, { name: 'mastercleaner', desc: 'Master Cleaner' }],
+            [2, { name: 'mastercleaner', desc: 'Master Cleaner', body: 1 }],
             [3, { name: 'chemrelay', desc: 'Chem Relay' }],
             [4, { name: 'light', desc: 'Light', isLight: true }],
-            [5, { name: 'intellibrite', desc: 'Intellibrite', isLight: true, theme:'intellibrite' }],
+            [5, { name: 'intellibrite', desc: 'Intellibrite', isLight: true, theme: 'intellibrite' }],
             [6, { name: 'globrite', desc: 'GloBrite', isLight: true, theme: 'intellibrite' }],
             [7, { name: 'globritewhite', desc: 'GloBrite White', isLight: true }],
             [8, { name: 'magicstream', desc: 'Magicstream', isLight: true, theme: 'magicstream' }],
             [9, { name: 'dimmer', desc: 'Dimmer', isLight: true }],
             [10, { name: 'colorcascade', desc: 'ColorCascade', isLight: true, theme: 'intellibrite' }],
-            [11, { name: 'mastercleaner2', desc: 'Master Cleaner 2' }],
+            [11, { name: 'mastercleaner2', desc: 'Master Cleaner 2', body: 2 }],
             [12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
             [13, { name: 'spa', desc: 'Spa', hasHeatSource: true }],
-            [14, { name: 'colorlogic', desc: 'ColorLogic', isLight:true, theme: 'colorlogic' }]
+            [14, { name: 'colorlogic', desc: 'ColorLogic', isLight: true, theme: 'colorlogic' }]
         ]);
         this.valueMaps.pumpTypes = new byteValueMap([
             [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true, maxRelays: 1 }],
@@ -132,10 +134,13 @@ export class NixieBoard extends SystemBoard {
             [245, { name: 'spaHeater', desc: 'Spa Heater' }],
             [246, { name: 'freeze', desc: 'Freeze' }],
             [247, { name: 'poolSpa', desc: 'Pool/Spa' }],
-            [248, { name: 'solarHeat', desc: 'Solar Heat' }],
             [251, { name: 'heater', desc: 'Heater' }],
             [252, { name: 'solar', desc: 'Solar' }],
-            [255, { name: 'poolHeatEnable', desc: 'Pool Heat Enable' }]
+            [253, { name: 'solar1', desc: 'Solar Body 1' }],
+            [254, { name: 'solar2', desc: 'Solar Body 2' }],
+            [255, { name: 'solar3', desc: 'Solar Body 3' }],
+            [256, { name: 'solar4', desc: 'Solar Body 4' }],
+            [257, { name: 'poolHeatEnable', desc: 'Pool Heat Enable' }]
         ]);
         this.valueMaps.scheduleTimeTypes.merge([
             [1, { name: 'sunrise', desc: 'Sunrise' }],
@@ -204,7 +209,8 @@ export class NixieBoard extends SystemBoard {
             [3, { name: 'cooling', desc: 'Cooling' }],
             [6, { name: 'mtheat', desc: 'Heater' }],
             [4, { name: 'hpheat', desc: 'Heating' }],
-            [8, { name: 'hpcool', desc: 'Cooling' }]
+            [8, { name: 'hpcool', desc: 'Cooling' }],
+            [128, {name: 'cooldown', desc: 'Cooldown'}]
         ]);
         this.valueMaps.scheduleTypes = new byteValueMap([
             [0, { name: 'runonce', desc: 'Run Once', startDate: true, startTime: true, endTime: true, days: false, heatSource: true, heatSetpoint: true }],
@@ -462,7 +468,14 @@ export class NixieFilterCommands extends FilterCommands {
 }
 
 export class NixieSystemCommands extends SystemCommands {
-    public cancelDelay(): Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay); }
+    public cancelDelay(): Promise<any> {
+        delayMgr.cancelPumpValveDelays();
+        delayMgr.cancelHeaterCooldownDelays();
+        delayMgr.cancelHeaterStartupDelays();
+        delayMgr.cancelCleanerStartDelays();
+        state.delay = sys.board.valueMaps.delay.getValue('nodelay');
+        return Promise.resolve(state.data.delay);
+    }
     public setDateTimeAsync(obj: any): Promise<any> { return Promise.resolve(); }
     public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
     public async setGeneralAsync(obj: any): Promise<General> {
@@ -481,6 +494,19 @@ export class NixieSystemCommands extends SystemCommands {
     }
 }
 export class NixieCircuitCommands extends CircuitCommands {
+    // This is our poll loop for circuit relay states.
+    public async syncCircuitRelayStates() {
+        try {
+            for (let i = 0; i < sys.circuits.length; i++) {
+                // Run through all the controlled circuits to see whether they should be triggered or not.
+                let circ = sys.circuits.getItemByIndex(i);
+                if (circ.master === 1 && circ.isActive) {
+                    let cstate = state.circuits.getItemById(circ.id);
+                    if (cstate.isOn) await ncp.circuits.setCircuitStateAsync(cstate, cstate.isOn);
+                }
+            }
+        } catch (err) { logger.error(`syncCircuitRelayStates: Error synchronizing circuit relays ${err.message}`); }
+    }
     public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
         sys.board.suspendStatus(true);
         try {
@@ -491,20 +517,126 @@ export class NixieCircuitCommands extends CircuitCommands {
             else if (sys.board.equipmentIds.features.isInRange(id))
                 return await sys.board.features.setFeatureStateAsync(id, val);
 
+
             let circuit: ICircuit = sys.circuits.getInterfaceById(id, false, { isActive: false });
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit or Feature id ${id} not valid`, id, 'Circuit'));
             let circ = state.circuits.getInterfaceById(id, circuit.isActive !== false);
+            if (circ.stopDelay) {
+                // Send this off so that the relays are properly set.  In the end we cannot change right now.  If this
+                // happens to be a body circuit then the relay state will be skipped anyway.
+                await ncp.circuits.setCircuitStateAsync(circ, circ.isOn);
+                return circ;
+            }
             let newState = utils.makeBool(val);
-            // First, if we are turning the circuit on, lets determine whether the circuit is a pool or spa circuit and if this is a shared system then we need
-            // to turn off the other body first.
-            //[12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
-            //[13, { name: 'spa', desc: 'Spa', hasHeatSource: true }]
-            if (newState && (circuit.type === 12 || circuit.type === 13)) {
+            let ctype = sys.board.valueMaps.circuitFunctions.getName(circ.type);
+            // Filter out any special circuit types.
+            switch (ctype) {
+                case 'pool':
+                case 'spa':
+                    await this.setBodyCircuitStateAsync(id, newState);
+                    break;
+                case 'mastercleaner':
+                case 'mastercleaner2':
+                    await this.setCleanerCircuitStateAsync(id, newState);
+                    break;
+                default:
+                    await ncp.circuits.setCircuitStateAsync(circ, newState);
+                    await sys.board.processStatusAsync();
+                    break;
+            }
+            // Let the main nixie controller set the circuit state and affect the relays if it needs to.
+            return state.circuits.getInterfaceById(circ.id);
+        }
+        catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
+        finally {
+            state.emitEquipmentChanges();
+            ncp.pumps.syncPumpStates();
+            sys.board.suspendStatus(false);
+        }
+    }
+    protected async setCleanerCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+        try {
+            let cstate = state.circuits.getItemById(id);
+            let circuit = sys.circuits.getItemById(id);
+            // We know which body the cleaner belongs to by an attribute on the circuit function.
+            let ctype = sys.board.valueMaps.circuitFunctions.get(circuit.type);
+            let bstate = state.temps.bodies.getItemById(ctype.body || 1);
+            // Cleaner lockout should occur when
+            // 1. The body circuit is off.
+            // 2. The spillway mode is running.
+
+            // Optional modes include
+            // 1. The current body is heating with solar.
+
+            // Lockouts are cleared when 
+            // 1. The above conditions are no longer true.
+            // 2. The user requests the circuit to be off.
+            if (!val) {
+                // We can always turn a cleaner circuit off. Even if a delay is underway.
+                delayMgr.clearCleanerStartDelays(bstate.id);
+                await ncp.circuits.setCircuitStateAsync(cstate, false);
+            }
+            else if (val) {
+                logger.info(`Setting cleaner circuit ${cstate.name} to ${val}`);
+                // Alright we are turning the cleaner on.
+                // To turn on the cleaner circuit we must first ensure the body is on.  If it is not then we abort.
+                if (!bstate.isOn) {
+                    logger.info(`Cannot turn on cleaner circuit ${cstate.name}. ${bstate.name} is not running`);
+                    await ncp.circuits.setCircuitStateAsync(cstate, false);
+                    return cstate;
+                }
+                // If solar is currently on and the cleaner solar delay is set then we need to calculate a delay
+                // to turn on the cleaner.
+                let delayTime = 0;
+                let dtNow = new Date().getTime();
+                if (sys.general.options.cleanerSolarDelay && sys.general.options.cleanerSolarDelayTime > 0) {
+                    let circBody = state.circuits.getItemById(bstate.circuit);
+                    // If the body has not been on or the solar heater has not been on long enough then we need to delay the startup.
+                    if (sys.board.valueMaps.heatStatus.getName(bstate.heatStatus) === 'solar') {
+                        // Check for the solar delay.  We need to know when the heater first kicked in.  A cleaner and solar
+                        // heater can run at the same time but the heater must be on long enough for the timer to expire.
+
+                        // The reasoning behind this is so that the booster pump can be assured that there is sufficient pressure
+                        // for it to start and any air from the solar has had time to purge through the system.
+                        let heaters = sys.heaters.getSolarHeaters(bstate.id);
+                        let startTime = 0;
+                        for (let i = 0; i < heaters.length; i++) {
+                            let heater = heaters.getItemByIndex(i);
+                            let hstate = state.heaters.getItemById(heater.id);
+                            startTime = Math.max(startTime, hstate.startTime.getTime());
+                        }
+                        // Lets see if we have a solar start delay.
+                        delayTime = Math.max(Math.round(((sys.general.options.cleanerSolarDelayTime * 1000) - (dtNow - startTime)))/1000, delayTime);
+                    }
+
+                }
+                if (sys.general.options.cleanerStartDelay && sys.general.options.cleanerStartDelayTime) {
+                    let bcstate = state.circuits.getItemById(bstate.circuit);
+                    // So we should be started.  Lets determine whethere there should be any delay.
+                    delayTime = Math.max(Math.round(((sys.general.options.cleanerStartDelayTime * 1000) - (dtNow - bcstate.startTime.getTime()))/1000), delayTime);
+                    logger.info(`Cleaner delay time calculated to ${delayTime}`);
+                }
+                if (delayTime > 5) delayMgr.setCleanerStartDelay(cstate, bstate.id, delayTime);
+                else await ncp.circuits.setCircuitStateAsync(cstate, true);
+            }
+            return cstate;
+        } catch (err) { return Promise.reject(`Nixie: Error setting cleaner circuit state: ${err.message}`); }
+    }
+    protected async setBodyCircuitStateAsync(id: number, val: boolean): Promise<CircuitState> {
+        try {
+            let cstate = state.circuits.getItemById(id);
+            let circuit = sys.circuits.getItemById(id);
+            let bstate = state.temps.bodies.getBodyByCircuitId(id);
+            if (val) {
+                // We are turning on a body circuit.
+                logger.verbose(`Turning on a body circuit ${bstate.name}`);
                 if (sys.equipment.shared === true) {
+                    // If we are turning on and this is a shared system it means that we need to turn off
+                    // the other circuit.
                     let delayPumps = false;
                     if (sys.general.options.pumpDelay === true) {
                         // Now that this is off check the valve positions.  If they are not currently in the correct position we need to delay any attached pump
-                        // so that it does not come on for 30 seconds.
+                        // so that it does not come on while the valve is rotating.  Default 30 seconds.
                         let iValves = sys.valves.getIntake();
                         for (let i = 0; i < iValves.length && !delayPumps; i++) {
                             let vstate = state.valves.getItemById(iValves[i].id);
@@ -521,15 +653,60 @@ export class NixieCircuitCommands extends CircuitCommands {
                         }
                     }
                     // If we are shared we need to turn off the other circuit.
-                    let offType = circ.type === 12 ? 13 : 12;
+                    let offType = circuit.type === 12 ? 13 : 12;
                     let off = sys.circuits.get().filter(elem => elem.type === offType);
+                    let delayCooldown = false;
                     // Turn the circuits off that are part of the shared system.  We are going back to the board
                     // just in case we got here for a circuit that isn't on the current defined panel.
                     for (let i = 0; i < off.length; i++) {
                         let coff = off[i];
-                        logger.info(`Turning off shared body ${coff.name} circuit`);
-                        await sys.board.circuits.setCircuitStateAsync(coff.id, false);
+                        let bsoff = state.temps.bodies.getBodyByCircuitId(coff.id);
+                        let csoff = state.circuits.getItemById(coff.id);
+                        // Ensure the cleaner circuits for this body are off.
+                        await this.turnOffCleanerCircuits(bsoff);
+                        if (csoff.isOn) {
+                            logger.verbose(`Turning off shared body ${coff.name} circuit`);
+                            if (bsoff.heaterCooldownDelay) {
+                                // In this condition we are requesting that the shared body start when the cooldown delay
+                                // has finished.  This will add this request to the cooldown delay code.  The setHeaterCooldownDelay
+                                // code is expected to be re-entrant and checks the id so that it does not clear
+                                // the original request if it is asked for again.
+
+                                // NOTE:  There is room for improvement here.  For instance, if the result
+                                // of turning on the circuit is that the heater(s) requiring cooldown will result in being on
+                                // then why not cancel the current cooldown cycle and let the user get on with it.
+                                // Consider:
+                                // 1. Check each heater attached to the off body to see if it is also attached to the on body.
+                                // 2. If the heater is attached check to see if there is any cooldown time left on it.
+                                // 3. If the above conditions are true cancel the cooldown cycle.
+                                logger.verbose(`${bsoff.name} is already in Cooldown mode`);
+                                delayMgr.setHeaterCooldownDelay(bsoff, bstate);
+                                delayCooldown = true;
+                            }
+                            else {
+                                // We need to deal with heater cooldown delays here since you cannot turn off the body while the heater is
+                                // cooling down.  This means we need to check to see if the heater requires cooldown then set a delay for it
+                                // if it does.  The delay manager will shut the body off and start the new body when it is done.
+                                let heaters = sys.board.heaters.getHeatersByCircuitId(circuit.id);
+                                let cooldownTime = 0;
+                                for (let j = 0; j < heaters.length; j++) {
+                                    let nheater = ncp.heaters.find(x => x.id === heaters[j].id) as NixieHeaterBase;
+                                    cooldownTime = Math.max(nheater.getCooldownTime(), cooldownTime);
+                                }
+                                if (cooldownTime > 0) {
+                                    // We need do start a cooldown cycle for the body.  If there is already
+                                    // a cooldown underway this will append the on to it.
+                                    delayMgr.setHeaterCooldownDelay(bsoff, bstate, cooldownTime * 1000);
+                                    delayCooldown = true;
+                                }
+                                else {
+                                    await ncp.circuits.setCircuitStateAsync(csoff, false);
+                                    bsoff.isOn = false;
+                                }
+                            }
+                        }
                     }
+                    if (delayCooldown) return cstate;
                     if (delayPumps === true) {
                         // Alright now we have to delay the pumps associated with the circuit. So lets iterate all our
                         // pump states and see where we land.
@@ -547,18 +724,16 @@ export class NixieCircuitCommands extends CircuitCommands {
                             switch (pt.name) {
                                 case 'ss':
                                 case 'ds':
-                                    pstate.pumpOnDelay = true;
-                                    pstate.emitEquipmentChange();
-                                    pstate.setPumpOnDelayTimeout(sys.general.options.valveDelayTime);
+                                    delayMgr.setPumpValveDelay(pstate);
+                                    //pstate.setPumpOnDelayTimeout(sys.general.options.valveDelayTime * 1000);
                                     break;
                                 default:
                                     if (pt.maxCircuits > 0) {
                                         for (let j = 0; j < pump.circuits.length; j++) {
                                             let circ = pump.circuits.getItemByIndex(j);
                                             if (circ.circuit === 6 || circ.circuit === 1) {
-                                                pstate.pumpOnDelay = true;
-                                                pstate.emitEquipmentChange();
-                                                pstate.setPumpOnDelayTimeout(sys.general.options.valveDelayTime);
+                                                delayMgr.setPumpValveDelay(pstate);
+                                                //pstate.setPumpOnDelayTimeout(sys.general.options.valveDelayTime * 1000);
                                                 break;
                                             }
                                         }
@@ -567,27 +742,68 @@ export class NixieCircuitCommands extends CircuitCommands {
                             }
 
                         }
-                       
-
-
-
                     }
                 }
-                //sys.board.virtualChlorinatorController.start();
+                // Now we need to set the startup delay for all the heaters.  This is true whether
+                // the system is shared or not so lets get a list of all the associated heaters for the body in question.
+                if (sys.general.options.heaterStartDelay && sys.general.options.heaterStartDelayTime > 0) {
+                    let heaters = sys.board.heaters.getHeatersByCircuitId(circuit.id);
+                    for (let j = 0; j < heaters.length; j++) {
+                        let hstate = state.heaters.getItemById(heaters[j].id);
+                        delayMgr.setHeaterStartupDelay(hstate);
+                    }
+                }
+                await ncp.circuits.setCircuitStateAsync(cstate, val);
+                bstate.isOn = val;
             }
-            if (id === 6) state.temps.bodies.getItemById(1, true).isOn = val;
-            else if (id === 1) state.temps.bodies.getItemById(2, true).isOn = val;
-            // Let the main nixie controller set the circuit state and affect the relays if it needs to.
-            await ncp.circuits.setCircuitStateAsync(circ, newState);
-            await sys.board.processStatusAsync();
-            return state.circuits.getInterfaceById(circ.id);
-        }
-        catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
-        finally {
-            state.emitEquipmentChanges();
-            ncp.pumps.syncPumpStates();
-            sys.board.suspendStatus(false);
-        }
+            else if (!val) {
+                // Alright we are turning off a circuit that will result in a body shutting off.  If this
+                // circuit is already under delay it should have been processed out earlier.
+                delayMgr.cancelPumpValveDelays();
+                delayMgr.cancelHeaterStartupDelays();
+                if (cstate.startDelay) delayMgr.clearBodyStartupDelay(bstate);
+                await this.turnOffCleanerCircuits(bstate);
+                logger.verbose(`Turning off a body circuit ${circuit.name}`);
+                if (cstate.isOn) {
+                    // Check to see if we have any heater cooldown delays that need to take place.
+                    let heaters = sys.board.heaters.getHeatersByCircuitId(circuit.id);
+                    let cooldownTime = 0;
+                    for (let j = 0; j < heaters.length; j++) {
+                        let nheater = ncp.heaters.find(x => x.id === heaters[j].id) as NixieHeaterBase;
+                        cooldownTime = Math.max(nheater.getCooldownTime(), cooldownTime);
+                    }
+                    if (cooldownTime > 0) {
+                        logger.info(`Starting a Cooldown Delay ${cooldownTime}sec`);
+                        // We need do start a cooldown cycle for the body.
+                        delayMgr.setHeaterCooldownDelay(bstate, undefined, cooldownTime * 1000);
+                    }
+                    else {
+                        await ncp.circuits.setCircuitStateAsync(cstate, val);
+                        bstate.isOn = val;
+                    }
+                }
+            }
+            return cstate;
+        } catch (err) { return Promise.reject(`Nixie: Error setBodyCircuitStateAsync ${err.message}`); }
+
+    }
+    protected async turnOffCleanerCircuits(bstate: BodyTempState) {
+        try {
+            // First we have to get all the cleaner circuits that are associated with the
+            // body.  To do this we get the circuit functions for all cleaner types associated with the body.
+            //
+            // Cleaner ciruits can always be turned off.  However, they cannot always be turned on.
+            let arrTypes = sys.board.valueMaps.circuitFunctions.toArray().filter(x => { return x.name.indexOf('cleaner') !== -1 && x.body === bstate.id; });
+            let cleaners = sys.circuits.filter(x => { return arrTypes.findIndex(t => { return t.val === x.type }) !== -1 });
+            // So now we should have all the cleaner circuits so lets make sure they are off.
+            for (let i = 0; i < cleaners.length; i++) {
+                let cleaner = cleaners.getItemByIndex(i);
+                if (cleaner.isActive) {
+                    let cstate = state.circuits.getItemById(cleaner.id, true);
+                    if (cstate.isOn || cstate.startDelay) await sys.board.circuits.setCircuitStateAsync(cleaner.id, false);
+                }
+            }
+        } catch (err) { return Promise.reject(`Nixie: Error turnOffCleanerCircuits ${err.message}`); }
     }
     public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
@@ -1157,12 +1373,13 @@ export class NixieHeaterCommands extends HeaterCommands {
         try {
             let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
-            else if (id < 256 && id > 0) return Promise.reject(new InvalidEquipmentIdError('Virtual Heaters controlled by njspc must have an Id > 256.', obj.id, 'Heater'));
+            else if (id < 256 && id > 0) return Promise.reject(new InvalidEquipmentIdError('Nixie Heaters controlled by njspc must have an Id > 256.', obj.id, 'Heater'));
             let heater: Heater;
             if (id <= 0) {
                 // We are adding a heater.  In this case all heaters are virtual.
                 let vheaters = sys.heaters.filter(h => h.master === 1);
-                id = vheaters.length + 256;
+                id = Math.max(vheaters.getMaxId() + 1, vheaters.length + 256);
+                logger.info(`Adding a new heater with id ${id}`);
             }
             heater = sys.heaters.getItemById(id, true);
             if (typeof obj !== undefined) {

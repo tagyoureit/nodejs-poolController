@@ -64,6 +64,9 @@ export class NixieBody extends NixieEquipment {
         super(ncp);
         this.body = body;
         this.pollEquipmentAsync();
+        let bs = state.temps.bodies.getItemById(body.id);
+        bs.heaterCooldownDelay = false;
+        bs.heatStatus = 0;
     }
     public get id(): number { return typeof this.body !== 'undefined' ? this.body.id : -1; }
     public async setBodyAsync(data: any) {

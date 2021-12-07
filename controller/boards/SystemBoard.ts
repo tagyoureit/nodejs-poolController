@@ -235,7 +235,7 @@ export class byteValueMaps {
         [0, { name: 'generic', desc: 'Generic' }],
         [1, { name: 'spa', desc: 'Spa', hasHeatSource: true }],
         [2, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
-        [5, { name: 'mastercleaner', desc: 'Master Cleaner' }],
+        [5, { name: 'mastercleaner', desc: 'Master Cleaner', body: 1 }],
         [7, { name: 'light', desc: 'Light', isLight: true }],
         [9, { name: 'samlight', desc: 'SAM Light', isLight: true }],
         [10, { name: 'sallight', desc: 'SAL Light', isLight: true }],
@@ -243,7 +243,7 @@ export class byteValueMaps {
         [12, { name: 'colorwheel', desc: 'Color Wheel', isLight: true }],
         [13, { name: 'valve', desc: 'Valve' }],
         [14, { name: 'spillway', desc: 'Spillway' }],
-        [15, { name: 'floorcleaner', desc: 'Floor Cleaner' }],
+        [15, { name: 'floorcleaner', desc: 'Floor Cleaner', body: 1 }],  // This circuit function does not seem to exist in IntelliTouch.
         [16, { name: 'intellibrite', desc: 'Intellibrite', isLight: true, themes: 'intellibrite' }],
         [17, { name: 'magicstream', desc: 'Magicstream', isLight: true, themes:'magicstream' }],
         [19, { name: 'notused', desc: 'Not Used' }],
@@ -253,18 +253,18 @@ export class byteValueMaps {
 
   // Feature functions are used as the available options to define a circuit.
   public featureFunctions: byteValueMap = new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
-  public virtualCircuits: byteValueMap = new byteValueMap([
-    [128, { name: 'solar', desc: 'Solar', assignableToPumpCircuit: true }],
-    [129, { name: 'heater', desc: 'Either Heater', assignableToPumpCircuit: true }],
-    [130, { name: 'poolHeater', desc: 'Pool Heater', assignableToPumpCircuit: true }],
-    [131, { name: 'spaHeater', desc: 'Spa Heater', assignableToPumpCircuit: true }],
-    [132, { name: 'freeze', desc: 'Freeze', assignableToPumpCircuit: true }],
-    [133, { name: 'heatBoost', desc: 'Heat Boost', assignableToPumpCircuit: false }],
-    [134, { name: 'heatEnable', desc: 'Heat Enable', assignableToPumpCircuit: false }],
-    [135, { name: 'pumpSpeedUp', desc: 'Pump Speed +', assignableToPumpCircuit: false }],
-    [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -', assignableToPumpCircuit: false }],
-    [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true }]
-  ]);
+    public virtualCircuits: byteValueMap = new byteValueMap([
+        [128, { name: 'solar', desc: 'Solar', assignableToPumpCircuit: true }],
+        [129, { name: 'heater', desc: 'Either Heater', assignableToPumpCircuit: true }],
+        [130, { name: 'poolHeater', desc: 'Pool Heater', assignableToPumpCircuit: true }],
+        [131, { name: 'spaHeater', desc: 'Spa Heater', assignableToPumpCircuit: true }],
+        [132, { name: 'freeze', desc: 'Freeze', assignableToPumpCircuit: true }],
+        [133, { name: 'heatBoost', desc: 'Heat Boost', assignableToPumpCircuit: false }],
+        [134, { name: 'heatEnable', desc: 'Heat Enable', assignableToPumpCircuit: false }],
+        [135, { name: 'pumpSpeedUp', desc: 'Pump Speed +', assignableToPumpCircuit: false }],
+        [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -', assignableToPumpCircuit: false }],
+        [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true }]
+    ]);
     public lightThemes: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off', types: ['intellibrite'] }],
         [1, { name: 'on', desc: 'On', types: ['intellibrite'] }],
@@ -404,12 +404,13 @@ export class byteValueMaps {
     [21, { name: 'solarpref', desc: 'Solar Preferred' }],
     [32, { name: 'nochange', desc: 'No Change' }]
   ]);
-  public heatStatus: byteValueMap = new byteValueMap([
-    [0, { name: 'off', desc: 'Off' }],
-    [1, { name: 'heater', desc: 'Heater' }],
-    [2, { name: 'solar', desc: 'Solar' }],
-    [3, { name: 'cooling', desc: 'Cooling' }]
-  ]);
+    public heatStatus: byteValueMap = new byteValueMap([
+        [0, { name: 'off', desc: 'Off' }],
+        [1, { name: 'heater', desc: 'Heater' }],
+        [2, { name: 'solar', desc: 'Solar' }],
+        [3, { name: 'cooling', desc: 'Cooling' }],
+        [128, { name: 'cooldown', desc: 'Cooldown' }]
+    ]);
   public pumpStatus: byteValueMap = new byteValueMap([
     [0, { name: 'off', desc: 'Off' }], // When the pump is disconnected or has no power then we simply report off as the status.  This is not the recommended wiring
     // for a VS/VF pump as is should be powered at all times.  When it is, the status will always report a value > 0.
@@ -1319,120 +1320,120 @@ export class BodyCommands extends BoardCommands {
   }
   public freezeProtectBodyOn: Date;
   public freezeProtectStart: Date;
-  public async syncFreezeProtection() {
-    try {
-      // Go through all the features and circuits to make sure we have the freeze protect set appropriately.  The freeze
-      // flag will have already been set whether this is a Nixie setup or there is an OCP involved.
+    public async syncFreezeProtection() {
+        try {
+            // Go through all the features and circuits to make sure we have the freeze protect set appropriately.  The freeze
+            // flag will have already been set whether this is a Nixie setup or there is an OCP involved.
 
-      // First turn on/off any features that are in our control that should be under our control.  If this is an OCP we
-      // do not create features beyond those controlled by the OCP so we don't need to check these in that condition.  That is
-      // why it first checks the controller type.
-      let freeze = utils.makeBool(state.freeze);
-      if (sys.controllerType === ControllerType.Nixie) {
-        // If we are a Nixie controller we need to evaluate the current freeze settings against the air temperature.
-        if (typeof state.temps.air !== 'undefined') freeze = state.temps.air <= sys.general.options.freezeThreshold;
-        else freeze = false;
+            // First turn on/off any features that are in our control that should be under our control.  If this is an OCP we
+            // do not create features beyond those controlled by the OCP so we don't need to check these in that condition.  That is
+            // why it first checks the controller type.
+            let freeze = utils.makeBool(state.freeze);
+            if (sys.controllerType === ControllerType.Nixie) {
+                // If we are a Nixie controller we need to evaluate the current freeze settings against the air temperature.
+                if (typeof state.temps.air !== 'undefined') freeze = state.temps.air <= sys.general.options.freezeThreshold;
+                else freeze = false;
 
-        // We need to know when we first turned the freeze protection on. This is because we will be rotating between pool and spa
-        // on shared body systems when both pool and spa have freeze protection checked.
-        if (state.freeze !== freeze) {
-          this.freezeProtectStart = freeze ? new Date() : undefined;
-          state.freeze = freeze;
-        }
-        for (let i = 0; i < sys.features.length; i++) {
-          let feature = sys.features.getItemByIndex(i);
-          let fstate = state.features.getItemById(feature.id, true);
-          if (!feature.freeze || !feature.isActive === true || feature.master !== 1) {
-            fstate.freezeProtect = false;
-            continue; // This is not affected by freeze conditions.
-          }
-          if (freeze && !fstate.isOn) {
-            // This feature should be on because we are freezing.
-            fstate.freezeProtect = true;
-            await sys.board.features.setFeatureStateAsync(feature.id, true);
-          }
-          else if (!freeze && fstate.freezeProtect) {
-            // This feature was turned on by freeze protection.  We need to turn it off because it has warmed up.
-            fstate.freezeProtect = false;
-            await sys.board.features.setFeatureStateAsync(feature.id, false);
-          }
-        }
-      }
-      let bodyRotationChecked = false;
-      for (let i = 0; i < sys.circuits.length; i++) {
-        let circ = sys.circuits.getItemByIndex(i);
-        let cstate = state.circuits.getItemById(circ.id);
-        if (!circ.freeze || !circ.isActive === true || circ.master !== 1) {
-          cstate.freezeProtect = false;
-          continue; // This is not affected by freeze conditions.
-        }
-        if (sys.equipment.shared && freeze && (circ.id === 1 || circ.id === 6)) {
-          // Exit out of here because we already checked the body rotation.  We only want to do this once since it can be expensive turning
-          // on a particular body.
-          if (bodyRotationChecked) continue;
-          // These are our body circuits so we need to check to see if they need to be rotated between pool and spa.
-          let pool = circ.id === 6 ? circ : sys.circuits.getItemById(6);
-          let spa = circ.id === 1 ? circ : sys.circuits.getItemById(1);
-          if (pool.freeze && spa.freeze) {
-            // We only need to rotate between pool and spa when they are both checked.
-            let pstate = circ.id === 6 ? cstate : state.circuits.getItemById(6);
-            let sstate = circ.id === 1 ? cstate : state.circuits.getItemById(1);
-            if (!pstate.isOn && !sstate.isOn) {
-              // Neither the pool or spa are on so we will turn on the pool first.
-              pstate.freezeProtect = true;
-              this.freezeProtectBodyOn = new Date();
-              await sys.board.circuits.setCircuitStateAsync(6, true);
-            }
-            else {
-              // If neither of the bodies were turned on for freeze protection then we need to ignore this. 
-              if (!pstate.freezeProtect && !sstate.freezeProtect) {
-                this.freezeProtectBodyOn = undefined;
-                continue;
-              }
-
-              // One of the two bodies is on so we need to check for the rotation.  If it is time to rotate do the rotation.
-              if (typeof this.freezeProtectBodyOn === 'undefined') this.freezeProtectBodyOn = new Date();
-              let dt = new Date().getTime();
-              if (dt - 1000 * 60 * 15 > this.freezeProtectBodyOn.getTime()) {
-                logger.info(`Swapping bodies for freeze protection pool:${pstate.isOn} spa:${sstate.isOn} interval: ${utils.formatDuration(dt - this.freezeProtectBodyOn.getTime() / 1000)}`);
-                // 10 minutes has elapsed so we will be rotating to the other body.
-                if (pstate.isOn) {
-                  // The setCircuitState method will handle turning off the pool body.
-                  sstate.freezeProtect = true;
-                  pstate.freezeProtect = false;
-                  await sys.board.circuits.setCircuitStateAsync(1, true);
+                // We need to know when we first turned the freeze protection on. This is because we will be rotating between pool and spa
+                // on shared body systems when both pool and spa have freeze protection checked.
+                if (state.freeze !== freeze) {
+                    this.freezeProtectStart = freeze ? new Date() : undefined;
+                    state.freeze = freeze;
                 }
-                else {
-                  sstate.freezeProtect = false;
-                  pstate.freezeProtect = true;
-                  await sys.board.circuits.setCircuitStateAsync(6, true);
+                for (let i = 0; i < sys.features.length; i++) {
+                    let feature = sys.features.getItemByIndex(i);
+                    let fstate = state.features.getItemById(feature.id, true);
+                    if (!feature.freeze || !feature.isActive === true || feature.master !== 1) {
+                        fstate.freezeProtect = false;
+                        continue; // This is not affected by freeze conditions.
+                    }
+                    if (freeze && !fstate.isOn) {
+                        // This feature should be on because we are freezing.
+                        fstate.freezeProtect = true;
+                        await sys.board.features.setFeatureStateAsync(feature.id, true);
+                    }
+                    else if (!freeze && fstate.freezeProtect) {
+                        // This feature was turned on by freeze protection.  We need to turn it off because it has warmed up.
+                        fstate.freezeProtect = false;
+                        await sys.board.features.setFeatureStateAsync(feature.id, false);
+                    }
                 }
-                // Set a new date as this will be our rotation check now.
-                this.freezeProtectBodyOn = new Date();
-              }
             }
-          }
-          else {
-            // Only this circuit is selected for freeze protection so we don't need any special treatment.
-            cstate.freezeProtect = true;
-            if (!cstate.isOn) await sys.board.circuits.setCircuitStateAsync(circ.id, true);
-          }
-          bodyRotationChecked = true;
+            let bodyRotationChecked = false;
+            for (let i = 0; i < sys.circuits.length; i++) {
+                let circ = sys.circuits.getItemByIndex(i);
+                let cstate = state.circuits.getItemById(circ.id);
+                if (!circ.freeze || !circ.isActive === true || circ.master !== 1) {
+                    cstate.freezeProtect = false;
+                    continue; // This is not affected by freeze conditions.
+                }
+                if (sys.equipment.shared && freeze && (circ.id === 1 || circ.id === 6)) {
+                    // Exit out of here because we already checked the body rotation.  We only want to do this once since it can be expensive turning
+                    // on a particular body.
+                    if (bodyRotationChecked) continue;
+                    // These are our body circuits so we need to check to see if they need to be rotated between pool and spa.
+                    let pool = circ.id === 6 ? circ : sys.circuits.getItemById(6);
+                    let spa = circ.id === 1 ? circ : sys.circuits.getItemById(1);
+                    if (pool.freeze && spa.freeze) {
+                        // We only need to rotate between pool and spa when they are both checked.
+                        let pstate = circ.id === 6 ? cstate : state.circuits.getItemById(6);
+                        let sstate = circ.id === 1 ? cstate : state.circuits.getItemById(1);
+                        if (!pstate.isOn && !sstate.isOn) {
+                            // Neither the pool or spa are on so we will turn on the pool first.
+                            pstate.freezeProtect = true;
+                            this.freezeProtectBodyOn = new Date();
+                            await sys.board.circuits.setCircuitStateAsync(6, true);
+                        }
+                        else {
+                            // If neither of the bodies were turned on for freeze protection then we need to ignore this. 
+                            if (!pstate.freezeProtect && !sstate.freezeProtect) {
+                                this.freezeProtectBodyOn = undefined;
+                                continue;
+                            }
+
+                            // One of the two bodies is on so we need to check for the rotation.  If it is time to rotate do the rotation.
+                            if (typeof this.freezeProtectBodyOn === 'undefined') this.freezeProtectBodyOn = new Date();
+                            let dt = new Date().getTime();
+                            if (dt - 1000 * 60 * 15 > this.freezeProtectBodyOn.getTime()) {
+                                logger.info(`Swapping bodies for freeze protection pool:${pstate.isOn} spa:${sstate.isOn} interval: ${utils.formatDuration(dt - this.freezeProtectBodyOn.getTime() / 1000)}`);
+                                // 10 minutes has elapsed so we will be rotating to the other body.
+                                if (pstate.isOn) {
+                                    // The setCircuitState method will handle turning off the pool body.
+                                    sstate.freezeProtect = true;
+                                    pstate.freezeProtect = false;
+                                    await sys.board.circuits.setCircuitStateAsync(1, true);
+                                }
+                                else {
+                                    sstate.freezeProtect = false;
+                                    pstate.freezeProtect = true;
+                                    await sys.board.circuits.setCircuitStateAsync(6, true);
+                                }
+                                // Set a new date as this will be our rotation check now.
+                                this.freezeProtectBodyOn = new Date();
+                            }
+                        }
+                    }
+                    else {
+                        // Only this circuit is selected for freeze protection so we don't need any special treatment.
+                        cstate.freezeProtect = true;
+                        if (!cstate.isOn) await sys.board.circuits.setCircuitStateAsync(circ.id, true);
+                    }
+                    bodyRotationChecked = true;
+                }
+                else if (freeze && !cstate.isOn) {
+                    // This circuit should be on because we are freezing.
+                    cstate.freezeProtect = true;
+                    await sys.board.features.setFeatureStateAsync(circ.id, true);
+                }
+                else if (!freeze && cstate.freezeProtect) {
+                    // This feature was turned on by freeze protection.  We need to turn it off because it has warmed up.
+                    await sys.board.circuits.setCircuitStateAsync(circ.id, false);
+                    cstate.freezeProtect = false;
+                }
+            }
         }
-        else if (freeze && !cstate.isOn) {
-          // This circuit should be on because we are freezing.
-          cstate.freezeProtect = true;
-          await sys.board.features.setFeatureStateAsync(circ.id, true);
-        }
-        else if (!freeze && cstate.freezeProtect) {
-          // This feature was turned on by freeze protection.  We need to turn it off because it has warmed up.
-          await sys.board.circuits.setCircuitStateAsync(circ.id, false);
-          cstate.freezeProtect = false;
-        }
-      }
+        catch (err) { logger.error(`syncFreezeProtection: Error synchronizing freeze protection states`); }
     }
-    catch (err) { logger.error(`syncFreezeProtection: Error synchronizing freeze protection states`); }
-  }
 
   public async initFilters() {
     try {
@@ -1637,31 +1638,31 @@ export class BodyCommands extends BoardCommands {
     }
     return arrSpas;
   }
-  public getBodyState(bodyCode: number): BodyTempState {
-    let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
-    switch (assoc.name) {
-      case 'body1':
-      case 'pool':
-        return state.temps.bodies.getItemById(1);
-      case 'body2':
-      case 'spa':
-        return state.temps.bodies.getItemById(2);
-      case 'body3':
-        return state.temps.bodies.getItemById(3);
-      case 'body4':
-        return state.temps.bodies.getItemById(4);
-      case 'poolspa':
-        if (sys.equipment.shared && sys.equipment.maxBodies >= 2) {
-          let body = state.temps.bodies.getItemById(1);
-          if (body.isOn) return body;
-          body = state.temps.bodies.getItemById(2);
-          if (body.isOn) return body;
-          return state.temps.bodies.getItemById(1);
+    public getBodyState(bodyCode: number): BodyTempState {
+        let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
+        switch (assoc.name) {
+            case 'body1':
+            case 'pool':
+                return state.temps.bodies.getItemById(1);
+            case 'body2':
+            case 'spa':
+                return state.temps.bodies.getItemById(2);
+            case 'body3':
+                return state.temps.bodies.getItemById(3);
+            case 'body4':
+                return state.temps.bodies.getItemById(4);
+            case 'poolspa':
+                if (sys.equipment.shared && sys.equipment.maxBodies >= 2) {
+                    let body = state.temps.bodies.getItemById(1);
+                    if (body.isOn) return body;
+                    body = state.temps.bodies.getItemById(2);
+                    if (body.isOn) return body;
+                    return state.temps.bodies.getItemById(1);
+                }
+                else
+                    return state.temps.bodies.getItemById(1);
         }
-        else
-          return state.temps.bodies.getItemById(1);
     }
-  }
     public isBodyOn(bodyCode: number): boolean {
         let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
         switch (assoc.name) {
@@ -2026,119 +2027,240 @@ export class CircuitCommands extends BoardCommands {
       }
     } catch (err) { logger.error(`syncCircuitRelayStates: Error synchronizing circuit relays ${err.message}`); }
   }
-  public syncVirtualCircuitStates() {
-    try {
-      let arrCircuits = sys.board.valueMaps.virtualCircuits.toArray();
-      let poolStates = sys.board.bodies.getPoolStates();
-      let spaStates = sys.board.bodies.getSpaStates();
-      // The following should work for all board types if the virtualCiruit valuemaps use common names.  The circuit ids can be
-      // different as well as the descriptions but these should have common names since they are all derived from existing states.
+    public syncVirtualCircuitStates() {
+        try {
+            let arrCircuits = sys.board.valueMaps.virtualCircuits.toArray();
+            let poolStates = sys.board.bodies.getPoolStates();
+            let spaStates = sys.board.bodies.getSpaStates();
+            // The following should work for all board types if the virtualCiruit valuemaps use common names.  The circuit ids can be
+            // different as well as the descriptions but these should have common names since they are all derived from existing states.
 
-      // This also removes virtual circuits depending on whether heaters exsits on the bodies.  Not sure why we are doing this
-      // as the body data contains whether a body is heated or not.  Perhapse some attached interface is using
-      // the virtual circuit list as a means to determine whether solar is available.  That is totally flawed if that is the case.
-      for (let i = 0; i < arrCircuits.length; i++) {
-        let vc = arrCircuits[i];
-        let remove = false;
-        let bState = false;
-        let cstate: VirtualCircuitState = null;
-        switch (vc.name) {
-          case 'poolHeater':
-            // If any pool is heating up.
-            remove = true;
-            for (let j = 0; j < poolStates.length; j++) {
-              if (poolStates[j].heaterOptions.total > 0) remove = false;
+            // This also removes virtual circuits depending on whether heaters exsits on the bodies.  Not sure why we are doing this
+            // as the body data contains whether a body is heated or not.  Perhapse some attached interface is using
+            // the virtual circuit list as a means to determine whether solar is available.  That is totally flawed if that is the case.
+            for (let i = 0; i < arrCircuits.length; i++) {
+                let vc = arrCircuits[i];
+                let remove = false;
+                let bState = false;
+                let cstate: VirtualCircuitState = null;
+                switch (vc.name) {
+                    case 'poolHeater':
+                        // If any pool is heating up.
+                        remove = true;
+                        for (let j = 0; j < poolStates.length; j++) {
+                            if (poolStates[j].heaterOptions.total > 0) remove = false;
+                        }
+                        if (!remove) {
+                            // Determine whether the pool heater is on.
+                            for (let j = 0; j < poolStates.length; j++) {
+                                if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'heater') {
+                                    // In this instance we may have a delay underway.
+                                    let hstate = state.heaters.find(x => x.bodyId === 1 && x.startupDelay === true && x.type.name !== 'solar');
+                                    bState = typeof hstate === 'undefined';
+                                }
+                            }
+                        }
+                        break;
+                    case 'spaHeater':
+                        remove = true;
+                        for (let j = 0; j < spaStates.length; j++) {
+                            if (spaStates[j].heaterOptions.total > 0) remove = false;
+                        }
+                        if (!remove) {
+                            // Determine whether the spa heater is on.
+                            for (let j = 0; j < spaStates.length; j++) {
+                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'heater') {
+                                    // In this instance we may have a delay underway.
+                                    let hstate = state.heaters.find(x => x.bodyId === 1 && x.startupDelay === true && x.type.name !== 'solar');
+                                    bState = typeof hstate === 'undefined';
+                                }
+                            }
+                            //for (let j = 0; j < spaStates.length; j++) {
+                            //    if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'heater') bState = true;
+                            //}
+                        }
+                        break;
+                    case 'freeze':
+                        // If freeze protection has been turned on.
+                        bState = state.freeze;
+                        break;
+                    case 'poolSpa':
+                        // If any pool or spa is on
+                        for (let j = 0; j < poolStates.length && !bState; j++) {
+                            if (poolStates[j].isOn) bState = true;
+                        }
+                        for (let j = 0; j < spaStates.length && !bState; j++) {
+                            if (spaStates[j].isOn) bState = true;
+                        }
+                        break;
+                    case 'solarHeat':
+                    case 'solar':
+                        // If solar is on for any body
+                        remove = true;
+                        for (let j = 0; j < poolStates.length; j++) {
+                            if (poolStates[j].heaterOptions.solar + poolStates[j].heaterOptions.heatpump > 0) remove = false;
+                        }
+                        if (remove) {
+                            for (let j = 0; j < spaStates.length; j++) {
+                                if (spaStates[j].heaterOptions.solar + spaStates[j].heaterOptions.heatpump > 0) remove = false;
+                            }
+                        }
+                        if (!remove) {
+                            for (let j = 0; j < poolStates.length && !bState; j++) {
+                                if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'solar') bState = true;
+                            }
+                            for (let j = 0; j < spaStates.length && !bState; j++) {
+                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') bState = true;
+                            }
+                        }
+                        break;
+                    case 'solar1':
+                        remove = true;
+                        for (let j = 0; j < poolStates.length; j++) {
+                            if (poolStates[j].id === 1 && poolStates[j].heaterOptions.solar) {
+                                remove = false;
+                                vc.desc = `${poolStates[j].name} Solar`;
+                                if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'solar') {
+                                    // In this instance we may have a delay underway.
+                                    let hstate = state.heaters.find(x => x.bodyId === 1 && x.startupDelay === true && x.type.name === 'solar');
+                                    bState = typeof hstate === 'undefined';
+                                }
+                            }
+                        }
+                        for (let j = 0; j < spaStates.length; j++) {
+                            if (spaStates[j].id === 1 && spaStates[j].heaterOptions.solar) {
+                                remove = false;
+                                vc.desc = `${spaStates[j].name} Solar`;
+                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') {
+                                    // In this instance we may have a delay underway.
+                                    let hstate = state.heaters.find(x => x.bodyId === 1 && x.startupDelay === true && x.type.name === 'solar');
+                                    bState = typeof hstate === 'undefined';
+                                }
+                            }
+                        }
+
+                        break;
+                    case 'solar2':
+                        remove = true;
+                        for (let j = 0; j < poolStates.length; j++) {
+                            if (poolStates[j].id === 2 && poolStates[j].heaterOptions.solar) {
+                                remove = false;
+                                vc.desc = `${poolStates[j].name} Solar`;
+                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') {
+                                    // In this instance we may have a delay underway.
+                                    let hstate = state.heaters.find(x => x.bodyId === 2 && x.startupDelay === true && x.type.name === 'solar');
+                                    bState = typeof hstate === 'undefined';
+                                }
+                            }
+                        }
+                        for (let j = 0; j < spaStates.length; j++) {
+                            if (spaStates[j].id === 2 && spaStates[j].heaterOptions.solar) {
+                                remove = false;
+                                vc.desc = `${spaStates[j].name} Solar`;
+                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') {
+                                    // In this instance we may have a delay underway.
+                                    let hstate = state.heaters.find(x => x.bodyId === 2 && x.startupDelay === true && x.type.name === 'solar');
+                                    bState = typeof hstate === 'undefined';
+                                }
+                            }
+                        }
+                        break;
+                    case 'solar3':
+                        remove = true;
+                        for (let j = 0; j < poolStates.length; j++) {
+                            if (poolStates[j].id === 3 && poolStates[j].heaterOptions.solar) {
+                                remove = false;
+                                vc.desc = `${poolStates[j].name} Solar`;
+                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') {
+                                    // In this instance we may have a delay underway.
+                                    let hstate = state.heaters.find(x => x.bodyId === 3 && x.startupDelay === true && x.type.name === 'solar');
+                                    bState = typeof hstate === 'undefined';
+                                }
+                            }
+                        }
+                        for (let j = 0; j < spaStates.length; j++) {
+                            if (spaStates[j].id === 3 && spaStates[j].heaterOptions.solar) {
+                                remove = false;
+                                vc.desc = `${spaStates[j].name} Solar`;
+                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') {
+                                    // In this instance we may have a delay underway.
+                                    let hstate = state.heaters.find(x => x.bodyId === 3 && x.startupDelay === true && x.type.name === 'solar');
+                                    bState = typeof hstate === 'undefined';
+                                }
+                            }
+                        }
+
+                        break;
+                    case 'solar4':
+                        remove = true;
+                        for (let j = 0; j < poolStates.length; j++) {
+                            if (poolStates[j].id === 4 && poolStates[j].heaterOptions.solar) {
+                                remove = false;
+                                vc.desc = `${poolStates[j].name} Solar`;
+                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') {
+                                    // In this instance we may have a delay underway.
+                                    let hstate = state.heaters.find(x => x.bodyId === 4 && x.startupDelay === true && x.type.name === 'solar');
+                                    bState = typeof hstate === 'undefined';
+                                }
+                            }
+                        }
+                        for (let j = 0; j < spaStates.length; j++) {
+                            if (spaStates[j].id === 4 && spaStates[j].heaterOptions.solar) {
+                                remove = false;
+                                vc.desc = `${spaStates[j].name} Solar`;
+                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') {
+                                    // In this instance we may have a delay underway.
+                                    let hstate = state.heaters.find(x => x.bodyId === 4 && x.startupDelay === true && x.type.name === 'solar');
+                                    bState = typeof hstate === 'undefined';
+                                }
+                            }
+                        }
+                        break;
+                    case 'heater':
+                        remove = true;
+                        for (let j = 0; j < poolStates.length; j++) {
+                            if (poolStates[j].heaterOptions.total > 0) remove = false;
+                        }
+                        if (remove) {
+                            for (let j = 0; j < spaStates.length; j++) {
+                                if (spaStates[j].heaterOptions.total > 0) remove = false;
+                            }
+                        }
+                        if (!remove) {
+                            for (let j = 0; j < poolStates.length && !bState; j++) {
+                                let heat = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
+                                if (heat !== 'off') bState = true;
+                            }
+                            for (let j = 0; j < spaStates.length && !bState; j++) {
+                                let heat = sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus);
+                                if (heat !== 'off') bState = true;
+                            }
+                        }
+                        break;
+                    default:
+                        remove = true;
+                        break;
+                }
+                if (remove) {
+                    if (state.virtualCircuits.exists(x => vc.val === x.id)) {
+                        cstate = state.virtualCircuits.getItemById(vc.val, true);
+                        cstate.isActive = false;
+                        cstate.emitEquipmentChange();
+                    }
+                    state.virtualCircuits.removeItemById(vc.val);
+                }
+                else {
+                    cstate = state.virtualCircuits.getItemById(vc.val, true);
+                    cstate.isActive = true;
+                    if (cstate !== null) {
+                        cstate.isOn = bState;
+                        cstate.type = vc.val;
+                        cstate.name = vc.desc;
+                    }
+                }
             }
-            if (!remove) {
-              // Determine whether the pool heater is on.
-              for (let j = 0; j < poolStates.length; j++)
-                if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'heater') bState = true;
-            }
-            break;
-          case 'spaHeater':
-            remove = true;
-            for (let j = 0; j < spaStates.length; j++) {
-              if (spaStates[j].heaterOptions.total > 0) remove = false;
-            }
-            if (!remove) {
-              // Determine whether the spa heater is on.
-              for (let j = 0; j < spaStates.length; j++) {
-                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'heater') bState = true;
-              }
-            }
-            break;
-          case 'freeze':
-            // If freeze protection has been turned on.
-            bState = state.freeze;
-            break;
-          case 'poolSpa':
-            // If any pool or spa is on
-            for (let j = 0; j < poolStates.length && !bState; j++) {
-              if (poolStates[j].isOn) bState = true;
-            }
-            for (let j = 0; j < spaStates.length && !bState; j++) {
-              if (spaStates[j].isOn) bState = true;
-            }
-            break;
-          case 'solarHeat':
-          case 'solar':
-            // If solar is on for any body
-            remove = true;
-            for (let j = 0; j < poolStates.length; j++) {
-              if (poolStates[j].heaterOptions.solar + poolStates[j].heaterOptions.heatpump > 0) remove = false;
-            }
-            if (remove) {
-              for (let j = 0; j < spaStates.length; j++) {
-                if (spaStates[j].heaterOptions.solar + spaStates[j].heaterOptions.heatpump > 0) remove = false;
-              }
-            }
-            if (!remove) {
-              for (let j = 0; j < poolStates.length && !bState; j++) {
-                if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'solar') bState = true;
-              }
-              for (let j = 0; j < spaStates.length && !bState; j++) {
-                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') bState = true;
-              }
-            }
-            break;
-          case 'heater':
-            remove = true;
-            for (let j = 0; j < poolStates.length; j++) {
-              if (poolStates[j].heaterOptions.total > 0) remove = false;
-            }
-            if (remove) {
-              for (let j = 0; j < spaStates.length; j++) {
-                if (spaStates[j].heaterOptions.total > 0) remove = false;
-              }
-            }
-            if (!remove) {
-              for (let j = 0; j < poolStates.length && !bState; j++) {
-                let heat = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
-                if (heat !== 'off') bState = true;
-              }
-              for (let j = 0; j < spaStates.length && !bState; j++) {
-                let heat = sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus);
-                if (heat !== 'off') bState = true;
-              }
-            }
-            break;
-          default:
-            remove = true;
-            break;
-        }
-        if (remove)
-          state.virtualCircuits.removeItemById(vc.val);
-        else {
-          cstate = state.virtualCircuits.getItemById(vc.val, true);
-          if (cstate !== null) {
-            cstate.isOn = bState;
-            cstate.type = vc.val;
-            cstate.name = vc.desc;
-          }
-        }
-      }
-    } catch (err) { logger.error(`Error syncronizing virtual circuits`); }
-  }
+        } catch (err) { logger.error(`Error syncronizing virtual circuits`); }
+    }
   public async setCircuitStateAsync(id: number, val: boolean): Promise<ICircuitState> {
     sys.board.suspendStatus(true);
     try {
@@ -3225,7 +3347,18 @@ export class HeaterCommands extends BoardCommands {
             return ctx;
         } catch (err) { logger.error(`Error validating heaters for restore: ${err.message}`); }
     }
-
+    public getHeatersByCircuitId(circuitId: number): Heater[] {
+        let heaters: Heater[] = [];
+        let bodyId = circuitId === 6 ? 1 : circuitId === 1 ? 2 : 0;
+        if (bodyId > 0) {
+            for (let i = 0; i < sys.heaters.length; i++) {
+                let heater = sys.heaters.getItemByIndex(i);
+                if (!heater.isActive) continue;
+                if (bodyId === heater.body || sys.equipment.shared && heater.body === 32) heaters.push(heater);
+            }
+        }
+        return heaters;
+    }
     public getInstalledHeaterTypes(body?: number): any {
         let heaters = sys.heaters.get();
         let types = sys.board.valueMaps.heaterTypes.toArray();
@@ -3470,17 +3603,19 @@ export class HeaterCommands extends BoardCommands {
                 let body: BodyTempState = bodies[i];
                 let cfgBody: Body = sys.bodies.getItemById(body.id);
                 let isHeating = false;
+                let isCooling = false;
+                let hstatus = sys.board.valueMaps.heatStatus.getName(body.heatStatus);
+                let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
                 if (body.isOn) {
                     if (typeof body.temp === 'undefined' && heaters.length > 0) logger.warn(`The body temperature for ${body.name} cannot be determined. Heater status for this body cannot be calculated.`);
                     for (let j = 0; j < heaters.length; j++) {
                         let heater: Heater = heaters[j];
                         if (heater.isActive === false) continue;
                         let isOn = false;
-                        let isCooling = false;
-                        let sensorTemp = state.temps.waterSensor1;
-                        if (body.id === 4) sensorTemp = state.temps.waterSensor4;
-                        if (body.id === 3) sensorTemp = state.temps.waterSensor3;
-                        if (body.id === 2 && !sys.equipment.shared) sensorTemp = state.temps.waterSensor2;
+                        //let sensorTemp = state.temps.waterSensor1;
+                        //if (body.id === 4) sensorTemp = state.temps.waterSensor4;
+                        //if (body.id === 3) sensorTemp = state.temps.waterSensor3;
+                        //if (body.id === 2 && !sys.equipment.shared) sensorTemp = state.temps.waterSensor2;
 
                         // Determine whether the heater can be used on this body.
                         let isAssociated = false;
@@ -3507,92 +3642,92 @@ export class HeaterCommands extends BoardCommands {
                         // logger.silly(`Heater ${heater.name} is ${isAssociated === true ? '' : 'not '}associated with ${body.name}`);
                         if (isAssociated) {
                             let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
-                            let status = sys.board.valueMaps.heatStatus.transform(body.heatStatus);
                             let hstate = state.heaters.getItemById(heater.id, true);
                             if (heater.master === 1) {
-                                // We need to do our own calculation as to whether it is on.  This is for Nixie heaters.
-                                let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
-                                switch (htype.name) {
-                                    case 'solar':
-                                        if (mode === 'solar' || mode === 'solarpref') {
-                                            // Measure up against start and stop temp deltas for effective solar heating.
-                                            if (body.temp < cfgBody.heatSetpoint &&
-                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
-                                                isHeating = true;
+                                if (hstatus !== 'cooldown') {
+                                    // We need to do our own calculation as to whether it is on.  This is for Nixie heaters.
+                                    switch (htype.name) {
+                                        case 'solar':
+                                            if (mode === 'solar' || mode === 'solarpref') {
+                                                // Measure up against start and stop temp deltas for effective solar heating.
+                                                if (body.temp < cfgBody.heatSetpoint &&
+                                                    state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                                                    isOn = true;
+                                                    body.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                                                    isHeating = true;
+                                                }
+                                                else if (heater.coolingEnabled && body.temp > cfgBody.coolSetpoint && state.heliotrope.isNight &&
+                                                    state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                                                    isOn = true;
+                                                    body.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
+                                                    isHeating = true;
+                                                    isCooling = true;
+                                                }
                                             }
-                                            else if (heater.coolingEnabled && body.temp > cfgBody.coolSetpoint && state.heliotrope.isNight &&
-                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
-                                                isHeating = true;
-                                                isCooling = true;
+                                            break;
+                                        case 'ultratemp':
+                                            // We need to determine whether we are going to use the air temp or the solar temp
+                                            // for the sensor.
+                                            let deltaTemp = Math.max(state.temps.air, state.temps.solar || 0);
+                                            if (mode === 'ultratemp' || mode === 'ultratemppref') {
+                                                if (body.temp < cfgBody.heatSetpoint &&
+                                                    deltaTemp > body.temp + heater.differentialTemp || 0) {
+                                                    isOn = true;
+                                                    body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                                                    isHeating = true;
+                                                    isCooling = false;
+                                                }
+                                                else if (body.temp > cfgBody.coolSetpoint && heater.coolingEnabled) {
+                                                    isOn = true;
+                                                    body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpcool');
+                                                    isHeating = true;
+                                                    isCooling = true;
+                                                }
                                             }
-                                        }
-                                        break;
-                                    case 'ultratemp':
-                                        // We need to determine whether we are going to use the air temp or the solar temp
-                                        // for the sensor.
-                                        let deltaTemp = Math.max(state.temps.air, state.temps.solar || 0);
-                                        if (mode === 'ultratemp' || mode === 'ultratemppref') {
-                                            if (body.temp < cfgBody.heatSetpoint &&
-                                                deltaTemp > body.temp + heater.differentialTemp || 0) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
-                                                isHeating = true;
-                                                isCooling = false;
+                                            break;
+                                        case 'mastertemp':
+                                            if (mode === 'mtheater') {
+                                                if (body.temp < cfgBody.setPoint) {
+                                                    isOn = true;
+                                                    body.heatStatus = sys.board.valueMaps.heatStatus.getValue('mtheat');
+                                                    isHeating = true;
+                                                }
                                             }
-                                            else if (body.temp > cfgBody.coolSetpoint && heater.coolingEnabled) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpcool');
-                                                isHeating = true;
-                                                isCooling = true;
+                                            break;
+                                        case 'maxetherm':
+                                        case 'gas':
+                                            if (mode === 'heater') {
+                                                if (body.temp < cfgBody.setPoint) {
+                                                    isOn = true;
+                                                    body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                                    isHeating = true;
+                                                }
                                             }
-                                        }
-                                        break;
-                                    case 'mastertemp':
-                                        if (mode === 'mtheater') {
-                                            if (body.temp < cfgBody.setPoint) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('mtheat');
-                                                isHeating = true;
+                                            else if (mode === 'solarpref' || mode === 'heatpumppref') {
+                                                // If solar should be running gas heater should be off.
+                                                if (body.temp < cfgBody.setPoint &&
+                                                    state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) isOn = false;
+                                                else if (body.temp < cfgBody.setPoint) {
+                                                    isOn = true;
+                                                    body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                                    isHeating = true;
+                                                }
                                             }
-                                        }
-                                        break;
-                                    case 'maxetherm':
-                                    case 'gas':
-                                        if (mode === 'heater') {
-                                            if (body.temp < cfgBody.setPoint) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                                                isHeating = true;
+                                            break;
+                                        case 'heatpump':
+                                            if (mode === 'heatpump' || mode === 'heatpumppref') {
+                                                if (body.temp < cfgBody.setPoint &&
+                                                    state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                                                    isOn = true;
+                                                    body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                                    isHeating = true;
+                                                }
                                             }
-                                        }
-                                        else if (mode === 'solarpref' || mode === 'heatpumppref') {
-                                            // If solar should be running gas heater should be off.
-                                            if (body.temp < cfgBody.setPoint &&
-                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) isOn = false;
-                                            else if (body.temp < cfgBody.setPoint) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                                                isHeating = true;
-                                            }
-                                        }
-                                        break;
-                                    case 'heatpump':
-                                        if (mode === 'heatpump' || mode === 'heatpumppref') {
-                                            if (body.temp < cfgBody.setPoint &&
-                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
-                                                isOn = true;
-                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                                                isHeating = true;
-                                            }
-                                        }
-                                        break;
-                                    default:
-                                        isOn = utils.makeBool(hstate.isOn);
-                                        break;
+                                            break;
+                                        default:
+                                            isOn = utils.makeBool(hstate.isOn);
+                                            break;
+                                    }
                                 }
                                 logger.debug(`Heater Type: ${htype.name} Mode:${mode} Temp: ${body.temp} Setpoint: ${cfgBody.setPoint} Status: ${body.heatStatus}`);
                             }
@@ -3600,24 +3735,24 @@ export class HeaterCommands extends BoardCommands {
                                 let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
                                 switch (htype.name) {
                                     case 'mastertemp':
-                                        if (status === 'mtheat') isHeating = isOn = true;
+                                        if (hstatus === 'mtheat') isHeating = isOn = true;
                                         break;
                                     case 'maxetherm':
                                     case 'gas':
-                                        if (status === 'heater') isHeating = isOn = true;
+                                        if (hstatus === 'heater') isHeating = isOn = true;
                                         break;
                                     case 'hybrid':
                                     case 'ultratemp':
                                     case 'heatpump':
                                         if (mode === 'ultratemp' || mode === 'ultratemppref' || mode === 'heatpump' || mode === 'heatpumppref') {
-                                            if (status === 'heater') isHeating = isOn = true;
-                                            else if (status === 'cooling') isCooling = isOn = true;
+                                            if (hstatus === 'heater') isHeating = isOn = true;
+                                            else if (hstatus === 'cooling') isCooling = isOn = true;
                                         }
                                         break;
                                     case 'solar':
                                         if (mode === 'solar' || mode === 'solarpref') {
-                                            if (status === 'solar') isHeating = isOn = true;
-                                            else if (status === 'cooling') isCooling = isOn = true;
+                                            if (hstatus === 'solar') isHeating = isOn = true;
+                                            else if (hstatus === 'cooling') isCooling = isOn = true;
                                         }
                                         break;
                                 }
@@ -3626,8 +3761,15 @@ export class HeaterCommands extends BoardCommands {
                                 hon.push(heater.id);
                                 if (heater.master === 1 && isOn) (async () => {
                                     try {
-                                        hstate.bodyId = body.id;
-                                        await ncp.heaters.setHeaterStateAsync(hstate, isOn, isCooling);
+                                        if (sys.board.valueMaps.heatStatus.getName(body.heatStatus) === 'cooldown')
+                                            await ncp.heaters.setHeaterStateAsync(hstate, false, false);
+                                        else if (isOn) {
+                                            hstate.bodyId = body.id;
+                                            await ncp.heaters.setHeaterStateAsync(hstate, isOn, isCooling);
+                                        }
+                                        else if (hstate.isOn !== isOn || hstate.isCooling !== isCooling) {
+                                            await ncp.heaters.setHeaterStateAsync(hstate, isOn, isCooling);
+                                        }
                                     } catch (err) { logger.error(err.message); }
                                 })();
                                 else {
@@ -3637,9 +3779,10 @@ export class HeaterCommands extends BoardCommands {
                             }
                         }
                     }
+                    if (sys.controllerType === ControllerType.Nixie && !isHeating && !isCooling && hstatus !== 'cooldown') body.heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
+
                 }
-                // When the controller is a virtual one we need to control the heat status ourselves.
-                if (!isHeating && (sys.controllerType === ControllerType.Nixie)) body.heatStatus = 0;
+                else if (sys.controllerType === ControllerType.Nixie) body.heatStatus = 0;
             }
             // Turn off any heaters that should be off.  The code above only turns heaters on.
             for (let i = 0; i < heaters.length; i++) {
@@ -3658,7 +3801,7 @@ export class HeaterCommands extends BoardCommands {
                     }
                 }
             }
-        } catch (err) { logger.error(`Error synchronizing heater states`); }
+        } catch (err) { logger.error(`Error synchronizing heater states: ${err.message}`); }
     }
 }
 export class ValveCommands extends BoardCommands {
@@ -3757,37 +3900,37 @@ export class ValveCommands extends BoardCommands {
     } catch (err) { return Promise.reject(new Error(`Error deleting valve: ${err.message}`)); }
     // The following code will make sure we do not encroach on any valves defined by the OCP.
   }
-  public async syncValveStates() {
-    try {
-      for (let i = 0; i < sys.valves.length; i++) {
-        // Run through all the valves to see whether they should be triggered or not.
-        let valve = sys.valves.getItemByIndex(i);
-        if (valve.isActive) {
-          let vstate = state.valves.getItemById(valve.id, true);
-          let isDiverted = vstate.isDiverted;
-          if (typeof valve.circuit !== 'undefined' && valve.circuit > 0) {
-            if (sys.equipment.shared && valve.isIntake === true)
-              isDiverted = utils.makeBool(state.circuits.getItemById(1).isOn); // If the spa is on then the intake is diverted.
-            else if (sys.equipment.shared && valve.isReturn === true) {
-              // Check to see if there is a spillway circuit or feature on.  If it is on then the return will be diverted no mater what.
-              let spillway = typeof state.circuits.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined' ||
-                typeof state.features.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined';
-              isDiverted = utils.makeBool(spillway || state.circuits.getItemById(1).isOn);
+    public async syncValveStates() {
+        try {
+            for (let i = 0; i < sys.valves.length; i++) {
+                // Run through all the valves to see whether they should be triggered or not.
+                let valve = sys.valves.getItemByIndex(i);
+                if (valve.isActive) {
+                    let vstate = state.valves.getItemById(valve.id, true);
+                    let isDiverted = vstate.isDiverted;
+                    if (typeof valve.circuit !== 'undefined' && valve.circuit > 0) {
+                        if (sys.equipment.shared && valve.isIntake === true)
+                            isDiverted = utils.makeBool(state.circuits.getItemById(1).isOn); // If the spa is on then the intake is diverted.
+                        else if (sys.equipment.shared && valve.isReturn === true) {
+                            // Check to see if there is a spillway circuit or feature on.  If it is on then the return will be diverted no mater what.
+                            let spillway = typeof state.circuits.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined' ||
+                                typeof state.features.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined';
+                            isDiverted = utils.makeBool(spillway || state.circuits.getItemById(1).isOn);
+                        }
+                        else {
+                            let circ = state.circuits.getInterfaceById(valve.circuit);
+                            isDiverted = utils.makeBool(circ.isOn);
+                        }
+                    }
+                    else
+                        isDiverted = false;
+                    vstate.type = valve.type;
+                    vstate.name = valve.name;
+                    await sys.board.valves.setValveStateAsync(valve, vstate, isDiverted);
+                }
             }
-            else {
-              let circ = state.circuits.getInterfaceById(valve.circuit);
-              isDiverted = utils.makeBool(circ.isOn);
-            }
-          }
-          else
-            isDiverted = false;
-          vstate.type = valve.type;
-          vstate.name = valve.name;
-          await sys.board.valves.setValveStateAsync(valve, vstate, isDiverted);
-        }
-      }
-    } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
-  }
+        } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
+    }
 }
 export class ChemControllerCommands extends BoardCommands {
   public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
@@ -4032,19 +4175,19 @@ export class FilterCommands extends BoardCommands {
     } catch (err) { logger.error(`Error validating filters for restore: ${err.message}`); }
   }
 
-  public async syncFilterStates() {
-    try {
-      for (let i = 0; i < sys.filters.length; i++) {
-        // Run through all the valves to see whether they should be triggered or not.
-        let filter = sys.filters.getItemByIndex(i);
-        if (filter.isActive && !isNaN(filter.id)) {
-          let fstate = state.filters.getItemById(filter.id, true);
-          // Check to see if the associated body is on.
-          await sys.board.filters.setFilterStateAsync(filter, fstate, sys.board.bodies.isBodyOn(filter.body));
-        }
-      }
-    } catch (err) { logger.error(`syncFilterStates: Error synchronizing filters ${err.message}`); }
-  }
+    public async syncFilterStates() {
+        try {
+            for (let i = 0; i < sys.filters.length; i++) {
+                // Run through all the valves to see whether they should be triggered or not.
+                let filter = sys.filters.getItemByIndex(i);
+                if (filter.isActive && !isNaN(filter.id)) {
+                    let fstate = state.filters.getItemById(filter.id, true);
+                    // Check to see if the associated body is on.
+                    await sys.board.filters.setFilterStateAsync(filter, fstate, sys.board.bodies.isBodyOn(filter.body));
+                }
+            }
+        } catch (err) { logger.error(`syncFilterStates: Error synchronizing filters ${err.message}`); }
+    }
   public async setFilterPressure(id: number, pressure: number, units?: string) {
     try {
       let filter = sys.filters.find(elem => elem.id === id);

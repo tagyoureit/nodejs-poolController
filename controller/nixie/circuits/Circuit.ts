@@ -118,6 +118,10 @@ export class NixieCircuit extends NixieEquipment {
     constructor(ncp: INixieControlPanel, circuit: Circuit) {
         super(ncp);
         this.circuit = circuit;
+        // Clear out the delays.
+        let cstate = state.circuits.getItemById(circuit.id);
+        cstate.startDelay = false;
+        cstate.stopDelay = false;
     }
     public get id(): number { return typeof this.circuit !== 'undefined' ? this.circuit.id : -1; }
     public get eggTimerOff(): Timestamp { return typeof this.timeOn !== 'undefined' && !this.circuit.dontStop ? this.timeOn.clone().addMinutes(this.circuit.eggTimer) : undefined; }
@@ -185,10 +189,10 @@ export class NixieCircuit extends NixieEquipment {
             let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, { isOn: val, latch: val ? 10000 : undefined });
             if (res.status.code === 200) {
                 sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(cstate.id), cstate, val);
-                cstate.isOn = val;
                 // Set this up so we can process our egg timer.
-                if (!cstate.isOn && val) { this.timeOn = new Timestamp(); }
-                else if (!val) this.timeOn = undefined;
+                //if (!cstate.isOn && val) { cstate.startTime = this.timeOn = new Timestamp(); }
+                //else if (!val) cstate.startTime = this.timeOn = undefined;
+                cstate.isOn = val;
             }
             return res;
         } catch (err) { logger.error(`Nixie: Error setting circuit state ${cstate.id}-${cstate.name} to ${val}`); }
@@ -230,6 +234,8 @@ export class NixieCircuit extends NixieEquipment {
     public async closeAsync() {
         try {
             let cstate = state.circuits.getItemById(this.circuit.id);
+            cstate.stopDelay = false;
+            cstate.startDelay = false;
             await this.setCircuitStateAsync(cstate, false);
             cstate.emitEquipmentChange();
         }

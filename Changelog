@@ -1,4 +1,11 @@
 # Changelog
+## 7.6
+1. MasterTemp RS485 support for Nixie and IntelliCenter
+2. Nixie Valve Rotation delay
+3. Nixie Heater Cooldown delay
+4. Nixie Cleaner Start delay
+5. Nixie Cleaner Shutdown on Solar
+6. Nixie Delay Cancel
 
 ## 7.5.1
 1. Backup/restore fixes

@@ -7,7 +7,7 @@ published by the Free Software Foundation, either version 3 of the
 License, or (at your option) any later version.
 
 This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
+but WITHOUT ANY WARRANTY; without even the implied warranty of1
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU Affero General Public License for more details.
 
@@ -26,7 +26,7 @@ import { sys, Chemical, ChemController } from './Equipment';
 import { versionCheck } from '../config/VersionCheck';
 import { EquipmentStateMessage } from './comms/messages/status/EquipmentStateMessage';
 import { DataLogger, DataLoggerEntry, IDataLoggerEntry } from '../logger/DataLogger';
-
+import { delayMgr } from './Lockouts';
 
 export class State implements IState {
     statePath: string;
@@ -140,6 +140,7 @@ export class State implements IState {
             _state.filters = this.filters.getExtended();
             _state.schedules = this.schedules.getExtended();
             _state.chemControllers = this.chemControllers.getExtended();
+            _state.delays = delayMgr.serialize();
             return _state;
         }
         else {
@@ -486,12 +487,15 @@ export interface ICircuitState {
     name: string;
     nameId?: number;
     isOn: boolean;
+    startTime?: Timestamp;
     endTime: Timestamp;
     lightingTheme?: number;
     emitEquipmentChange();
     get(bCopy?: boolean);
     showInFeatures?: boolean;
     isActive?: boolean;
+    startDelay?: boolean;
+    stopDelay?: boolean;
 }
 
 interface IEqStateCreator<T> { ctor(data: any, name: string, parent?): T; }
@@ -1281,6 +1285,10 @@ export class BodyTempStateCollection extends EqStateCollection<BodyTempState> {
         }
         return undefined;
     }
+    public getBodyByCircuitId(circuitId: number) {
+        let b = this.data.find(x => x.circuit === circuitId);
+        return typeof b !== 'undefined' ? this.createItem(b) : undefined;
+    }
     public cleanupState() {
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (isNaN(this.data[i].id)) this.data.splice(i, 1);
@@ -1308,6 +1316,9 @@ export class BodyTempState extends EqState {
     public initData() {
         if (typeof this.data.heaterOptions === 'undefined') this.data.heaterOptions = { total: 0 };
         if (typeof this.data.isCovered === 'undefined') this.data.isCovered = false;
+        if (typeof this.heaterCooldownDelay === 'undefined') this.data.heaterCooldownDelay = false;
+        if (typeof this.data.startDelay === 'undefined') this.data.startDelay = false;
+        if (typeof this.data.stopDelay === 'undefined') this.data.stopDelay = false;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
@@ -1346,8 +1357,19 @@ export class BodyTempState extends EqState {
     public set coolSetpoint(val: number) { this.setDataVal('coolSetpoint', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
+    public get startDelay(): boolean { return this.data.startDelay; }
+    public set startDelay(val: boolean) { this.setDataVal('startDelay', val); }
+    public get stopDelay(): boolean { return this.data.stopDelay; }
+    public set stopDelay(val: boolean) { this.setDataVal('stopDelay', val); }
+
     public get isCovered(): boolean { return this.data.isCovered; }
     public set isCovered(val: boolean) { this.setDataVal('isCovered', val); }
+    // RKS: Heater cooldown delays force the current valve and body configuration until the
+    // heater cooldown expires.  This occurs at the pool level but it is triggered by the heater attached
+    // to the body.  Unfortunately, I think we can only detect this condition in Nixie as there really isn't an
+    // indicator with Pentair OCPs.  This is triggered in NixieBoard and managed by the delayMgr.
+    public get heaterCooldownDelay(): boolean { return this.data.heaterCooldownDelay; }
+    public set heaterCooldownDelay(val: boolean) { this.setDataVal('heaterCooldownDelay', val); }
     public emitData(name: string, data: any) { webApp.emitToClients('body', this.data); }
     // RKS: This is a very interesting object because we have a varied object.  Type safety rules should not apply
     // here as the heater types are specific to the installed equipment.  The reason is because it has no meaning without the body and the calculation of it should
@@ -1433,16 +1455,36 @@ export class HeaterStateCollection extends EqStateCollection<HeaterState> {
 }
 export class HeaterState extends EqState {
     public dataName: string = 'heater';
+    public initData() {
+        if (typeof this.data.startupDelay === 'undefined') this.data.startupDelay = false;
+        if (typeof this.data.shutdownDelay === 'undefined') this.data.shutdownDelay = false;
+    }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
     public get isOn(): boolean { return this.data.isOn; }
-    public set isOn(val: boolean) { this.setDataVal('isOn', val); }
+    public set isOn(val: boolean) {
+        if (val !== this.data.isOn) {
+            if (val) this.startTime = new Timestamp();
+            else this.endTime = new Timestamp();
+        }
+        this.setDataVal('isOn', val);
+    }
+    public get startTime(): Timestamp {
+        if (typeof this.data.startTime === 'undefined') return undefined;
+        return new Timestamp(this.data.startTime);
+    }
+    public set startTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('startTime', Timestamp.toISOLocal(val.toDate())) : this.setDataVal('startTime', undefined); }
+
+    public get endTime(): Timestamp {
+        if (typeof this.data.endTime === 'undefined') return undefined;
+        return new Timestamp(this.data.endTime);
+    }
+    public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate())) : this.setDataVal('endTime', undefined); }
+
     public get isCooling(): boolean { return this.data.isCooling; }
     public set isCooling(val: boolean) { this.setDataVal('isCooling', val); }
-    //public get isVirtual(): boolean { return this.data.isVirtual; }
-    //public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
     public get type(): number | any { return typeof this.data.type !== 'undefined' ? this.data.type.val : 0; }
     public set type(val: number | any) {
         if (this.type !== val) {
@@ -1457,8 +1499,13 @@ export class HeaterState extends EqState {
             this.hasChanged = true;
         }
     }
+    public get startupDelay(): boolean { return this.data.startupDelay; }
+    public set startupDelay(val: boolean) { this.setDataVal('startupDelay', val); }
+    public get shutdownDelay(): boolean { return this.data.shutdownDelay; }
+    public set shutdownDelay(val: boolean) { this.setDataVal('shutdownDelay', val); }
     public get bodyId(): number { return this.data.bodyId || 0 }
     public set bodyId(val: number) { this.setDataVal('bodyId', val); }
+
 }
 export class FeatureStateCollection extends EqStateCollection<FeatureState> {
     public createItem(data: any): FeatureState { return new FeatureState(data); }
@@ -1539,6 +1586,8 @@ export class VirtualCircuitState extends EqState implements ICircuitState {
         return new Timestamp(this.data.endTime);
     }
     public set endTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('endTime', Timestamp.toISOLocal(val.toDate())) : this.setDataVal('endTime', undefined); }
+    public get isActive(): boolean { return this.data.isActive; }
+    public set isActive(val: boolean) { this.setDataVal('isActive', val); }
 }
 export class VirtualCircuitStateCollection extends EqStateCollection<VirtualCircuitState> {
     public createItem(data: any): VirtualCircuitState { return new VirtualCircuitState(data); }
@@ -1594,7 +1643,11 @@ export class CircuitState extends EqState implements ICircuitState {
     public get showInFeatures(): boolean { return this.data.showInFeatures; }
     public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
     public get isOn(): boolean { return this.data.isOn; }
-    public set isOn(val: boolean) { this.setDataVal('isOn', val); }
+    public set isOn(val: boolean) {
+        if (val && !this.data.isOn) this.startTime = new Timestamp();
+        else if (!val) this.startTime = undefined;
+        this.setDataVal('isOn', val);
+    }
     public get type() { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : -1; }
     public set type(val: number) {
         if (this.type !== val) {
@@ -1620,6 +1673,12 @@ export class CircuitState extends EqState implements ICircuitState {
             this.hasChanged = true;
         }
     }
+    public get startTime(): Timestamp {
+        if (typeof this.data.startTime === 'undefined') return undefined;
+        return new Timestamp(this.data.startTime);
+    }
+    public set startTime(val: Timestamp) { typeof val !== 'undefined' ? this.setDataVal('startTime', Timestamp.toISOLocal(val.toDate())) : this.setDataVal('startTime', undefined); }
+
     public get endTime(): Timestamp {
         if (typeof this.data.endTime === 'undefined') return undefined;
         return new Timestamp(this.data.endTime);
@@ -1631,6 +1690,16 @@ export class CircuitState extends EqState implements ICircuitState {
     public set freezeProtect(val: boolean) { this.setDataVal('freezeProtect', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    // The properties below are for delays and lockouts.  Manual or scheduled
+    // actions cannot be performed when the flags below are set.
+    public get startDelay(): boolean { return this.data.startDelay; }
+    public set startDelay(val: boolean) { this.setDataVal('startDelay', val); }
+    public get stopDelay(): boolean { return this.data.stopDelay; }
+    public set stopDelay(val: boolean) { this.setDataVal('stopDelay', val); }
+    public get lockoutOn(): boolean { return this.data.lockoutOn; }
+    public set lockoutOn(val: boolean) { this.setDataVal('lockoutOn', val); }
+    public get lockoutOff(): boolean { return this.data.lockoutOff; }
+    public set lockoutOff(val: boolean) { this.setDataVal('lockoutOff', val); }
 }
 export class ValveStateCollection extends EqStateCollection<ValveState> {
     public createItem(data: any): ValveState { return new ValveState(data); }

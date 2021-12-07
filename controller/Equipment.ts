@@ -724,7 +724,16 @@ export class Options extends EqItem {
         if (typeof this.data.clockMode === 'undefined') this.data.clockMode = 12;
         if (typeof this.data.adjustDST === 'undefined') this.data.adjustDST = true;
         if (typeof this.data.freezeThreshold === 'undefined') this.data.freezeThreshold = 35;
-        if (typeof this.data.valveDelayTime === 'undefined') this.data.valveDelayTime = 30000;
+        if (typeof this.data.pumpDelay === 'undefined') this.data.pumpDelay = false;
+        if (typeof this.data.valveDelayTime === 'undefined') this.data.valveDelayTime = 30;
+        // RKS: 12-04-21 If you are reading this in a few months delete the line below.
+        if (this.data.valveDelayTime > 1000) this.data.valveDelayTime = this.data.this.valveDelayTime / 1000;
+        if (typeof this.data.heaterStartDelay === 'undefined') this.data.heaterStartDelay = true;
+        if (typeof this.data.cleanerStartDelay === 'undefined') this.data.cleanerStartDelay = true;
+        if (typeof this.data.cleanerSolarDelay === 'undefined') this.data.cleanerSolarDelay = true;
+        if (typeof this.data.heaterStartDelayTime === 'undefined') this.data.heaterStartDelayTime = 10;
+        if (typeof this.data.cleanerStartDelayTime === 'undefined') this.data.cleanerStartDelayTime = 300; // 5min
+        if (typeof this.data.cleanerSolarDelayTime === 'undefined') this.data.cleanerSolarDelayTime = 300; // 5min
     }
     public get clockMode(): number | any { return this.data.clockMode; }
     public set clockMode(val: number | any) { this.setDataVal('clockMode', sys.board.valueMaps.clockModes.encode(val)); }
@@ -741,12 +750,26 @@ export class Options extends EqItem {
     public set manualHeat(val: boolean) { this.setDataVal('manualHeat', val); }
     public get pumpDelay(): boolean { return this.data.pumpDelay; }
     public set pumpDelay(val: boolean) { this.setDataVal('pumpDelay', val); }
+    public get valveDelayTime(): number { return this.data.valveDelayTime; }
+    public set valveDelayTime(val: number) { this.setDataVal('valveDelayTime', val); }
     public get cooldownDelay(): boolean { return this.data.cooldownDelay; }
     public set cooldownDelay(val: boolean) { this.setDataVal('cooldownDelay', val); }
     public get freezeThreshold(): number { return this.data.freezeThreshold; }
     public set freezeThreshold(val: number) { this.setDataVal('freezeThreshold', val); }
-    public get valveDelayTime(): number { return this.data.valveDelayTime; }
-    public set valveDelayTime(val: number) { this.setDataVal('valveDelayTime', val); }
+    public get heaterStartDelay(): boolean { return this.data.heaterStartDelay; }
+    public set heaterStartDelay(val: boolean) { this.setDataVal('heaterStartDelay', val); }
+    public get heaterStartDelayTime(): number { return this.data.heaterStartDelayTime; }
+    public set heaterStartDelayTime(val: number) { this.setDataVal('heaterStartDelayTime', val); }
+
+    public get cleanerStartDelay(): boolean { return this.data.cleanerStartDelay; }
+    public set cleanerStartDelay(val: boolean) { this.setDataVal('cleanerStartDelay', val); }
+    public get cleanerStartDelayTime(): number { return this.data.cleanerStartDelayTime; }
+    public set cleanerStartDelayTime(val: number) { this.setDataVal('cleanerStartDelayTime', val); }
+    public get cleanerSolarDelay(): boolean { return this.data.cleanerSolarDelay; }
+    public set cleanerSolarDelay(val: boolean) { this.setDataVal('cleanerSolarDelay', val); }
+    public get cleanerSolarDelayTime(): number { return this.data.cleanerSolarDelayTime; }
+    public set cleanerSolarDelayTime(val: number) { this.setDataVal('cleanerSolarDelayTime', val); }
+
     //public get airTempAdj(): number { return typeof this.data.airTempAdj === 'undefined' ? 0 : this.data.airTempAdj; }
     //public set airTempAdj(val: number) { this.setDataVal('airTempAdj', val); }
     //public get waterTempAdj1(): number { return typeof this.data.waterTempAdj1 === 'undefined' ? 0 : this.data.waterTempAdj1; }
@@ -1131,6 +1154,9 @@ export class EggTimer extends EqItem {
 }
 export class CircuitCollection extends EqItemCollection<Circuit> {
     constructor(data: any, name?: string) { super(data, name || "circuits"); }
+    public filter(f: (value: Circuit, index?: any, array?: any[]) => boolean): CircuitCollection {
+        return new CircuitCollection({ circuits: this.data.filter(f) });
+    }
     public createItem(data: any): Circuit { return new Circuit(data); }
     public add(obj: any): Circuit {
         this.data.push(obj);
@@ -1524,6 +1550,22 @@ export class HeaterCollection extends EqItemCollection<Heater> {
         if (typeof itm !== 'undefined') return itm;
         if (typeof add !== 'undefined' && add) return this.add(data || { id: this.data.length + 1, address: address });
         return this.createItem(data || { id: this.data.length + 1, address: address });
+    }
+    public filter(f: (value: Heater, index?: any, array?: any[]) => boolean): HeaterCollection {
+        return new HeaterCollection({ heaters: this.data.filter(f) });
+    }
+
+    public getSolarHeaters(bodyId?: number): EqItemCollection<Heater> {
+        let htype = sys.board.valueMaps.heaterTypes.getValue('solar');
+        return new HeaterCollection(this.data.filter(x => {
+            if (x.type === htype) {
+                if (typeof bodyId !== 'undefined') {
+                    if (!x.isActive) return false;
+                    return (bodyId === x.body || (sys.equipment.shared && x.body === 32)) ? true : false;
+                }
+            }
+            return false;
+        }));
     }
 }
 export class Heater extends EqItem {
