@@ -24,7 +24,7 @@ import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState, ChemControllerState, TemperatureState, VirtualCircuitState, CircuitState, ICircuitState, ICircuitGroupState, LightGroupState, ValveState, FilterState, BodyTempState } from '../State';
 import { sys, Equipment, Options, Owner, Location, CircuitCollection, TempSensorCollection, General, PoolSystem, Body, Pump, CircuitGroupCircuit, CircuitGroup, ChemController, Circuit, Feature, Valve, ICircuit, Heater, LightGroup, LightGroupCircuit, ControllerType, Filter } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
-import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
+import { BoardProcessError, EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
 import { conn } from '../comms/Comms';
 import { delayMgr } from '../Lockouts';
 export class NixieBoard extends SystemBoard {
@@ -51,8 +51,8 @@ export class NixieBoard extends SystemBoard {
             [9, { name: 'dimmer', desc: 'Dimmer', isLight: true }],
             [10, { name: 'colorcascade', desc: 'ColorCascade', isLight: true, theme: 'intellibrite' }],
             [11, { name: 'mastercleaner2', desc: 'Master Cleaner 2', body: 2 }],
-            [12, { name: 'pool', desc: 'Pool', hasHeatSource: true }],
-            [13, { name: 'spa', desc: 'Spa', hasHeatSource: true }],
+            [12, { name: 'pool', desc: 'Pool', hasHeatSource: true, body: 1 }],
+            [13, { name: 'spa', desc: 'Spa', hasHeatSource: true, body: 2 }],
             [14, { name: 'colorlogic', desc: 'ColorLogic', isLight: true, theme: 'colorlogic' }]
         ]);
         this.valueMaps.pumpTypes = new byteValueMap([
@@ -463,7 +463,7 @@ export class NixieFilterCommands extends FilterCommands {
         try {
             await ncp.filters.setFilterStateAsync(fstate, isOn);
         }
-        catch (err) { return Promise.reject(`Nixie: Error setFiterStateAsync ${err.message}`); }
+        catch (err) { return Promise.reject(new BoardProcessError(`Nixie: Error setFiterStateAsync ${err.message}`, 'setFilterStateAsync')); }
     }
 }
 
@@ -539,6 +539,9 @@ export class NixieCircuitCommands extends CircuitCommands {
                 case 'mastercleaner2':
                     await this.setCleanerCircuitStateAsync(id, newState, ignoreDelays);
                     break;
+                case 'spillway':
+                    await this.setSpillwayCircuitStateAsync(id, newState, ignoreDelays);
+                    break;
                 default:
                     await ncp.circuits.setCircuitStateAsync(circ, newState);
                     await sys.board.processStatusAsync();
@@ -547,7 +550,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             // Let the main nixie controller set the circuit state and affect the relays if it needs to.
             return state.circuits.getInterfaceById(circ.id);
         }
-        catch (err) { logger.error(`Nixie: setCircuitState ${err.message}`); return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
+        catch (err) { logger.error(`Nixie: setCircuitState ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setCircuitStateAsync ${err.message}`, 'setCircuitState')); }
         finally {
             state.emitEquipmentChanges();
             ncp.pumps.syncPumpStates();
@@ -621,7 +624,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                 else await ncp.circuits.setCircuitStateAsync(cstate, true);
             }
             return cstate;
-        } catch (err) { return Promise.reject(`Nixie: Error setting cleaner circuit state: ${err.message}`); }
+        } catch (err) { return Promise.reject(new BoardProcessError(`Nixie: Error setting cleaner circuit state: ${err.message}`, 'setCleanerCircuitStateAsync')); }
     }
     protected async setBodyCircuitStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<CircuitState> {
         try {
@@ -788,7 +791,77 @@ export class NixieCircuitCommands extends CircuitCommands {
                 }
             }
             return cstate;
-        } catch (err) { logger.error(`Nixie: Error setBodyCircuitStateAsync ${err.message}`); return Promise.reject(`Nixie: Error setBodyCircuitStateAsync ${err.message}`); }
+        } catch (err) { logger.error(`Nixie: Error setBodyCircuitStateAsync ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setBodyCircuitStateAsync ${err.message}`, 'setBodyCircuitStateAsync')); }
+    }
+    protected async setSpillwayCircuitStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<CircuitState> {
+        try {
+            let cstate = state.circuits.getItemById(id);
+            let delayPumps = false;
+            let bstate = state.temps.bodies.getItemById(1);
+            if (cstate.isOn !== val) {
+                if (sys.equipment.shared === true) {
+                    // First we need to check to see if the pool is on.
+                    if (!bstate.isOn && val) {
+                        logger.warn(`Cannot turn ${cstate.name} on because ${bstate.name} is not on`);
+                        return cstate;
+                    }
+                    // SPILLWAYS DO NOT TYPICALLY DELAY THE PUMP
+                    // Now we need to determine if a delay is in order.
+                    //if (sys.general.options.pumpDelay === true && ignoreDelays !== true) {
+                    //    // Now that this is off check the valve positions.  If they are not currently in the correct position we need to delay any attached pump
+                    //    // so that it does not come on while the valve is rotating.  Default 30 seconds.
+                    //    let iValves = sys.valves.getIntake();
+                    //    for (let i = 0; i < iValves.length && !delayPumps; i++) {
+                    //        let vstate = state.valves.getItemById(iValves[i].id);
+                    //        if (vstate.isDiverted === true) delayPumps = true;
+                    //    }
+                    //    if (!delayPumps) {
+                    //        let rValves = sys.valves.getReturn();
+                    //        for (let i = 0; i < rValves.length && !delayPumps; i++) {
+                    //            let vstate = state.valves.getItemById(rValves[i].id);
+                    //            if (vstate.isDiverted !== true) delayPumps = true;
+                    //        }
+                    //    }
+                    //}
+                    //if (delayPumps === true) {
+                    //    // Alright now we have to delay the pumps associated with the circuit. So lets iterate all our
+                    //    // pump states and see where we land.
+                    //    for (let i = 0; i < sys.pumps.length; i++) {
+                    //        let pump = sys.pumps.getItemByIndex(i);
+                    //        let pstate = state.pumps.getItemById(pump.id);
+                    //        let pt = sys.board.valueMaps.pumpTypes.get(pump.type);
+                    //        //    [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true, maxRelays: 1 }],
+                    //        //    [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 8, hasAddress: false, hasBody: false, maxRelays: 2 }],
+                    //        //    [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
+                    //        //    [4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
+                    //        //    [5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
+                    //        //    [100, { name: 'sf', desc: 'SuperFlo VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1 }]
+                    //        switch (pt.name) {
+                    //            case 'ss':
+                    //            case 'ds':
+                    //                delayMgr.setPumpValveDelay(pstate);
+                    //                //pstate.setPumpOnDelayTimeout(sys.general.options.valveDelayTime * 1000);
+                    //                break;
+                    //            default:
+                    //                if (pt.maxCircuits > 0) {
+                    //                    for (let j = 0; j < pump.circuits.length; j++) {
+                    //                        let circ = pump.circuits.getItemByIndex(j);
+                    //                        if (circ.circuit === 6) {
+                    //                            delayMgr.setPumpValveDelay(pstate);
+                    //                            break;
+                    //                        }
+                    //                    }
+                    //                }
+                    //                break;
+                    //        }
+                    //    }
+                    //}
+                }
+            }
+            logger.verbose(`Turning ${val ? 'on' : 'off'} a spillway circuit ${cstate.name}`);
+            await ncp.circuits.setCircuitStateAsync(cstate, val);
+            return cstate;
+        } catch (err) { logger.error(`Nixie: Error setSpillwayCircuitStateAsync ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setBodyCircuitStateAsync ${err.message}`, 'setBodyCircuitStateAsync')); }
 
     }
     protected async turnOffCleanerCircuits(bstate: BodyTempState) {
@@ -807,8 +880,39 @@ export class NixieCircuitCommands extends CircuitCommands {
                     if (cstate.isOn || cstate.startDelay) await sys.board.circuits.setCircuitStateAsync(cleaner.id, false);
                 }
             }
-        } catch (err) { return Promise.reject(`Nixie: Error turnOffCleanerCircuits ${err.message}`); }
+        } catch (err) { return Promise.reject(new BoardProcessError(`turnOffCleanerCircuits: ${err.message}`)); }
     }
+    protected async turnOffSpillwayCircuits(bstate: BodyTempState) {
+        try {
+            {
+                let arrTypes = sys.board.valueMaps.circuitFunctions.toArray().filter(x => { return x.name.indexOf('spillway') !== -1 });
+                let spillways = sys.circuits.filter(x => { return arrTypes.findIndex(t => { return t.val === x.type }) !== -1 });
+                // So now we should have all the cleaner circuits so lets make sure they are off.
+                for (let i = 0; i < spillways.length; i++) {
+                    let spillway = spillways.getItemByIndex(i);
+                    if (spillway.isActive) {
+                        let cstate = state.circuits.getItemById(spillway.id, true);
+                        if (cstate.isOn || cstate.startDelay) await sys.board.circuits.setCircuitStateAsync(spillway.id, false);
+                    }
+                }
+            }
+            {
+                let arrTypes = sys.board.valueMaps.featureFunctions.toArray().filter(x => { return x.name.indexOf('spillway') !== -1 });
+                let spillways = sys.features.filter(x => { return arrTypes.findIndex(t => { return t.val === x.type }) !== -1 });
+                // So now we should have all the cleaner features so lets make sure they are off.
+                for (let i = 0; i < spillways.length; i++) {
+                    let spillway = spillways.getItemByIndex(i);
+                    if (spillway.isActive) {
+                        let cstate = state.features.getItemById(spillway.id, true);
+                        if (cstate.isOn) await sys.board.features.setFeatureStateAsync(spillway.id, false);
+                    }
+                }
+            }
+            
+        } catch (err) { return Promise.reject(new BoardProcessError(`turnOffSpillwayCircuits: ${err.message}`)); }
+    }
+ 
+
     public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
         return this.setCircuitStateAsync(id, !(circ.isOn || false));
@@ -1403,16 +1507,16 @@ export class NixieHeaterCommands extends HeaterCommands {
         } catch (err) { return Promise.reject(new Error(`Error setting heater configuration: ${err}`)); }
     }
     public async deleteHeaterAsync(obj: any): Promise<Heater> {
-        return new Promise<Heater>((resolve, reject) => {
+        try {
             let id = parseInt(obj.id, 10);
-            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
             let heater = sys.heaters.getItemById(id);
             heater.isActive = false;
             sys.heaters.removeItemById(id);
             state.heaters.removeItemById(id);
             sys.board.heaters.updateHeaterServices();
-            resolve(heater);
-        });
+            return heater;
+        } catch (err) { return Promise.reject(new BoardProcessError(err.message, 'deleteHeaterAsync')); }
     }
     public updateHeaterServices() {
         let htypes = sys.board.heaters.getInstalledHeaterTypes();

@@ -144,6 +144,16 @@ export class ParameterOutOfRangeError extends InvalidOperationError {
     public value;
     public parameter: string;
 }
+export class BoardProcessError extends ApiError {
+    constructor(message: string, process?: string) {
+        super(message, 300, 400);
+        this.name = 'ProcessingError';
+        this.process = process;
+    }
+    public process: string;
+    
+}
+
 export class MessageError extends ApiError {
     constructor(msg: Message, message: string, code?: number, httpCode?: number) {
         super(message, code, httpCode);

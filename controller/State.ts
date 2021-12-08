@@ -1287,6 +1287,12 @@ export class BodyTempStateCollection extends EqStateCollection<BodyTempState> {
     }
     public getBodyByCircuitId(circuitId: number) {
         let b = this.data.find(x => x.circuit === circuitId);
+        if (typeof b === 'undefined') {
+            let circ = sys.circuits.getItemById(circuitId);
+            // Find our body by circuit function.
+            let cfn = sys.board.valueMaps.circuitFunctions.get(circ.type);
+            if (typeof cfn.body !== 'undefined') b = this.data.find(x => x.id === cfn.body);
+        }
         return typeof b !== 'undefined' ? this.createItem(b) : undefined;
     }
     public cleanupState() {
