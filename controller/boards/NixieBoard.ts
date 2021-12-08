@@ -21,7 +21,7 @@ import { NixieHeaterBase } from "../nixie/heaters/Heater";
 import { utils, Heliotrope, Timestamp } from '../Constants';
 import {SystemBoard, byteValueMap, ConfigQueue, ConfigRequest, BodyCommands, FilterCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ValveCommands, HeaterCommands, ChlorinatorCommands, ChemControllerCommands, EquipmentIdRange} from './SystemBoard';
 import { logger } from '../../logger/Logger';
-import { state, ChlorinatorState, ChemControllerState, TemperatureState, VirtualCircuitState, CircuitState, ICircuitState, ICircuitGroupState, LightGroupState, ValveState, FilterState, BodyTempState } from '../State';
+import { state, ChlorinatorState, ChemControllerState, TemperatureState, VirtualCircuitState, CircuitState, ICircuitState, ICircuitGroupState, LightGroupState, ValveState, FilterState, BodyTempState, FeatureState } from '../State';
 import { sys, Equipment, Options, Owner, Location, CircuitCollection, TempSensorCollection, General, PoolSystem, Body, Pump, CircuitGroupCircuit, CircuitGroup, ChemController, Circuit, Feature, Valve, ICircuit, Heater, LightGroup, LightGroupCircuit, ControllerType, Filter } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
 import { BoardProcessError, EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
@@ -38,6 +38,11 @@ export class NixieBoard extends SystemBoard {
         this.equipmentIds.features.start = 129;
         this.equipmentIds.circuitGroups.start = 193;
         this.equipmentIds.virtualCircuits.start = 237;
+        this.valueMaps.featureFunctions = new byteValueMap([
+            [0, { name: 'generic', desc: 'Generic' }],
+            [1, { name: 'spillway', desc: 'Spillway' }],
+            [2, { name: 'spadrain', desc: 'Spa Drain' }]
+        ]);
         this.valueMaps.circuitFunctions = new byteValueMap([
             [0, { name: 'generic', desc: 'Generic' }],
             [1, { name: 'spillway', desc: 'Spillway' }],
@@ -53,7 +58,8 @@ export class NixieBoard extends SystemBoard {
             [11, { name: 'mastercleaner2', desc: 'Master Cleaner 2', body: 2 }],
             [12, { name: 'pool', desc: 'Pool', hasHeatSource: true, body: 1 }],
             [13, { name: 'spa', desc: 'Spa', hasHeatSource: true, body: 2 }],
-            [14, { name: 'colorlogic', desc: 'ColorLogic', isLight: true, theme: 'colorlogic' }]
+            [14, { name: 'colorlogic', desc: 'ColorLogic', isLight: true, theme: 'colorlogic' }],
+            [15, { name: 'spadrain', desc: 'Spa Drain'}]
         ]);
         this.valueMaps.pumpTypes = new byteValueMap([
             [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true, maxRelays: 1 }],
@@ -542,6 +548,9 @@ export class NixieCircuitCommands extends CircuitCommands {
                 case 'spillway':
                     await this.setSpillwayCircuitStateAsync(id, newState, ignoreDelays);
                     break;
+                case 'spadrain':
+                    await this.setDrainCircuitStateAsync(id, newState, ignoreDelays);
+                    break;
                 default:
                     await ncp.circuits.setCircuitStateAsync(circ, newState);
                     await sys.board.processStatusAsync();
@@ -588,6 +597,8 @@ export class NixieCircuitCommands extends CircuitCommands {
                     await ncp.circuits.setCircuitStateAsync(cstate, false);
                     return cstate;
                 }
+                // If there is a drain circuit going shut that thing off.
+                await this.turnOffDrainCircuits();
                 // If solar is currently on and the cleaner solar delay is set then we need to calculate a delay
                 // to turn on the cleaner.
                 let delayTime = 0;
@@ -638,6 +649,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                     // If we are turning on and this is a shared system it means that we need to turn off
                     // the other circuit.
                     let delayPumps = false;
+                    if (bstate.id === 1) await this.turnOffDrainCircuits();
                     if (sys.general.options.pumpDelay === true && ignoreDelays !== true) {
                         // Now that this is off check the valve positions.  If they are not currently in the correct position we need to delay any attached pump
                         // so that it does not come on while the valve is rotating.  Default 30 seconds.
@@ -770,8 +782,10 @@ export class NixieCircuitCommands extends CircuitCommands {
                 delayMgr.cancelHeaterStartupDelays();
                 if (cstate.startDelay) delayMgr.clearBodyStartupDelay(bstate);
                 await this.turnOffCleanerCircuits(bstate);
+                if (sys.equipment.shared && bstate.id === 2) await this.turnOffDrainCircuits();
                 logger.verbose(`Turning off a body circuit ${circuit.name}`);
                 if (cstate.isOn) {
+                   
                     // Check to see if we have any heater cooldown delays that need to take place.
                     let heaters = sys.board.heaters.getHeatersByCircuitId(circuit.id);
                     let cooldownTime = 0;
@@ -805,114 +819,43 @@ export class NixieCircuitCommands extends CircuitCommands {
                         logger.warn(`Cannot turn ${cstate.name} on because ${bstate.name} is not on`);
                         return cstate;
                     }
-                    // SPILLWAYS DO NOT TYPICALLY DELAY THE PUMP
-                    // Now we need to determine if a delay is in order.
-                    //if (sys.general.options.pumpDelay === true && ignoreDelays !== true) {
-                    //    // Now that this is off check the valve positions.  If they are not currently in the correct position we need to delay any attached pump
-                    //    // so that it does not come on while the valve is rotating.  Default 30 seconds.
-                    //    let iValves = sys.valves.getIntake();
-                    //    for (let i = 0; i < iValves.length && !delayPumps; i++) {
-                    //        let vstate = state.valves.getItemById(iValves[i].id);
-                    //        if (vstate.isDiverted === true) delayPumps = true;
-                    //    }
-                    //    if (!delayPumps) {
-                    //        let rValves = sys.valves.getReturn();
-                    //        for (let i = 0; i < rValves.length && !delayPumps; i++) {
-                    //            let vstate = state.valves.getItemById(rValves[i].id);
-                    //            if (vstate.isDiverted !== true) delayPumps = true;
-                    //        }
-                    //    }
-                    //}
-                    //if (delayPumps === true) {
-                    //    // Alright now we have to delay the pumps associated with the circuit. So lets iterate all our
-                    //    // pump states and see where we land.
-                    //    for (let i = 0; i < sys.pumps.length; i++) {
-                    //        let pump = sys.pumps.getItemByIndex(i);
-                    //        let pstate = state.pumps.getItemById(pump.id);
-                    //        let pt = sys.board.valueMaps.pumpTypes.get(pump.type);
-                    //        //    [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true, maxRelays: 1 }],
-                    //        //    [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 8, hasAddress: false, hasBody: false, maxRelays: 2 }],
-                    //        //    [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
-                    //        //    [4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
-                    //        //    [5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
-                    //        //    [100, { name: 'sf', desc: 'SuperFlo VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1 }]
-                    //        switch (pt.name) {
-                    //            case 'ss':
-                    //            case 'ds':
-                    //                delayMgr.setPumpValveDelay(pstate);
-                    //                //pstate.setPumpOnDelayTimeout(sys.general.options.valveDelayTime * 1000);
-                    //                break;
-                    //            default:
-                    //                if (pt.maxCircuits > 0) {
-                    //                    for (let j = 0; j < pump.circuits.length; j++) {
-                    //                        let circ = pump.circuits.getItemByIndex(j);
-                    //                        if (circ.circuit === 6) {
-                    //                            delayMgr.setPumpValveDelay(pstate);
-                    //                            break;
-                    //                        }
-                    //                    }
-                    //                }
-                    //                break;
-                    //        }
-                    //    }
-                    //}
+                    // If there are any drain circuits or features that are currently engaged we need to turn them off.
+                    await this.turnOffDrainCircuits();
                 }
             }
             logger.verbose(`Turning ${val ? 'on' : 'off'} a spillway circuit ${cstate.name}`);
             await ncp.circuits.setCircuitStateAsync(cstate, val);
             return cstate;
         } catch (err) { logger.error(`Nixie: Error setSpillwayCircuitStateAsync ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setBodyCircuitStateAsync ${err.message}`, 'setBodyCircuitStateAsync')); }
-
     }
-    protected async turnOffCleanerCircuits(bstate: BodyTempState) {
+    protected async setDrainCircuitStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<CircuitState> {
         try {
-            // First we have to get all the cleaner circuits that are associated with the
-            // body.  To do this we get the circuit functions for all cleaner types associated with the body.
-            //
-            // Cleaner ciruits can always be turned off.  However, they cannot always be turned on.
-            let arrTypes = sys.board.valueMaps.circuitFunctions.toArray().filter(x => { return x.name.indexOf('cleaner') !== -1 && x.body === bstate.id; });
-            let cleaners = sys.circuits.filter(x => { return arrTypes.findIndex(t => { return t.val === x.type }) !== -1 });
-            // So now we should have all the cleaner circuits so lets make sure they are off.
-            for (let i = 0; i < cleaners.length; i++) {
-                let cleaner = cleaners.getItemByIndex(i);
-                if (cleaner.isActive) {
-                    let cstate = state.circuits.getItemById(cleaner.id, true);
-                    if (cstate.isOn || cstate.startDelay) await sys.board.circuits.setCircuitStateAsync(cleaner.id, false);
-                }
-            }
-        } catch (err) { return Promise.reject(new BoardProcessError(`turnOffCleanerCircuits: ${err.message}`)); }
-    }
-    protected async turnOffSpillwayCircuits(bstate: BodyTempState) {
-        try {
-            {
-                let arrTypes = sys.board.valueMaps.circuitFunctions.toArray().filter(x => { return x.name.indexOf('spillway') !== -1 });
-                let spillways = sys.circuits.filter(x => { return arrTypes.findIndex(t => { return t.val === x.type }) !== -1 });
-                // So now we should have all the cleaner circuits so lets make sure they are off.
-                for (let i = 0; i < spillways.length; i++) {
-                    let spillway = spillways.getItemByIndex(i);
-                    if (spillway.isActive) {
-                        let cstate = state.circuits.getItemById(spillway.id, true);
-                        if (cstate.isOn || cstate.startDelay) await sys.board.circuits.setCircuitStateAsync(spillway.id, false);
+            // Drain circuits can be very bad.  This is because they can be turned on then never turned off
+            // we may want to create some limits are to how long they can be on or even force them off
+            // if for instance the spa is not on.
+            // RULES FOR DRAIN CIRCUITS:
+            // 1. All spillway circuits must be off.
+            let cstate = state.circuits.getItemById(id);
+            let delayPumps = false;
+            let bstate = state.temps.bodies.getItemById(2);
+            if (cstate.isOn !== val) {
+                if (sys.equipment.shared === true) {
+                    // First we need to check to see if the pool is on.
+                    if ((!bstate.isOn || bstate.stopDelay) && val) {
+                        logger.warn(`Cannot turn ${cstate.name} on because ${bstate.name} is not on`);
+                        return cstate;
                     }
+                    // If there are any spillway circuits or features that are currently engaged we need to turn them off.
+                    await this.turnOffSpillwayCircuits();
+                    // If there are any cleaner circuits on for the main body turn them off.
+                    await this.turnOffCleanerCircuits(state.temps.bodies.getItemById(1));
                 }
             }
-            {
-                let arrTypes = sys.board.valueMaps.featureFunctions.toArray().filter(x => { return x.name.indexOf('spillway') !== -1 });
-                let spillways = sys.features.filter(x => { return arrTypes.findIndex(t => { return t.val === x.type }) !== -1 });
-                // So now we should have all the cleaner features so lets make sure they are off.
-                for (let i = 0; i < spillways.length; i++) {
-                    let spillway = spillways.getItemByIndex(i);
-                    if (spillway.isActive) {
-                        let cstate = state.features.getItemById(spillway.id, true);
-                        if (cstate.isOn) await sys.board.features.setFeatureStateAsync(spillway.id, false);
-                    }
-                }
-            }
-            
-        } catch (err) { return Promise.reject(new BoardProcessError(`turnOffSpillwayCircuits: ${err.message}`)); }
+            logger.verbose(`Turning ${val ? 'on' : 'off'} a spillway circuit ${cstate.name}`);
+            await ncp.circuits.setCircuitStateAsync(cstate, val);
+            return cstate;
+        } catch (err) { logger.error(`Nixie: Error setSpillwayCircuitStateAsync ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setBodyCircuitStateAsync ${err.message}`, 'setBodyCircuitStateAsync')); }
     }
- 
-
     public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
         return this.setCircuitStateAsync(id, !(circ.isOn || false));
@@ -995,7 +938,11 @@ export class NixieCircuitCommands extends CircuitCommands {
         }
         return arr;
     }
-    public getCircuitFunctions() { return sys.board.valueMaps.circuitFunctions.toArray(); }
+    public getCircuitFunctions() {
+        let cf = sys.board.valueMaps.circuitFunctions.toArray();
+        if (!sys.equipment.shared) cf = cf.filter(x => { return x.name !== 'spillway' && x.name !== 'spadrain' });
+        return cf;
+    }
     public getCircuitNames() {
         return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()];
     }
@@ -1364,20 +1311,81 @@ export class NixieFeatureCommands extends FeatureCommands {
         else
             Promise.reject(new InvalidEquipmentIdError('Feature id has not been defined', undefined, 'Feature'));
     }
-    public async setFeatureStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+    public async setFeatureStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<ICircuitState> {
         try {
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
             if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
             let feature = sys.features.getItemById(id);
             let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
-            sys.board.circuits.setEndTime(feature, fstate, val);
-            fstate.isOn = val;
+            let ftype = sys.board.valueMaps.featureFunctions.getName(feature.type);
+            switch (ftype) {
+                case 'spadrain':
+                    this.setDrainFeatureStateAsync(id, val, ignoreDelays);
+                    break;
+                case 'spillway':
+                    this.setSpillwayFeatureStateAsync(id, val, ignoreDelays);
+                    break;
+                default:
+                    fstate.isOn = val;
+                    break;
+            }
+            if(fstate.isOn === val) sys.board.circuits.setEndTime(feature, fstate, val);
             sys.board.valves.syncValveStates();
             ncp.pumps.syncPumpStates();
             state.emitEquipmentChanges();
             return fstate;
         } catch (err) { return Promise.reject(new Error(`Error setting feature state ${err.message}`)); }
     }
+    protected async setSpillwayFeatureStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<FeatureState> {
+        try {
+            let cstate = state.features.getItemById(id);
+            let delayPumps = false;
+            let bstate = state.temps.bodies.getItemById(1);
+            if (cstate.isOn !== val) {
+                if (sys.equipment.shared === true) {
+                    // First we need to check to see if the pool is on.
+                    if (!bstate.isOn && val) {
+                        logger.warn(`Cannot turn ${cstate.name} on because ${bstate.name} is not on`);
+                        return cstate;
+                    }
+                    // If there are any drain circuits or features that are currently engaged we need to turn them off.
+                    await sys.board.circuits.turnOffDrainCircuits();
+                }
+                logger.verbose(`Turning ${val ? 'on' : 'off'} a spillway feature ${cstate.name}`);
+                cstate.isOn = val;
+            }
+            return cstate;
+        } catch (err) { logger.error(`Nixie: Error setSpillwayFeatureStateAsync ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setSpillwayFeatureStateAsync ${err.message}`, 'setSpillwayFeatureStateAsync')); }
+    }
+    protected async setDrainFeatureStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<FeatureState> {
+        try {
+            // Drain circuits can be very bad.  This is because they can be turned on then never turned off
+            // we may want to create some limits are to how long they can be on or even force them off
+            // if for instance the spa is not on.
+            // RULES FOR DRAIN CIRCUITS:
+            // 1. All spillway circuits must be off.
+            let cstate = state.features.getItemById(id);
+            let delayPumps = false;
+            let bstate = state.temps.bodies.getItemById(2);
+            if (cstate.isOn !== val) {
+                if (sys.equipment.shared === true) {
+                    // First we need to check to see if the pool is on.
+                    if ((!bstate.isOn || bstate.stopDelay) && val) {
+                        logger.warn(`Cannot turn ${cstate.name} on because ${bstate.name} is not on`);
+                        return cstate;
+                    }
+                    // If there are any spillway circuits or features that are currently engaged we need to turn them off.
+                    await sys.board.circuits.turnOffSpillwayCircuits();
+                    // If there are any cleaner circuits on for the main body turn them off.
+                    await sys.board.circuits.turnOffCleanerCircuits(state.temps.bodies.getItemById(1));
+                }
+                logger.verbose(`Turning ${val ? 'on' : 'off'} a spillway circuit ${cstate.name}`);
+                cstate.isOn = val;
+            }
+            return cstate;
+        } catch (err) { logger.error(`Nixie: Error setSpillwayCircuitStateAsync ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setBodyCircuitStateAsync ${err.message}`, 'setBodyCircuitStateAsync')); }
+    }
+
     public async toggleFeatureStateAsync(id: number): Promise<ICircuitState> {
         let feat = state.features.getItemById(id);
         return this.setFeatureStateAsync(id, !(feat.isOn || false));

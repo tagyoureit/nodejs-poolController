@@ -112,7 +112,7 @@ export class ConfigRoute {
                 invalidIds: sys.board.equipmentIds.invalidIds.get(),
                 equipmentIds: sys.equipment.equipmentIds.features,
                 equipmentNames: sys.board.circuits.getCircuitNames(),
-                functions: sys.board.valueMaps.featureFunctions.toArray(),
+                functions: sys.board.features.getFeatureFunctions(),
                 features: sys.features.get()
             };
             return res.status(200).send(opts);
@@ -592,8 +592,8 @@ export class ConfigRoute {
             return res.status(200).send(circuitFunctions);
         });
         app.get('/config/features/functions', (req, res) => {
-            let circuitFunctions = sys.board.circuits.getCircuitFunctions();
-            return res.status(200).send(circuitFunctions);
+            let featureFunctions = sys.board.features.getFeatureFunctions();
+            return res.status(200).send(featureFunctions);
         });
         app.get('/config/circuit/:id', (req, res) => {
             // todo: need getInterfaceById.get() in case features are requested here

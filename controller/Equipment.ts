@@ -1240,6 +1240,9 @@ export class Circuit extends EqItem implements ICircuit {
 }
 export class FeatureCollection extends EqItemCollection<Feature> {
     constructor(data: any, name?: string) { super(data, name || "features"); }
+    public filter(f: (value: Circuit, index?: any, array?: any[]) => boolean): FeatureCollection {
+        return new FeatureCollection({ features: this.data.filter(f) });
+    }
     public createItem(data: any): Feature { return new Feature(data); }
 }
 export class Feature extends EqItem implements ICircuit {

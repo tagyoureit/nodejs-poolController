@@ -154,7 +154,6 @@ export class State implements IState {
                     return extend(true, [], this.data[section] || []);
                 else
                     return extend(true, {}, this.data[section] || {});
-
         }
     }
     public async stopAsync() {
@@ -213,7 +212,8 @@ export class State implements IState {
             sunrise: self.data.sunrise || '',
             sunset: self.data.sunset || '',
             alias: sys.general.alias,
-            freeze: utils.makeBool(self.data.freeze)
+            freeze: utils.makeBool(self.data.freeze),
+            valveMode: self.data.valveMode || {},
         };
     }
     public emitAllEquipmentChanges() {
@@ -285,6 +285,14 @@ export class State implements IState {
         let m = sys.board.valueMaps.panelModes.transform(val);
         if (m.val !== this.mode) {
             this.data.mode = m;
+            this.hasChanged = true;
+        }
+    }
+    public get valveMode(): number { return typeof this.data.valveMode !== 'undefined' ? this.data.valveMode.val : 0; }
+    public set valveMode(val: number) {
+        let m = sys.board.valueMaps.valveModes.transform(val);
+        if (m.val !== this.valveMode) {
+            this.data.valveMode = m;
             this.hasChanged = true;
         }
     }
