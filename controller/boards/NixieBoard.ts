@@ -547,7 +547,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             // Let the main nixie controller set the circuit state and affect the relays if it needs to.
             return state.circuits.getInterfaceById(circ.id);
         }
-        catch (err) { return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
+        catch (err) { logger.error(`Nixie: setCircuitState ${err.message}`); return Promise.reject(`Nixie: Error setCircuitStateAsync ${err.message}`); }
         finally {
             state.emitEquipmentChanges();
             ncp.pumps.syncPumpStates();
@@ -667,6 +667,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                         await this.turnOffCleanerCircuits(bsoff);
                         if (csoff.isOn) {
                             logger.verbose(`Turning off shared body ${coff.name} circuit`);
+                            delayMgr.clearBodyStartupDelay(bsoff);
                             if (bsoff.heaterCooldownDelay && ignoreDelays !== true) {
                                 // In this condition we are requesting that the shared body start when the cooldown delay
                                 // has finished.  This will add this request to the cooldown delay code.  The setHeaterCooldownDelay
@@ -787,7 +788,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                 }
             }
             return cstate;
-        } catch (err) { return Promise.reject(`Nixie: Error setBodyCircuitStateAsync ${err.message}`); }
+        } catch (err) { logger.error(`Nixie: Error setBodyCircuitStateAsync ${err.message}`); return Promise.reject(`Nixie: Error setBodyCircuitStateAsync ${err.message}`); }
 
     }
     protected async turnOffCleanerCircuits(bstate: BodyTempState) {
@@ -1169,7 +1170,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                     break;
             }
             return sgroup;
-        } catch (err) { Promise.reject(err); }
+        } catch (err) { return Promise.reject(err); }
         finally { sgroup.action = 0; sgroup.emitEquipmentChange(); }
     }
     public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {

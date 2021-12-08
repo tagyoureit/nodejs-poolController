@@ -91,7 +91,7 @@ export class PumpValveDelay extends EquipmentDelay {
     public constructor(ps: PumpState, delay?: number) {
         super();
         this.type = 'pumpValveDelay';
-        this.message = `Pump ${ps.name} will start after valve Delay`;
+        this.message = `${ps.name} will start after valve Delay`;
         this.pumpState = ps;
         this.pumpState.pumpOnDelay = true;
         this._delayTimer = setTimeout(() => {
@@ -109,12 +109,18 @@ export class PumpValveDelay extends EquipmentDelay {
         this._delayTimer = undefined;
         delayMgr.deleteDelay(this.id);
     }
+    public clearDelay() {
+        if (typeof this._delayTimer !== 'undefined') clearTimeout(this._delayTimer);
+        logger.info(`Valve delay cleared for ${this.pumpState.name}`);
+        this._delayTimer = undefined;
+        delayMgr.deleteDelay(this.id);
+    }
 }
 export class HeaterStartupDelay extends EquipmentDelay {
     public constructor(hs: HeaterState, delay?: number) {
         super();
         this.type = 'heaterStartupDelay';
-        this.message = `Heater ${hs.name} will start after delay`;
+        this.message = `${hs.name} will start after delay`;
         this.heaterState = hs;
         this.heaterState.startupDelay = true;
         this._delayTimer = setTimeout(() => {
@@ -280,11 +286,28 @@ export class DelayManager extends Array<EquipmentDelay> {
         let del = this.find(x => x.id === id);
         if (typeof del !== 'undefined') del.cancelDelay();
     }
-    public setPumpValveDelay(ps: PumpState, delay?: number) { this.push(new PumpValveDelay(ps, delay)); this.setDirty(); }
+    public setPumpValveDelay(ps: PumpState, delay?: number) {
+        let cds = this.filter(x => x.type === 'pumpValveDelay');
+        for (let i = 0; i < cds.length; i++) {
+            let delay = cds[i] as PumpValveDelay;
+            if (delay.pumpState.id === ps.id) delay.clearDelay();
+        }
+        this.push(new PumpValveDelay(ps, delay)); this.setDirty();
+    }
     public cancelPumpValveDelays() { this.cancelDelaysByType('pumpValveDelay'); this.setDirty(); }
-    public setHeaterStartupDelay(hs: HeaterState, delay?: number) { this.push(new HeaterStartupDelay(hs, delay)); this.setDirty(); }
-    public cancelHeaterStartupDelays() { this.cancelDelaysByType('heaterStartupDelay'); }
+    public setHeaterStartupDelay(hs: HeaterState, delay?: number) {
+        let cds = this.filter(x => x.type === 'heaterStartupDelay');
+        for (let i = 0; i < cds.length; i++) {
+            let delay = cds[i] as HeaterStartupDelay;
+            if (delay.heaterState.id === hs.id) delay.cancelDelay();
+        }
+        this.push(new HeaterStartupDelay(hs, delay)); this.setDirty();
+    }
+    public cancelHeaterStartupDelays() {
+        this.cancelDelaysByType('heaterStartupDelay');
+    }
     public setHeaterCooldownDelay(bsOff: BodyTempState, bsOn?: BodyTempState, delay?: number) {
+        logger.info(`Setting Heater Cooldown Delay for ${bsOff.name}`);
         let cds = this.filter(x => x.type === 'heaterCooldownDelay');
         for (let i = 0; i < cds.length; i++) {
             let delay = cds[i] as HeaterCooldownDelay;

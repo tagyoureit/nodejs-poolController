@@ -102,7 +102,7 @@ export class NixieValve extends NixieEquipment {
         try {
             // Here we go we need to set the valve state.
             if (vstate.isDiverted !== isDiverted) {
-                logger.info(`Nixie: Set valve ${vstate.id}-${vstate.name} to ${isDiverted}`);
+                logger.verbose(`Nixie: Set valve ${vstate.id}-${vstate.name} to ${isDiverted}`);
             }
             if (utils.isNullOrEmpty(this.valve.connectionId) || utils.isNullOrEmpty(this.valve.deviceBinding)) {
                 vstate.isDiverted = isDiverted;
