@@ -649,7 +649,8 @@ export class NixieCircuitCommands extends CircuitCommands {
                     // If we are turning on and this is a shared system it means that we need to turn off
                     // the other circuit.
                     let delayPumps = false;
-                    if (bstate.id === 1) await this.turnOffDrainCircuits();
+                    await this.turnOffDrainCircuits();
+                    if (bstate.id === 2) await this.turnOffSpillwayCircuits();
                     if (sys.general.options.pumpDelay === true && ignoreDelays !== true) {
                         // Now that this is off check the valve positions.  If they are not currently in the correct position we need to delay any attached pump
                         // so that it does not come on while the valve is rotating.  Default 30 seconds.
@@ -811,12 +812,12 @@ export class NixieCircuitCommands extends CircuitCommands {
         try {
             let cstate = state.circuits.getItemById(id);
             let delayPumps = false;
-            let bstate = state.temps.bodies.getItemById(1);
             if (cstate.isOn !== val) {
                 if (sys.equipment.shared === true) {
                     // First we need to check to see if the pool is on.
-                    if (!bstate.isOn && val) {
-                        logger.warn(`Cannot turn ${cstate.name} on because ${bstate.name} is not on`);
+                    let spastate = state.circuits.getItemById(1);
+                    if (spastate.isOn && val) {
+                        logger.warn(`Cannot turn ${cstate.name} on because ${spastate.name} is on`);
                         return cstate;
                     }
                     // If there are any drain circuits or features that are currently engaged we need to turn them off.
@@ -837,13 +838,16 @@ export class NixieCircuitCommands extends CircuitCommands {
             // 1. All spillway circuits must be off.
             let cstate = state.circuits.getItemById(id);
             let delayPumps = false;
-            let bstate = state.temps.bodies.getItemById(2);
             if (cstate.isOn !== val) {
                 if (sys.equipment.shared === true) {
+                    let spastate = state.temps.bodies.getItemById(2);
+                    let poolstate = state.temps.bodies.getItemById(1);
                     // First we need to check to see if the pool is on.
-                    if ((!bstate.isOn || bstate.stopDelay) && val) {
-                        logger.warn(`Cannot turn ${cstate.name} on because ${bstate.name} is not on`);
-                        return cstate;
+                    if (val) {
+                        if (spastate.isOn || spastate.startDelay || poolstate.isOn || poolstate.startDelay) {
+                            logger.warn(`Cannot turn ${cstate.name} on because a body is on`);
+                            return cstate;
+                        }
                     }
                     // If there are any spillway circuits or features that are currently engaged we need to turn them off.
                     await this.turnOffSpillwayCircuits();
@@ -851,7 +855,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                     await this.turnOffCleanerCircuits(state.temps.bodies.getItemById(1));
                 }
             }
-            logger.verbose(`Turning ${val ? 'on' : 'off'} a spillway circuit ${cstate.name}`);
+            logger.verbose(`Turning ${val ? 'on' : 'off'} a drain circuit ${cstate.name}`);
             await ncp.circuits.setCircuitStateAsync(cstate, val);
             return cstate;
         } catch (err) { logger.error(`Nixie: Error setSpillwayCircuitStateAsync ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setBodyCircuitStateAsync ${err.message}`, 'setBodyCircuitStateAsync')); }
@@ -1339,13 +1343,11 @@ export class NixieFeatureCommands extends FeatureCommands {
     protected async setSpillwayFeatureStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<FeatureState> {
         try {
             let cstate = state.features.getItemById(id);
-            let delayPumps = false;
-            let bstate = state.temps.bodies.getItemById(1);
             if (cstate.isOn !== val) {
                 if (sys.equipment.shared === true) {
-                    // First we need to check to see if the pool is on.
-                    if (!bstate.isOn && val) {
-                        logger.warn(`Cannot turn ${cstate.name} on because ${bstate.name} is not on`);
+                    let spastate = state.temps.bodies.getItemById(2);
+                    if (spastate.isOn && val) {
+                        logger.warn(`Cannot turn ${cstate.name} on because ${spastate.name} is on`);
                         return cstate;
                     }
                     // If there are any drain circuits or features that are currently engaged we need to turn them off.
@@ -1365,13 +1367,13 @@ export class NixieFeatureCommands extends FeatureCommands {
             // RULES FOR DRAIN CIRCUITS:
             // 1. All spillway circuits must be off.
             let cstate = state.features.getItemById(id);
-            let delayPumps = false;
-            let bstate = state.temps.bodies.getItemById(2);
             if (cstate.isOn !== val) {
                 if (sys.equipment.shared === true) {
                     // First we need to check to see if the pool is on.
-                    if ((!bstate.isOn || bstate.stopDelay) && val) {
-                        logger.warn(`Cannot turn ${cstate.name} on because ${bstate.name} is not on`);
+                    let poolstate = state.temps.bodies.getItemById(1);
+                    let spastate = state.temps.bodies.getItemById(2);
+                    if ((spastate.isOn || spastate.startDelay || poolstate.isOn || poolstate.startDelay) && val) {
+                        logger.warn(`Cannot turn ${cstate.name} on because a body circuit is on`);
                         return cstate;
                     }
                     // If there are any spillway circuits or features that are currently engaged we need to turn them off.
@@ -1379,7 +1381,7 @@ export class NixieFeatureCommands extends FeatureCommands {
                     // If there are any cleaner circuits on for the main body turn them off.
                     await sys.board.circuits.turnOffCleanerCircuits(state.temps.bodies.getItemById(1));
                 }
-                logger.verbose(`Turning ${val ? 'on' : 'off'} a spillway circuit ${cstate.name}`);
+                logger.verbose(`Turning ${val ? 'on' : 'off'} a spa drain circuit ${cstate.name}`);
                 cstate.isOn = val;
             }
             return cstate;
