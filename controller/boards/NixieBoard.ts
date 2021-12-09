@@ -442,7 +442,7 @@ export class NixieBoard extends SystemBoard {
     //public chlorinator: NixieChlorinatorCommands = new NixieChlorinatorCommands(this);
     public bodies: NixieBodyCommands = new NixieBodyCommands(this);
     public filters: NixieFilterCommands = new NixieFilterCommands(this);
-    //public pumps: NixiePumpCommands = new NixiePumpCommands(this);
+    public pumps: NixiePumpCommands = new NixiePumpCommands(this);
     //public schedules: NixieScheduleCommands = new NixieScheduleCommands(this);
     public heaters: NixieHeaterCommands = new NixieHeaterCommands(this);
     public valves: NixieValveCommands = new NixieValveCommands(this);
@@ -727,42 +727,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                         }
                     }
                     if (delayCooldown) return cstate;
-                    if (delayPumps === true) {
-                        // Alright now we have to delay the pumps associated with the circuit. So lets iterate all our
-                        // pump states and see where we land.
-                        for (let i = 0; i < sys.pumps.length; i++) {
-                            let pump = sys.pumps.getItemByIndex(i);
-                            let pstate = state.pumps.getItemById(pump.id);
-                            let pt = sys.board.valueMaps.pumpTypes.get(pump.type);
-
-                            //    [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true, maxRelays: 1 }],
-                            //    [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 8, hasAddress: false, hasBody: false, maxRelays: 2 }],
-                            //    [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
-                            //    [4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
-                            //    [5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
-                            //    [100, { name: 'sf', desc: 'SuperFlo VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1 }]
-                            switch (pt.name) {
-                                case 'ss':
-                                case 'ds':
-                                    delayMgr.setPumpValveDelay(pstate);
-                                    //pstate.setPumpOnDelayTimeout(sys.general.options.valveDelayTime * 1000);
-                                    break;
-                                default:
-                                    if (pt.maxCircuits > 0) {
-                                        for (let j = 0; j < pump.circuits.length; j++) {
-                                            let circ = pump.circuits.getItemByIndex(j);
-                                            if (circ.circuit === 6 || circ.circuit === 1) {
-                                                delayMgr.setPumpValveDelay(pstate);
-                                                //pstate.setPumpOnDelayTimeout(sys.general.options.valveDelayTime * 1000);
-                                                break;
-                                            }
-                                        }
-                                    }
-                                    break;
-                            }
-
-                        }
-                    }
+                    if (delayPumps === true) sys.board.pumps.setPumpValveDelays([id, bstate.circuit]);
                 }
                 // Now we need to set the startup delay for all the heaters.  This is true whether
                 // the system is shared or not so lets get a list of all the associated heaters for the body in question.
@@ -815,13 +780,16 @@ export class NixieCircuitCommands extends CircuitCommands {
             if (cstate.isOn !== val) {
                 if (sys.equipment.shared === true) {
                     // First we need to check to see if the pool is on.
-                    let spastate = state.circuits.getItemById(1);
-                    if (spastate.isOn && val) {
-                        logger.warn(`Cannot turn ${cstate.name} on because ${spastate.name} is on`);
-                        return cstate;
+                    if (val) {
+                        let spastate = state.circuits.getItemById(1);
+                        if (spastate.isOn) {
+                            logger.warn(`Cannot turn ${cstate.name} on because ${spastate.name} is on`);
+                            return cstate;
+                        }
+                        // If there are any drain circuits or features that are currently engaged we need to turn them off.
+                        await this.turnOffDrainCircuits();
+                        if (sys.general.options.pumpDelay && sys.general.options.valveDelayTime > 0) sys.board.pumps.setPumpValveDelays([6, id]);
                     }
-                    // If there are any drain circuits or features that are currently engaged we need to turn them off.
-                    await this.turnOffDrainCircuits();
                 }
             }
             logger.verbose(`Turning ${val ? 'on' : 'off'} a spillway circuit ${cstate.name}`);
@@ -848,11 +816,12 @@ export class NixieCircuitCommands extends CircuitCommands {
                             logger.warn(`Cannot turn ${cstate.name} on because a body is on`);
                             return cstate;
                         }
+                        // If there are any spillway circuits or features that are currently engaged we need to turn them off.
+                        await this.turnOffSpillwayCircuits();
+                        // If there are any cleaner circuits on for the main body turn them off.
+                        await this.turnOffCleanerCircuits(state.temps.bodies.getItemById(1));
+                        if (!ignoreDelays && sys.general.options.pumpDelay && sys.general.options.valveDelayTime > 0) sys.board.pumps.setPumpValveDelays([id, 1, 6]);
                     }
-                    // If there are any spillway circuits or features that are currently engaged we need to turn them off.
-                    await this.turnOffSpillwayCircuits();
-                    // If there are any cleaner circuits on for the main body turn them off.
-                    await this.turnOffCleanerCircuits(state.temps.bodies.getItemById(1));
                 }
             }
             logger.verbose(`Turning ${val ? 'on' : 'off'} a drain circuit ${cstate.name}`);
@@ -1346,12 +1315,15 @@ export class NixieFeatureCommands extends FeatureCommands {
             if (cstate.isOn !== val) {
                 if (sys.equipment.shared === true) {
                     let spastate = state.temps.bodies.getItemById(2);
-                    if (spastate.isOn && val) {
-                        logger.warn(`Cannot turn ${cstate.name} on because ${spastate.name} is on`);
-                        return cstate;
+                    if (val) {
+                        if (spastate.isOn || spastate.startDelay) {
+                            logger.warn(`Cannot turn ${cstate.name} on because ${spastate.name} is on`);
+                            return cstate;
+                        }
+                        // If there are any drain circuits or features that are currently engaged we need to turn them off.
+                        await sys.board.circuits.turnOffDrainCircuits();
+                        if (!ignoreDelays && sys.general.options.pumpDelay && sys.general.options.valveDelayTime > 0) sys.board.pumps.setPumpValveDelays([id, 6]);
                     }
-                    // If there are any drain circuits or features that are currently engaged we need to turn them off.
-                    await sys.board.circuits.turnOffDrainCircuits();
                 }
                 logger.verbose(`Turning ${val ? 'on' : 'off'} a spillway feature ${cstate.name}`);
                 cstate.isOn = val;
@@ -1369,17 +1341,20 @@ export class NixieFeatureCommands extends FeatureCommands {
             let cstate = state.features.getItemById(id);
             if (cstate.isOn !== val) {
                 if (sys.equipment.shared === true) {
-                    // First we need to check to see if the pool is on.
-                    let poolstate = state.temps.bodies.getItemById(1);
-                    let spastate = state.temps.bodies.getItemById(2);
-                    if ((spastate.isOn || spastate.startDelay || poolstate.isOn || poolstate.startDelay) && val) {
-                        logger.warn(`Cannot turn ${cstate.name} on because a body circuit is on`);
-                        return cstate;
+                    if (val) {
+                        // First we need to check to see if the pool is on.
+                        let poolstate = state.temps.bodies.getItemById(1);
+                        let spastate = state.temps.bodies.getItemById(2);
+                        if ((spastate.isOn || spastate.startDelay || poolstate.isOn || poolstate.startDelay) && val) {
+                            logger.warn(`Cannot turn ${cstate.name} on because a body circuit is on`);
+                            return cstate;
+                        }
+                        // If there are any spillway circuits or features that are currently engaged we need to turn them off.
+                        await sys.board.circuits.turnOffSpillwayCircuits();
+                        // If there are any cleaner circuits on for the main body turn them off.
+                        await sys.board.circuits.turnOffCleanerCircuits(state.temps.bodies.getItemById(1));
+                        if (!ignoreDelays && sys.general.options.pumpDelay && sys.general.options.valveDelayTime > 0) sys.board.pumps.setPumpValveDelays([id, 1, 6]);
                     }
-                    // If there are any spillway circuits or features that are currently engaged we need to turn them off.
-                    await sys.board.circuits.turnOffSpillwayCircuits();
-                    // If there are any cleaner circuits on for the main body turn them off.
-                    await sys.board.circuits.turnOffCleanerCircuits(state.temps.bodies.getItemById(1));
                 }
                 logger.verbose(`Turning ${val ? 'on' : 'off'} a spa drain circuit ${cstate.name}`);
                 cstate.isOn = val;
@@ -1439,6 +1414,50 @@ export class NixieFeatureCommands extends FeatureCommands {
         state.emitEquipmentChanges();
     }
 
+}
+export class NixiePumpCommands extends PumpCommands {
+    public async setPumpValveDelays(circuitIds: number[], delay?: number) {
+        try {
+            logger.info(`Setting pump valve delays: ${JSON.stringify(circuitIds)}`);
+            // Alright now we have to delay the pumps associated with the circuit. So lets iterate all our
+            // pump states and see where we land.
+            for (let i = 0; i < sys.pumps.length; i++) {
+                let pump = sys.pumps.getItemByIndex(i);
+                let pstate = state.pumps.getItemById(pump.id);
+                let pt = sys.board.valueMaps.pumpTypes.get(pump.type);
+
+                //    [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true, maxRelays: 1 }],
+                //    [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 8, hasAddress: false, hasBody: false, maxRelays: 2 }],
+                //    [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
+                //    [4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
+                //    [5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
+                //    [100, { name: 'sf', desc: 'SuperFlo VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1 }]
+                switch (pt.name) {
+                    case 'ss':
+                        // If a single speed pump is designated it will be the filter pump but we need to map any settings
+                        // to bodies.
+                        console.log(`Body: ${pump.body} Pump: ${pump.name} Pool: ${circuitIds.includes(6)} `);
+                        if ((pump.body === 255 && (circuitIds.includes(6) || circuitIds.includes(1))) ||
+                            (pump.body === 0 && circuitIds.includes(6)) ||
+                            (pump.body === 101 && circuitIds.includes(1))) {
+                            delayMgr.setPumpValveDelay(pstate);
+                        }
+                        break;
+                    default:
+                        if (pt.maxCircuits > 0) {
+                            for (let j = 0; j < pump.circuits.length; j++) {
+                                let circ = pump.circuits.getItemByIndex(j);
+                                if (circuitIds.includes(circ.circuit)) {
+                                    delayMgr.setPumpValveDelay(pstate);
+                                    break;
+                                }
+                            }
+                        }
+                        break;
+                }
+            }
+        } catch (err) { }
+    }
 }
 export class NixieValveCommands extends ValveCommands {
     public async setValveAsync(obj: any): Promise<Valve> {

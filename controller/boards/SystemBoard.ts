@@ -1866,6 +1866,7 @@ export class PumpCommands extends BoardCommands {
     _availCircuits.push({ type: 'none', id: 255, name: 'Remove' });
     return _availCircuits;
   }
+    public setPumpValveDelays(circuitIds: number[], delay?: number) {}
 }
 export class CircuitCommands extends BoardCommands {
     public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
