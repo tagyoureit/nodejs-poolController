@@ -4051,11 +4051,13 @@ export class ValveCommands extends BoardCommands {
         {
             let dtype = sys.board.valueMaps.circuitFunctions.getValue('spadrain');
             let stype = sys.board.valueMaps.circuitFunctions.getValue('spillway');
+            let ptype = sys.board.valueMaps.circuitFunctions.getValue('pool');
+            let sptype = sys.board.valueMaps.circuitFunctions.getValue('spa');
             for (let i = 0; i < state.circuits.length; i++) {
                 let cstate = state.circuits.getItemByIndex(i);
                 if (typeof isOn === 'undefined' || cstate.isOn === isOn) {
                     if (cstate.id === 1 || cstate.id === 6) arrIds.push(cstate.id);
-                    if (cstate.type === dtype || cstate.type === stype) arrIds.push(cstate.id);
+                    if (cstate.type === dtype || cstate.type === stype || cstate.type === ptype || cstate.type === sptype) arrIds.push(cstate.id);
                 }
             }
         }
