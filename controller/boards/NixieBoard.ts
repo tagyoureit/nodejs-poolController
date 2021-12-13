@@ -598,7 +598,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                     return cstate;
                 }
                 // If there is a drain circuit going shut that thing off.
-                await this.turnOffDrainCircuits();
+                await this.turnOffDrainCircuits(ignoreDelays);
                 // If solar is currently on and the cleaner solar delay is set then we need to calculate a delay
                 // to turn on the cleaner.
                 let delayTime = 0;
@@ -649,7 +649,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                     // If we are turning on and this is a shared system it means that we need to turn off
                     // the other circuit.
                     let delayPumps = false;
-                    await this.turnOffDrainCircuits();
+                    await this.turnOffDrainCircuits(ignoreDelays);
                     if (bstate.id === 2) await this.turnOffSpillwayCircuits();
                     if (sys.general.options.pumpDelay === true && ignoreDelays !== true) {
                         // Now that this is off check the valve positions.  If they are not currently in the correct position we need to delay any attached pump
@@ -748,7 +748,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                 delayMgr.cancelHeaterStartupDelays();
                 if (cstate.startDelay) delayMgr.clearBodyStartupDelay(bstate);
                 await this.turnOffCleanerCircuits(bstate);
-                if (sys.equipment.shared && bstate.id === 2) await this.turnOffDrainCircuits();
+                if (sys.equipment.shared && bstate.id === 2) await this.turnOffDrainCircuits(ignoreDelays);
                 logger.verbose(`Turning off a body circuit ${circuit.name}`);
                 if (cstate.isOn) {
                    
@@ -787,15 +787,30 @@ export class NixieCircuitCommands extends CircuitCommands {
                             return cstate;
                         }
                         // If there are any drain circuits or features that are currently engaged we need to turn them off.
-                        await this.turnOffDrainCircuits();
+                        await this.turnOffDrainCircuits(ignoreDelays);
                         if (sys.general.options.pumpDelay && sys.general.options.valveDelayTime > 0) sys.board.pumps.setPumpValveDelays([6, id]);
+                    }
+                    else if (!val && !ignoreDelays) {
+                        // If we are turning off and there is another circuit that ties to the same pumps then we need set a valve delay.  This means
+                        // that if the pool circuit is on then we need to delay the pumps.  However, if there is no other circuit that needs
+                        // the pump to be on, then no harm no foul a delay in the pump won't mean anything.
+
+                        // Conditions where this should not delay.
+                        // 1. Another spillway circuit or feature is on.
+                        // 2. There is no other running circuit that will affect the intake or return.
+                        let arrIds = sys.board.valves.getBodyValveCircuitIds(true);
+                        if (arrIds.length > 1) {
+                            if (sys.general.options.pumpDelay && sys.general.options.valveDelayTime > 0) {
+                                sys.board.pumps.setPumpValveDelays([6, id]);
+                            }
+                        }
                     }
                 }
             }
             logger.verbose(`Turning ${val ? 'on' : 'off'} a spillway circuit ${cstate.name}`);
             await ncp.circuits.setCircuitStateAsync(cstate, val);
             return cstate;
-        } catch (err) { logger.error(`Nixie: Error setSpillwayCircuitStateAsync ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setBodyCircuitStateAsync ${err.message}`, 'setBodyCircuitStateAsync')); }
+        } catch (err) { logger.error(`Nixie: Error setSpillwayCircuitStateAsync ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setSpillwayCircuitStateAsync ${err.message}`, 'setBodyCircuitStateAsync')); }
     }
     protected async setDrainCircuitStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<CircuitState> {
         try {
@@ -817,9 +832,12 @@ export class NixieCircuitCommands extends CircuitCommands {
                             return cstate;
                         }
                         // If there are any spillway circuits or features that are currently engaged we need to turn them off.
-                        await this.turnOffSpillwayCircuits();
+                        await this.turnOffSpillwayCircuits(true);
                         // If there are any cleaner circuits on for the main body turn them off.
-                        await this.turnOffCleanerCircuits(state.temps.bodies.getItemById(1));
+                        await this.turnOffCleanerCircuits(state.temps.bodies.getItemById(1), true);
+                        if (!ignoreDelays && sys.general.options.pumpDelay && sys.general.options.valveDelayTime > 0) sys.board.pumps.setPumpValveDelays([id, 1, 6]);
+                    }
+                    else if (!val && !ignoreDelays) {
                         if (!ignoreDelays && sys.general.options.pumpDelay && sys.general.options.valveDelayTime > 0) sys.board.pumps.setPumpValveDelays([id, 1, 6]);
                     }
                 }
@@ -829,6 +847,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             return cstate;
         } catch (err) { logger.error(`Nixie: Error setSpillwayCircuitStateAsync ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setBodyCircuitStateAsync ${err.message}`, 'setBodyCircuitStateAsync')); }
     }
+    
     public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
         return this.setCircuitStateAsync(id, !(circ.isOn || false));
@@ -1290,6 +1309,7 @@ export class NixieFeatureCommands extends FeatureCommands {
             if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
             let feature = sys.features.getItemById(id);
             let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
+            feature.master = 1;
             let ftype = sys.board.valueMaps.featureFunctions.getName(feature.type);
             switch (ftype) {
                 case 'spadrain':
@@ -1321,8 +1341,14 @@ export class NixieFeatureCommands extends FeatureCommands {
                             return cstate;
                         }
                         // If there are any drain circuits or features that are currently engaged we need to turn them off.
-                        await sys.board.circuits.turnOffDrainCircuits();
+                        await sys.board.circuits.turnOffDrainCircuits(ignoreDelays);
                         if (!ignoreDelays && sys.general.options.pumpDelay && sys.general.options.valveDelayTime > 0) sys.board.pumps.setPumpValveDelays([id, 6]);
+                    }
+                    else if (!val) {
+                        let arrIds = sys.board.valves.getBodyValveCircuitIds(true);
+                        if (arrIds.length > 1) {
+                            if (!ignoreDelays && sys.general.options.pumpDelay && sys.general.options.valveDelayTime > 0) sys.board.pumps.setPumpValveDelays([id, 6]);
+                        }
                     }
                 }
                 logger.verbose(`Turning ${val ? 'on' : 'off'} a spillway feature ${cstate.name}`);
@@ -1350,9 +1376,12 @@ export class NixieFeatureCommands extends FeatureCommands {
                             return cstate;
                         }
                         // If there are any spillway circuits or features that are currently engaged we need to turn them off.
-                        await sys.board.circuits.turnOffSpillwayCircuits();
+                        await sys.board.circuits.turnOffSpillwayCircuits(true);
                         // If there are any cleaner circuits on for the main body turn them off.
-                        await sys.board.circuits.turnOffCleanerCircuits(state.temps.bodies.getItemById(1));
+                        await sys.board.circuits.turnOffCleanerCircuits(state.temps.bodies.getItemById(1), true);
+                        if (!ignoreDelays && sys.general.options.pumpDelay && sys.general.options.valveDelayTime > 0) sys.board.pumps.setPumpValveDelays([id, 1, 6]);
+                    }
+                    else if (!val) {
                         if (!ignoreDelays && sys.general.options.pumpDelay && sys.general.options.valveDelayTime > 0) sys.board.pumps.setPumpValveDelays([id, 1, 6]);
                     }
                 }
@@ -1413,7 +1442,6 @@ export class NixieFeatureCommands extends FeatureCommands {
         }
         state.emitEquipmentChanges();
     }
-
 }
 export class NixiePumpCommands extends PumpCommands {
     public async setPumpValveDelays(circuitIds: number[], delay?: number) {

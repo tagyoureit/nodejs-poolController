@@ -1252,6 +1252,7 @@ export class Feature extends EqItem implements ICircuit {
         if (typeof this.data.isActive === 'undefined') this.data.isActive = true;
         if (typeof this.data.eggTimer === 'undefined') this.data.eggTimer = 720;
         if (typeof this.data.showInFeatures === 'undefined') this.data.showInFeatures = true;
+        if (typeof this.data.master === 'undefined') this.data.master = sys.board.equipmentMaster; 
     }
     public dataName = 'featureConfig';
     public get id(): number { return this.data.id; }

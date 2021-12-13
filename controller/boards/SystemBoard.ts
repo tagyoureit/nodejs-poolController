@@ -1430,7 +1430,7 @@ export class BodyCommands extends BoardCommands {
                 else if (freeze && !cstate.isOn) {
                     // This circuit should be on because we are freezing.
                     cstate.freezeProtect = true;
-                    await sys.board.features.setFeatureStateAsync(circ.id, true);
+                    await sys.board.circuits.setCircuitStateAsync(circ.id, true);
                 }
                 else if (!freeze && cstate.freezeProtect) {
                     // This feature was turned on by freeze protection.  We need to turn it off because it has warmed up.
@@ -1439,7 +1439,7 @@ export class BodyCommands extends BoardCommands {
                 }
             }
         }
-        catch (err) { logger.error(`syncFreezeProtection: Error synchronizing freeze protection states`); }
+        catch (err) { logger.error(`syncFreezeProtection: Error synchronizing freeze protection states: ${err.message}`); }
     }
 
   public async initFilters() {
@@ -2766,7 +2766,7 @@ export class CircuitCommands extends BoardCommands {
       logger.error(`Error setting end time for ${thing.id}: ${err}`)
     }
   }
-    public async turnOffDrainCircuits() {
+    public async turnOffDrainCircuits(ignoreDelays: boolean) {
         try {
             {
                 let drt = sys.board.valueMaps.circuitFunctions.getValue('spadrain');
@@ -2774,7 +2774,7 @@ export class CircuitCommands extends BoardCommands {
                 for (let i = 0; i < drains.length; i++) {
                     let drain = drains.getItemByIndex(i);
                     let sdrain = state.circuits.getItemById(drain.id);
-                    if (sdrain.isOn) await sys.board.circuits.setCircuitStateAsync(drain.id, false, true);
+                    if (sdrain.isOn) await sys.board.circuits.setCircuitStateAsync(drain.id, false, ignoreDelays);
                     sdrain.startDelay = false;
                     sdrain.stopDelay = false;
                 }
@@ -2785,13 +2785,13 @@ export class CircuitCommands extends BoardCommands {
                 for (let i = 0; i < drains.length; i++) {
                     let drain = drains.getItemByIndex(i);
                     let sdrain = state.features.getItemById(drain.id);
-                    if (sdrain.isOn) await sys.board.features.setFeatureStateAsync(drain.id, false);
+                    if (sdrain.isOn) await sys.board.features.setFeatureStateAsync(drain.id, false, ignoreDelays);
                 }
             }
 
         } catch (err) { return Promise.reject(new BoardProcessError(`turnOffDrainCircuits: ${err.message}`)); }
     }
-    public async turnOffCleanerCircuits(bstate: BodyTempState) {
+    public async turnOffCleanerCircuits(bstate: BodyTempState, ignoreDelays?: boolean) {
         try {
             // First we have to get all the cleaner circuits that are associated with the
             // body.  To do this we get the circuit functions for all cleaner types associated with the body.
@@ -2804,12 +2804,12 @@ export class CircuitCommands extends BoardCommands {
                 let cleaner = cleaners.getItemByIndex(i);
                 if (cleaner.isActive) {
                     let cstate = state.circuits.getItemById(cleaner.id, true);
-                    if (cstate.isOn || cstate.startDelay) await sys.board.circuits.setCircuitStateAsync(cleaner.id, false);
+                    if (cstate.isOn || cstate.startDelay) await sys.board.circuits.setCircuitStateAsync(cleaner.id, false, ignoreDelays);
                 }
             }
         } catch (err) { return Promise.reject(new BoardProcessError(`turnOffCleanerCircuits: ${err.message}`)); }
     }
-    public async turnOffSpillwayCircuits() {
+    public async turnOffSpillwayCircuits(ignoreDelays?: boolean) {
         try {
             {
                 let arrTypes = sys.board.valueMaps.circuitFunctions.toArray().filter(x => { return x.name.indexOf('spillway') !== -1 });
@@ -2819,7 +2819,7 @@ export class CircuitCommands extends BoardCommands {
                     let spillway = spillways.getItemByIndex(i);
                     if (spillway.isActive) {
                         let cstate = state.circuits.getItemById(spillway.id, true);
-                        if (cstate.isOn || cstate.startDelay) await sys.board.circuits.setCircuitStateAsync(spillway.id, false);
+                        if (cstate.isOn || cstate.startDelay) await sys.board.circuits.setCircuitStateAsync(spillway.id, false, ignoreDelays);
                     }
                 }
             }
@@ -2831,11 +2831,10 @@ export class CircuitCommands extends BoardCommands {
                     let spillway = spillways.getItemByIndex(i);
                     if (spillway.isActive) {
                         let cstate = state.features.getItemById(spillway.id, true);
-                        if (cstate.isOn) await sys.board.features.setFeatureStateAsync(spillway.id, false);
+                        if (cstate.isOn) await sys.board.features.setFeatureStateAsync(spillway.id, false, ignoreDelays);
                     }
                 }
             }
-
         } catch (err) { return Promise.reject(new BoardProcessError(`turnOffSpillwayCircuits: ${err.message}`)); }
     }
 }
@@ -2940,7 +2939,7 @@ export class FeatureCommands extends BoardCommands {
     else
       Promise.reject(new InvalidEquipmentIdError('Feature id has not been defined', undefined, 'Feature'));
   }
-  public async setFeatureStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+  public async setFeatureStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<ICircuitState> {
     try {
       if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
       if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
@@ -4044,6 +4043,33 @@ export class ValveCommands extends BoardCommands {
                 }
             }
         } catch (err) { logger.error(`syncValveStates: Error synchronizing valves ${err.message}`); }
+    }
+    public getBodyValveCircuitIds(isOn?: boolean): number[] {
+        let arrIds: number[] = [];
+        if (sys.equipment.shared !== true) return arrIds;
+
+        {
+            let dtype = sys.board.valueMaps.circuitFunctions.getValue('spadrain');
+            let stype = sys.board.valueMaps.circuitFunctions.getValue('spillway');
+            for (let i = 0; i < state.circuits.length; i++) {
+                let cstate = state.circuits.getItemByIndex(i);
+                if (typeof isOn === 'undefined' || cstate.isOn === isOn) {
+                    if (cstate.id === 1 || cstate.id === 6) arrIds.push(cstate.id);
+                    if (cstate.type === dtype || cstate.type === stype) arrIds.push(cstate.id);
+                }
+            }
+        }
+        {
+            let dtype = sys.board.valueMaps.featureFunctions.getValue('spadrain');
+            let stype = sys.board.valueMaps.featureFunctions.getValue('spillway');
+            for (let i = 0; i < state.features.length; i++) {
+                let fstate = state.features.getItemByIndex(i);
+                if (typeof isOn === 'undefined' || fstate.isOn === isOn) {
+                    if (fstate.type === dtype || fstate.type === stype) arrIds.push(fstate.id);
+                }
+            }
+        }
+        return arrIds;
     }
 }
 export class ChemControllerCommands extends BoardCommands {
