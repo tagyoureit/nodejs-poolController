@@ -91,7 +91,7 @@ export class PumpValveDelay extends EquipmentDelay {
     public constructor(ps: PumpState, delay?: number) {
         super();
         this.type = 'pumpValveDelay';
-        this.message = `${ps.name} will start after valve Delay`;
+        this.message = `${ps.name} will start after valve delay`;
         this.pumpState = ps;
         this.pumpState.pumpOnDelay = true;
         this._delayTimer = setTimeout(() => {
