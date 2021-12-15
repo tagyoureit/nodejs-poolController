@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { PumpState, HeaterState, BodyTempState, ICircuitState, state } from "./State";
 import { Equipment, sys } from "./Equipment";
-import { utils } from "./Constants";
+import { Timestamp, utils } from "./Constants";
 import { logger } from "../logger/Logger";
 import { webApp } from "../web/Server";
 // LOCKOUT PRIMER
@@ -71,6 +71,7 @@ export class EquipmentDelay implements ILockout {
     public constructor() { this.id = delayMgr.getNextId(); }
     public id;
     public type: string = 'delay';
+    public startTime: Date;
     public endTime: Date;
     public canCancel: boolean = true;
     public cancelDelay() { };
@@ -83,7 +84,10 @@ export class EquipmentDelay implements ILockout {
             id: this.id,
             type: this.type,
             canCancel: this.canCancel,
-            message: this.message
+            message: this.message,
+            startTime: typeof this.startTime !== 'undefined' ? Timestamp.toISOLocal(this.startTime) : undefined,
+            endTime: typeof this.endTime !== 'undefined' ? Timestamp.toISOLocal(this.endTime) : undefined,
+            duration: typeof this.startTime !== 'undefined' && typeof this.endTime !== 'undefined' ? (this.endTime.getTime() - this.startTime.getTime()) / 1000 : 0
         };
     }
 }
@@ -94,6 +98,8 @@ export class PumpValveDelay extends EquipmentDelay {
         this.message = `${ps.name} will start after valve delay`;
         this.pumpState = ps;
         this.pumpState.pumpOnDelay = true;
+        this.startTime = new Date();
+        this.endTime = new Date(this.startTime.getTime() + (delay * 1000 || sys.general.options.valveDelayTime * 1000));
         this._delayTimer = setTimeout(() => {
             logger.info(`Valve delay expired for ${this.pumpState.name}`);
             this.pumpState.pumpOnDelay = false;
@@ -123,11 +129,13 @@ export class HeaterStartupDelay extends EquipmentDelay {
         this.message = `${hs.name} will start after delay`;
         this.heaterState = hs;
         this.heaterState.startupDelay = true;
+        this.startTime = new Date();
+        this.endTime = new Date(this.startTime.getTime() + (delay * 1000 || sys.general.options.heaterStartDelayTime * 1000));
         this._delayTimer = setTimeout(() => {
             logger.info(`Heater Startup delay expired for ${this.heaterState.name}`);
             this.heaterState.startupDelay = false;
             delayMgr.deleteDelay(this.id);
-        }, delay * 1000 || sys.general.options.valveDelayTime * 1000);
+        }, delay * 1000 || sys.general.options.heaterStartDelayTime * 1000);
         logger.info(`Heater delay started for ${this.heaterState.name} - ${delay || sys.general.options.heaterStartDelayTime}sec`);
     }
     public heaterState: HeaterState;
@@ -155,6 +163,8 @@ export class HeaterCooldownDelay extends EquipmentDelay {
             this.bodyStateOn.startDelay = cstateOn.startDelay = true;
         }
         logger.verbose(`Heater Cooldown Delay started for ${this.bodyStateOff.name} - ${delay/1000}sec`);
+        this.startTime = new Date();
+        this.endTime = new Date(this.startTime.getTime() + (delay * 1000));
         this._delayTimer = setTimeout(() => {
             logger.verbose(`Heater Cooldown delay expired for ${this.bodyStateOff.name}`);
             this.bodyStateOff.stopDelay = state.circuits.getItemById(this.bodyStateOff.circuit).stopDelay = false;
@@ -220,6 +230,8 @@ export class CleanerStartDelay extends EquipmentDelay implements ICleanerDelay {
         this.bodyId = bodyId;
         this.cleanerState = cs;
         cs.startDelay = true;
+        this.startTime = new Date();
+        this.endTime = new Date(this.startTime.getTime() + (delay * 1000 || sys.general.options.cleanerStartDelayTime * 1000));
         this._delayTimer = setTimeout(() => {
             logger.info(`Cleaner delay expired for ${this.cleanerState.name}`);
             this.cleanerState.startDelay = false;
@@ -261,6 +273,8 @@ export class CleanerStartDelay extends EquipmentDelay implements ICleanerDelay {
         if (typeof this._delayTimer !== 'undefined') clearTimeout(this._delayTimer);
         this.cleanerState.startDelay = true;
         logger.info(`Cleaner Start delay reset for ${this.cleanerState.name}`);
+        this.startTime = new Date();
+        this.endTime = new Date(this.startTime.getTime() + (delay * 1000 || sys.general.options.cleanerStartDelayTime * 1000));
         this._delayTimer = setTimeout(() => {
             logger.info(`Cleaner delay expired for ${this.cleanerState.name}`);
             this.cleanerState.startDelay = false;
