@@ -1,5 +1,5 @@
 FROM node:lts-alpine AS build
-RUN apk add --no-cache make gcc g++ python linux-headers udev tzdata
+RUN apk add --no-cache make gcc g++ python3 linux-headers udev tzdata
 WORKDIR /app
 COPY package*.json ./
 RUN npm ci

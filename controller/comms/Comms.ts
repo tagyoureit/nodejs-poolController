@@ -82,6 +82,113 @@ export class Connection {
             return this._cfg;
         } catch (err) { return Promise.reject(err); }
     }
+    // RKS: 12-18-21 This is a bullpen method to work through the inconsistencies in the socket implementation for node.  There
+    // are issues related to the event listeners and the construction of a socket.  We want an implementation that awaits until the socket
+    // is completely open before continuing.
+    // We also need to be able to destroy the port without it restarting on its own when tearing the port down or deliberately closing it.  This means
+    // that the listeners need to be removed before closing via method but re-open the port when the close is hit prematurely.
+    protected async openNetSerialPort(): Promise<boolean> {
+        try {
+            let opts: net.NetConnectOpts = {
+                host: this._cfg.netHost,
+                port: this._cfg.netPort
+            };
+            if (typeof this.connTimer !== 'undefined' && this.connTimer) clearTimeout(this.connTimer);
+            this.connTimer = null;
+            let ret = await new Promise<boolean>((resolve, _) => {
+                let nc = net.createConnection(opts, () => {
+                    nc.on('connect', () => { logger.info(`Net connect (socat) connected to: ${this._cfg.netHost}:${this._cfg.netPort}`); }); // Socket is opened but not yet ready.
+                    nc.on('ready', () => {
+                        this.isOpen = true;
+                        this.isRTS = true;
+                        logger.info(`Net connect (socat) ready and communicating: ${this._cfg.netHost}:${this._cfg.netPort}`);
+                        nc.on('data', (data) => {
+                            if (data.length > 0 && !this.isPaused) this.emitter.emit('packetread', data);
+                        });
+                        this._port = nc;
+                        // After the port is fully opened, set an inactivity timeout to restart it when it stops communicating.
+                        nc.setTimeout(Math.max(this._cfg.inactivityRetry, 10) * 1000, async () => {
+                            logger.warn(`Net connect (socat) connection idle: ${this._cfg.netHost}:${this._cfg.netPort} retrying connection.`);
+                            try {
+                                await conn.endAsync();
+                                await conn.openAsync();
+                            } catch (err) { logger.error(`Net connect (socat) error retrying connection ${err.message}`); }
+                        });
+                        resolve(true);
+                    });
+                    nc.on('close', (hadError: boolean) => {
+                        this.isOpen = false;
+                        if (typeof this._port !== 'undefined') this._port.destroy();
+                        this._port = undefined;
+                        this.buffer.clearOutbound();
+                        logger.info(`Net connect (socat) closed ${hadError === true ? 'due to error' : ''}: ${this._cfg.netHost}:${this._cfg.netPort}`);
+                    });
+                    nc.on('end', () => { // Happens when the other end of the socket closes.
+                        this.isOpen = false;
+                        logger.info(`Net connect (socat) end event was fired`);
+                    });
+                });
+                nc.once('error', (err) => {
+                    // if the promise has already been fulfilled, but the error happens later, we don't want to call the promise again.
+                    if (this._cfg.inactivityRetry > 0) {
+                        logger.error(`Net connect (socat) connection error: ${err}.  Retry in ${this._cfg.inactivityRetry} seconds`);
+                        this.connTimer = setTimeout(async () => {
+                            try {
+                                await conn.closeAsync();
+                                await conn.openAsync();
+                            } catch (err) { }
+                        }, this._cfg.inactivityRetry * 1000);
+                    }
+                    else logger.error(`Net connect (socat) connection error: ${err}.  Never retrying -- No retry time set`);
+                    resolve(false);
+                });
+            });
+            return ret;
+        } catch (err) { logger.error(`Error opening net serial port. ${this._cfg.netHost}:${this._cfg.netPort}`); }
+    }
+    protected async closeNetSerialPort(): Promise<boolean> {
+        try {
+            this._closing = true;
+            if (this.connTimer) clearTimeout(this.connTimer);
+            this.connTimer = null;
+            if (typeof this._port !== 'undefined' && this.isOpen) {
+                let success = await new Promise<boolean>((resolve, reject) => {
+                    if (this._cfg.netConnect) {
+                        this._port.removeAllListeners();
+                        this._port.once('error', (err) => {
+                            if (err) {
+                                logger.error(`Net connect (socat) error closing ${this._cfg.netHost}:${this._cfg.netPort}: ${err}`);
+                                resolve(false);
+                            }
+                            else {
+                                conn._port = undefined;
+                                this.isOpen = false;
+                                logger.info(`Successfully closed (socat) port ${this._cfg.netHost}:${this._cfg.netPort}`);
+                                resolve(true);
+                            }
+                        });
+                        this._port.once('close', (p) => {
+                            this.isOpen = false;
+                            this._port = undefined;
+                            logger.info(`Net connect (socat) successfully closed: ${this._cfg.netHost}:${this._cfg.netPort}`);
+                            resolve(true);
+                        });
+                        this._port.destroy();
+                    }
+                    else {
+                        resolve(true);
+                        conn._port = undefined;
+                    }
+                });
+                if (success) {
+                    if (typeof conn.buffer !== 'undefined') conn.buffer.close();
+                }
+                return success;
+            }
+            return true;
+        } catch (err) { logger.error(`Error closing comms connection: ${err.message}`); return Promise.resolve(false); }
+
+    }
     public async openAsync(): Promise<boolean> {
         if (typeof this.buffer === 'undefined') {
             this.buffer = new SendRecieveBuffer();
@@ -262,7 +369,6 @@ export class Connection {
                 if (success) {
                     if (typeof conn.buffer !== 'undefined') conn.buffer.close();
                 }
-               
                 return success;
             }
             return true;
