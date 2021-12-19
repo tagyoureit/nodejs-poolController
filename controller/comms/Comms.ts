@@ -118,10 +118,27 @@ export class Connection {
                     });
                     nc.on('close', (hadError: boolean) => {
                         this.isOpen = false;
-                        if (typeof this._port !== 'undefined') this._port.destroy();
+                        if (typeof this._port !== 'undefined') {
+                            this._port.destroy();
+                            this._port.removeAllListeners();
+                        }
                         this._port = undefined;
                         this.buffer.clearOutbound();
                         logger.info(`Net connect (socat) closed ${hadError === true ? 'due to error' : ''}: ${this._cfg.netHost}:${this._cfg.netPort}`);
+                        if (!this._closing) {
+                            // If we are closing manually this event should have been cleared already and should never be called.  If this is fired out
+                            // of sequence then we will check the closing flag to ensure we are not forcibly closing the socket.
+                            if (typeof this.connTimer !== 'undefined' && this.connTimer) {
+                                clearTimeout(this.connTimer);
+                                this.connTimer = null;
+                            }
+                            this.connTimer = setTimeout(async () => {
+                                try {
+                                    // We are already closed so give some inactivity retry and try again.
+                                    await conn.openAsync();
+                                } catch (err) { }
+                            }, this._cfg.inactivityRetry * 1000);
+                        }
                     });
                     nc.on('end', () => { // Happens when the other end of the socket closes.
                         this.isOpen = false;
@@ -217,6 +234,20 @@ export class Connection {
                 if (typeof this._port !== 'undefined') this._port.destroy();
                 this._port = undefined;
                 this.buffer.clearOutbound();
+                if (!this._closing) {
+                    // If we are closing manually this event should have been cleared already and should never be called.  If this is fired out
+                    // of sequence then we will check the closing flag to ensure we are not forcibly closing the socket.
+                    if (typeof this.connTimer !== 'undefined' && this.connTimer) {
+                        clearTimeout(this.connTimer);
+                        this.connTimer = null;
+                    }
+                    this.connTimer = setTimeout(async () => {
+                        try {
+                            // We are already closed so give some inactivity retry and try again.
+                            await conn.openAsync();
+                        } catch (err) { }
+                    }, this._cfg.inactivityRetry * 1000);
+                }
                 logger.info(`Net connect (socat) closed ${p === true ? 'due to error' : ''}: ${this._cfg.netHost}:${this._cfg.netPort}`);
             });
             nc.on('end', () => { // Happens when the other end of the socket closes.
