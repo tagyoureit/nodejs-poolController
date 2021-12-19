@@ -244,8 +244,8 @@ export class byteValueMaps {
         [13, { name: 'valve', desc: 'Valve' }],
         [14, { name: 'spillway', desc: 'Spillway' }],
         [15, { name: 'floorcleaner', desc: 'Floor Cleaner', body: 1 }],  // This circuit function does not seem to exist in IntelliTouch.
-        [16, { name: 'intellibrite', desc: 'Intellibrite', isLight: true, themes: 'intellibrite' }],
-        [17, { name: 'magicstream', desc: 'Magicstream', isLight: true, themes: 'magicstream' }],
+        [16, { name: 'intellibrite', desc: 'Intellibrite', isLight: true, theme: 'intellibrite' }],
+        [17, { name: 'magicstream', desc: 'Magicstream', isLight: true, theme: 'magicstream' }],
         [19, { name: 'notused', desc: 'Not Used' }],
         [65, { name: 'lotemp', desc: 'Lo-Temp' }],
         [66, { name: 'hightemp', desc: 'Hi-Temp' }]

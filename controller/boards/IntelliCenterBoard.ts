@@ -51,7 +51,7 @@ export class IntelliCenterBoard extends SystemBoard {
             [3, { name: 'chemrelay', desc: 'Chem Relay' }],
             [4, { name: 'light', desc: 'Light', isLight: true }],
             [5, { name: 'intellibrite', desc: 'Intellibrite', isLight: true, theme: 'intellibrite' }],
-            [6, { name: 'globrite', desc: 'GloBrite', isLight: true, themes: 'intellibrite' }],
+            [6, { name: 'globrite', desc: 'GloBrite', isLight: true, theme: 'intellibrite' }],
             [7, { name: 'globritewhite', desc: 'GloBrite White', isLight: true }],
             [8, { name: 'magicstream', desc: 'Magicstream', isLight: true, theme: 'intellibrite' }],
             [9, { name: 'dimmer', desc: 'Dimmer', isLight: true }],
