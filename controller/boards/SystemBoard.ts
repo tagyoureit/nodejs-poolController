@@ -266,11 +266,11 @@ export class byteValueMaps {
         [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true }]
     ]);
     public lightThemes: byteValueMap = new byteValueMap([
-        [0, { name: 'off', desc: 'Off', types: ['intellibrite'] }],
-        [1, { name: 'on', desc: 'On', types: ['intellibrite'] }],
-        [128, { name: 'colorsync', desc: 'Color Sync', types: ['intellibrite'] }],
-        [144, { name: 'colorswim', desc: 'Color Swim', types: ['intellibrite'] }],
-        [160, { name: 'colorset', desc: 'Color Set', types: ['intellibrite'] }],
+        [0, { name: 'off', desc: 'Off' }],
+        [1, { name: 'on', desc: 'On' }],
+        [128, { name: 'colorsync', desc: 'Color Sync' }],
+        [144, { name: 'colorswim', desc: 'Color Swim' }],
+        [160, { name: 'colorset', desc: 'Color Set' }],
         [177, { name: 'party', desc: 'Party', types: ['intellibrite'], sequence: 2 }],
         [178, { name: 'romance', desc: 'Romance', types: ['intellibrite'], sequence: 3 }],
         [179, { name: 'caribbean', desc: 'Caribbean', types: ['intellibrite'], sequence: 4 }],
