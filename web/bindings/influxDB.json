@@ -31,12 +31,12 @@
             {
               "name": "airTemp",
               "value": "@bind=data.air;",
-              "type": "float"
+              "type": "int"
             },
             {
               "name": "solarTemp",
               "value": "@bind=data.solar;",
-              "type": "float"
+              "type": "int"
             },
             {
               "name": "waterSensor1",
