@@ -752,19 +752,36 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         this.maybeQueueItems(curr.general, ver.general, ConfigCategories.general, [0, 1, 2, 3, 4, 5, 6, 7]);
         this.maybeQueueItems(curr.covers, ver.covers, ConfigCategories.covers, [0, 1]);
         if (this.compareVersions(curr.schedules, ver.schedules)) {
-            let req = new IntelliCenterConfigRequest(ConfigCategories.schedules, ver.schedules, [0, 1, 2, 3, 4], function (req: IntelliCenterConfigRequest) {
+            // Alright we used to think we could rely on the schedule start time as the trigger that identifies an active schedule.  However, active
+            // schedules are actually determined by looking at the schedule type messages[8-10].
+            let req = new IntelliCenterConfigRequest(ConfigCategories.schedules, ver.schedules, [8, 9, 10], function (req: IntelliCenterConfigRequest) {
                 let maxSchedId = sys.schedules.getMaxId();
                 req.fillRange(5, 5 + Math.min(Math.ceil(maxSchedId / 40), 7)); // Circuits
-                req.fillRange(8, 8 + Math.min(Math.ceil(maxSchedId / 40), 10)); // Flags
                 req.fillRange(11, 11 + Math.min(Math.ceil(maxSchedId / 40), 13)); // Schedule days bitmask
-                req.fillRange(14, 14 + Math.min(Math.ceil(maxSchedId / 40), 16)); // Unknown (one byte per schedule)
-                req.fillRange(17, 17 + Math.min(Math.ceil(maxSchedId / 40), 19)); // Unknown (one byte per schedule)
-                req.fillRange(20, 20 + Math.min(Math.ceil(maxSchedId / 40), 22)); // Unknown (one byte per schedule)
+                req.fillRange(0, Math.min(Math.ceil(maxSchedId / 40), 4)); // Start Time
                 req.fillRange(23, 23 + Math.min(Math.ceil(maxSchedId / 20), 26)); // End Time
+                req.fillRange(14, 14 + Math.min(Math.ceil(maxSchedId / 40), 16)); // Start Month
+                req.fillRange(17, 17 + Math.min(Math.ceil(maxSchedId / 40), 19)); // Start Day
+                req.fillRange(20, 20 + Math.min(Math.ceil(maxSchedId / 40), 22)); // Start Year
                 req.fillRange(28, 28 + Math.min(Math.ceil(maxSchedId / 40), 30)); // Heat Mode
                 req.fillRange(31, 31 + Math.min(Math.ceil(maxSchedId / 40), 33)); // Heat Mode
                 req.fillRange(34, 34 + Math.min(Math.ceil(maxSchedId / 40), 36)); // Heat Mode
             });
+            // DEPRECATED: 12-26-21 This was the old order of fetching the schedule.  This did not work properly with start times of midnight since the start time of 0
+            // was previously being used to determine whether the schedule was active.  The schedule/time type messages are now being used.
+            //let req = new IntelliCenterConfigRequest(ConfigCategories.schedules, ver.schedules, [0, 1, 2, 3, 4], function (req: IntelliCenterConfigRequest) {
+            //    let maxSchedId = sys.schedules.getMaxId();
+            //    req.fillRange(5, 5 + Math.min(Math.ceil(maxSchedId / 40), 7)); // Circuits
+            //    req.fillRange(8, 8 + Math.min(Math.ceil(maxSchedId / 40), 10)); // Flags
+            //    req.fillRange(11, 11 + Math.min(Math.ceil(maxSchedId / 40), 13)); // Schedule days bitmask
+            //    req.fillRange(14, 14 + Math.min(Math.ceil(maxSchedId / 40), 16)); // Unknown (one byte per schedule)
+            //    req.fillRange(17, 17 + Math.min(Math.ceil(maxSchedId / 40), 19)); // Unknown (one byte per schedule)
+            //    req.fillRange(20, 20 + Math.min(Math.ceil(maxSchedId / 40), 22)); // Unknown (one byte per schedule)
+            //    req.fillRange(23, 23 + Math.min(Math.ceil(maxSchedId / 20), 26)); // End Time
+            //    req.fillRange(28, 28 + Math.min(Math.ceil(maxSchedId / 40), 30)); // Heat Mode
+            //    req.fillRange(31, 31 + Math.min(Math.ceil(maxSchedId / 40), 33)); // Heat Mode
+            //    req.fillRange(34, 34 + Math.min(Math.ceil(maxSchedId / 40), 36)); // Heat Mode
+            //});
             this.push(req);
         }
         this.maybeQueueItems(curr.systemState, ver.systemState, ConfigCategories.systemState, [0]);
@@ -3294,7 +3311,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
                     , startDate.getMonth() + 1
                     , startDate.getDay() || 0
                     , startDate.getFullYear() - 2000
-                    , 32
+                    , 0 // This changed to 0 to mean no change in 1.047
                     , 78
                     , 100
                 ],

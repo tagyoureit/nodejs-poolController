@@ -500,11 +500,14 @@ export class ExternalMessage {
         let startTime = msg.extractPayloadInt(3);
         let endTime = msg.extractPayloadInt(5);
         let circuit = msg.extractPayloadByte(7) + 1;
-        let cfg = sys.schedules.getItemById(schedId, circuit !== 256 && startTime !== 0 && endTime !== 0);
-        cfg.isActive = (circuit !== 256 && startTime !== 0 && endTime !== 0);
+        let isActive = (msg.extractPayloadByte(8) & 128) === 128; // Inactive schedules do not have bit 8 set.
+        let cfg = sys.schedules.getItemById(schedId, isActive);
+        let s = state.schedules.getItemById(schedId, cfg.isActive);
+        //cfg.isActive = (circuit !== 256);
         cfg.startTime = startTime;
         cfg.endTime = endTime;
         cfg.circuit = circuit;
+        cfg.isActive = isActive;
         let byte = msg.extractPayloadByte(8);
         cfg.scheduleType = (byte & 1 & 0xFF) === 1 ? 0 : 128;
         if ((byte & 4 & 0xFF) === 4) cfg.startTimeType = 1;
@@ -525,7 +528,6 @@ export class ExternalMessage {
         cfg.heatSource = hs;
         cfg.heatSetpoint = msg.extractPayloadByte(14);
         cfg.coolSetpoint = msg.extractPayloadByte(15);
-        let s = state.schedules.getItemById(schedId, cfg.isActive);
         if (cfg.isActive) {
             let s = state.schedules.getItemById(schedId, cfg.isActive);
             s.isActive = cfg.isActive = true;

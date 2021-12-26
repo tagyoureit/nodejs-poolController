@@ -48,10 +48,10 @@ export class ScheduleMessage {
                 case 6:
                     ScheduleMessage.processCircuit(msg);
                     break;
-                case 8: // Run Once Flags
+                case 8: // Schedule Type
                 case 9:
                 case 10:
-                    ScheduleMessage.processRunOnce(msg);
+                    ScheduleMessage.processScheduleType(msg);
                     break;
                 case 11:
                 case 12:
@@ -191,7 +191,7 @@ export class ScheduleMessage {
     }
     private static processStartDay(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 17) * 40 + 1;
-        for (let i = 1; i < msg.payload.length; i++) {
+        for (let i = 1; i < msg.payload.length && schedId <= ScheduleMessage._maxSchedId; i++) {
             const schedule: Schedule = sys.schedules.getItemById(schedId++, false, { isActive: false });
             if (schedule.isActive !== false) {
                 schedule.startDay = msg.extractPayloadByte(i + 1);
@@ -203,7 +203,7 @@ export class ScheduleMessage {
     }
     private static processStartYear(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 20) * 40 + 1;
-        for (let i = 1; i < msg.payload.length; i++) {
+        for (let i = 1; i < msg.payload.length && schedId <= ScheduleMessage._maxSchedId; i++) {
             const schedule: Schedule = sys.schedules.getItemById(schedId++, false, { isActive: false });
             if (schedule.isActive !== false) {
                 schedule.startYear = msg.extractPayloadByte(i + 1);
@@ -213,22 +213,15 @@ export class ScheduleMessage {
     }
     private static processStartTimes(msg: Inbound) {
         let schedId = msg.extractPayloadByte(1) * 20 + 1;
-        for (let i = 1; i < msg.payload.length - 1;) {
-            let time = msg.extractPayloadInt(i + 1);
-            let schedule: Schedule = sys.schedules.getItemById(schedId++, time !== 0);
-            if (time !== 0) {
-                schedule.startTime = time;
-                schedule.isActive = schedule.startTime !== 0;
+        for (let i = 1; i < msg.payload.length - 1 && schedId <= ScheduleMessage._maxSchedId;) {
+            let schedule: Schedule = sys.schedules.getItemById(schedId++, false, { isActive: false });
+            if (schedule.isActive) {
+                schedule.startTime = msg.extractPayloadInt(i + 1);
                 let csched = state.schedules.getItemById(schedule.id, true);
                 csched.startTime = schedule.startTime;
             }
-            else {
-                state.schedules.removeItemById(schedule.id);
-                sys.schedules.removeItemById(schedule.id);
-            }
             i += 2;
         }
-        ScheduleMessage._maxSchedId = sys.schedules.getMaxId(true, 0);
         msg.isProcessed = true;
     }
     private static processEndTimes(msg: Inbound) {
@@ -238,7 +231,7 @@ export class ScheduleMessage {
             const schedule: Schedule = sys.schedules.getItemById(schedId++, false, { isActive: false });
             if (schedule.isActive !== false) {
                 schedule.endTime = time;
-                let csched = state.schedules.getItemById(schedule.id);
+                let csched = state.schedules.getItemById(schedule.id, true);
                 csched.endTime = schedule.endTime;
             }
             i += 2;
@@ -250,11 +243,10 @@ export class ScheduleMessage {
         for (let i = 1; i < msg.payload.length && schedId <= ScheduleMessage._maxSchedId; i++) {
             let schedule: Schedule = sys.schedules.getItemById(schedId++, false, { isActive: false });
             if (schedule.isActive) {
-                let csched = state.schedules.getItemById(schedule.id);
+                let csched = state.schedules.getItemById(schedule.id, true);
                 schedule.circuit = msg.extractPayloadByte(i + 1) + 1;
                 if (schedule.circuit === 256 || schedule.circuit === 0) {
-                    // This is some of the IntelliCenter craziness where the schedule has a start time but
-                    // the circuit is undefined.
+                    // This is some of the IntelliCenter craziness where the schedule is marked as active but the circuit is not defined.
                     csched.isActive = false;
                     state.schedules.removeItemById(schedule.id);
                     sys.schedules.removeItemById(schedule.id);
@@ -265,13 +257,15 @@ export class ScheduleMessage {
         }
         msg.isProcessed = true;
     }
-    private static processRunOnce(msg: Inbound) {
+    private static processScheduleType(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 8) * 40 + 1;
-        for (let i = 1; i < msg.payload.length && schedId <= ScheduleMessage._maxSchedId; i++) {
-            let schedule: Schedule = sys.schedules.getItemById(schedId++, false, { isActive: false });
-            if (schedule.isActive !== false) {
-                let byte = msg.extractPayloadByte(i + 1);
-                // schedule.runOnce = byte;
+        for (let i = 1; i < msg.payload.length; i++) {
+            let byte = msg.extractPayloadByte(i + 1);
+            let schedule: Schedule = sys.schedules.getItemById(schedId++, (byte & 128) === 128);
+            if ((byte & 128) === 128) {
+                // If bit 8 is set on the time type then this indicates whether the schedule is active.  If it is not
+                // active then we will be removing it.
+                schedule.isActive = true;
                 schedule.scheduleType = (byte & 1 & 0xFF) === 1 ? 0 : 128;
                 if ((byte & 4 & 0xFF) === 4) schedule.startTimeType = 1;
                 else if ((byte & 8 & 0xFF) === 8) schedule.startTimeType = 2;
@@ -281,11 +275,22 @@ export class ScheduleMessage {
                 else if ((byte & 32 & 0xFF) === 32) schedule.endTimeType = 2;
                 else schedule.endTimeType = 0;
                 let csched = state.schedules.getItemById(schedule.id);
+                csched.isActive = true;
                 csched.startTimeType = schedule.startTimeType;
                 csched.endTimeType = schedule.endTimeType;
                 csched.scheduleType = schedule.scheduleType;
             }
+            else {
+                // Now we need to remove this pig because this is not an active schedule.
+                sys.schedules.removeItemById(schedule.id);
+                if (schedule.isActive) {
+                    let csched = state.schedules.getItemById(schedule.id);
+                    schedule.isActive = csched.isActive = false;
+                }
+                state.schedules.removeItemById(schedule.id);
+            }
         }
+        ScheduleMessage._maxSchedId = sys.schedules.getMaxId(true, 0);
         msg.isProcessed = true;
     }
     private static processDays(msg: Inbound) {
