@@ -1649,6 +1649,7 @@ export class CircuitState extends EqState implements ICircuitState {
     public initData() {
         if (typeof this.data.freezeProtect === 'undefined') this.data.freezeProtect = false;
         if (typeof this.data.action === 'undefined') this.action = 0;
+        if (typeof this.type === 'undefined') this.type = 0;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }

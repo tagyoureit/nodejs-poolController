@@ -217,7 +217,7 @@ export class ExternalMessage {
                     if (group.isActive) {
                         for (let i = 0; i < 16; i++) {
                             let circuitId = msg.extractPayloadByte(i + 6);
-                            let circuit = group.circuits.getItemById(i + 1, circuitId !== 255);
+                            let circuit = group.circuits.getItemById(i + 1, circuitId < 255);
                             if (circuitId === 255) group.circuits.removeItemById(i + 1);
                             circuit.circuit = circuitId + 1;
 
