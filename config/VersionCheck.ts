@@ -87,7 +87,7 @@ class VersionCheck {
             });
         }
         catch (err) {
-            logger.error(err);
+            logger.error(`Error checking latest release: ${err.message}`);
         }
     }
 

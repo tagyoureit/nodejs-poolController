@@ -195,7 +195,7 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                                 logger.silly(`Writing influx ${e.name} data point ${point.toString()}`)
                                 this.writeApi.writePoint(point);
                                 this.writeApi.flush()
-                                    .catch(error => { logger.error(error); });
+                                    .catch(error => { logger.error(`Error flushing Influx data point ${point.toString()} ${error}`); });
                                 //logger.info(`INFLUX: ${point.toLineProtocol()}`)
                             }
                             else {
