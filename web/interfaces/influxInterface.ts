@@ -115,6 +115,10 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                             }
                             else {
                                 logger.error(`InfluxDB tag binding failure on ${evt}:${_tag.name}/${_tag.value} --> ${svalue || 'undefined'}  ${JSON.stringify(data[0])}`);
+                                if (typeof sname === 'undefined') logger.error(`InfluxDB tag name is undefined`);
+                                if (typeof svalue === 'undefined') logger.error(`InfluxDB value is undefined`);
+                                if (svalue.includes('@bind')) logger.error(`InfluxDB value not bound`);
+                                if (svalue === null) logger.error(`InfluxDB value is null`);
                             }
                         })
                         _point.fields.forEach(_field => {
