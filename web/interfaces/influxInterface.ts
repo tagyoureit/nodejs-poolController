@@ -119,6 +119,7 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                                 if (typeof svalue === 'undefined') logger.error(`InfluxDB value is undefined`);
                                 if (svalue.includes('@bind')) logger.error(`InfluxDB value not bound`);
                                 if (svalue === null) logger.error(`InfluxDB value is null`);
+                                console.log(data);
                             }
                         })
                         _point.fields.forEach(_field => {
