@@ -187,12 +187,34 @@ export class IntelliCenterBoard extends SystemBoard {
             [11, { name: 'royal', desc: 'Royal', sequence: 7, types: ['intellibrite', 'magicstream'] }],
             [255, { name: 'none', desc: 'None' }]
         ]);
+        this.valueMaps.lightGroupCommands = new byteValueMap([
+            [1, { name: 'colorsync', desc: 'Sync', types: ['intellibrite'], command: 'colorSync', message: 'Synchronizing' }],
+            [2, { name: 'colorset', desc: 'Set', types: ['intellibrite'], command: 'colorSet', message: 'Sequencing Set Operation' }],
+            [3, { name: 'colorswim', desc: 'Swim', types: ['intellibrite'], command: 'colorSwim', message: 'Sequencing Swim Operation' }],
+            [12, { name: 'colorhold', desc: 'Hold', types: ['intellibrite', 'magicstream'], command: 'colorHold', message: 'Saving Current Colors', sequence: 13 }],
+            [13, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite', 'magicstream'], command: 'colorRecall', message: 'Recalling Saved Colors', sequence: 14 }]
+        ]);
+
         this.valueMaps.lightCommands = new byteValueMap([
-            [1, { name: 'colorsync', desc: 'Sync', types: ['intellibrite'] }],
-            [2, { name: 'colorset', desc: 'Set', types: ['intellibrite'] }],
-            [3, { name: 'colorswim', desc: 'Swim', types: ['intellibrite'] }],
             [12, { name: 'colorhold', desc: 'Hold', types: ['intellibrite'], sequence: 13 }],
-            [13, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite'], sequence: 14 }]
+            [13, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite'], sequence: 14 }],
+            [15, {
+                name: 'lightthumper', desc: 'Thumper', types: ['magicstream'], command: 'lightThumper', message: 'Toggling Thumper',
+                sequence: [ // Cycle party mode 3 times.
+                    { isOn: false, timeout: 100 },
+                    { isOn: true, timeout: 100 },
+                    { isOn: false, timeout: 100 },
+                    { isOn: true, timeout: 5000 },
+                    { isOn: false, timeout: 100 },
+                    { isOn: true, timeout: 100 },
+                    { isOn: false, timeout: 100 },
+                    { isOn: true, timeout: 5000 },
+                    { isOn: false, timeout: 100 },
+                    { isOn: true, timeout: 100 },
+                    { isOn: false, timeout: 100 },
+                    { isOn: true, timeout: 1000 },
+                ]
+            }]
         ]);
         this.valueMaps.lightColors = new byteValueMap([
             [0, { name: 'white', desc: 'White' }],
