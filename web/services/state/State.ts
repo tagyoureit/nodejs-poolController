@@ -214,7 +214,44 @@ export class StateRoute {
                return res.status(200).send(theme.get(true));
             } 
             catch (err) { next(err); }
-        }); 
+        });
+        app.put('/state/light/setTheme', async (req, res, next) => {
+            try {
+                let theme = await state.circuits.setLightThemeAsync(parseInt(req.body.id, 10), sys.board.valueMaps.lightThemes.encode(req.body.theme));
+                return res.status(200).send(theme.get(true));
+            }
+            catch (err) { next(err); }
+        });
+
+        app.put('/state/light/runCommand', async (req, res, next) => {
+            try {
+                let slight = await sys.board.circuits.runLightCommandAsync(req.body);
+                return res.status(200).send(slight.get(true));
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/state/light/:id/colorHold', async (req, res, next) => {
+            try {
+                let slight = await sys.board.circuits.runLightCommandAsync({ id: parseInt(req.params.id, 10), command: 'colorhold' });
+                return res.status(200).send(slight.get(true));
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/state/light/:id/colorRecall', async (req, res, next) => {
+            try {
+                let slight = await sys.board.circuits.runLightCommandAsync({ id: parseInt(req.params.id, 10), command: 'colorecall' });
+                return res.status(200).send(slight.get(true));
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/state/light/:id/lightThumper', async (req, res, next) => {
+            try {
+                let slight = await sys.board.circuits.runLightCommandAsync({ id: parseInt(req.params.id, 10), command: 'lightthumper' });
+                return res.status(200).send(slight.get(true));
+            }
+            catch (err) { next(err); }
+        });
+
 /*         app.put('/state/intellibrite/setTheme', (req, res) => {
             let id = sys.board.equipmentIds.circuitGroups.start; 
             if (typeof req.body.theme !== 'undefined') id = parseInt(req.body.id, 10);
@@ -330,27 +367,57 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
+        app.put('/state/lightGroup/runCommand', async (req, res, next) => {
+            try {
+                let sgroup = await sys.board.circuits.runLightGroupCommandAsync(req.body);
+                return res.status(200).send(sgroup.get(true));
+            }
+            catch (err) { next(err); }
+        });
         app.put('/state/lightGroup/:id/colorSync', async (req, res, next) => {
             try {
-                let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'sync');
+                let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'colorsync');
                 return res.status(200).send(sgroup.get(true));
             }
             catch (err) { next(err); }
         });
         app.put('/state/lightGroup/:id/colorSet', async (req, res, next) => {
             try {
-                let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'set');
+                let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'colorset');
                 return res.status(200).send(sgroup.get(true));
             }
             catch (err) { next(err); }
         });
         app.put('/state/lightGroup/:id/colorSwim', async (req, res, next) => {
             try {
-                let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'swim');
+                let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'colorswim');
                 return res.status(200).send(sgroup.get(true));
             }
             catch (err) { next(err); }
         });
+        app.put('/state/lightGroup/:id/colorHold', async (req, res, next) => {
+            try {
+                let sgroup = await sys.board.circuits.runLightGroupCommandAsync({ id: parseInt(req.params.id, 10), command: 'colorhold' });
+                return res.status(200).send(sgroup.get(true));
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/state/lightGroup/:id/colorRecall', async (req, res, next) => {
+            try {
+                let sgroup = await sys.board.circuits.runLightGroupCommandAsync({ id: parseInt(req.params.id, 10), command: 'colorrecall' });
+                return res.status(200).send(sgroup.get(true));
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/state/lightGroup/:id/lightThumper', async (req, res, next) => {
+            try {
+                let sgroup = await sys.board.circuits.runLightGroupCommandAsync({ id: parseInt(req.params.id, 10), command: 'lightthumper' });
+                return res.status(200).send(sgroup.get(true));
+            }
+            catch (err) { next(err); }
+        });
+
+
         app.get('/state/emitAll', (req, res) => {
             res.status(200).send(state.emitAllEquipmentChanges());
         });

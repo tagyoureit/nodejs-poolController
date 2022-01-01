@@ -23,7 +23,7 @@ import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState, LightGroupState, VirtualCircuitState, ICircuitState, BodyTempState, CircuitGroupState, ICircuitGroupState, ChemControllerState } from '../State';
 import { utils } from '../../controller/Constants';
-import { InvalidEquipmentIdError, InvalidEquipmentDataError, EquipmentNotFoundError, MessageError } from '../Errors';
+import { InvalidEquipmentIdError, InvalidEquipmentDataError, EquipmentNotFoundError, MessageError, InvalidOperationError } from '../Errors';
 import { ncp } from '../nixie/Nixie';
 export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
@@ -186,6 +186,13 @@ export class IntelliCenterBoard extends SystemBoard {
             [10, { name: 'sunset', desc: 'Sunset', sequence: 6, types: ['intellibrite', 'magicstream'] }],
             [11, { name: 'royal', desc: 'Royal', sequence: 7, types: ['intellibrite', 'magicstream'] }],
             [255, { name: 'none', desc: 'None' }]
+        ]);
+        this.valueMaps.lightCommands = new byteValueMap([
+            [1, { name: 'colorsync', desc: 'Sync', types: ['intellibrite'] }],
+            [2, { name: 'colorset', desc: 'Set', types: ['intellibrite'] }],
+            [3, { name: 'colorswim', desc: 'Swim', types: ['intellibrite'] }],
+            [12, { name: 'colorhold', desc: 'Hold', types: ['intellibrite'], sequence: 13 }],
+            [13, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite'], sequence: 14 }]
         ]);
         this.valueMaps.lightColors = new byteValueMap([
             [0, { name: 'white', desc: 'White' }],
@@ -1973,15 +1980,83 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         }
         catch (err) { return Promise.reject(err); }
     }
-    public sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState> {
+    public async runLightGroupCommandAsync(obj: any): Promise<ICircuitState> {
+        // Do all our validation.
+        try {
+            let id = parseInt(obj.id, 10);
+            let cmd = typeof obj.command !== 'undefined' ? sys.board.valueMaps.lightGroupCommands.findItem(obj.command) : { val: 0, name: 'undefined' };
+            if (cmd.val === 0) return Promise.reject(new InvalidOperationError(`Light group command ${cmd.name} does not exist`, 'runLightGroupCommandAsync'));
+            if (isNaN(id)) return Promise.reject(new InvalidOperationError(`Light group ${id} does not exist`, 'runLightGroupCommandAsync'));
+            let grp = sys.lightGroups.getItemById(id);
+            let nop = sys.board.valueMaps.circuitActions.getValue(cmd.name);
+            let sgrp = state.lightGroups.getItemById(grp.id);
+            sgrp.action = nop;
+            sgrp.emitEquipmentChange();
+            switch (cmd.name) {
+                case 'colorset':
+                    await this.sequenceLightGroupAsync(id, 'colorset');
+                    break;
+                case 'colorswim':
+                    await this.sequenceLightGroupAsync(id, 'colorswim');
+                    break;
+                case 'colorhold':
+                    await this.setLightGroupThemeAsync(id, 12);
+                    break;
+                case 'colorrecall':
+                    await this.setLightGroupThemeAsync(id, 13);
+                    break;
+                case 'lightthumper':
+                    break;
+            }
+            sgrp.action = 0;
+            sgrp.emitEquipmentChange();
+            return sgrp;
+        }
+        catch (err) { return Promise.reject(`Error runLightGroupCommandAsync ${err.message}`); }
+    }
+    public async runLightCommandAsync(obj: any): Promise<ICircuitState> {
+        // Do all our validation.
+        try {
+            let id = parseInt(obj.id, 10);
+            let cmd = typeof obj.command !== 'undefined' ? sys.board.valueMaps.lightCommands.findItem(obj.command) : { val: 0, name: 'undefined' };
+            if (cmd.val === 0) return Promise.reject(new InvalidOperationError(`Light command ${cmd.name} does not exist`, 'runLightCommandAsync'));
+            if (isNaN(id)) return Promise.reject(new InvalidOperationError(`Light ${id} does not exist`, 'runLightCommandAsync'));
+            let circ = sys.circuits.getItemById(id);
+            if (!circ.isActive) return Promise.reject(new InvalidOperationError(`Light circuit #${id} is not active`, 'runLightCommandAsync'));
+            let type = sys.board.valueMaps.circuitFunctions.transform(circ.type);
+            if (!type.isLight) return Promise.reject(new InvalidOperationError(`Circuit #${id} is not a light`, 'runLightCommandAsync'));
+            let nop = sys.board.valueMaps.circuitActions.getValue(cmd.name);
+            let slight = state.circuits.getItemById(circ.id);
+            slight.action = nop;
+            slight.emitEquipmentChange();
+            switch (cmd.name) {
+                case 'colorhold':
+                    await this.setLightThemeAsync(id, 12);
+                    break;
+                case 'colorrecall':
+                    await this.setLightThemeAsync(id, 13);
+                    break;
+                case 'lightthumper':
+                    // I do not know how to trigger the thumper.
+                    break;
+            }
+            slight.action = 0;
+            slight.emitEquipmentChange();
+            return slight;
+        }
+        catch (err) { return Promise.reject(`Error runLightCommandAsync ${err.message}`); }
+    }
+    public async sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState> {
         let sgroup = state.lightGroups.getItemById(id);
-        let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
-        if (nop > 0) {
-            let out = this.createCircuitStateMessage(id, true);
+        try {
+            if (!sgroup.isActive) return Promise.reject(new InvalidEquipmentIdError(`An active light group could not be found with id ${id}`, id, 'lightGroup'));
+            let cmd = sys.board.valueMaps.lightGroupCommands.findItem(operation.toLowerCase());
             let ndx = id - sys.board.equipmentIds.circuitGroups.start;
             let byteNdx = Math.floor(ndx / 4);
             let bitNdx = (ndx * 2) - (byteNdx * 8);
+            let out = this.createCircuitStateMessage(id, true);
             let byte = out.payload[28 + byteNdx];
+
             // Each light group is represented by two bits on the status byte.  There are 3 status bytes that give us only 12 of the 16 on the config stream but the 168 message
             // does acutally send 4 so all are represented there.
             // [10] = Set
@@ -1990,34 +2065,83 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             // [11] = No sequencing underway.
             // In the end we are only trying to impact the specific bits in the middle of the byte that represent
             // the light group we are dealing with.            
-            switch (nop) {
-                case 1: // Sync
+            switch (cmd.name) {
+                case 'colorsync':
                     byte &= ((0xFC << bitNdx) | (0xFF >> (8 - bitNdx)));
                     break;
-                case 2: // Color Set
+                case 'colorset':
                     byte &= ((0xFE << bitNdx) | (0xFF >> (8 - bitNdx)));
                     break;
-                case 3: // Color Swim
+                case 'colorswim':
                     byte &= ((0xFD << bitNdx) | (0xFF >> (8 - bitNdx)));
                     break;
+                default:
+                    return Promise.reject(new InvalidOperationError(`Invalid Light Group Sequence ${operation}`, 'sequenceLightGroupAsync'));
             }
-            console.log({ groupNdx: ndx, action: nop, byteNdx: byteNdx, bitNdx: bitNdx, byte: byte })
+            sgroup.emitEquipmentChange();
             out.payload[28 + byteNdx] = byte;
-            return new Promise<LightGroupState>((resolve, reject) => {
+            // So now we have all the info we need to sequence the group.
+            await new Promise((resolve, reject) => {
                 out.retries = 5;
                 out.response = IntelliCenterBoard.getAckResponse(168);
                 out.onComplete = (err, msg) => {
                     if (!err) {
-                        sgroup.action = nop;
+                        sgroup.action = sys.board.valueMaps.circuitActions.getValue(cmd.name);
                         state.emitEquipmentChanges();
                         resolve(sgroup);
                     }
-                    else reject(err);
+                    else {
+                        sgroup.action = 0;
+                        reject(err);
+                    }
                 };
                 conn.queueSendMessage(out);
             });
-        }
-        return Promise.resolve(sgroup);
+            return sgroup;
+        } catch (err) { return Promise.reject(new InvalidOperationError(`Error Sequencing Light Group: ${err.message}`, 'sequenceLightGroupAsync')); }
+        //let nop = sys.board.valueMaps.circuitActions.getValue(operation);
+        //if (nop > 0) {
+        //    let out = this.createCircuitStateMessage(id, true);
+        //    let ndx = id - sys.board.equipmentIds.circuitGroups.start;
+        //    let byteNdx = Math.floor(ndx / 4);
+        //    let bitNdx = (ndx * 2) - (byteNdx * 8);
+        //    let byte = out.payload[28 + byteNdx];
+        //    // Each light group is represented by two bits on the status byte.  There are 3 status bytes that give us only 12 of the 16 on the config stream but the 168 message
+        //    // does acutally send 4 so all are represented there.
+        //    // [10] = Set
+        //    // [01] = Swim
+        //    // [00] = Sync
+        //    // [11] = No sequencing underway.
+        //    // In the end we are only trying to impact the specific bits in the middle of the byte that represent
+        //    // the light group we are dealing with.            
+        //    switch (nop) {
+        //        case 1: // Sync
+        //            byte &= ((0xFC << bitNdx) | (0xFF >> (8 - bitNdx)));
+        //            break;
+        //        case 2: // Color Set
+        //            byte &= ((0xFE << bitNdx) | (0xFF >> (8 - bitNdx)));
+        //            break;
+        //        case 3: // Color Swim
+        //            byte &= ((0xFD << bitNdx) | (0xFF >> (8 - bitNdx)));
+        //            break;
+        //    }
+        //    console.log({ groupNdx: ndx, action: nop, byteNdx: byteNdx, bitNdx: bitNdx, byte: byte })
+        //    out.payload[28 + byteNdx] = byte;
+        //    return new Promise<LightGroupState>((resolve, reject) => {
+        //        out.retries = 5;
+        //        out.response = IntelliCenterBoard.getAckResponse(168);
+        //        out.onComplete = (err, msg) => {
+        //            if (!err) {
+        //                sgroup.action = nop;
+        //                state.emitEquipmentChanges();
+        //                resolve(sgroup);
+        //            }
+        //            else reject(err);
+        //        };
+        //        conn.queueSendMessage(out);
+        //    });
+        //}
+        //return Promise.resolve(sgroup);
     }
     // 12-01-21 RKS: This has been deprecated.  This allows for multiple vendor light themes driven by the metadata on the valuemaps.
     //public getLightThemes(type: number): any[] {
@@ -2182,6 +2306,30 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         }
         catch (err) { return Promise.reject(err); }
     }
+    public async setColorHoldAsync(id: number): Promise<ICircuitState> {
+        let circuit = sys.circuits.getInterfaceById(id);
+        if (circuit.master === 1) return await super.setColorHoldAsync(id);
+        try {
+            if (sys.board.equipmentIds.circuitGroups.isInRange(id)) {
+                await this.setLightGroupThemeAsync(id, 12);
+                return Promise.resolve(state.lightGroups.getItemById(id));
+            }
+            return await this.setLightThemeAsync(id, 12);
+        }
+        catch (err) { return Promise.reject(err); }
+    }
+    public async setColorRecallAsync(id: number): Promise<ICircuitState> {
+        let circuit = sys.circuits.getInterfaceById(id);
+        if (circuit.master === 1) return await super.setColorHoldAsync(id);
+        try {
+            if (sys.board.equipmentIds.circuitGroups.isInRange(id)) {
+                await this.setLightGroupThemeAsync(id, 13);
+                return Promise.resolve(state.lightGroups.getItemById(id));
+            }
+            return await this.setLightThemeAsync(id, 13);
+        }
+        catch (err) { return Promise.reject(err); }
+    }
     public async setLightThemeAsync(id: number, theme: number): Promise<ICircuitState> {
         let circuit = sys.circuits.getInterfaceById(id);
         if (circuit.master === 1) return await super.setLightThemeAsync(id, theme);
@@ -2197,6 +2345,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     action: 168, payload: [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
                         theme, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), circuit.dontStop ? 1 : 0]
                 });
+                cstate.action = sys.board.valueMaps.circuitActions.getValue('lighttheme');
                 out.response = IntelliCenterBoard.getAckResponse(168);
                 out.retries = 5;
                 await new Promise<void>((resolve, reject) => {
@@ -2209,6 +2358,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                         else {
                             reject(err);
                         }
+                        cstate.action = 0;
                     };
                     out.appendPayloadString(circuit.name, 16);
                     conn.queueSendMessage(out);

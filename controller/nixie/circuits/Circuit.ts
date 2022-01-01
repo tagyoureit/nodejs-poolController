@@ -23,7 +23,7 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
             }
         } catch (err) { return Promise.reject(`Nixie Control Panel deleteCircuitAsync ${err.message}`); }
     }
-    public async sendOnOffSequenceAsync(id: number, count: number) {
+    public async sendOnOffSequenceAsync(id: number, count: number | { isOn: boolean, timeout: number }[]) {
         try {
             let c: NixieCircuit = this.find(elem => elem.id === id) as NixieCircuit;
             if (typeof c === 'undefined') return Promise.reject(new Error(`NCP: Circuit ${id} could not be found to send sequence ${count}.`));
@@ -131,17 +131,20 @@ export class NixieCircuit extends NixieEquipment {
         }
         catch (err) { logger.error(`Nixie setCircuitAsync: ${err.message}`); return Promise.reject(err); }
     }
-    public async sendOnOffSequenceAsync(count: number, timeout?:number): Promise<InterfaceServerResponse> {
+    public async sendOnOffSequenceAsync(count: number | { isOn: boolean, timeout: number }[], timeout?:number): Promise<InterfaceServerResponse> {
         try {
             this._sequencing = true;
             let arr = [];
-            let t = typeof timeout === 'undefined' ? 100 : timeout;
-            arr.push({ isOn: false, timeout: t }); // This may not be needed but we always need to start from off.
-            //[{ isOn: true, timeout: 1000 }, { isOn: false, timeout: 1000 }]
-            for (let i = 0; i < count; i++) {
-                arr.push({ isOn: true, timeout: t });
-                if(i < count - 1) arr.push({ isOn: false, timeout: t });
+            if (typeof count === 'number') {
+                let t = typeof timeout === 'undefined' ? 100 : timeout;
+                arr.push({ isOn: false, timeout: t }); // This may not be needed but we always need to start from off.
+                //[{ isOn: true, timeout: 1000 }, { isOn: false, timeout: 1000 }]
+                for (let i = 0; i < count; i++) {
+                    arr.push({ isOn: true, timeout: t });
+                    if (i < count - 1) arr.push({ isOn: false, timeout: t });
+                }
             }
+            else arr = count;
             // The documentation for IntelliBrite is incorrect.  The sequence below will give us Party mode.
             // Party mode:2
             // Start: Off

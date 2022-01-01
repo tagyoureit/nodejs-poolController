@@ -1226,9 +1226,22 @@ export class Circuit extends EqItem implements ICircuit {
             return themes;
         }
         else return [];
-
-        //return sys.board.circuits.getLightThemes(this.type);
     }
+    public getLightCommands() {
+        // Lets do this universally driven by the metadata.
+        let cf = sys.board.valueMaps.circuitFunctions.transform(this.type);
+        if (cf.isLight && typeof cf.theme !== 'undefined') {
+            let arrCommands = sys.board.valueMaps.lightCommands.toArray();
+            let cmds = [];
+            for (let i = 0; i < arrCommands.length; i++) {
+                let cmd = arrCommands[i];
+                if (typeof cmd.types !== 'undefined' && cmd.types.length > 0 && cmd.types.includes(cf.theme)) cmds.push(cmd);
+            }
+            return cmds;
+        }
+        else return [];
+    }
+
     public static getIdName(id: number) {
         // todo: adjust for intellitouch
         let defName = "Aux" + (id + 1).toString();
@@ -1293,6 +1306,7 @@ export interface ICircuit {
     showInFeatures?: boolean;
     macro?: boolean;
     getLightThemes?: (type?: number) => {};
+    getLightCommands?: (type?: number) => {};
     get(copy?: boolean);
     master: number;
 }
@@ -1770,6 +1784,34 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
         }
         return ret;
     }
+    public getLightCommands() {
+        // Go through the circuits and gather the themes.
+        // This method first looks at the circuits to determine their type (function)
+        // then it filters the list by the types associated with the circuits.  It does this because
+        // there can be combined ColorLogic and IntelliBrite lights.  The themes array has
+        // the circuit function.
+        let arrThemes = [];
+        for (let i = 0; i < this.circuits.length; i++) {
+            let circ = this.circuits.getItemByIndex(i);
+            let c = sys.circuits.getInterfaceById(circ.circuit);
+            let cf = sys.board.valueMaps.circuitFunctions.transform(c.type);
+            if (cf.isLight && typeof cf.theme !== 'undefined') {
+                if (!arrThemes.includes(cf.theme)) arrThemes.push(cf.theme);
+            }
+        }
+        // Alright now we need to get a listing of the themes.
+        let t = sys.board.valueMaps.lightGroupCommands.toArray();
+        let ret = [];
+        for (let i = 0; i < t.length; i++) {
+            let cmd = t[i];
+            if (typeof cmd.types !== 'undefined' && cmd.types.length > 0) {
+                // Look in the themes array of the theme.
+                if (arrThemes.some(x => cmd.types.includes(x))) ret.push(cmd);
+            }
+        }
+        return ret;
+    }
+
     public getExtended() {
         let group = this.get(true);
         group.type = sys.board.valueMaps.circuitGroupTypes.transform(group.type);

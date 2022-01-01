@@ -498,6 +498,7 @@ export interface ICircuitState {
     startTime?: Timestamp;
     endTime: Timestamp;
     lightingTheme?: number;
+    action?: number;
     emitEquipmentChange();
     get(bCopy?: boolean);
     showInFeatures?: boolean;
@@ -1236,7 +1237,7 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
     public get action(): number { return typeof this.data.action !== 'undefined' ? this.data.action.val : 0; }
     public set action(val: number) {
         if (this.action !== val || typeof this.data.action === 'undefined') {
-            this.data.action = sys.board.valueMaps.intellibriteActions.transform(val);
+            this.data.action = sys.board.valueMaps.circuitActions.transform(val);
             this.hasChanged = true;
         }
     }
@@ -1268,7 +1269,7 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
         let sgrp = this.get(true); // Always operate on a copy.
         sgrp.circuits = [];
         if (typeof sgrp.lightingTheme === 'undefined') sgrp.lightingTheme = sys.board.valueMaps.lightThemes.transformByName('white');
-        if (typeof sgrp.action === 'undefined') sgrp.action = sys.board.valueMaps.intellibriteActions.transform(0);
+        if (typeof sgrp.action === 'undefined') sgrp.action = sys.board.valueMaps.circuitActions.transform(0);
         let cgrp = sys.circuitGroups.getItemById(this.id);
         for (let i = 0; i < cgrp.circuits.length; i++) {
             let lgc = cgrp.circuits.getItemByIndex(i).get(true);
@@ -1647,6 +1648,7 @@ export class CircuitState extends EqState implements ICircuitState {
     public dataName = 'circuit';
     public initData() {
         if (typeof this.data.freezeProtect === 'undefined') this.data.freezeProtect = false;
+        if (typeof this.data.action === 'undefined') this.action = 0;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
@@ -1654,6 +1656,13 @@ export class CircuitState extends EqState implements ICircuitState {
     public set name(val: string) { this.setDataVal('name', val); }
     public get nameId(): number { return this.data.nameId; }
     public set nameId(val: number) { this.setDataVal('nameId', val); }
+    public get action(): number { return typeof this.data.action !== 'undefined' ? this.data.action.val : 0; }
+    public set action(val: number) {
+        if (this.action !== val || typeof this.data.action === 'undefined') {
+            this.data.action = sys.board.valueMaps.circuitActions.transform(val);
+            this.hasChanged = true;
+        }
+    }
     public get showInFeatures(): boolean { return this.data.showInFeatures; }
     public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
     public get isOn(): boolean { return this.data.isOn; }

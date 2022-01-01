@@ -689,7 +689,7 @@ export class EquipmentStateMessage {
                         case 144: // swim
                             sys.board.circuits.sequenceLightGroupAsync(grp.id, 'swim');
                             break;
-                        case 160: // swim
+                        case 160: // set
                             sys.board.circuits.sequenceLightGroupAsync(grp.id, 'set');
                             break;
                         case 190: // save

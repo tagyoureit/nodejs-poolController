@@ -429,13 +429,13 @@ export class ExternalMessage {
                         // [11] = No sequencing underway.
                         switch (byte) {
                             case 0: // Sync
-                                lg.action = 1;
+                                lg.action = sys.board.valueMaps.circuitActions.getValue('colorsync');
                                 break;
                             case 1: // Color swim
-                                lg.action = 3;
+                                lg.action = sys.board.valueMaps.circuitActions.getValue('colorswim');
                                 break;
                             case 2: // Color set
-                                lg.action = 2;
+                                lg.action = sys.board.valueMaps.circuitActions.getValue('colorset');
                                 break;
                             default:
                                 lg.action = 0;

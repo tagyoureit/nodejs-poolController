@@ -19,7 +19,7 @@ import { logger } from '../../logger/Logger';
 import { Message, Outbound } from '../comms/messages/Messages';
 import { Timestamp, utils } from '../Constants';
 import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, ControllerType, CustomName, CustomNameCollection, EggTimer, Equipment, Feature, Filter, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, TempSensorCollection, Valve } from '../Equipment';
-import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, BoardProcessError } from '../Errors';
+import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, BoardProcessError, InvalidOperationError } from '../Errors';
 import { ncp } from "../nixie/Nixie";
 import { BodyTempState, ChemControllerState, ChlorinatorState, CircuitGroupState, FilterState, ICircuitGroupState, ICircuitState, LightGroupState, ScheduleState, state, TemperatureState, ValveState, VirtualCircuitState } from '../State';
 import { RestoreResults } from '../../web/Server';
@@ -310,7 +310,58 @@ export class byteValueMaps {
         [15, { name: 'cabaret', desc: 'Cabaret', types: ['colorlogic'], sequence: 17 }],
         [255, { name: 'none', desc: 'None' }]
     ]);
-
+    public lightCommands = new byteValueMap([
+        [4, { name: 'colorhold', desc: 'Hold', types: ['intellibrite', 'magicstream'], command: 'colorHold', sequence: 13 }],
+        [5, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite', 'magicstream'], command: 'colorRecall', sequence: 14 }],
+        [6, { name: 'lightthumper', desc: 'Thumper', types: ['magicstream'], command: 'lightThumper', message: 'Toggling Thumper',
+            sequence: [ // Cycle party mode 3 times.
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 100 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 5000 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 100 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 5000 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 100 },
+                { isOn: false, timeout: 100 }
+            ]
+        }]
+    ]);
+    public lightGroupCommands = new byteValueMap([
+        [1, { name: 'colorsync', desc: 'Sync', types: ['intellibrite'], command: 'colorSync', message:'Synchronizing' }],
+        [2, { name: 'colorset', desc: 'Set', types: ['intellibrite'], command: 'colorSet', message: 'Sequencing Set Operation' }],
+        [3, { name: 'colorswim', desc: 'Swim', types: ['intellibrite'], command: 'colorSwim', message:'Sequencing Swim Operation' }],
+        [4, { name: 'colorhold', desc: 'Hold', types: ['intellibrite', 'magicstream'], command: 'colorHold', message: 'Saving Current Colors', sequence: 13 }],
+        [5, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite', 'magicstream'], command: 'colorRecall', message: 'Recalling Saved Colors', sequence: 14 }],
+        [6, { name: 'lightthumper', desc: 'Thumper', types: ['magicstream'], command: 'lightThumper', message: 'Toggling Thumper',
+            sequence: [ // Cycle party mode 3 times.
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 100 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 5000 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 100 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 5000 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 100 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 1000 },
+            ]
+        }]
+    ]);
+    public circuitActions: byteValueMap = new byteValueMap([
+        [0, { name: 'ready', desc: 'Ready' }],
+        [1, { name: 'colorsync', desc: 'Synchronizing' }],
+        [2, { name: 'colorset', desc: 'Sequencing Set Operation' }],
+        [3, { name: 'colorswim', desc: 'Sequencing Swim Operation' }],
+        [4, { name: 'lighttheme', desc: 'Sequencing Theme/Color Operation' }],
+        [5, { name: 'colorhold', desc: 'Saving Current Color' }],
+        [6, { name: 'colorrecall', desc: 'Recalling Saved Color' }],
+        [7, { name: 'lightthumper', desc: 'Setting Light Thumper' }]
+    ]);
     public lightColors: byteValueMap = new byteValueMap([
         [0, { name: 'white', desc: 'White' }],
         [2, { name: 'lightgreen', desc: 'Light Green' }],
@@ -338,7 +389,6 @@ export class byteValueMaps {
         [1, { name: 'active', desc: 'When Active' }],
         [2, { name: 'never', desc: 'Never' }]
     ]);
-
     public pumpTypes: byteValueMap = new byteValueMap([
         [1, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
         [64, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
@@ -515,14 +565,6 @@ export class byteValueMaps {
         [3, { name: 'spillway', desc: 'Spillway' }],
         [4, { name: 'spadrain', desc: 'Spa Drain' }]
     ]);
-  public intellibriteActions: byteValueMap = new byteValueMap([
-    [0, { name: 'ready', desc: 'Ready' }],
-    [1, { name: 'sync', desc: 'Synchronizing' }],
-    [2, { name: 'set', desc: 'Sequencing Set Operation' }],
-    [3, { name: 'swim', desc: 'Sequencing Swim Operation' }],
-    [4, { name: 'color', desc: 'Sequencing Theme/Color Operation' }],
-    [5, { name: 'other', desc: 'Sequencing Save/Recall Operation' }]
-  ]);
   public msgBroadcastActions: byteValueMap = new byteValueMap([
     [2, { name: 'status', desc: 'Equipment Status' }],
     [82, { name: 'ivstatus', desc: 'IntelliValve Status' }]
@@ -1338,7 +1380,12 @@ export class BodyCommands extends BoardCommands {
             let freeze = utils.makeBool(state.freeze);
             if (sys.controllerType === ControllerType.Nixie) {
                 // If we are a Nixie controller we need to evaluate the current freeze settings against the air temperature.
-                if (typeof state.temps.air !== 'undefined') freeze = state.temps.air <= sys.general.options.freezeThreshold;
+                if (typeof state.temps.air !== 'undefined') {
+                    // Start freeze protection when the temperature is <= the threshold but don't stop it until we are 2 degrees above the threshold.  This
+                    // makes for a 3 degree offset.
+                    if (state.temps.air <= sys.general.options.freezeThreshold) freeze = true;
+                    else if (state.freeze && state.temps.air - 2 > sys.general.options.freezeThreshold) freeze = false;
+                }
                 else freeze = false;
 
                 // We need to know when we first turned the freeze protection on. This is because we will be rotating between pool and spa
@@ -1938,52 +1985,52 @@ export class CircuitCommands extends BoardCommands {
             return true;
         } catch (err) { logger.error(`Error restoring circuits: ${err.message}`); res.addModuleError('system', `Error restoring circuits/features: ${err.message}`); return false; }
     }
-  public async validateRestore(rest: { poolConfig: any, poolState: any }, ctxRoot): Promise<boolean> {
-    try {
-      let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-      // Look at circuits.
-      let cfg = rest.poolConfig;
-      for (let i = 0; i < cfg.circuits.length; i++) {
-        let r = cfg.circuits[i];
-        let c = sys.circuits.find(elem => r.id === elem.id);
-        if (typeof c === 'undefined') ctx.add.push(r);
-        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-      }
-      for (let i = 0; i < sys.circuits.length; i++) {
-        let c = sys.circuits.getItemByIndex(i);
-        let r = cfg.circuits.find(elem => elem.id == c.id);
-        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-      }
-      ctxRoot.circuits = ctx;
-      ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-      for (let i = 0; i < cfg.circuitGroups.length; i++) {
-        let r = cfg.circuitGroups[i];
-        let c = sys.circuitGroups.find(elem => r.id === elem.id);
-        if (typeof c === 'undefined') ctx.add.push(r);
-        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-      }
-      for (let i = 0; i < sys.circuitGroups.length; i++) {
-        let c = sys.circuitGroups.getItemByIndex(i);
-        let r = cfg.circuitGroups.find(elem => elem.id == c.id);
-        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-      }
-      ctxRoot.circuitGroups = ctx;
-      ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-      for (let i = 0; i < cfg.lightGroups.length; i++) {
-        let r = cfg.lightGroups[i];
-        let c = sys.lightGroups.find(elem => r.id === elem.id);
-        if (typeof c === 'undefined') ctx.add.push(r);
-        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-      }
-      for (let i = 0; i < sys.lightGroups.length; i++) {
-        let c = sys.lightGroups.getItemByIndex(i);
-        let r = cfg.lightGroups.find(elem => elem.id == c.id);
-        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-      }
-      ctxRoot.lightGroups = ctx;
-      return true;
-    } catch (err) { logger.error(`Error validating circuits for restore: ${err.message}`); }
-  }
+    public async validateRestore(rest: { poolConfig: any, poolState: any }, ctxRoot): Promise<boolean> {
+        try {
+            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            // Look at circuits.
+            let cfg = rest.poolConfig;
+            for (let i = 0; i < cfg.circuits.length; i++) {
+                let r = cfg.circuits[i];
+                let c = sys.circuits.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.circuits.length; i++) {
+                let c = sys.circuits.getItemByIndex(i);
+                let r = cfg.circuits.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            ctxRoot.circuits = ctx;
+            ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            for (let i = 0; i < cfg.circuitGroups.length; i++) {
+                let r = cfg.circuitGroups[i];
+                let c = sys.circuitGroups.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.circuitGroups.length; i++) {
+                let c = sys.circuitGroups.getItemByIndex(i);
+                let r = cfg.circuitGroups.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            ctxRoot.circuitGroups = ctx;
+            ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            for (let i = 0; i < cfg.lightGroups.length; i++) {
+                let r = cfg.lightGroups[i];
+                let c = sys.lightGroups.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.lightGroups.length; i++) {
+                let c = sys.lightGroups.getItemByIndex(i);
+                let r = cfg.lightGroups.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            ctxRoot.lightGroups = ctx;
+            return true;
+        } catch (err) { logger.error(`Error validating circuits for restore: ${err.message}`); }
+    }
     public async checkEggTimerExpirationAsync() {
         // turn off any circuits that have reached their egg timer;
         // Nixie circuits we have 100% control over; 
@@ -2023,18 +2070,18 @@ export class CircuitCommands extends BoardCommands {
             }
         } catch (err) { logger.error(`checkEggTimerExpiration: Error synchronizing circuit relays ${err.message}`); }
     }
-  public async syncCircuitRelayStates() {
-    try {
-      for (let i = 0; i < sys.circuits.length; i++) {
-        // Run through all the controlled circuits to see whether they should be triggered or not.
-        let circ = sys.circuits.getItemByIndex(i);
-        if (circ.master === 1 && circ.isActive) {
-          let cstate = state.circuits.getItemById(circ.id);
-          if (cstate.isOn) await ncp.circuits.setCircuitStateAsync(cstate, cstate.isOn);
-        }
-      }
-    } catch (err) { logger.error(`syncCircuitRelayStates: Error synchronizing circuit relays ${err.message}`); }
-  }
+    public async syncCircuitRelayStates() {
+        try {
+            for (let i = 0; i < sys.circuits.length; i++) {
+                // Run through all the controlled circuits to see whether they should be triggered or not.
+                let circ = sys.circuits.getItemByIndex(i);
+                if (circ.master === 1 && circ.isActive) {
+                    let cstate = state.circuits.getItemById(circ.id);
+                    if (cstate.isOn) await ncp.circuits.setCircuitStateAsync(cstate, cstate.isOn);
+                }
+            }
+        } catch (err) { logger.error(`syncCircuitRelayStates: Error synchronizing circuit relays ${err.message}`); }
+    }
     public syncVirtualCircuitStates() {
         try {
             let arrCircuits = sys.board.valueMaps.virtualCircuits.toArray();
@@ -2312,21 +2359,137 @@ export class CircuitCommands extends BoardCommands {
             state.emitEquipmentChanges();
         }
     }
-  public async toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
-    let circ = state.circuits.getInterfaceById(id);
-    return await this.setCircuitStateAsync(id, !(circ.isOn || false));
-  }
-  public async setLightThemeAsync(id: number, theme: number) {
-    let cstate = state.circuits.getItemById(id);
-    let circ = sys.circuits.getItemById(id);
-    let thm = sys.board.valueMaps.lightThemes.findItem(theme);
-    if (typeof thm !== 'undefined' && typeof thm.sequence !== 'undefined' && circ.master === 1) {
-      await sys.board.circuits.setCircuitStateAsync(id, true);
-      await ncp.circuits.sendOnOffSequenceAsync(id, thm.sequence);
+    public async toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
+        let circ = state.circuits.getInterfaceById(id);
+        return await this.setCircuitStateAsync(id, !(circ.isOn || false));
     }
-    cstate.lightingTheme = theme;
-    return Promise.resolve(cstate as ICircuitState);
-  }
+    public async runLightGroupCommandAsync(obj: any): Promise<ICircuitState> {
+        // Do all our validation.
+        try {
+            let id = parseInt(obj.id, 10);
+            let cmd = typeof obj.command !== 'undefined' ? sys.board.valueMaps.lightGroupCommands.findItem(obj.command) : { val: 0, name: 'undefined' };
+            if (cmd.val === 0) return Promise.reject(new InvalidOperationError(`Light group command ${cmd.name} does not exist`, 'runLightGroupCommandAsync'));
+            if (isNaN(id)) return Promise.reject(new InvalidOperationError(`Light group ${id} does not exist`, 'runLightGroupCommandAsync'));
+            let grp = sys.lightGroups.getItemById(id);
+            let nop = sys.board.valueMaps.circuitActions.getValue(cmd.name);
+            let sgrp = state.lightGroups.getItemById(grp.id);
+            sgrp.action = nop;
+            sgrp.emitEquipmentChange();
+            // So here we are now we can run the command against all lights in the group that match the command so get a list of the lights.
+            let arrCircs = [];
+            for (let i = 0; i < grp.circuits.length; i++) {
+                let circ = sys.circuits.getItemById(grp.circuits.getItemByIndex(i).circuit);
+                let type = sys.board.valueMaps.circuitFunctions.transform(circ.type);
+                if (type.isLight && cmd.types.includes(type.theme)) arrCircs.push(circ);
+            }
+            // So now we should hav a complete list of the lights that are part of the command list so start them off on their sequence.  We want all the lights
+            // to be doing their thing at the same time so in the lieu of threads we will ceate a promise all.
+            let proms = [];
+            for (let i = 0; i < arrCircs.length; i++) {
+                await ncp.circuits.sendOnOffSequenceAsync(arrCircs[i].id, cmd.sequence);
+                //proms.push(ncp.circuits.sendOnOffSequenceAsync(arrCircs[i].id, cmd.sequence));
+            }
+            for (let i = 0; i < arrCircs.length; i++) {
+                await sys.board.circuits.setCircuitStateAsync(arrCircs[i].id, false);
+                //proms.push(ncp.circuits.sendOnOffSequenceAsync(arrCircs[i].id, cmd.sequence));
+            }
+            await utils.sleep(10000);
+            for (let i = 0; i < arrCircs.length; i++) {
+                await sys.board.circuits.setCircuitStateAsync(arrCircs[i].id, true);
+                //proms.push(ncp.circuits.sendOnOffSequenceAsync(arrCircs[i].id, cmd.sequence));
+            }
+
+            //if (proms.length > 0) {
+            //    //await Promise.all(proms);
+            //    // Let it simmer for 6 seconds then turn it off and back on.
+            //    proms.length = 0;
+            //    for (let i = 0; i < arrCircs.length; i++) {
+            //        proms.push(sys.board.circuits.setCircuitStateAsync(arrCircs[i].id, false));
+            //    }
+            //    await Promise.all(proms);
+            //    // Let it be off for 3 seconds then turn it back on.
+            //    await utils.sleep(10000);
+            //    proms.length = 0;
+            //    for (let i = 0; i < arrCircs.length; i++) {
+            //        proms.push(sys.board.circuits.setCircuitStateAsync(arrCircs[i].id, true));
+            //    }
+            //    await Promise.all(proms);
+            //}
+            sgrp.action = 0;
+            sgrp.emitEquipmentChange();
+            return state.lightGroups.getItemById(id);
+        }
+        catch (err) { return Promise.reject(`Error runLightGroupCommandAsync ${err.message}`); }
+    }
+    public async runLightCommandAsync(obj: any): Promise<ICircuitState> {
+        // Do all our validation.
+        try {
+            let id = parseInt(obj.id, 10);
+            let cmd = typeof obj.command !== 'undefined' ? sys.board.valueMaps.lightCommands.findItem(obj.command) : { val: 0, name: 'undefined' };
+            if (cmd.val === 0) return Promise.reject(new InvalidOperationError(`Light command ${cmd.name} does not exist`, 'runLightCommandAsync'));
+            if (isNaN(id)) return Promise.reject(new InvalidOperationError(`Light ${id} does not exist`, 'runLightCommandAsync'));
+            let circ = sys.circuits.getItemById(id);
+            if (!circ.isActive) return Promise.reject(new InvalidOperationError(`Light circuit #${id} is not active`, 'runLightCommandAsync'));
+            let type = sys.board.valueMaps.circuitFunctions.transform(circ.type);
+            if (!type.isLight) return Promise.reject(new InvalidOperationError(`Circuit #${id} is not a light`, 'runLightCommandAsync'));
+            let nop = sys.board.valueMaps.circuitActions.getValue(cmd.name);
+            let slight = state.circuits.getItemById(circ.id);
+            slight.action = nop;
+            console.log(nop);
+            slight.emitEquipmentChange();
+            await ncp.circuits.sendOnOffSequenceAsync(circ.id, cmd.sequence);
+            await utils.sleep(7000);
+            await sys.board.circuits.setCircuitStateAsync(circ.id, false);
+            await sys.board.circuits.setCircuitStateAsync(circ.id, true);
+            slight.action = 0;
+            slight.emitEquipmentChange();
+            return slight;
+        }
+        catch (err) { return Promise.reject(`Error runLightCommandAsync ${err.message}`); }
+    }
+    public async setLightThemeAsync(id: number, theme: number): Promise<ICircuitState> {
+        let cstate = state.circuits.getItemById(id);
+        let circ = sys.circuits.getItemById(id);
+        let thm = sys.board.valueMaps.lightThemes.findItem(theme);
+        let nop = sys.board.valueMaps.circuitActions.getValue('lighttheme');
+        cstate.action = nop;
+        cstate.emitEquipmentChange();
+        try {
+            if (typeof thm !== 'undefined' && typeof thm.sequence !== 'undefined' && circ.master === 1) {
+                await sys.board.circuits.setCircuitStateAsync(id, true);
+                await ncp.circuits.sendOnOffSequenceAsync(id, thm.sequence);
+            }
+            cstate.lightingTheme = theme;
+            return cstate;
+        } catch (err) { return Promise.reject(new InvalidOperationError(err.message, 'setLightThemeAsync')); }
+        finally { cstate.action = 0; cstate.emitEquipmentChange(); }
+    }
+    public async setColorHoldAsync(id: number): Promise<ICircuitState> {
+        try {
+            let circ = sys.circuits.getItemById(id);
+            if (!circ.isActive) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id ${id}`, id, 'circuit'));
+            let cstate = state.circuits.getItemById(circ.id);
+            let cmd = sys.board.valueMaps.lightCommands.findItem('colorhold');
+            await sys.board.circuits.setCircuitStateAsync(id, true);
+            if (circ.master === 1) await ncp.circuits.sendOnOffSequenceAsync(id, cmd.sequence);
+            return cstate;
+        }
+        catch (err) { return Promise.reject(`Nixie: Error setColorHoldAsync ${err.message}`); }
+    }
+    public async setColorRecallAsync(id: number): Promise<ICircuitState> {
+        try {
+            let circ = sys.circuits.getItemById(id);
+            if (!circ.isActive) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id ${id}`, id, 'circuit'));
+            let cstate = state.circuits.getItemById(circ.id);
+            let cmd = sys.board.valueMaps.lightCommands.findItem('colorrecall');
+            await sys.board.circuits.setCircuitStateAsync(id, true);
+            if (circ.master === 1) await ncp.circuits.sendOnOffSequenceAsync(id, cmd.sequence);
+            return cstate;
+        }
+        catch (err) { return Promise.reject(`Nixie: Error setColorHoldAsync ${err.message}`); }
+    }
+    public async setLightThumperAsync(id: number): Promise<ICircuitState> { return state.circuits.getItemById(id); }
+
   public setDimmerLevelAsync(id: number, level: number): Promise<ICircuitState> {
     let circ = state.circuits.getItemById(id);
     circ.level = level;
@@ -2664,21 +2827,21 @@ export class CircuitCommands extends BoardCommands {
     }
     catch (err) { return Promise.reject(err); }
   }
-  public sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState> {
-    let sgroup = state.lightGroups.getItemById(id);
-    let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
-    if (nop > 0) {
-      sgroup.action = nop;
-      sgroup.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
-      state.emitEquipmentChanges();
-      setTimeout(function () {
-        sgroup.action = 0;
-        sgroup.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
-        state.emitEquipmentChanges();
-      }, 20000); // It takes 20 seconds to sequence.
+    public async sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState> {
+        let sgroup = state.lightGroups.getItemById(id);
+        // This is the default action which really does nothing.
+        try {
+            let nop = sys.board.valueMaps.circuitActions.getValue(operation);
+            if (nop > 0) {
+                sgroup.action = nop;
+                sgroup.emitEquipmentChange();
+                await utils.sleep(10000);
+                sgroup.action = 0;
+                state.emitAllEquipmentChanges();
+            }
+            return sgroup;
+        } catch (err) { return Promise.reject(new InvalidOperationError(`Error sequencing light group ${err.message}`, 'sequenceLightGroupAsync')); }
     }
-    return Promise.resolve(sgroup);
-  }
   public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
     let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
     logger.info(`Setting Circuit Group State`);

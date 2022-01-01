@@ -24,7 +24,7 @@ import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState, ChemControllerState, TemperatureState, VirtualCircuitState, CircuitState, ICircuitState, ICircuitGroupState, LightGroupState, ValveState, FilterState, BodyTempState, FeatureState } from '../State';
 import { sys, Equipment, Options, Owner, Location, CircuitCollection, TempSensorCollection, General, PoolSystem, Body, Pump, CircuitGroupCircuit, CircuitGroup, ChemController, Circuit, Feature, Valve, ICircuit, Heater, LightGroup, LightGroupCircuit, ControllerType, Filter } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
-import { BoardProcessError, EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, ParameterOutOfRangeError } from '../Errors';
+import { BoardProcessError, EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError, ParameterOutOfRangeError } from '../Errors';
 import { conn } from '../comms/Comms';
 import { delayMgr } from '../Lockouts';
 export class NixieBoard extends SystemBoard {
@@ -1141,7 +1141,8 @@ export class NixieCircuitCommands extends CircuitCommands {
         const sgrp = state.lightGroups.getItemById(id);
         //grp.lightingTheme = sgrp.lightingTheme = theme;
         let thm = sys.board.valueMaps.lightThemes.transform(theme);
-        sgrp.action = sys.board.valueMaps.intellibriteActions.getValue('color');
+        sgrp.action = sys.board.valueMaps.circuitActions.getValue('lighttheme');
+       
         try {
             // Go through and set the theme for all lights in the group.
             for (let i = 0; i < grp.circuits.length; i++) {
@@ -1162,8 +1163,8 @@ export class NixieCircuitCommands extends CircuitCommands {
         }
         catch (err) { return Promise.reject(err); }
         finally {
-            sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
             sgrp.action = 0;
+            sgrp.emitEquipmentChange();
         }
     }
     public async setLightGroupAttribsAsync(group: LightGroup): Promise<LightGroup> {
@@ -1180,33 +1181,46 @@ export class NixieCircuitCommands extends CircuitCommands {
         }
         catch (err) { return Promise.reject(err); }
     }
+    //public async runLightCommandAsync(id: number, command: string): Promise<ICircuitState> {
+    //    let circ = sys.circuits.getItemById(id);
+    //    try {
+    //        let type = sys.board.valueMaps.circuitFunctions.transform(circ.type);
+    //        let cmd = sys.board.valueMaps.lightCommands.findItem(command);
+    //        if (typeof cmd === 'undefined') return Promise.reject(new InvalidOperationError(`Light command ${command} does not exist`, 'runLightCommandAsync'));
+    //        if (typeof cmd.sequence !== 'undefined' && circ.master === 1) {
+    //            await sys.board.circuits.setCircuitStateAsync(id, true);
+    //            await ncp.circuits.sendOnOffSequenceAsync(id, cmd.sequence);
+    //        }
+    //        return state.circuits.getItemById(id);
+    //    }
+    //    catch (err) { return Promise.reject(`Error runLightCommandAsync ${err.message}`); }
+    //}
     public async sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState> {
         let sgroup = state.lightGroups.getItemById(id);
         let grp = sys.lightGroups.getItemById(id);
-        let nop = sys.board.valueMaps.intellibriteActions.getValue(operation);
+        let nop = sys.board.valueMaps.circuitActions.getValue(operation);
         try {
             switch (operation) {
-                case 'sync':
+                case 'colorsync':
                     sgroup.action = nop;
                     sgroup.emitEquipmentChange();
                     for (let i = 0; i < grp.circuits.length; i++) {
                         let c = grp.circuits.getItemByIndex(i);
                         await sys.board.circuits.setCircuitStateAsync(c.circuit, false);
                     }
-                    await utils.sleep(5000);
+                    await utils.sleep(10000);
                     // Turn the circuits all back on again.
                     for (let i = 0; i < grp.circuits.length; i++) {
                         let c = grp.circuits.getItemByIndex(i);
-                        //let cstate = state.circuits.getItemById(c.circuit);
                         await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
                     }
                     break;
-                case 'set':
+                case 'colorset':
                     sgroup.action = nop;
                     sgroup.emitEquipmentChange();
                     await utils.sleep(5000);
                     break;
-                case 'swim':
+                case 'colorswim':
                     sgroup.action = nop;
                     sgroup.emitEquipmentChange();
                     await utils.sleep(5000);

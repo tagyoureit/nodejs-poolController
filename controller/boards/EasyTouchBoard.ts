@@ -20,7 +20,7 @@ import { conn } from '../comms/Comms';
 import { Message, Outbound, Protocol, Response } from '../comms/messages/Messages';
 import { utils } from '../Constants';
 import { Body, ChemController, ConfigVersion, CustomName, EggTimer, Feature, Heater, ICircuit, LightGroup, LightGroupCircuit, PoolSystem, Pump, Schedule, sys } from '../Equipment';
-import { EquipmentTimeoutError, InvalidEquipmentDataError, InvalidEquipmentIdError } from '../Errors';
+import { EquipmentTimeoutError, InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError } from '../Errors';
 import { ncp } from "../nixie/Nixie";
 import { BodyTempState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, state } from '../State';
 import { BodyCommands, byteValueMap, ChemControllerCommands, ChlorinatorCommands, CircuitCommands, ConfigQueue, ConfigRequest, EquipmentIdRange, FeatureCommands, HeaterCommands, PumpCommands, ScheduleCommands, SystemBoard, SystemCommands } from './SystemBoard';
@@ -296,6 +296,14 @@ export class EasyTouchBoard extends SystemBoard {
             }
             return { val: b, days: days };
         };
+        this.valueMaps.lightCommands = new byteValueMap([
+            [128, { name: 'colorsync', desc: 'Sync', types: ['intellibrite'] }],
+            [144, { name: 'colorset', desc: 'Set', types: ['intellibrite'] }],
+            [160, { name: 'colorswim', desc: 'Swim', types: ['intellibrite'] }],
+            [190, { name: 'colorhold', desc: 'Hold', types: ['intellibrite'], sequence: 13 }],
+            [191, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite'], sequence: 14 }],
+            [208, { name: 'thumper', desc: 'Thumper', types: ['magicstream'] }]
+        ]);
         this.valueMaps.lightThemes.transform = function (byte) { return extend(true, { val: byte }, this.get(byte) || this.get(255)); };
         this.valueMaps.circuitNames.transform = function (byte) {
             if (byte < 200) {
@@ -1525,15 +1533,74 @@ export class TouchCircuitCommands extends CircuitCommands {
         });
 
     }
-    public async setLightThemeAsync(id: number, theme: number) {
+    public async setLightThemeAsync(id: number, theme: number): Promise<ICircuitState> {
         // Re-route this as we cannot set individual circuit themes in *Touch.
         return this.setLightGroupThemeAsync(id, theme);
+    }
+    public async runLightGroupCommandAsync(obj: any): Promise<ICircuitState> {
+        // Do all our validation.
+        try {
+            let id = parseInt(obj.id, 10);
+            let cmd = typeof obj.command !== 'undefined' ? sys.board.valueMaps.lightGroupCommands.findItem(obj.command) : { val: 0, name: 'undefined' };
+            if (cmd.val === 0) return Promise.reject(new InvalidOperationError(`Light group command ${cmd.name} does not exist`, 'runLightGroupCommandAsync'));
+            if (isNaN(id)) return Promise.reject(new InvalidOperationError(`Light group ${id} does not exist`, 'runLightGroupCommandAsync'));
+            let grp = sys.lightGroups.getItemById(id);
+            let nop = sys.board.valueMaps.circuitActions.getValue(cmd.name);
+            let sgrp = state.lightGroups.getItemById(grp.id);
+            sgrp.action = nop;
+            sgrp.emitEquipmentChange();
+            switch (cmd.name) {
+                case 'colorset':
+                    await this.sequenceLightGroupAsync(id, 'colorset');
+                    break;
+                case 'colorswim':
+                    await this.sequenceLightGroupAsync(id, 'colorswim');
+                    break;
+                case 'colorhold':
+                    await this.setLightGroupThemeAsync(id, 190);
+                    break;
+                case 'colorrecall':
+                    await this.setLightGroupThemeAsync(id, 191);
+                    break;
+                case 'lightthumper':
+                    await this.setLightGroupThemeAsync(id, 208);
+                    break;
+            }
+            sgrp.action = 0;
+            sgrp.emitEquipmentChange();
+            return sgrp;
+        }
+        catch (err) { return Promise.reject(`Error runLightGroupCommandAsync ${err.message}`); }
+    }
+    public async runLightCommandAsync(obj: any): Promise<ICircuitState> {
+        // Do all our validation.
+        try {
+            let id = parseInt(obj.id, 10);
+            let cmd = typeof obj.command !== 'undefined' ? sys.board.valueMaps.lightCommands.findItem(obj.command) : { val: 0, name: 'undefined' };
+            if (cmd.val === 0) return Promise.reject(new InvalidOperationError(`Light command ${cmd.name} does not exist`, 'runLightCommandAsync'));
+            if (isNaN(id)) return Promise.reject(new InvalidOperationError(`Light ${id} does not exist`, 'runLightCommandAsync'));
+            let circ = sys.circuits.getItemById(id);
+            if (!circ.isActive) return Promise.reject(new InvalidOperationError(`Light circuit #${id} is not active`, 'runLightCommandAsync'));
+            let type = sys.board.valueMaps.circuitFunctions.transform(circ.type);
+            if (!type.isLight) return Promise.reject(new InvalidOperationError(`Circuit #${id} is not a light`, 'runLightCommandAsync'));
+            let nop = sys.board.valueMaps.circuitActions.getValue(cmd.name);
+            let slight = state.circuits.getItemById(circ.id);
+            slight.action = nop;
+            slight.emitEquipmentChange();
+            // Touch boards cannot change the theme or color of a single light.
+            slight.action = 0;
+            slight.emitEquipmentChange();
+            return slight;
+        }
+        catch (err) { return Promise.reject(`Error runLightCommandAsync ${err.message}`); }
     }
     public async setLightGroupThemeAsync(id = sys.board.equipmentIds.circuitGroups.start, theme: number): Promise<ICircuitState> {
         return new Promise<ICircuitState>((resolve, reject) => {
             const grp = sys.lightGroups.getItemById(id);
             const sgrp = state.lightGroups.getItemById(id);
             grp.lightingTheme = sgrp.lightingTheme = theme;
+            sgrp.action = sys.board.valueMaps.circuitActions.getValue('lighttheme');
+            sgrp.emitEquipmentChange();
             let out = Outbound.create({
                 action: 96,
                 payload: [theme, 0],
@@ -1577,6 +1644,7 @@ export class TouchCircuitCommands extends CircuitCommands {
                                     setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'color'); });
                                 // other themes for magicstream?
                             }
+                            sgrp.action = 0;
                             sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
                             state.emitEquipmentChanges();
                             resolve(sgrp);
