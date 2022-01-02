@@ -2242,6 +2242,7 @@ export class ChemicalState extends ChildEqState {
         if (typeof this.data.flowDelay === 'undefined') this.data.flowDelay = false;
         if (typeof this.data.dosingStatus === 'undefined') this.dosingStatus = 2;
         if (typeof this.data.enabled === 'undefined') this.data.enabled = true;
+        if (typeof this.data.freezeProtect === 'undefined') this.data.freezeProtect = false;
     }
     public getConfig(): Chemical { return; }
     public calcDoseHistory(): number {
@@ -2348,6 +2349,8 @@ export class ChemicalState extends ChildEqState {
     public get demandHistory() { return new ChemicalDemandState(this.data, 'demandHistory', this) };
     public get enabled(): boolean { return this.data.enabled; }
     public set enabled(val: boolean) { this.data.enabled = val; }
+    public get freezeProtect(): boolean { return this.data.freezeProtect; }
+    public set freezeProtect(val: boolean) { this.data.freezeProtect = val; }
     public get level(): number { return this.data.level; }
     public set level(val: number) { this.setDataVal('level', val); }
     public get setpoint(): number { return this.data.setpoint; }
@@ -2769,6 +2772,7 @@ export class ChemControllerStateAlarms extends ChildEqState {
         if (typeof this.data.bodyFault === 'undefined') this.data.bodyFault = sys.board.valueMaps.chemControllerHardwareFaults.transform(0);
         if (typeof this.data.flowSensorFault === 'undefined') this.data.flowSensorFault = sys.board.valueMaps.chemControllerHardwareFaults.transform(0);
         if (typeof this.data.comms === 'undefined') this.data.comms = sys.board.valueMaps.chemControllerStatus.transform(0);
+        if (typeof this.data.freezeProtect === 'undefined') this.data.freezeProtect = sys.board.valueMaps.chemControllerAlarms.transform(0);
     }
     public get flow(): number { return typeof this.data.flow === 'undefined' ? undefined : this.data.flow.val; }
     public set flow(val: number) {
@@ -2861,7 +2865,6 @@ export class ChemControllerStateAlarms extends ChildEqState {
             this.hasChanged = true;
         }
     }
-
     public get comms(): number { return typeof this.data.comms === 'undefined' ? undefined : this.data.comms.val; }
     public set comms(val: number) {
         if (this.comms !== val) {
@@ -2869,6 +2872,14 @@ export class ChemControllerStateAlarms extends ChildEqState {
             this.hasChanged = true;
         }
     }
+    public get freezeProtect(): number { return typeof this.data.freezeProtect === 'undefined' ? undefined : this.data.freezeProtect.val; }
+    public set freezeProtect(val: number) {
+        if (this.freezeProtect !== val) {
+            this.data.freezeProtect = sys.board.valueMaps.chemControllerAlarms.transform(val);
+            this.hasChanged = true;
+        }
+    }
+
 }
 export class AppVersionState extends EqState {
     public get nextCheckTime(): string { return this.data.nextCheckTime; }

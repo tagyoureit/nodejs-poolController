@@ -674,6 +674,7 @@ export class NixieChemController extends NixieChemControllerBase {
                     schem.warnings.chlorinatorCommError = 0;
                     schem.warnings.pHLockout = 0;
                 }
+                schem.orp.freezeProtect = (state.freeze && chem.orp.disableOnFreeze && schem.isBodyOn);
             }
             else {
                 schem.warnings.chlorinatorCommError = 0;
@@ -681,6 +682,7 @@ export class NixieChemController extends NixieChemControllerBase {
                 schem.warnings.orpDailyLimitReached = 0;
                 schem.alarms.orp = 0;
                 schem.warnings.pHLockout = 0;
+                schem.orp.freezeProtect = false;
             }
             if (this.chem.ph.enabled) {
                 let pumpType = chem.ph.pump.type;
@@ -709,11 +711,21 @@ export class NixieChemController extends NixieChemControllerBase {
                     else schem.alarms.pH = 0;
                 }
                 else schem.alarms.pH = 0;
+                schem.ph.freezeProtect = (state.freeze && chem.ph.disableOnFreeze && schem.isBodyOn);
             }
+            else {
+                schem.alarms.pHTank = 0;
+                schem.warnings.pHDailyLimitReached = 0;
+                schem.alarms.pH = 0;
+                schem.ph.freezeProtect = false;
+            }
+            
             if (chem.lsiRange.enabled) {
                 schem.warnings.waterChemistry = schem.saturationIndex < chem.lsiRange.low ? 1 : schem.saturationIndex > chem.lsiRange.high ? 2 : 0;
             }
             else schem.warnings.waterChemistry = 0;
+
+            schem.alarms.freezeProtect = (schem.ph.freezeProtect || schem.orp.freezeProtect) ? sys.board.valueMaps.chemControllerAlarms.getValue('freezeprotect') : 0;
         } catch (err) { logger.error(`Error processing chem controller ${this.chem.name} alarms: ${err.message}`); }
     }
     private async checkHardwareStatusAsync(connectionId: string, deviceBinding: string) {
@@ -752,6 +764,7 @@ export class NixieChemController extends NixieChemControllerBase {
                 }
                 else
                     schem.alarms.orpPumpFault = schem.alarms.chlorFault = 0;
+
             }
             else schem.alarms.orpPumpFault = schem.alarms.chlorFault = schem.alarms.orpProbeFault = 0;
             if (chem.ph.enabled) {
@@ -971,7 +984,7 @@ class NixieChemical extends NixieChildEquipment {
             await this.initMixChemicals(schem, mixingTime);
             if (this._stoppingMix) return;
             schem.chlor.isDosing = schem.pump.isDosing = false;
-            if (!this.chemical.flowOnlyMixing || (schem.chemController.isBodyOn && this.chemController.flowDetected)) {
+            if (!this.chemical.flowOnlyMixing || (schem.chemController.isBodyOn && this.chemController.flowDetected && !schem.freezeProtect)) {
                 if (this.chemType === 'orp' && typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0) {
                     if (state.chlorinators.getItemById(1).currentOutput !== 0) {
                         logger.debug(`Chem mixing ORP (chlorinator) paused waiting for chlor current output to be 0%.  Mix time remaining: ${utils.formatDuration(schem.mixTimeRemaining)} `);
@@ -1141,7 +1154,7 @@ export class NixieChemPump extends NixieChildEquipment {
                 await this.chemical.initDose(schem);
                 let delay = 0;
                 // Check to see if we are in delay.  The start delay for the configuration is in minutes.
-                if (isBodyOn) {
+                if (isBodyOn && !schem.freezeProtect) {
                     // The remaining delay = delay time - (current time - on time).
                     let timeElapsed = new Date().getTime() - this.chemical.chemController.bodyOnTime;
                     delay = Math.max(0, ((this.chemical.chemical.startDelay * 60) * 1000) - timeElapsed);
@@ -1164,6 +1177,12 @@ export class NixieChemPump extends NixieChildEquipment {
                     // We originally thought that we could wait to turn the dosing on but instead we will cancel the dose.  This will allow
                     // the chlorinator to work more smoothly.
                     await this.chemical.cancelDosing(schem, 'no flow');
+                }
+                else if (schem.freezeProtect) {
+                    logger.info(`Chem pump freeze protection`);
+                    // We originally thought that we could wait to turn the dosing on but instead we will cancel the dose.  This will allow
+                    // the chlorinator to work more smoothly.
+                    await this.chemical.cancelDosing(schem, 'freeze');
                 }
                 else if (schem.tank.level <= 0) {
                     logger.info(`Chem tank ran dry with ${schem.currentDose.volumeRemaining}mL remaining`);
@@ -1485,6 +1504,8 @@ export class NixieChemicalPh extends NixieChemical {
                 this.ph.acidType = typeof data.acidType !== 'undefined' ? data.acidType : this.ph.acidType;
                 this.ph.flowReadingsOnly = typeof data.flowReadingsOnly !== 'undefined' ? utils.makeBool(data.flowReadingsOnly) : this.ph.flowReadingsOnly;
                 sph.level = typeof data.level !== 'undefined' && !isNaN(parseFloat(data.level)) ? parseFloat(data.level) : sph.level;
+                this.ph.disableOnFreeze = typeof data.disableOnFreeze !== 'undefined' ? utils.makeBool(data.disableOnFreeze) : this.ph.disableOnFreeze;
+                if (!this.ph.disableOnFreeze) sph.freezeProtect = false;
                 if (typeof data.tolerance !== 'undefined') {
                     if (typeof data.tolerance.enabled !== 'undefined') this.ph.tolerance.enabled = utils.makeBool(data.tolerance.enabled);
                     if (typeof data.tolerance.low === 'number') this.ph.tolerance.low = data.tolerance.low;
@@ -1592,6 +1613,8 @@ export class NixieChemicalPh extends NixieChemical {
                 // Check the setpoint and the current level to see if we need to dose.
                 if (!sph.chemController.isBodyOn)
                     await this.cancelDosing(sph, 'body off');
+                else if (sph.freezeProtect)
+                    await this.cancelDosing(sph, 'freeze');
                 else if (!sph.chemController.flowDetected)
                     await this.cancelDosing(sph, 'no flow');
                 else if (demand <= 0)
@@ -1750,6 +1773,8 @@ export class NixieChemicalORP extends NixieChemical {
                 sorp.level = typeof data.level !== 'undefined' && !isNaN(parseFloat(data.level)) ? parseFloat(data.level) : sorp.level;
                 this.orp.phLockout = typeof data.phLockout !== 'undefined' && !isNaN(parseFloat(data.phLockout)) ? parseFloat(data.phLockout) : this.orp.phLockout;
                 this.orp.flowReadingsOnly = typeof data.flowReadingsOnly !== 'undefined' ? utils.makeBool(data.flowReadingsOnly) : this.orp.flowReadingsOnly;
+                this.orp.disableOnFreeze = typeof data.disableOnFreeze !== 'undefined' ? utils.makeBool(data.disableOnFreeze) : this.orp.disableOnFreeze;
+                if (!this.orp.disableOnFreeze) sorp.freezeProtect = false;
                 if (typeof data.chlorDosingMethod !== 'undefined') { this.orp.chlorDosingMethod = data.chlorDosingMethod; }
                 await this.setDosing(this.orp, data);
                 await this.setMixing(this.orp, data);
@@ -1933,6 +1958,9 @@ export class NixieChemicalORP extends NixieChemical {
                     await this.pump.dose(sorp);
                 }
                 else await this.cancelDosing(sorp, 'empty tank');
+            }
+            else if (sorp.freezeProtect) {
+                await this.cancelDosing(sorp, 'freeze');
             }
             else if (sorp.dailyLimitReached && !chem.orp.useChlorinator) {
                 await this.cancelDosing(sorp, 'daily limit');

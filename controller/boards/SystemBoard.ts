@@ -642,29 +642,31 @@ export class byteValueMaps {
     [1, { name: 'nocomms', desc: 'No Communication' }],
     [2, { name: 'config', desc: 'Invalid Configuration' }]
   ]);
-  public chemControllerAlarms: byteValueMap = new byteValueMap([
-    [0, { name: 'ok', desc: 'Ok - No alarm' }],
-    [1, { name: 'noflow', desc: 'No Flow Detected' }],
-    [2, { name: 'phhigh', desc: 'pH Level High' }],
-    [4, { name: 'phlow', desc: 'pH Level Low' }],
-    [8, { name: 'orphigh', desc: 'orp Level High' }],
-    [16, { name: 'orplow', desc: 'orp Level Low' }],
-    [32, { name: 'phtankempty', desc: 'pH Tank Empty' }],
-    [64, { name: 'orptankempty', desc: 'orp Tank Empty' }],
-    [128, { name: 'probefault', desc: 'Probe Fault' }],
-    [129, { name: 'phtanklow', desc: 'pH Tank Low' }],
-    [130, { name: 'orptanklow', desc: 'orp Tank Low' }]
-  ]);
-  public chemControllerHardwareFaults: byteValueMap = new byteValueMap([
-    [0, { name: 'ok', desc: 'Ok - No Faults' }],
-    [1, { name: 'phprobe', desc: 'pH Probe Fault' }],
-    [2, { name: 'phpump', desc: 'pH Pump Fault' }],
-    [3, { name: 'orpprobe', desc: 'ORP Probe Fault' }],
-    [4, { name: 'orppump', desc: 'ORP Pump Fault' }],
-    [5, { name: 'chlormismatch', desc: 'Chlorinator body mismatch' }],
-    [6, { name: 'invalidbody', desc: 'Body capacity not valid' }],
-    [7, { name: 'flowsensor', desc: 'Flow Sensor Fault' }]
-  ]);
+    public chemControllerAlarms: byteValueMap = new byteValueMap([
+        [0, { name: 'ok', desc: 'Ok - No alarm' }],
+        [1, { name: 'noflow', desc: 'No Flow Detected' }],
+        [2, { name: 'phhigh', desc: 'pH Level High' }],
+        [4, { name: 'phlow', desc: 'pH Level Low' }],
+        [8, { name: 'orphigh', desc: 'orp Level High' }],
+        [16, { name: 'orplow', desc: 'orp Level Low' }],
+        [32, { name: 'phtankempty', desc: 'pH Tank Empty' }],
+        [64, { name: 'orptankempty', desc: 'orp Tank Empty' }],
+        [128, { name: 'probefault', desc: 'Probe Fault' }],
+        [129, { name: 'phtanklow', desc: 'pH Tank Low' }],
+        [130, { name: 'orptanklow', desc: 'orp Tank Low' }],
+        [131, { name: 'freezeprotect', desc: 'Freeze Protection Lockout'}]
+    ]);
+    public chemControllerHardwareFaults: byteValueMap = new byteValueMap([
+        [0, { name: 'ok', desc: 'Ok - No Faults' }],
+        [1, { name: 'phprobe', desc: 'pH Probe Fault' }],
+        [2, { name: 'phpump', desc: 'pH Pump Fault' }],
+        [3, { name: 'orpprobe', desc: 'ORP Probe Fault' }],
+        [4, { name: 'orppump', desc: 'ORP Pump Fault' }],
+        [5, { name: 'chlormismatch', desc: 'Chlorinator body mismatch' }],
+        [6, { name: 'invalidbody', desc: 'Body capacity not valid' }],
+        [7, { name: 'flowsensor', desc: 'Flow Sensor Fault' }]
+
+    ]);
   public chemControllerWarnings: byteValueMap = new byteValueMap([
     [0, { name: 'ok', desc: 'Ok - No Warning' }],
     [1, { name: 'corrosive', desc: 'Corrosion May Occur' }],

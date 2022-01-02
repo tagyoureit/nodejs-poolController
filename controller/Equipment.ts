@@ -2185,11 +2185,14 @@ export class Chemical extends ChildEqItem {
         if (typeof this.data.flowReadingsOnly === 'undefined') this.data.flowReadingsOnly = true;
         if (typeof this.data.flowOnlyMixing === 'undefined') this.data.flowOnlyMixing = true;
         if (typeof this.data.maxDailyVolume === 'undefined') this.data.maxDailyVolume = 500;
+        if (typeof this.data.disableOnFreeze === 'undefined') this.data.disableOnFreeze = true;
         super.initData();
     }
     public get chemType(): string { return this.data.chemType; }
     public get enabled(): boolean { return utils.makeBool(this.data.enabled); }
     public set enabled(val: boolean) { this.setDataVal('enabled', val); }
+    public get disableOnFreeze(): boolean { return utils.makeBool(this.data.disableOnFreeze); }
+    public set disableOnFreeze(val: boolean) { this.setDataVal('disableOnFreeze', val); }
     public get maxDosingTime(): number { return this.data.maxDosingTime; }
     public set maxDosingTime(val: number) { this.setDataVal('maxDosingTime', val); }
     public get maxDosingVolume(): number { return this.data.maxDosingVolume; }
