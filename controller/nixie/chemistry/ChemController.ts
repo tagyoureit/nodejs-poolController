@@ -622,19 +622,14 @@ export class NixieChemController extends NixieChemControllerBase {
             // Calculate all the alarms.  These are only informational at this point.
             let setupValid = true;
             if (this.flowSensor.sensor.type === 0) {
-                if (!schem.isBodyOn) schem.alarms.flow = 0;
+                // When there is no flow sensor we always use the body to determine flow.  This means that the
+                // flow alarm can never be triggered.
+                schem.alarms.flow = 0;
             }
             else {
-                if (this.flowSensor.sensor.type === 1) {
-                    schem.alarms.flow = schem.isBodyOn === schem.flowDetected ? 0 : 1;
-                }
-                else {
-                    // both flow and pressure sensors (type 2 & 4)
-                    if (schem.isBodyOn && !schem.flowDetected || !schem.isBodyOn && schem.flowDetected) {
-                        schem.alarms.flow = 1;
-                    }
-                    else schem.alarms.flow = 0;
-                }
+                // If the body is on and there is no flow detected then we need
+                // to indicate this to the user.
+                schem.alarms.flow = schem.isBodyOn && !schem.flowDetected ? 1 : 0;
             }
             schem.ph.dailyVolumeDosed = schem.ph.calcDoseHistory();
             schem.orp.dailyVolumeDosed = schem.orp.calcDoseHistory();
