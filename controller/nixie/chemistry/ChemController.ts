@@ -661,7 +661,7 @@ export class NixieChemController extends NixieChemControllerBase {
                     if (probeType !== 0 && chem.orp.tolerance.enabled)
                         schem.alarms.orp = schem.orp.level < chem.orp.tolerance.low ? 16 : schem.orp.level > chem.orp.tolerance.high ? 8 : 0;
                     else schem.alarms.orp = 0;
-                    schem.warnings.chlorinatorCommError = useChlorinator && state.chlorinators.getItemById(1).status & 0xF0 ? 16 : 0;
+                    schem.warnings.chlorinatorCommError = useChlorinator && schem.isBodyOn && state.chlorinators.getItemById(1).status & 0xF0 ? 16 : 0;
                     schem.warnings.pHLockout = useChlorinator === false && probeType !== 0 && pumpType !== 0 && schem.ph.level >= chem.orp.phLockout ? 1 : 0;
                 }
                 else {
