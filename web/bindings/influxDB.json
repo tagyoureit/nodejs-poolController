@@ -296,6 +296,16 @@
               "type": "int"
             },
             {
+              "name": "high threshold",
+              "value": "@bind=vars.cfg.ph.tolerance.high;",
+              "type": "float"
+            },
+            {
+              "name": "low threshold",
+              "value": "@bind=vars.cfg.ph.tolerance.low;",
+              "type": "float"
+            },
+            {
               "name": "tolerance enabled int",
               "value": "@bind=vars.cfg.ph.tolerance.enabled?1:0;",
               "type": "int"
