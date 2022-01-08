@@ -2202,7 +2202,7 @@ export class ChemControllerState extends EqState {
     public get flowSensor(): ChemicalFlowSensorState { return new ChemicalFlowSensorState(this.data, 'flowSensor', this); }
     public get warnings(): ChemControllerStateWarnings { return new ChemControllerStateWarnings(this.data, 'warnings', this); }
     public get alarms(): ChemControllerStateAlarms { return new ChemControllerStateAlarms(this.data, 'alarms', this); }
-    public get siCalcType(): number { return this.data.siCalcType; }
+    public get siCalcType(): number { return typeof this.data.siCalcType === 'undefined' ? 0 : this.data.siCalcType.val; }
     public set siCalcType(val: number) {
         if (this.siCalcType !== val) {
             this.data.siCalcType = sys.board.valueMaps.siCalcTypes.transform(val);
