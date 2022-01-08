@@ -2140,7 +2140,7 @@ export class ChemController extends EqItem {
     public getExtended() {
         let chem = this.get(true);
         chem.type = sys.board.valueMaps.chemControllerTypes.transform(this.type);
-        chem.siCalcType = sys.board.valueMaps.siCalcTypes.transform(this.type);
+        chem.siCalcType = sys.board.valueMaps.siCalcTypes.transform(this.siCalcType || 0);
         chem.body = sys.board.valueMaps.bodies.transform(this.body);
         chem.ph = this.ph.getExtended();
         chem.orp = this.orp.getExtended();
