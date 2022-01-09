@@ -48,11 +48,9 @@ If you don't know anything about NodeJS, these directions might be helpful.
 1. Install Nodejs (v12 recommended). (https://nodejs.org/en/download/)
 1. Update NPM (https://docs.npmjs.com/getting-started/installing-node).
 1. It is recommended to clone the source code as updates are frequently pushed while releases are infrequent
-   
-   Download the latest [code release](https://github.com/tagyoureit/nodejs-poolController/releases)
-   OR
-   clone with `git clone git@github.com:tagyoureit/nodejs-poolController.git`
-1. Unzip into nodejs-poolController.
+   clone with `git clone https://github.com/tagyoureit/nodejs-poolController.git`
+   (Alternate - not recommended - Download the latest [code release](https://github.com/tagyoureit/nodejs-poolController/releases)
+1. Change directory into nodejs-poolController.
 1. Run 'npm install' in the new folder (where package.json exists).  This will automatically install all the dependencies (serial-port, express, sockets.io, etc).
 1. Run the app with `npm start`.
    * `npm start` will compile the Typescript code.  You should use this every time you download/clone/pull the latest code.
@@ -62,6 +60,13 @@ If you don't know anything about NodeJS, these directions might be helpful.
 1. Install a [webclient](module_nodejs-poolController--clients) for a browser experience and/or a [binding](module_nodejs-poolController--bindings) to have two way control with Home Automation systems.
 
 For a very thorough walk-through, see [this](https://www.troublefreepool.com/threads/pentair-intellicenter-pool-control-dashboard-instructional-guide.218514/) great thread on Trouble Free Pool.  Thanks @MyAZPool.
+
+#### Upgrade Instructions
+Assuming you cloned the repo, the following are easy steps to get the latest version:
+1. Change directory to the njsPC app
+2. `git pull`
+3. `npm i` (not always necessary, but if dependencies are upgraded this will bring them up to date)
+4. Start application as normal, or if using `npm run start:cached` then run `npm run build` to compile the code.
 
 ### Docker instructions
 
