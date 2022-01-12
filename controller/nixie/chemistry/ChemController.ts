@@ -975,6 +975,14 @@ class NixieChemical extends NixieChildEquipment {
                 return;
             }
             this._processingMix = true;
+            if (!this.chemical.enabled) {
+                // The chemical is not enabled so we need to ditch the mixing if it is currently underway.
+                await this.stopMixing(schem);
+                return;
+
+
+            }
+
             let dt = new Date().getTime();
             await this.initMixChemicals(schem, mixingTime);
             if (this._stoppingMix) return;
@@ -1541,6 +1549,10 @@ export class NixieChemicalPh extends NixieChemical {
             logger.debug(`Begin check ${sph.chemType} dosing status = ${status}`);
             let demand = sph.calcDemand(chem);
             sph.demand = Math.max(demand, 0);
+            if (!chem.ph.enabled) {
+                await this.cancelDosing(sph, 'disabled');
+                return;
+            }
             if (sph.suspendDosing) {
                 // Kill off the dosing and make sure the pump isn't running.  Let's force the issue here.
                 await this.cancelDosing(sph, 'suspended');
@@ -1908,6 +1920,11 @@ export class NixieChemicalORP extends NixieChemical {
     }
     public async checkDosing(chem: ChemController, sorp: ChemicalORPState): Promise<void> {
         try {
+            if (!chem.orp.enabled) {
+                await this.cancelDosing(sorp, 'disabled');
+                return;
+            }
+
             let status = sys.board.valueMaps.chemControllerDosingStatus.getName(sorp.dosingStatus);
             if (!chem.orp.flowReadingsOnly || (chem.orp.flowReadingsOnly && sorp.chemController.flowDetected)) {
                 // demand in raw mV
@@ -1917,6 +1934,7 @@ export class NixieChemicalORP extends NixieChemical {
                 sorp.appendDemand(new Date().valueOf(), sorp.demand);
             }
             if (chem.orp.useChlorinator && chem.orp.chlorDosingMethod === 0) return; // if chlor is managing itself, don't even cancel/stop as it will set the flags on the chlor
+           
             if (sorp.suspendDosing) {
                 // Kill off the dosing and make sure the pump isn't running.  Let's force the issue here.
                 await this.cancelDosing(sorp, 'suspended');
