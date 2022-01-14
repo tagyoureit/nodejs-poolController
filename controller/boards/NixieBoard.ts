@@ -1550,14 +1550,14 @@ export class NixieValveCommands extends ValveCommands {
 export class NixieHeaterCommands extends HeaterCommands {
     public async setHeaterAsync(obj: any): Promise<Heater> {
         try {
-            let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
+            let id = typeof obj.id === 'undefined' || !obj.id ? -1 : parseInt(obj.id, 10);
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
             else if (id < 256 && id > 0) return Promise.reject(new InvalidEquipmentIdError('Nixie Heaters controlled by njspc must have an Id > 256.', obj.id, 'Heater'));
             let heater: Heater;
             if (id <= 0) {
                 // We are adding a heater.  In this case all heaters are virtual.
                 let vheaters = sys.heaters.filter(h => h.master === 1);
-                id = Math.max(vheaters.getMaxId() + 1, vheaters.length + 256);
+                id = Math.max(vheaters.getMaxId() + 1 || 0, vheaters.length + 256);
                 logger.info(`Adding a new heater with id ${id}`);
             }
             heater = sys.heaters.getItemById(id, true);
