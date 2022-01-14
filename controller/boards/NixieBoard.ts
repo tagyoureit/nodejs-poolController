@@ -1583,6 +1583,7 @@ export class NixieHeaterCommands extends HeaterCommands {
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
             let heater = sys.heaters.getItemById(id);
             heater.isActive = false;
+            await ncp.heaters.deleteHeaterAsync(id);
             sys.heaters.removeItemById(id);
             state.heaters.removeItemById(id);
             sys.board.heaters.updateHeaterServices();

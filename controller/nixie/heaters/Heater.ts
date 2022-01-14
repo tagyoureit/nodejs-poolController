@@ -454,6 +454,38 @@ export class NixieUltratemp extends NixieHeatpump {
             }, this.pollingInterval || 10000);
         }
     }
+    public async releaseHeater(sheater: HeaterState): Promise<boolean> {
+        try {
+            let success = await new Promise<boolean>((resolve, reject) => {
+                let out = Outbound.create({
+                    protocol: Protocol.Heater,
+                    source: 16,
+                    dest: this.heater.address,
+                    action: 114,
+                    payload: [],
+                    retries: 3, // We are going to try 4 times.
+                    response: Response.create({ protocol: Protocol.Heater, action: 115 }),
+                    onAbort: () => { },
+                    onComplete: (err) => {
+                        if (err) {
+                            // If the Ultratemp is not responding we need to store that off but at this point we know none of the codes.  If a 115 does
+                            // come across this will be cleared by the processing of that message.
+                            sheater.commStatus = sys.board.valueMaps.equipmentCommStatus.getValue('commerr');
+                            state.equipment.messages.setMessageByCode(`heater:${sheater.id}:comms`, 'error', `Communication error with ${sheater.name}`);
+                            resolve(false);
+                        }
+                        else { resolve(true); }
+                    }
+                });
+                out.appendPayloadBytes(0, 10);
+                out.setPayloadByte(0, 144);
+                out.setPayloadByte(1, 0, 0);
+                conn.queueSendMessage(out);
+            });
+            return success;
+        } catch (err) { logger.error(`Communication error with Ultratemp : ${err.message}`); }
+    }
+
     public async setStatus(sheater: HeaterState): Promise<boolean> {
         try {
             let success = await new Promise<boolean>((resolve, reject) => {
@@ -480,7 +512,7 @@ export class NixieUltratemp extends NixieHeatpump {
                 out.appendPayloadBytes(0, 10);
                 out.setPayloadByte(0, 144);
                 // If we are in startup delay simply tell the heater that it is off.
-                if (sheater.startupDelay)
+                if (sheater.startupDelay || this.closing)
                     out.setPayloadByte(1, 0, 0);
                 else {
                     if (this.isOn) {
@@ -500,6 +532,8 @@ export class NixieUltratemp extends NixieHeatpump {
             this.closing = true;
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
+            let sheater = state.heaters.getItemById(this.id);
+            await this.releaseHeater(sheater);
             logger.info(`Closing Heater ${this.heater.name}`);
         }
         catch (err) { logger.error(`Ultratemp closeAsync: ${err.message}`); return Promise.reject(err); }
