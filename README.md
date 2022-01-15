@@ -51,7 +51,7 @@ If you don't know anything about NodeJS, these directions might be helpful.
    clone with `git clone https://github.com/tagyoureit/nodejs-poolController.git`
    (Alternate - not recommended - Download the latest [code release](https://github.com/tagyoureit/nodejs-poolController/releases)
 1. Change directory into nodejs-poolController.
-1. Run 'npm install' in the new folder (where package.json exists).  This will automatically install all the dependencies (serial-port, express, sockets.io, etc).
+1. Run `npm install` in the new folder (where package.json exists).  This will automatically install all the dependencies (serial-port, express, sockets.io, etc).
 1. Run the app with `npm start`.
    * `npm start` will compile the Typescript code.  You should use this every time you download/clone/pull the latest code.
    * `npm run start:cached` will run the app without compiling the code which can be much faster.
