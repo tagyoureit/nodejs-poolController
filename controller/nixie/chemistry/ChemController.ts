@@ -340,6 +340,7 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
                 out.setPayloadByte(9, this.chem.cyanuricAcid);
                 out.setPayloadByte(10, Math.floor(this.chem.alkalinity / 256) || 0);
                 out.setPayloadByte(12, Math.round(this.chem.alkalinity % 256) || 0);
+                logger.verbose(`Nixie: ${this.chem.name} sending IntelliChem settings action 146`);
                 conn.queueSendMessage(out);
             });
         }
