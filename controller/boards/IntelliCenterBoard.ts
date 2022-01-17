@@ -3876,11 +3876,11 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
         //[255, 0, 255][165,  0, 15, 33, 168, 20][8, 0, 0, 32, 1, 144, 1, 248, 2, 144, 1, 1, 1, 33, 0, 0, 0, 100, 0, 0][4, 93]
         return new Promise<ChemController>((resolve, reject) => {
             let out = Outbound.create({
-                protocol: Protocol.IntelliChem,
+                protocol: Protocol.Broadcast,
                 action: 168,
                 payload: [],
                 retries: 3, // We are going to try 4 times.
-                response: IntelliCenterBoard.getAckResponse(168, 16),
+                response: IntelliCenterBoard.getAckResponse(168),
                 //onAbort: () => { },
                 onComplete: (err) => {
                     if (err) reject(err);
