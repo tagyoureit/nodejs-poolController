@@ -598,7 +598,7 @@ export class IntelliCenterBoard extends SystemBoard {
     }
     public get commandSourceAddress(): number { return Message.pluginAddress; }
     public get commandDestAddress(): number { return 15; }
-    public static getAckResponse(action: number): Response { return Response.create({ dest: sys.board.commandSourceAddress, action: 1, payload: [action] }); }
+    public static getAckResponse(action: number, source?: number): Response { return Response.create({ dest: source || sys.board.commandSourceAddress, action: 1, payload: [action] }); }
 }
 class IntelliCenterConfigRequest extends ConfigRequest {
     constructor(cat: number, ver: number, items?: number[], oncomplete?: Function) {
@@ -3881,7 +3881,7 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
                 source: 16,
                 payload: [],
                 retries: 3, // We are going to try 4 times.
-                response: IntelliCenterBoard.getAckResponse(168),
+                response: IntelliCenterBoard.getAckResponse(168, 16),
                 onAbort: () => { },
                 onComplete: (err) => {
                     if (err) reject(err);
