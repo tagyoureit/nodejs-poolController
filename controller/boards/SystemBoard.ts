@@ -4411,7 +4411,7 @@ export class ChemControllerCommands extends BoardCommands {
             chem.isActive = true;
             // So here is the thing.  If you have an OCP then the IntelliChem must be controlled by that.
             // the messages on the bus will talk back to the OCP so if you do not do this mayhem will ensue.
-            if (type.name === 'intellichem') {
+            if (t.name === 'intellichem') {
                 logger.info(`${chem.name} - ${chem.id} routing IntelliChem to OCP`);
                 await sys.board.chemControllers.setIntelliChemAsync(data);
             }
