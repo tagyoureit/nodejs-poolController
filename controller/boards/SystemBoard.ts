@@ -4427,6 +4427,7 @@ export class ChemControllerCommands extends BoardCommands {
         let chem = sys.board.chemControllers.findChemController(data);
         if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`A valid chem controller could not be found for id:${data.id} or address ${data.address}`, data.id || data.address, 'chemController'));
         data.id = chem.id;
+        logger.info(`Setting ${chem.name} data ${chem.master}`);
         if (chem.master === 1) await ncp.chemControllers.setControllerAsync(chem, data);
         else await sys.board.chemControllers.setChemControllerAsync(data);
         let schem = state.chemControllers.getItemById(chem.id, true);
