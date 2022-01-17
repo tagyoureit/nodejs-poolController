@@ -241,24 +241,28 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
             }
             if (isNaN(pHSetpoint) || pHSetpoint > type.ph.max || pHSetpoint < type.ph.min) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH setpoint ${pHSetpoint}`, 'ph.setpoint', pHSetpoint));
             if (isNaN(orpSetpoint) || orpSetpoint > type.orp.max || orpSetpoint < type.orp.min) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp setpoint`, 'orp.setpoint', orpSetpoint));
-            let phTolerance = typeof data.ph.tolerance !== 'undefined' ? data.ph.tolerance : chem.ph.tolerance;
-            let orpTolerance = typeof data.orp.tolerance !== 'undefined' ? data.orp.tolerance : chem.orp.tolerance;
-            if (typeof data.ph.tolerance !== 'undefined') {
-                if (typeof data.ph.tolerance.enabled !== 'undefined') phTolerance.enabled = utils.makeBool(data.ph.tolerance.enabled);
-                if (typeof data.ph.tolerance.low !== 'undefined') phTolerance.low = parseFloat(data.ph.tolerance.low);
-                if (typeof data.ph.tolerance.high !== 'undefined') phTolerance.high = parseFloat(data.ph.tolerance.high);
-                if (isNaN(phTolerance.low)) phTolerance.low = type.ph.min;
-                if (isNaN(phTolerance.high)) phTolerance.high = type.ph.max;
+            let phTolerance = typeof data.ph !== 'undefined' && typeof data.ph.tolerance !== 'undefined' ? data.ph.tolerance : chem.ph.tolerance;
+            if (typeof data.ph !== 'undefined') {
+                if (typeof data.ph.tolerance !== 'undefined') {
+                    if (typeof data.ph.tolerance.enabled !== 'undefined') phTolerance.enabled = utils.makeBool(data.ph.tolerance.enabled);
+                    if (typeof data.ph.tolerance.low !== 'undefined') phTolerance.low = parseFloat(data.ph.tolerance.low);
+                    if (typeof data.ph.tolerance.high !== 'undefined') phTolerance.high = parseFloat(data.ph.tolerance.high);
+                    if (isNaN(phTolerance.low)) phTolerance.low = type.ph.min;
+                    if (isNaN(phTolerance.high)) phTolerance.high = type.ph.max;
+                }
             }
-            if (typeof data.orp.tolerance !== 'undefined') {
-                if (typeof data.orp.tolerance.enabled !== 'undefined') orpTolerance.enabled = utils.makeBool(data.orp.tolerance.enabled);
-                if (typeof data.orp.tolerance.low !== 'undefined') orpTolerance.low = parseFloat(data.orp.tolerance.low);
-                if (typeof data.orp.tolerance.high !== 'undefined') orpTolerance.high = parseFloat(data.orp.tolerance.high);
-                if (isNaN(orpTolerance.low)) orpTolerance.low = type.orp.min;
-                if (isNaN(orpTolerance.high)) orpTolerance.high = type.orp.max;
+            let phEnabled = typeof data.ph !== 'undefined' && typeof data.ph.enabled !== 'undefined' ? utils.makeBool(data.ph.enabled) : chem.ph.enabled;
+            let orpTolerance = typeof data.orp !== 'undefined' && typeof data.orp.tolerance !== 'undefined' ? data.orp.tolerance : chem.orp.tolerance;
+            if (typeof data.orp !== 'undefined') {
+                if (typeof data.orp.tolerance !== 'undefined') {
+                    if (typeof data.orp.tolerance.enabled !== 'undefined') orpTolerance.enabled = utils.makeBool(data.orp.tolerance.enabled);
+                    if (typeof data.orp.tolerance.low !== 'undefined') orpTolerance.low = parseFloat(data.orp.tolerance.low);
+                    if (typeof data.orp.tolerance.high !== 'undefined') orpTolerance.high = parseFloat(data.orp.tolerance.high);
+                    if (isNaN(orpTolerance.low)) orpTolerance.low = type.orp.min;
+                    if (isNaN(orpTolerance.high)) orpTolerance.high = type.orp.max;
+                }
             }
-            let phEnabled = typeof data.ph.enabled !== 'undefined' ? utils.makeBool(data.ph.enabled) : chem.ph.enabled;
-            let orpEnabled = typeof data.orp.enabled !== 'undefined' ? utils.makeBool(data.orp.enabled) : chem.orp.enabled;
+            let orpEnabled = typeof data.orp !== 'undefined' && typeof data.orp.enabled !== 'undefined' ? utils.makeBool(data.orp.enabled) : chem.orp.enabled;
             let siCalcType = typeof data.siCalcType !== 'undefined' ? sys.board.valueMaps.siCalcTypes.encode(data.siCalcType, 0) : chem.siCalcType;
             schem.siCalcType = chem.siCalcType = siCalcType;
             schem.ph.tank.capacity = chem.ph.tank.capacity = 6;
@@ -288,6 +292,8 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
             chem.ph.tolerance.enabled = phTolerance.enabled;
             chem.ph.tolerance.low = phTolerance.low;
             chem.ph.tolerance.high = phTolerance.high;
+            schem.ph.tank.level = acidTankLevel;
+            schem.orp.tank.level = orpTankLevel;
             chem.orp.tolerance.enabled = orpTolerance.enabled;
             chem.orp.tolerance.low = orpTolerance.low;
             chem.orp.tolerance.high = orpTolerance.high;

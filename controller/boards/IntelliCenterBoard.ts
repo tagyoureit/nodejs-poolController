@@ -3845,24 +3845,24 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
         }
         if (isNaN(pHSetpoint) || pHSetpoint > type.ph.max || pHSetpoint < type.ph.min) Promise.reject(new InvalidEquipmentDataError(`Invalid pH setpoint`, 'ph.setpoint', pHSetpoint));
         if (isNaN(orpSetpoint) || orpSetpoint > type.orp.max || orpSetpoint < type.orp.min) Promise.reject(new InvalidEquipmentDataError(`Invalid orp setpoint`, 'orp.setpoint', orpSetpoint));
-        let phTolerance = typeof data.ph.tolerance !== 'undefined' ? data.ph.tolerance : chem.ph.tolerance;
-        let orpTolerance = typeof data.orp.tolerance !== 'undefined' ? data.orp.tolerance : chem.orp.tolerance;
-        if (typeof data.ph.tolerance !== 'undefined') {
+        let phTolerance = typeof data.ph !== 'undefined' && typeof data.ph.tolerance !== 'undefined' ? data.ph.tolerance : chem.ph.tolerance;
+        let orpTolerance = typeof data.orp !== 'undefined' && typeof data.orp.tolerance !== 'undefined' ? data.orp.tolerance : chem.orp.tolerance;
+        if (typeof data.ph !== 'undefined' && typeof data.ph.tolerance !== 'undefined') {
             if (typeof data.ph.tolerance.enabled !== 'undefined') phTolerance.enabled = utils.makeBool(data.ph.tolerance.enabled);
             if (typeof data.ph.tolerance.low !== 'undefined') phTolerance.low = parseFloat(data.ph.tolerance.low);
             if (typeof data.ph.tolerance.high !== 'undefined') phTolerance.high = parseFloat(data.ph.tolerance.high);
             if (isNaN(phTolerance.low)) phTolerance.low = type.ph.min;
             if (isNaN(phTolerance.high)) phTolerance.high = type.ph.max;
         }
-        if (typeof data.orp.tolerance !== 'undefined') {
+        if (typeof data.orp !== 'undefined' && typeof data.orp.tolerance !== 'undefined') {
             if (typeof data.orp.tolerance.enabled !== 'undefined') orpTolerance.enabled = utils.makeBool(data.orp.tolerance.enabled);
             if (typeof data.orp.tolerance.low !== 'undefined') orpTolerance.low = parseFloat(data.orp.tolerance.low);
             if (typeof data.orp.tolerance.high !== 'undefined') orpTolerance.high = parseFloat(data.orp.tolerance.high);
             if (isNaN(orpTolerance.low)) orpTolerance.low = type.orp.min;
             if (isNaN(orpTolerance.high)) orpTolerance.high = type.orp.max;
         }
-        let phEnabled = typeof data.ph.enabled !== 'undefined' ? utils.makeBool(data.ph.enabled) : chem.ph.enabled;
-        let orpEnabled = typeof data.orp.enabled !== 'undefined' ? utils.makeBool(data.orp.enabled) : chem.orp.enabled;
+        let phEnabled = typeof data.ph !== 'undefined' && typeof data.ph.enabled !== 'undefined' ? utils.makeBool(data.ph.enabled) : chem.ph.enabled;
+        let orpEnabled = typeof data.orp !== 'undefined' && typeof data.orp.enabled !== 'undefined' ? utils.makeBool(data.orp.enabled) : chem.orp.enabled;
         let siCalcType = typeof data.siCalcType !== 'undefined' ? sys.board.valueMaps.siCalcTypes.encode(data.siCalcType, 0) : chem.siCalcType;
 
         let saltLevel = (state.chlorinators.length > 0) ? state.chlorinators.getItemById(1).saltLevel || 1000 : 1000
@@ -3923,8 +3923,8 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
             out.setPayloadByte(6, 1);
             out.setPayloadInt(7, Math.round(pHSetpoint * 100), 700);
             out.setPayloadInt(9, orpSetpoint, 400);
-            out.setPayloadByte(11, 1);
-            out.setPayloadByte(12, 1);
+            out.setPayloadByte(11, acidTankLevel + 1);
+            out.setPayloadByte(12, orpTankLevel + 1);
             out.setPayloadInt(13, calciumHardness, 25);
             out.setPayloadInt(15, cyanuricAcid, 0);
             out.setPayloadInt(17, alkalinity, 25);
