@@ -3878,10 +3878,9 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
             let out = Outbound.create({
                 protocol: Protocol.IntelliChem,
                 action: 168,
-                source: 16,
                 payload: [],
                 retries: 3, // We are going to try 4 times.
-                response: IntelliCenterBoard.getAckResponse(168, 16),
+                response: IntelliCenterBoard.getAckResponse(168),
                 onAbort: () => { },
                 onComplete: (err) => {
                     if (err) reject(err);
