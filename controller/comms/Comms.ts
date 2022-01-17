@@ -660,6 +660,7 @@ export class SendRecieveBuffer {
                 if (typeof msg.onAbort === 'function') msg.onAbort();
                 else logger.warn(`Message aborted after ${msg.tries} attempt(s): ${msg.toShortPacket()} `);
                 let err = new OutboundMessageError(msg, `Message aborted after ${msg.tries} attempt(s): ${msg.toShortPacket()} `);
+                if (typeof msg.response !== 'undefined') console.log(msg.response);
                 if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
                 if (msg.requiresResponse) {
                     if (msg.response instanceof Response && typeof (msg.response.callback) === 'function') {
