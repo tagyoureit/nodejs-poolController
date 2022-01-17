@@ -3913,7 +3913,7 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
                 }
             });
             //[8, 0, chem.id - 1, body.val, 1, chem.address, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0]
-            out.insertPayloadBytes(0, 0, 18);
+            out.insertPayloadBytes(0, 0, 20);
             out.setPayloadByte(0, 8);
             out.setPayloadByte(1, 0);
             out.setPayloadByte(2, chem.id - 1);
