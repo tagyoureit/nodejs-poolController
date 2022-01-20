@@ -77,7 +77,6 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
                     logger.info(`Initializing chemController ${cc.name}`);
                     // First check to make sure it isnt already there.
                     if (typeof this.find(elem => elem.id === cc.id) === 'undefined') {
-
                         let ncc = NixieChemControllerBase.create(this.controlPanel, cc);
                         this.push(ncc);
                     }
@@ -1103,8 +1102,9 @@ export class NixieChemPump extends NixieChildEquipment {
     public async setPumpAsync(spump: ChemicalPumpState, data: any): Promise<void> {
         try {
             if (typeof data !== 'undefined') {
-                this.pump.enabled = typeof data.enabled !== 'undefined' ? data.enabled : this.pump.enabled;
+                //this.pump.enabled = typeof data.enabled !== 'undefined' ? data.enabled : this.pump.enabled;
                 this.pump.type = typeof data.type !== 'undefined' ? data.type : this.pump.type;
+                this.pump.enabled = this.pump.type !== 0;
                 this.pump.ratedFlow = typeof data.ratedFlow !== 'undefined' ? data.ratedFlow : this.pump.ratedFlow;
                 this.pump.connectionId = typeof data.connectionId !== 'undefined' ? data.connectionId : this.pump.connectionId;
                 this.pump.deviceBinding = typeof data.deviceBinding !== 'undefined' ? data.deviceBinding : this.pump.deviceBinding;
@@ -1499,6 +1499,8 @@ export class NixieChemicalPh extends NixieChemical {
         super(controller, chemical);
         this.chemType = 'acid';
         this.probe = new NixieChemProbePh(this, chemical.probe);
+        if (!this.ph.enabled || !this.ph.pump.enabled) this.ph.doserType = 0;
+        else this.ph.doserType = 1; // External Relay
     }
     public async setPhAsync(sph: ChemicalPhState, data: any) {
         try {
@@ -1509,6 +1511,9 @@ export class NixieChemicalPh extends NixieChemical {
                 await this.tank.setTankAsync(sph.tank, data.tank);
                 await this.pump.setPumpAsync(sph.pump, data.pump);
                 sph.enabled = this.ph.enabled = typeof data.enabled !== 'undefined' ? utils.makeBool(data.enabled) : this.ph.enabled;
+                if (!this.ph.enabled || !this.ph.pump.enabled) this.ph.doserType = 0;
+                else this.ph.doserType = 1; // External Relay
+
                 this.ph.setpoint = sph.setpoint = typeof data.setpoint !== 'undefined' ? parseFloat(data.setpoint) : this.ph.setpoint;
                 this.ph.phSupply = typeof data.phSupply !== 'undefined' ? data.phSupply : this.ph.phSupply;
                 this.ph.acidType = typeof data.acidType !== 'undefined' ? data.acidType : this.ph.acidType;
@@ -1777,6 +1782,10 @@ export class NixieChemicalORP extends NixieChemical {
         this.orp = chemical;
         this.probe = new NixieChemProbeORP(this, chemical.probe);
         this.chlor = new NixieChemChlor(this, chemical.chlor);
+        if (!this.orp.enabled) this.orp.doserType = 0;
+        else if (this.orp.chlor.enabled) this.orp.doserType = 2;
+        else if (this.orp.pump.enabled) this.orp.doserType = 1;
+        else this.orp.doserType = 0;
     }
     public get logFilename() { return `chemDosage_orp.log`; }
     public async setORPAsync(sorp: ChemicalORPState, data: any) {
@@ -1796,6 +1805,11 @@ export class NixieChemicalORP extends NixieChemical {
                 await this.tank.setTankAsync(sorp.tank, data.tank);
                 await this.pump.setPumpAsync(sorp.pump, data.pump);
                 await this.chlor.setChlorAsync(sorp.chlor, data);
+                if (!this.orp.enabled) this.orp.doserType = 0;
+                else if (this.orp.chlor.enabled) this.orp.doserType = 2;
+                else if (this.orp.pump.enabled) this.orp.doserType = 1;
+                else this.orp.doserType = 0;
+
                 this.orp.setpoint = sorp.setpoint = typeof data.setpoint !== 'undefined' ? parseInt(data.setpoint, 10) : this.orp.setpoint;
                 if (typeof data.tolerance !== 'undefined') {
                     if (typeof data.tolerance.enabled !== 'undefined') this.orp.tolerance.enabled = utils.makeBool(data.tolerance.enabled);

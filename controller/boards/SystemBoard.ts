@@ -614,6 +614,18 @@ export class byteValueMaps {
     [0, { name: 'base', desc: 'Base pH+' }],
     [1, { name: 'acid', desc: 'Acid pH-' }]
   ]);
+    public phDoserTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'none', desc: 'No Doser Attached' }],
+        [1, { name: 'extrelay', desc: 'External Relay' }],
+        [2, { name: 'co2', desc: 'CO2 Tank' }],
+        [3, { name: 'intrelay', desc: 'Internal Relay'}]
+    ]);
+    public orpDoserTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'none', desc: 'No Doser Attached' }],
+        [1, { name: 'extrelay', desc: 'External Relay' }],
+        [2, { name: 'chlorinator', desc: 'Chlorinator'}],
+        [3, { name: 'intrelay', desc: 'Internal Relay'}]
+    ])
   public volumeUnits: byteValueMap = new byteValueMap([
     [0, { name: '', desc: 'No Units' }],
     [1, { name: 'gal', desc: 'Gallons' }],

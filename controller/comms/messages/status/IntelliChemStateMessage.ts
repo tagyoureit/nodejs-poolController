@@ -87,6 +87,18 @@ export class IntelliChemStateMessage {
     }
     private static processState(msg: Inbound) {
         if (msg.source < 144 || msg.source > 158) return;
+
+        // Setup with CO2 dosing and IntelliChlor.  
+        //[2, 245, 2, 162, 2, 248, 2,  88, 0, 0, [0-9]
+        // 0, 26, 0, 0, 0, 0, 0, 0, 0, 0,        [10-19]
+        // 7, 0, 249, 1, 94, 0, 81, 0, 80, 57,   [20-29] 
+        // 0, 82, 0, 0, 162, 32, 80, 1, 0, 0, 0] [30-40]
+        // Setup with 2 Tanks
+        //[2, 238, 2, 208, 2, 248, 2, 188, 0, 0, 
+        // 0, 2, 0, 0, 0, 29, 0, 4, 0, 63,
+        // 2, 2, 157, 0, 25, 0, 0, 0, 90, 20, 
+        // 0, 83, 0, 0, 149, 0, 60, 1, 1, 0, 0]
+
         // This is an action 18 that comes from IntelliChem.  There is also a 147 that comes from an OCP but this is the raw data.
         //[165, 0, 16, 144, 18, 41][2,228,3,2,2,228,2,188,0,0,0,16,0,0,0,0,0,35,0,0,6,6,3,0,250,0,44,0,160,20,0,81,8,0,149,0,80,1,0,0,0]
         //      Bytes - Descrption
@@ -114,16 +126,32 @@ export class IntelliChemStateMessage {
         //      31 : Temperature
         //      32 : Alarms
         //      33 : Warnings pH Lockout, Daily Limit Reached, Invalid Setup, Chlorinator Comm error
-        //      34 : Dosing Status (pH Monitoring, ORP Mixing)
+        //      34 : Dosing Status/Doser Type (pH Monitoring, ORP Mixing)
         //      35 : Delays
         //      36-37 : Firmware = 80,1 = 1.080
         //      38 : Water Chemistry Warning (Corrosion...)
         //      39 : Unknown
         //      40 : Unknown
         let address = msg.source;
+
         // The address is king here.  The id is not.
         let chem = sys.chemControllers.getItemByAddress(address, true);
         let schem = state.chemControllers.getItemById(chem.id, true);
+
+        // Get the doser types and set up our capabilities
+        chem.ph.doserType = (msg.extractPayloadByte(34) & 0x03);
+        chem.orp.doserType = (msg.extractPayloadByte(34) & 0x0C);
+        schem.ph.enabled = chem.ph.enabled = chem.ph.doserType !== 0;
+        schem.ph.enabled = chem.orp.enabled = chem.orp.doserType !== 0;
+        if (chem.ph.doserType === 2) schem.ph.chemType = 'CO2';
+        else if (chem.ph.doserType === 0) schem.ph.chemType = 'none';
+        else if (chem.ph.doserType === 1) schem.ph.chemType = 'acid';
+        else if (chem.ph.doserType === 3) schem.ph.chemType = 'acid';
+
+        if (chem.orp.doserType === 0) schem.orp.chemType = 'none';
+        else schem.orp.chemType = 'orp';
+
+
         schem.isActive = chem.isActive = true;
         schem.status = 0;
         schem.type = chem.type = sys.board.valueMaps.chemControllerTypes.getValue('intellichem');
@@ -156,8 +184,9 @@ export class IntelliChemStateMessage {
         schem.orp.volumeDosed = (msg.extractPayloadByte(18) * 256) + msg.extractPayloadByte(19);
         //      20 : pH tank level 1-7 = 6
         schem.ph.tank.level = Math.max(msg.extractPayloadByte(20) > 0 ? msg.extractPayloadByte(20) - 1 : msg.extractPayloadByte(20), 0); // values reported as 1-7; possibly 0 if no tank present
-        //      21 : ORP tank level 1-7 = 6
+        //      21 : ORP tank level 1-7 = 6 if the tank levels report 0 then the chemical side is not enabled.
         schem.orp.tank.level = Math.max(msg.extractPayloadByte(21) > 0 ? msg.extractPayloadByte(21) - 1 : msg.extractPayloadByte(21), 0); // values reported as 1-7; possibly 0 if no tank present
+
         //      22 : LSI = 3 & 0x80 === 0x80 ? (256 - 3) / -100 : 3/100 = .03
         let lsi = msg.extractPayloadByte(22);
         schem.lsi = (lsi & 0x80) === 0x80 ? (256 - lsi) / -100 : lsi / 100;
