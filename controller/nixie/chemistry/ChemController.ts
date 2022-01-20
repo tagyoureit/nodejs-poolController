@@ -907,7 +907,7 @@ class NixieChemical extends NixieChildEquipment {
             this._stoppingMix = true;
             this.suspendPolling = true;
             if (typeof this.currentMix !== 'undefined') logger.debug(`Stopping ${schem.chemType} mix and clearing the current mix object.`);
-            if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0)
+            if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.chlorDosingMethod > 0)
                 schem.chlor.isDosing = false;
             else
                 schem.pump.isDosing = false;
@@ -994,7 +994,7 @@ class NixieChemical extends NixieChildEquipment {
             if (this._stoppingMix) return;
             schem.chlor.isDosing = schem.pump.isDosing = false;
             if (!this.chemical.flowOnlyMixing || (schem.chemController.isBodyOn && this.chemController.flowDetected && !schem.freezeProtect)) {
-                if (this.chemType === 'orp' && typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0) {
+                if (this.chemType === 'orp' && typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.chlorDosingMethod > 0) {
                     if (state.chlorinators.getItemById(1).currentOutput !== 0) {
                         logger.debug(`Chem mixing ORP (chlorinator) paused waiting for chlor current output to be 0%.  Mix time remaining: ${utils.formatDuration(schem.mixTimeRemaining)} `);
                         return;
@@ -1037,7 +1037,7 @@ class NixieChemical extends NixieChildEquipment {
     }
     public async cancelDosing(schem: ChemicalState, reason: string): Promise<void> {
         try {
-            if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0) {
+            if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.chlorDosingMethod > 0) {
                 if (!this.chlor.chlor.superChlor) await this.chlor.stopDosing(schem, reason);
                 // for chlor, we want 15 minute intervals
                 if (schem.doseHistory.length) {
@@ -1892,7 +1892,7 @@ export class NixieChemicalORP extends NixieChemical {
     }
     public async cancelDosing(sorp: ChemicalORPState, reason: string): Promise<void> {
         try {
-            if (typeof sorp.useChlorinator !== 'undefined' && sorp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0) {
+            if (typeof sorp.useChlorinator !== 'undefined' && sorp.useChlorinator && this.chemController.orp.orp.chlorDosingMethod > 0) {
                 await this.chlor.stopDosing(sorp, reason);
                 // for chlor, we want 15 minute intervals
                 if (sorp.doseHistory.length) {
@@ -1941,7 +1941,7 @@ export class NixieChemicalORP extends NixieChemical {
                         this.currentMix.set({ time: schem.mixTimeRemaining, timeMixed: 0, isManual: true });
                     }
                     else
-                        if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0) {
+                        if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.chlorDosingMethod > 0) {
                             // if last dose was within 15 minutes, set mix time to 15 mins-(now-lastdose)
                             // if no dose in last 15, then we should be monitoring
                             await this.chlor.stopDosing(schem, 'mix override'); // ensure chlor has stopped
@@ -1963,7 +1963,7 @@ export class NixieChemicalORP extends NixieChemical {
                         }
                 }
                 else
-                    if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0)
+                    if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.chlorDosingMethod > 0)
                         this.currentMix.set({ time: this.chlor.chlorInterval * 60, timeMixed: 0 });
                     else
                         this.currentMix.set({ time: this.chemical.mixingTime, timeMixed: 0 });
