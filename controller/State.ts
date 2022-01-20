@@ -2408,8 +2408,8 @@ export class ChemicalState extends ChildEqState {
 }
 export class ChemicalPhState extends ChemicalState {
     public initData() {
-        if (typeof this.data.chemType === 'undefined') this.data.chemType === 'acid';
         super.initData();
+        if (typeof this.data.chemType === 'undefined') this.data.chemType = 'none';
     }
     public getConfig() {
         let schem = this.chemController;
@@ -2468,7 +2468,7 @@ export class ChemicalPhState extends ChemicalState {
 export class ChemicalORPState extends ChemicalState {
     public initData() {
         if (typeof this.data.probe === 'undefined') this.data.probe = {};
-        if (typeof this.data.chemType === 'undefined') this.data.chemType === 'orp';
+        if (typeof this.data.chemType === 'undefined') this.data.chemType = 'none';
         if (typeof this.data.useChlorinator === 'undefined') this.data.useChlorinator = false;
         super.initData();
         // Load up the 24 hours doseHistory.

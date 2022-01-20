@@ -1499,8 +1499,15 @@ export class NixieChemicalPh extends NixieChemical {
         super(controller, chemical);
         this.chemType = 'acid';
         this.probe = new NixieChemProbePh(this, chemical.probe);
-        if (!this.ph.enabled || !this.ph.pump.enabled) this.ph.doserType = 0;
-        else this.ph.doserType = 1; // External Relay
+        let sph = state.chemControllers.getItemById(controller.id).ph;
+        if (!this.ph.enabled || !this.ph.pump.enabled) {
+            this.ph.doserType = 0;
+            sph.chemType = 'none';
+        }
+        else {
+            this.ph.doserType = 1; // External Relay
+            sph.chemType = (this.ph.phSupply === 0) ? 'base' : 'acid';
+        }
     }
     public async setPhAsync(sph: ChemicalPhState, data: any) {
         try {
@@ -1511,9 +1518,6 @@ export class NixieChemicalPh extends NixieChemical {
                 await this.tank.setTankAsync(sph.tank, data.tank);
                 await this.pump.setPumpAsync(sph.pump, data.pump);
                 sph.enabled = this.ph.enabled = typeof data.enabled !== 'undefined' ? utils.makeBool(data.enabled) : this.ph.enabled;
-                if (!this.ph.enabled || !this.ph.pump.enabled) this.ph.doserType = 0;
-                else this.ph.doserType = 1; // External Relay
-
                 this.ph.setpoint = sph.setpoint = typeof data.setpoint !== 'undefined' ? parseFloat(data.setpoint) : this.ph.setpoint;
                 this.ph.phSupply = typeof data.phSupply !== 'undefined' ? data.phSupply : this.ph.phSupply;
                 this.ph.acidType = typeof data.acidType !== 'undefined' ? data.acidType : this.ph.acidType;
@@ -1521,6 +1525,15 @@ export class NixieChemicalPh extends NixieChemical {
                 sph.level = typeof data.level !== 'undefined' && !isNaN(parseFloat(data.level)) ? parseFloat(data.level) : sph.level;
                 this.ph.disableOnFreeze = typeof data.disableOnFreeze !== 'undefined' ? utils.makeBool(data.disableOnFreeze) : this.ph.disableOnFreeze;
                 if (!this.ph.disableOnFreeze) sph.freezeProtect = false;
+                if (!this.ph.enabled || !this.ph.pump.enabled) {
+                    this.ph.doserType = 0;
+                    sph.chemType = 'none';
+                }
+                else {
+                    this.ph.doserType = 1; // External Relay
+                    sph.chemType = (this.ph.phSupply === 0) ? 'base' : 'acid';
+                }
+
                 if (typeof data.tolerance !== 'undefined') {
                     if (typeof data.tolerance.enabled !== 'undefined') this.ph.tolerance.enabled = utils.makeBool(data.tolerance.enabled);
                     if (typeof data.tolerance.low === 'number') this.ph.tolerance.low = data.tolerance.low;
@@ -1782,10 +1795,23 @@ export class NixieChemicalORP extends NixieChemical {
         this.orp = chemical;
         this.probe = new NixieChemProbeORP(this, chemical.probe);
         this.chlor = new NixieChemChlor(this, chemical.chlor);
-        if (!this.orp.enabled) this.orp.doserType = 0;
-        else if (this.orp.chlor.enabled) this.orp.doserType = 2;
-        else if (this.orp.pump.enabled) this.orp.doserType = 1;
-        else this.orp.doserType = 0;
+        let sorp = state.chemControllers.getItemById(controller.id).orp;
+        if (!this.orp.enabled) {
+            this.orp.doserType = 0;
+            sorp.chemType = 'none';
+        }
+        else if (sorp.useChlorinator) {
+            this.orp.doserType = 2;
+            sorp.chemType = 'chlorine';
+        }
+        else if (this.orp.pump.enabled) {
+            this.orp.doserType = 1;
+            sorp.chemType = 'chlorine';
+        }
+        else {
+            this.orp.doserType = 0;
+            sorp.chemType = 'none';
+        }
     }
     public get logFilename() { return `chemDosage_orp.log`; }
     public async setORPAsync(sorp: ChemicalORPState, data: any) {
@@ -1805,10 +1831,22 @@ export class NixieChemicalORP extends NixieChemical {
                 await this.tank.setTankAsync(sorp.tank, data.tank);
                 await this.pump.setPumpAsync(sorp.pump, data.pump);
                 await this.chlor.setChlorAsync(sorp.chlor, data);
-                if (!this.orp.enabled) this.orp.doserType = 0;
-                else if (this.orp.chlor.enabled) this.orp.doserType = 2;
-                else if (this.orp.pump.enabled) this.orp.doserType = 1;
-                else this.orp.doserType = 0;
+                if (!this.orp.enabled) {
+                    this.orp.doserType = 0;
+                    sorp.chemType = 'none';
+                }
+                else if (sorp.useChlorinator) {
+                    this.orp.doserType = 2;
+                    sorp.chemType = 'chlorine';
+                }
+                else if (this.orp.pump.enabled) {
+                    this.orp.doserType = 1;
+                    sorp.chemType = 'chlorine';
+                }
+                else {
+                    this.orp.doserType = 0;
+                    sorp.chemType = 'none';
+                }
 
                 this.orp.setpoint = sorp.setpoint = typeof data.setpoint !== 'undefined' ? parseInt(data.setpoint, 10) : this.orp.setpoint;
                 if (typeof data.tolerance !== 'undefined') {
