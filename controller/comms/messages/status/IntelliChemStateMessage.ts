@@ -209,8 +209,24 @@ export class IntelliChemStateMessage {
         const alarms = schem.alarms;
         alarms.flow = msg.extractPayloadByte(32) & 0x01;
         if (alarms.flow === 0) schem.flowDetected = true;
-        alarms.pH = msg.extractPayloadByte(32) & 0x06;
-        alarms.orp = msg.extractPayloadByte(32) & 0x18;
+
+        // The pH and ORP alarms are in a word stupid for IntelliChem.  So we are
+        // going to override these.
+        //alarms.pH = msg.extractPayloadByte(32) & 0x06;
+        //alarms.orp = msg.extractPayloadByte(32) & 0x18;
+        if (chem.ph.tolerance.enabled && schem.flowDetected) {
+            if (schem.ph.level > chem.ph.tolerance.high) alarms.pH = 2;
+            else if (schem.ph.level < chem.ph.tolerance.low) alarms.pH = 4;
+            else alarms.pH = 0;
+        }
+        else alarms.pH = 0;
+        if (chem.orp.tolerance.enabled && schem.flowDetected) {
+            if (schem.orp.level > chem.orp.tolerance.high) alarms.orp = 8;
+            else if (schem.orp.level < chem.orp.tolerance.low) alarms.orp = 16;
+            else alarms.orp = 0;
+        }
+        else alarms.orp = 0;
+
         alarms.pHTank = msg.extractPayloadByte(32) & 0x20;
         alarms.orpTank = msg.extractPayloadByte(32) & 0x40;
         alarms.probeFault = msg.extractPayloadByte(32) & 0x80;
@@ -235,7 +251,12 @@ export class IntelliChemStateMessage {
         //      36-37 : Firmware = 80,1 = 1.080
         chem.firmware = `${msg.extractPayloadByte(37)}.${msg.extractPayloadByte(36).toString().padStart(3, '0')}`
         //      38 : Water Chemistry Warning
-        schem.warnings.waterChemistry = msg.extractPayloadByte(38);
+        // The LSI handling is also stupid with IntelliChem so we are going to have our way with it.
+        // schem.warnings.waterChemistry = msg.extractPayloadByte(38);
+        schem.calculateSaturationIndex();
+        if (chem.lsiRange.high > schem.saturationIndex) schem.warnings.waterChemistry = 2;
+        else if (chem.lsiRange.low < schem.saturationIndex) schem.warnings.waterChemistry = 1;
+        else schem.warnings.waterChemistry = 0;
         if (typeof chem.body === 'undefined') chem.body = schem.body = 0;
         if (state.equipment.controllerType === 'nixie') {
             if (chem.ph.probe.feedBodyTemp) {
@@ -257,7 +278,6 @@ export class IntelliChemStateMessage {
         }
         schem.ph.pump.isDosing = schem.ph.dosingStatus === 0 && chem.ph.enabled;
         schem.orp.pump.isDosing = schem.orp.dosingStatus === 0 && chem.orp.enabled;
-        schem.calculateSaturationIndex();
         schem.lastComm = new Date().getTime();
         // If we are changing states lets set that up.
         if (schem.ph.dosingStatus === 0 && phPrev.status !== 0) {
