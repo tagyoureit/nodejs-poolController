@@ -77,7 +77,6 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
                     logger.info(`Initializing chemController ${cc.name}`);
                     // First check to make sure it isnt already there.
                     if (typeof this.find(elem => elem.id === cc.id) === 'undefined') {
-
                         let ncc = NixieChemControllerBase.create(this.controlPanel, cc);
                         this.push(ncc);
                     }
@@ -241,24 +240,28 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
             }
             if (isNaN(pHSetpoint) || pHSetpoint > type.ph.max || pHSetpoint < type.ph.min) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH setpoint ${pHSetpoint}`, 'ph.setpoint', pHSetpoint));
             if (isNaN(orpSetpoint) || orpSetpoint > type.orp.max || orpSetpoint < type.orp.min) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp setpoint`, 'orp.setpoint', orpSetpoint));
-            let phTolerance = typeof data.ph.tolerance !== 'undefined' ? data.ph.tolerance : chem.ph.tolerance;
-            let orpTolerance = typeof data.orp.tolerance !== 'undefined' ? data.orp.tolerance : chem.orp.tolerance;
-            if (typeof data.ph.tolerance !== 'undefined') {
-                if (typeof data.ph.tolerance.enabled !== 'undefined') phTolerance.enabled = utils.makeBool(data.ph.tolerance.enabled);
-                if (typeof data.ph.tolerance.low !== 'undefined') phTolerance.low = parseFloat(data.ph.tolerance.low);
-                if (typeof data.ph.tolerance.high !== 'undefined') phTolerance.high = parseFloat(data.ph.tolerance.high);
-                if (isNaN(phTolerance.low)) phTolerance.low = type.ph.min;
-                if (isNaN(phTolerance.high)) phTolerance.high = type.ph.max;
+            let phTolerance = typeof data.ph !== 'undefined' && typeof data.ph.tolerance !== 'undefined' ? data.ph.tolerance : chem.ph.tolerance;
+            if (typeof data.ph !== 'undefined') {
+                if (typeof data.ph.tolerance !== 'undefined') {
+                    if (typeof data.ph.tolerance.enabled !== 'undefined') phTolerance.enabled = utils.makeBool(data.ph.tolerance.enabled);
+                    if (typeof data.ph.tolerance.low !== 'undefined') phTolerance.low = parseFloat(data.ph.tolerance.low);
+                    if (typeof data.ph.tolerance.high !== 'undefined') phTolerance.high = parseFloat(data.ph.tolerance.high);
+                    if (isNaN(phTolerance.low)) phTolerance.low = type.ph.min;
+                    if (isNaN(phTolerance.high)) phTolerance.high = type.ph.max;
+                }
             }
-            if (typeof data.orp.tolerance !== 'undefined') {
-                if (typeof data.orp.tolerance.enabled !== 'undefined') orpTolerance.enabled = utils.makeBool(data.orp.tolerance.enabled);
-                if (typeof data.orp.tolerance.low !== 'undefined') orpTolerance.low = parseFloat(data.orp.tolerance.low);
-                if (typeof data.orp.tolerance.high !== 'undefined') orpTolerance.high = parseFloat(data.orp.tolerance.high);
-                if (isNaN(orpTolerance.low)) orpTolerance.low = type.orp.min;
-                if (isNaN(orpTolerance.high)) orpTolerance.high = type.orp.max;
+            let phEnabled = typeof data.ph !== 'undefined' && typeof data.ph.enabled !== 'undefined' ? utils.makeBool(data.ph.enabled) : chem.ph.enabled;
+            let orpTolerance = typeof data.orp !== 'undefined' && typeof data.orp.tolerance !== 'undefined' ? data.orp.tolerance : chem.orp.tolerance;
+            if (typeof data.orp !== 'undefined') {
+                if (typeof data.orp.tolerance !== 'undefined') {
+                    if (typeof data.orp.tolerance.enabled !== 'undefined') orpTolerance.enabled = utils.makeBool(data.orp.tolerance.enabled);
+                    if (typeof data.orp.tolerance.low !== 'undefined') orpTolerance.low = parseFloat(data.orp.tolerance.low);
+                    if (typeof data.orp.tolerance.high !== 'undefined') orpTolerance.high = parseFloat(data.orp.tolerance.high);
+                    if (isNaN(orpTolerance.low)) orpTolerance.low = type.orp.min;
+                    if (isNaN(orpTolerance.high)) orpTolerance.high = type.orp.max;
+                }
             }
-            let phEnabled = typeof data.ph.enabled !== 'undefined' ? utils.makeBool(data.ph.enabled) : chem.ph.enabled;
-            let orpEnabled = typeof data.orp.enabled !== 'undefined' ? utils.makeBool(data.orp.enabled) : chem.orp.enabled;
+            let orpEnabled = typeof data.orp !== 'undefined' && typeof data.orp.enabled !== 'undefined' ? utils.makeBool(data.orp.enabled) : chem.orp.enabled;
             let siCalcType = typeof data.siCalcType !== 'undefined' ? sys.board.valueMaps.siCalcTypes.encode(data.siCalcType, 0) : chem.siCalcType;
             schem.siCalcType = chem.siCalcType = siCalcType;
             schem.ph.tank.capacity = chem.ph.tank.capacity = 6;
@@ -288,6 +291,8 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
             chem.ph.tolerance.enabled = phTolerance.enabled;
             chem.ph.tolerance.low = phTolerance.low;
             chem.ph.tolerance.high = phTolerance.high;
+            schem.ph.tank.level = acidTankLevel;
+            schem.orp.tank.level = orpTankLevel;
             chem.orp.tolerance.enabled = orpTolerance.enabled;
             chem.orp.tolerance.low = orpTolerance.low;
             chem.orp.tolerance.high = orpTolerance.high;
@@ -902,7 +907,7 @@ class NixieChemical extends NixieChildEquipment {
             this._stoppingMix = true;
             this.suspendPolling = true;
             if (typeof this.currentMix !== 'undefined') logger.debug(`Stopping ${schem.chemType} mix and clearing the current mix object.`);
-            if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0)
+            if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.chlorDosingMethod > 0)
                 schem.chlor.isDosing = false;
             else
                 schem.pump.isDosing = false;
@@ -989,7 +994,7 @@ class NixieChemical extends NixieChildEquipment {
             if (this._stoppingMix) return;
             schem.chlor.isDosing = schem.pump.isDosing = false;
             if (!this.chemical.flowOnlyMixing || (schem.chemController.isBodyOn && this.chemController.flowDetected && !schem.freezeProtect)) {
-                if (this.chemType === 'orp' && typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0) {
+                if (this.chemType === 'orp' && typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.chlorDosingMethod > 0) {
                     if (state.chlorinators.getItemById(1).currentOutput !== 0) {
                         logger.debug(`Chem mixing ORP (chlorinator) paused waiting for chlor current output to be 0%.  Mix time remaining: ${utils.formatDuration(schem.mixTimeRemaining)} `);
                         return;
@@ -1032,7 +1037,7 @@ class NixieChemical extends NixieChildEquipment {
     }
     public async cancelDosing(schem: ChemicalState, reason: string): Promise<void> {
         try {
-            if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0) {
+            if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.chlorDosingMethod > 0) {
                 if (!this.chlor.chlor.superChlor) await this.chlor.stopDosing(schem, reason);
                 // for chlor, we want 15 minute intervals
                 if (schem.doseHistory.length) {
@@ -1097,8 +1102,9 @@ export class NixieChemPump extends NixieChildEquipment {
     public async setPumpAsync(spump: ChemicalPumpState, data: any): Promise<void> {
         try {
             if (typeof data !== 'undefined') {
-                this.pump.enabled = typeof data.enabled !== 'undefined' ? data.enabled : this.pump.enabled;
+                //this.pump.enabled = typeof data.enabled !== 'undefined' ? data.enabled : this.pump.enabled;
                 this.pump.type = typeof data.type !== 'undefined' ? data.type : this.pump.type;
+                this.pump.enabled = this.pump.type !== 0;
                 this.pump.ratedFlow = typeof data.ratedFlow !== 'undefined' ? data.ratedFlow : this.pump.ratedFlow;
                 this.pump.connectionId = typeof data.connectionId !== 'undefined' ? data.connectionId : this.pump.connectionId;
                 this.pump.deviceBinding = typeof data.deviceBinding !== 'undefined' ? data.deviceBinding : this.pump.deviceBinding;
@@ -1493,6 +1499,15 @@ export class NixieChemicalPh extends NixieChemical {
         super(controller, chemical);
         this.chemType = 'acid';
         this.probe = new NixieChemProbePh(this, chemical.probe);
+        let sph = state.chemControllers.getItemById(controller.id).ph;
+        if (!this.ph.enabled || !this.ph.pump.enabled) {
+            this.ph.doserType = 0;
+            sph.chemType = 'none';
+        }
+        else {
+            this.ph.doserType = 1; // External Relay
+            sph.chemType = (this.ph.phSupply === 0) ? 'base' : 'acid';
+        }
     }
     public async setPhAsync(sph: ChemicalPhState, data: any) {
         try {
@@ -1510,6 +1525,15 @@ export class NixieChemicalPh extends NixieChemical {
                 sph.level = typeof data.level !== 'undefined' && !isNaN(parseFloat(data.level)) ? parseFloat(data.level) : sph.level;
                 this.ph.disableOnFreeze = typeof data.disableOnFreeze !== 'undefined' ? utils.makeBool(data.disableOnFreeze) : this.ph.disableOnFreeze;
                 if (!this.ph.disableOnFreeze) sph.freezeProtect = false;
+                if (!this.ph.enabled || !this.ph.pump.enabled) {
+                    this.ph.doserType = 0;
+                    sph.chemType = 'none';
+                }
+                else {
+                    this.ph.doserType = 1; // External Relay
+                    sph.chemType = (this.ph.phSupply === 0) ? 'base' : 'acid';
+                }
+
                 if (typeof data.tolerance !== 'undefined') {
                     if (typeof data.tolerance.enabled !== 'undefined') this.ph.tolerance.enabled = utils.makeBool(data.tolerance.enabled);
                     if (typeof data.tolerance.low === 'number') this.ph.tolerance.low = data.tolerance.low;
@@ -1771,6 +1795,23 @@ export class NixieChemicalORP extends NixieChemical {
         this.orp = chemical;
         this.probe = new NixieChemProbeORP(this, chemical.probe);
         this.chlor = new NixieChemChlor(this, chemical.chlor);
+        let sorp = state.chemControllers.getItemById(controller.id).orp;
+        if (!this.orp.enabled) {
+            this.orp.doserType = 0;
+            sorp.chemType = 'none';
+        }
+        else if (sorp.useChlorinator) {
+            this.orp.doserType = 2;
+            sorp.chemType = 'chlorine';
+        }
+        else if (this.orp.pump.enabled) {
+            this.orp.doserType = 1;
+            sorp.chemType = 'chlorine';
+        }
+        else {
+            this.orp.doserType = 0;
+            sorp.chemType = 'none';
+        }
     }
     public get logFilename() { return `chemDosage_orp.log`; }
     public async setORPAsync(sorp: ChemicalORPState, data: any) {
@@ -1790,6 +1831,23 @@ export class NixieChemicalORP extends NixieChemical {
                 await this.tank.setTankAsync(sorp.tank, data.tank);
                 await this.pump.setPumpAsync(sorp.pump, data.pump);
                 await this.chlor.setChlorAsync(sorp.chlor, data);
+                if (!this.orp.enabled) {
+                    this.orp.doserType = 0;
+                    sorp.chemType = 'none';
+                }
+                else if (sorp.useChlorinator) {
+                    this.orp.doserType = 2;
+                    sorp.chemType = 'chlorine';
+                }
+                else if (this.orp.pump.enabled) {
+                    this.orp.doserType = 1;
+                    sorp.chemType = 'chlorine';
+                }
+                else {
+                    this.orp.doserType = 0;
+                    sorp.chemType = 'none';
+                }
+
                 this.orp.setpoint = sorp.setpoint = typeof data.setpoint !== 'undefined' ? parseInt(data.setpoint, 10) : this.orp.setpoint;
                 if (typeof data.tolerance !== 'undefined') {
                     if (typeof data.tolerance.enabled !== 'undefined') this.orp.tolerance.enabled = utils.makeBool(data.tolerance.enabled);
@@ -1834,7 +1892,7 @@ export class NixieChemicalORP extends NixieChemical {
     }
     public async cancelDosing(sorp: ChemicalORPState, reason: string): Promise<void> {
         try {
-            if (typeof sorp.useChlorinator !== 'undefined' && sorp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0) {
+            if (typeof sorp.useChlorinator !== 'undefined' && sorp.useChlorinator && this.chemController.orp.orp.chlorDosingMethod > 0) {
                 await this.chlor.stopDosing(sorp, reason);
                 // for chlor, we want 15 minute intervals
                 if (sorp.doseHistory.length) {
@@ -1883,7 +1941,7 @@ export class NixieChemicalORP extends NixieChemical {
                         this.currentMix.set({ time: schem.mixTimeRemaining, timeMixed: 0, isManual: true });
                     }
                     else
-                        if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0) {
+                        if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.chlorDosingMethod > 0) {
                             // if last dose was within 15 minutes, set mix time to 15 mins-(now-lastdose)
                             // if no dose in last 15, then we should be monitoring
                             await this.chlor.stopDosing(schem, 'mix override'); // ensure chlor has stopped
@@ -1905,7 +1963,7 @@ export class NixieChemicalORP extends NixieChemical {
                         }
                 }
                 else
-                    if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.dosingMethod > 0)
+                    if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.chlorDosingMethod > 0)
                         this.currentMix.set({ time: this.chlor.chlorInterval * 60, timeMixed: 0 });
                     else
                         this.currentMix.set({ time: this.chemical.mixingTime, timeMixed: 0 });

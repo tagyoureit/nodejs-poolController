@@ -2408,8 +2408,8 @@ export class ChemicalState extends ChildEqState {
 }
 export class ChemicalPhState extends ChemicalState {
     public initData() {
-        // if (typeof this.data.chemType === 'undefined') this.data.chemType === 'acid';  // RSG 10-23-21 - Only a getter; don't need to set this.
         super.initData();
+        if (typeof this.data.chemType === 'undefined') this.data.chemType = 'none';
     }
     public getConfig() {
         let schem = this.chemController;
@@ -2418,7 +2418,8 @@ export class ChemicalPhState extends ChemicalState {
             return typeof chem !== 'undefined' ? chem.ph : undefined;
         }
     }
-    public get chemType() { return 'acid'; }
+    public get chemType() { return this.data.chemType; }
+    public set chemType(val: string) { this.setDataVal('chemType', val); }
     public get probe(): ChemicalProbePHState { return new ChemicalProbePHState(this.data, 'probe', this); }
     public getExtended() {
         let chem = super.getExtended();
@@ -2467,7 +2468,7 @@ export class ChemicalPhState extends ChemicalState {
 export class ChemicalORPState extends ChemicalState {
     public initData() {
         if (typeof this.data.probe === 'undefined') this.data.probe = {};
-        if (typeof this.data.chemType === 'undefined') this.data.chemType === 'orp';
+        if (typeof this.data.chemType === 'undefined') this.data.chemType = 'none';
         if (typeof this.data.useChlorinator === 'undefined') this.data.useChlorinator = false;
         super.initData();
         // Load up the 24 hours doseHistory.
@@ -2480,6 +2481,7 @@ export class ChemicalORPState extends ChemicalState {
         //});
     }
     public get chemType() { return 'orp'; }
+    public set chemType(val) { this.setDataVal('chemType', val); }
     public get probe() { return new ChemicalProbeORPState(this.data, 'probe', this); }
     public get useChlorinator(): boolean { return utils.makeBool(this.data.useChlorinator); }
     public set useChlorinator(val: boolean) { this.setDataVal('useChlorinator', val); }

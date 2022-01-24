@@ -2233,6 +2233,7 @@ export class ChemicalPh extends Chemical {
         if (typeof this.data.acidType === 'undefined') this.data.acidType = 0;
         if (typeof this.data.tolerance === 'undefined') this.data.tolerance = { low: 7.2, high: 7.6, enabled: true };
         if (typeof this.data.dosePriority === 'undefined') this.data.dosePriority = true;
+        if (typeof this.data.doserType === 'undefined') this.data.doserType = 0;
         super.initData();
     }
     public get phSupply(): number | any { return this.data.phSupply; }
@@ -2241,11 +2242,14 @@ export class ChemicalPh extends Chemical {
     public set acidType(val: number | any) { this.setDataVal('acidType', sys.board.valueMaps.acidTypes.encode(val)); }
     public get dosePriority(): boolean { return this.data.dosePriority; }
     public set dosePriority(val: boolean) { this.setDataVal('dosePriority', val); }
+    public get doserType(): number | any { return this.data.doserType; }
+    public set doserType(val: number | any) { this.setDataVal('doserType', sys.board.valueMaps.phDoserTypes.encode(val)); }
     public get probe(): ChemicalPhProbe { return new ChemicalPhProbe(this.data, 'probe', this); }
     public getExtended() {
         let chem = super.getExtended();
         chem.probe = this.probe.getExtended();
         chem.phSupply = sys.board.valueMaps.phSupplyTypes.transform(this.phSupply);
+        chem.doserType = sys.board.valueMaps.phDoserTypes.transform(this.doserType);
         return chem;
     }
 }
@@ -2258,6 +2262,7 @@ export class ChemicalORP extends Chemical {
         if (typeof this.data.probe === 'undefined') this.data.probe = {};
         if (typeof this.data.tolerance === 'undefined') this.data.tolerance = { low: 650, high: 800, enabled: true };
         if (typeof this.data.phLockout === 'undefined') this.data.phLockout = 7.8;
+        if (typeof this.data.doserType === 'undefined') this.data.doserType = 0;
         super.initData();
     }
     public get useChlorinator(): boolean { return utils.makeBool(this.data.useChlorinator); }
@@ -2267,9 +2272,13 @@ export class ChemicalORP extends Chemical {
     public get probe(): ChemicalORPProbe { return new ChemicalORPProbe(this.data, 'probe', this); }
     public get chlorDosingMethod(): number | any { return this.data.chlorDosingMethod; }
     public set chlorDosingMethod(val: number | any) { this.setDataVal('chlorDosingMethod', sys.board.valueMaps.chemChlorDosingMethods.encode(val)); }
+    public get doserType(): number | any { return this.data.doserType; }
+    public set doserType(val: number | any) { this.setDataVal('doserType', sys.board.valueMaps.orpDoserTypes.encode(val)); }
+
     public getExtended() {
         let chem = super.getExtended();
         chem.probe = this.probe.getExtended();
+        chem.doserType = sys.board.valueMaps.orpDoserTypes.transform(this.doserType);
         return chem;
     }
 }

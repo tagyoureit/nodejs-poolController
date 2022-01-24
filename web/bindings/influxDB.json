@@ -819,7 +819,7 @@
     },
     {
       "name": "pump",
-      "description": "Bind circuit emit",
+      "description": "Pump state emit",
       "points": [
         {
           "measurement": "pumps",
@@ -850,6 +850,11 @@
             {
               "name": "gpm",
               "value": "@bind=data.gpm;",
+              "type": "int"
+            },
+            {
+              "name": "flow",
+              "value": "@bind=data.flow;",
               "type": "int"
             },
             {

@@ -614,6 +614,18 @@ export class byteValueMaps {
     [0, { name: 'base', desc: 'Base pH+' }],
     [1, { name: 'acid', desc: 'Acid pH-' }]
   ]);
+    public phDoserTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'none', desc: 'No Doser Attached' }],
+        [1, { name: 'extrelay', desc: 'External Relay' }],
+        [2, { name: 'co2', desc: 'CO2 Tank' }],
+        [3, { name: 'intrelay', desc: 'Internal Relay'}]
+    ]);
+    public orpDoserTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'none', desc: 'No Doser Attached' }],
+        [1, { name: 'extrelay', desc: 'External Relay' }],
+        [2, { name: 'chlorinator', desc: 'Chlorinator'}],
+        [3, { name: 'intrelay', desc: 'Internal Relay'}]
+    ])
   public volumeUnits: byteValueMap = new byteValueMap([
     [0, { name: '', desc: 'No Units' }],
     [1, { name: 'gal', desc: 'Gallons' }],
@@ -4366,12 +4378,12 @@ export class ChemControllerCommands extends BoardCommands {
   }
 
   // If we land here then this is definitely a non-OCP implementation.  Pass this off to nixie to do her thing.
-  protected async setIntelliChemAsync(data: any): Promise<ChemController> {
-    try {
-      let chem = sys.chemControllers.getItemById(data.id);
-      return await ncp.chemControllers.setControllerAsync(chem, data);
-    } catch (err) { return Promise.reject(err); }
-  }
+    protected async setIntelliChemAsync(data: any): Promise<ChemController> {
+        try {
+            let chem = sys.chemControllers.getItemById(data.id);
+            return chem.master === 1 ? await ncp.chemControllers.setControllerAsync(chem, data) : chem;
+        } catch (err) { return Promise.reject(err); }
+    }
   public findChemController(data: any) {
     let address = parseInt(data.address, 10);
     let id = parseInt(data.id, 10);
@@ -4411,25 +4423,28 @@ export class ChemControllerCommands extends BoardCommands {
             chem.isActive = true;
             // So here is the thing.  If you have an OCP then the IntelliChem must be controlled by that.
             // the messages on the bus will talk back to the OCP so if you do not do this mayhem will ensue.
-            if (type.name === 'intellichem')
+            if (t.name === 'intellichem') {
+                logger.info(`${chem.name} - ${chem.id} routing IntelliChem to OCP`);
                 await sys.board.chemControllers.setIntelliChemAsync(data);
+            }
             else
                 await ncp.chemControllers.setControllerAsync(chem, data);
             return Promise.resolve(chem);
         }
         catch (err) { return Promise.reject(err); }
     }
-  public async setChemControllerStateAsync(data: any): Promise<ChemControllerState> {
-    // For the most part all of the settable settings for IntelliChem are config settings.  REM is a bit of a different story so that
-    // should map to the ncp
-    let chem = sys.board.chemControllers.findChemController(data);
-    if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`A valid chem controller could not be found for id:${data.id} or address ${data.address}`, data.id || data.address, 'chemController'));
-    data.id = chem.id;
-    if (chem.master !== 0) await ncp.chemControllers.setControllerAsync(chem, data);
-    else await sys.board.chemControllers.setChemControllerAsync(data);
-    let schem = state.chemControllers.getItemById(chem.id, true);
-    return Promise.resolve(schem);
-  }
+    public async setChemControllerStateAsync(data: any): Promise<ChemControllerState> {
+        // For the most part all of the settable settings for IntelliChem are config settings.  REM is a bit of a different story so that
+        // should map to the ncp
+        let chem = sys.board.chemControllers.findChemController(data);
+        if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`A valid chem controller could not be found for id:${data.id} or address ${data.address}`, data.id || data.address, 'chemController'));
+        data.id = chem.id;
+        logger.info(`Setting ${chem.name} data ${chem.master}`);
+        if (chem.master === 1) await ncp.chemControllers.setControllerAsync(chem, data);
+        else await sys.board.chemControllers.setChemControllerAsync(data);
+        let schem = state.chemControllers.getItemById(chem.id, true);
+        return Promise.resolve(schem);
+    }
 }
 export class FilterCommands extends BoardCommands {
   public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
