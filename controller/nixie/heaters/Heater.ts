@@ -168,6 +168,7 @@ export class NixieGasHeater extends NixieHeaterBase {
             this.isOn = isOn;
             this.isCooling = false;
             let target = hstate.startupDelay === false && isOn;
+            if (this.getCooldownTime() > 0) target = false; 
             if (target && typeof hstate.endTime !== 'undefined') {
                 // Calculate a short cycle time so that the solar heater does not cycle
                 // too often.  For gas heaters this is 60 seconds.  This gives enough time
@@ -253,6 +254,7 @@ export class NixieSolarHeater extends NixieHeaterBase {
             this.isOn = isOn;
             this.isCooling = isCooling;
             let target = hstate.startupDelay === false && isOn;
+            if (this.getCooldownTime() > 0) target = false;
             if (target && typeof hstate.endTime !== 'undefined') {
                 // Calculate a short cycle time so that the solar heater does not cycle
                 // too often.  For solar heaters this is 60 seconds.  This gives enough time
@@ -362,7 +364,7 @@ export class NixieHeatpump extends NixieHeaterBase {
                 if (isOn && !isCooling) this.lastHeatCycle = new Date();
                 else if (isCooling) this.lastCoolCycle = new Date();
             }
-            // When this is implemented lets not forget to deal with the startup delay.  See UltraTemp for implementation.
+            // When this is implemented lets not forget to deal with the startup and any desired cool down delay.  See UltraTemp for implementation.
         } catch (err) { return logger.error(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
         finally { this.suspendPolling = false; }
     }
@@ -515,7 +517,7 @@ export class NixieUltratemp extends NixieHeatpump {
                 if (sheater.startupDelay || this.closing)
                     out.setPayloadByte(1, 0, 0);
                 else {
-                    if (this.isOn) {
+                    if (this.getCooldownTime() > 0 ? true : this.isOn) {
                         if (!this.isCooling) this.lastHeatCycle = new Date();
                         else this.lastCoolCycle = new Date();
                     }
@@ -546,17 +548,17 @@ export class NixieMastertemp extends NixieGasHeater {
         this.pollEquipmentAsync();
         this.pollingInterval = 3000;
     }
-    public getCooldownTime(): number {
+/*     public getCooldownTime(): number {
         // Delays are always in terms of seconds so convert the minute to seconds.
         if (this.heater.cooldownDelay === 0 || typeof this.lastHeatCycle === 'undefined') return 0;
         let now = new Date().getTime();
         let cooldown = this.isOn ? this.heater.cooldownDelay * 60000 : Math.round(((this.lastHeatCycle.getDate() + this.heater.cooldownDelay * 60000) - now) / 1000);
         return Math.min(Math.max(0, cooldown), this.heater.cooldownDelay * 60);
-    }
+    } */
     public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean) {
         try {
             // Initialize the desired state.
-            this.isOn = isOn;
+            this.isOn = this.getCooldownTime() > 0 ? true : isOn;
             this.isCooling = false;
             // Here we go we need to set the firemans switch state.
             if (hstate.isOn !== isOn) {
