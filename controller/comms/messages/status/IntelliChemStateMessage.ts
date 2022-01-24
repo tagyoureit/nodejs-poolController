@@ -253,8 +253,8 @@ export class IntelliChemStateMessage {
         // The LSI handling is also stupid with IntelliChem so we are going to have our way with it.
         // schem.warnings.waterChemistry = msg.extractPayloadByte(38);
         schem.calculateSaturationIndex();
-        if (chem.lsiRange.high > schem.saturationIndex) schem.warnings.waterChemistry = 2;
-        else if (chem.lsiRange.low < schem.saturationIndex) schem.warnings.waterChemistry = 1;
+        if (schem.saturationIndex > chem.lsiRange.high) schem.warnings.waterChemistry = 2;
+        else if (schem.saturationIndex < chem.lsiRange.low) schem.warnings.waterChemistry = 1;
         else schem.warnings.waterChemistry = 0;
         if (typeof chem.body === 'undefined') chem.body = schem.body = 0;
         if (state.equipment.controllerType === 'nixie') {
