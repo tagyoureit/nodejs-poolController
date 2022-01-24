@@ -140,7 +140,7 @@ export class IntelliChemStateMessage {
 
         // Get the doser types and set up our capabilities
         chem.ph.doserType = (msg.extractPayloadByte(34) & 0x03);
-        chem.orp.doserType = (msg.extractPayloadByte(34) & 0x0C);
+        chem.orp.doserType = (msg.extractPayloadByte(34) & 0x0C) >> 2;
         schem.ph.enabled = chem.ph.enabled = chem.ph.doserType !== 0;
         schem.ph.enabled = chem.orp.enabled = chem.orp.doserType !== 0;
         if (chem.ph.doserType === 2) schem.ph.chemType = 'CO2';
@@ -150,7 +150,6 @@ export class IntelliChemStateMessage {
 
         if (chem.orp.doserType === 0) schem.orp.chemType = 'none';
         else schem.orp.chemType = 'orp';
-
 
         schem.isActive = chem.isActive = true;
         schem.status = 0;
@@ -226,9 +225,9 @@ export class IntelliChemStateMessage {
             else alarms.orp = 0;
         }
         else alarms.orp = 0;
-
-        alarms.pHTank = msg.extractPayloadByte(32) & 0x20;
-        alarms.orpTank = msg.extractPayloadByte(32) & 0x40;
+        // IntelliChem will still send a tank empty alarm even if there is no tank.
+        alarms.pHTank = (chem.ph.enabled && (chem.ph.doserType === 1 || chem.ph.doserType === 3)) ? msg.extractPayloadByte(32) & 0x20 : 0;
+        alarms.orpTank = (chem.orp.enabled && (chem.orp.doserType === 1 || chem.orp.doserType === 3)) ? msg.extractPayloadByte(32) & 0x40 : 0;
         alarms.probeFault = msg.extractPayloadByte(32) & 0x80;
         //      33 : Warnings -- pH Lockout, Daily Limit Reached, Invalid Setup, Chlorinator Comm error
         const warnings = schem.warnings;
