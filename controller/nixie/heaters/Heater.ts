@@ -517,7 +517,7 @@ export class NixieUltratemp extends NixieHeatpump {
                 if (sheater.startupDelay || this.closing)
                     out.setPayloadByte(1, 0, 0);
                 else {
-                    if (this.getCooldownTime() > 0 ? true : this.isOn) {
+                    if (this.getCooldownTime() > 0 ? false : this.isOn) {
                         if (!this.isCooling) this.lastHeatCycle = new Date();
                         else this.lastCoolCycle = new Date();
                     }
@@ -558,7 +558,7 @@ export class NixieMastertemp extends NixieGasHeater {
     public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean) {
         try {
             // Initialize the desired state.
-            this.isOn = this.getCooldownTime() > 0 ? true : isOn;
+            this.isOn = this.getCooldownTime() > 0 ? false : isOn;
             this.isCooling = false;
             // Here we go we need to set the firemans switch state.
             if (hstate.isOn !== isOn) {
