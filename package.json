@@ -28,7 +28,7 @@
         "multer": "^1.4.3",
         "multicast-dns": "^7.2.3",
         "node-ssdp": "^4.0.1",
-        "serialport": "^9.2.1",
+        "serialport": "^9.2.8",
         "socket.io": "^4.2.0",
         "socket.io-client": "^4.2.0",
         "source-map-support": "^0.5.13",
