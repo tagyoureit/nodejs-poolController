@@ -173,9 +173,9 @@ export class EasyTouchBoard extends SystemBoard {
         this.valueMaps.heaterTypes = new byteValueMap([
             [0, { name: 'none', desc: 'No Heater', hasAddress: false }],
             [1, { name: 'gas', desc: 'Gas Heater', hasAddress: false }],
-            [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false }],
-            [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true }],
-            [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true, hasCoolSetpoint: true }],
+            [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false, hasPreference: true }],
+            [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true, hasPreference: true }],
+            [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true, hasCoolSetpoint: true, hasPreference: true }],
             [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
             [6, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
             [7, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }]

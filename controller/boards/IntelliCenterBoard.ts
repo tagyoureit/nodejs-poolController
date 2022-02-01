@@ -91,9 +91,9 @@ export class IntelliCenterBoard extends SystemBoard {
         ]);
         this.valueMaps.heaterTypes = new byteValueMap([
             [1, { name: 'gas', desc: 'Gas Heater', hasAddress: false }],
-            [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false, hasCoolSetpoint: true }],
-            [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true }],
-            [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true, hasCoolSetpoint: true }],
+            [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false, hasCoolSetpoint: true, hasPreference: true }],
+            [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true, hasPreference: true }],
+            [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true, hasCoolSetpoint: true, hasPreference: true }],
             [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
             [6, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }],
             [7, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
@@ -3533,9 +3533,9 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             if (isNaN(id)) return reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
             let heater: Heater;
             if (id <= 0) {
-                // We are adding a heater.  In this case all heaters are virtual.
-                let vheaters = sys.heaters.filter(h => h.master === 1);
-                id = vheaters.length + 1;
+                // We are adding a heater.  In this case all heaters are OCP.
+                let vheaters = sys.heaters.filter(h => h.master !== 1);
+                id = vheaters.getMaxId(false, 1);
             }
             heater = sys.heaters.getItemById(id, false);
             let type = 0;

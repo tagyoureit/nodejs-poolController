@@ -170,7 +170,7 @@ export class NixieGasHeater extends NixieHeaterBase {
             let target = hstate.startupDelay === false && isOn;
             if (this.getCooldownTime() > 0) target = false; 
             if (target && typeof hstate.endTime !== 'undefined') {
-                // Calculate a short cycle time so that the solar heater does not cycle
+                // Calculate a short cycle time so that the gas heater does not cycle
                 // too often.  For gas heaters this is 60 seconds.  This gives enough time
                 // for the heater control circuit to make a full cycle.
                 if (new Date().getTime() - hstate.endTime.getTime() < 60000) {
@@ -456,6 +456,19 @@ export class NixieUltratemp extends NixieHeatpump {
             }, this.pollingInterval || 10000);
         }
     }
+    public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean, isCooling: boolean) {
+        try {
+            // Initialize the desired state.
+            this.isOn = this.getCooldownTime() > 0 ? false : isOn;
+            this.isCooling = isCooling;
+            if (hstate.isOn !== isOn) {
+                logger.info(`Nixie: Set Heater ${hstate.id}-${hstate.name} to ${isCooling ? 'cooling' : isOn ? 'heating' : 'off'}`);
+                
+            }
+            if (isOn && !hstate.startupDelay) this.lastHeatCycle = new Date();
+            hstate.isOn = isOn;
+        } catch (err) { return logger.error(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
+    }
     public async releaseHeater(sheater: HeaterState): Promise<boolean> {
         try {
             let success = await new Promise<boolean>((resolve, reject) => {
@@ -487,7 +500,6 @@ export class NixieUltratemp extends NixieHeatpump {
             return success;
         } catch (err) { logger.error(`Communication error with Ultratemp : ${err.message}`); }
     }
-
     public async setStatus(sheater: HeaterState): Promise<boolean> {
         try {
             let success = await new Promise<boolean>((resolve, reject) => {
