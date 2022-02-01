@@ -3533,9 +3533,8 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             if (isNaN(id)) return reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
             let heater: Heater;
             if (id <= 0) {
-                // We are adding a heater.  In this case all heaters are OCP.
-                let vheaters = sys.heaters.filter(h => h.master !== 1);
-                id = vheaters.getMaxId(false, 1);
+                // We are adding a heater.  In this case we need to find the first id slot that is empty.
+                id = sys.heaters.getNextEquipmentId(new EquipmentIdRange(1, 16));
             }
             heater = sys.heaters.getItemById(id, false);
             let type = 0;
