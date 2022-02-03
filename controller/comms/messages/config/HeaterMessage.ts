@@ -221,26 +221,6 @@ export class HeaterMessage {
                 sys.equipment.setEquipmentIds();
                 msg.isProcessed = true;
                 break;
-            case 168:
-                {
-                    // IntelliChem Installed
-                    if ((msg.extractPayloadByte(3) & 0x01) === 1) {
-                        // only support for 1 ic with EasyTouch
-                        let chem = sys.chemControllers.getItemByAddress(144, true);
-                        let schem = state.chemControllers.getItemById(chem.id, true);
-                        chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
-                        chem.ph.tank.units = chem.orp.tank.units = '';
-
-                    }
-                    else {
-                        let chem = sys.chemControllers.getItemByAddress(144);
-                        state.chemControllers.removeItemById(chem.id);
-                        sys.chemControllers.removeItemById(chem.id);
-                    }
-                    // Spa Manual Heat on/off
-                    sys.general.options.manualHeat = msg.extractPayloadByte(4) === 1 ? true : false;
-                    msg.isProcessed = true;
-                }
         }
     }
     private static processCooldownDelay(msg: Inbound) {

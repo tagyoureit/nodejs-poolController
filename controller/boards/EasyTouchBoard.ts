@@ -321,7 +321,7 @@ export class EasyTouchBoard extends SystemBoard {
             [128, { val: 128, name: 'timeout', desc: 'Timeout' }],
             [129, { val: 129, name: 'service-timeout', desc: 'Service/Timeout' }],
             [255, { name: 'error', desc: 'System Error' }]
-          ]);
+        ]);
         this.valueMaps.expansionBoards = new byteValueMap([
             [0, { name: 'ET28', part: 'ET2-8', desc: 'EasyTouch2 8', circuits: 8, shared: true }],
             [1, { name: 'ET28P', part: 'ET2-8P', desc: 'EasyTouch2 8P', circuits: 8, shared: false }],
@@ -1064,6 +1064,39 @@ class TouchSystemCommands extends SystemCommands {
     }
 }
 class TouchBodyCommands extends BodyCommands {
+    public async setBodyAsync(obj: any): Promise<Body> {
+        try {
+            return new Promise<Body>((resolve, reject) => {
+                let manualHeat = sys.general.options.manualHeat;
+                if (typeof obj.manualHeat !== 'undefined') manualHeat = utils.makeBool(obj.manualHeat);
+                let intellichemInstalled = sys.chemControllers.getItemByAddress(144, false).isActive;
+                // obj.intellichem should only ever be present when passed through the validation
+                // path of setChemControllerAsync -> setIntellchemAsync and hence we will not set
+                // intellichem as active here
+                if (typeof obj.intellichem !== 'undefined') intellichemInstalled = utils.makeBool(obj.intellichem);
+
+                let out = Outbound.create({
+                    dest: 16,
+                    action: 168,
+                    retries: 3,
+                    response: true,
+                    onComplete: (err, msg) => {
+                        if (err) reject(err);
+                        sys.general.options.manualHeat = manualHeat;
+
+                        state.emitEquipmentChanges();
+                        resolve(sys.bodies.getItemById(1));
+                    }
+                });
+                out.insertPayloadBytes(0, 0, 9);
+                out.setPayloadByte(3,  intellichemInstalled ? 255 : 254);
+                out.setPayloadByte(4, manualHeat ? 1 : 0);
+                conn.queueSendMessage(out);
+            });
+
+        }
+        catch (err) { return Promise.reject(err); }
+    }
     public async setHeatModeAsync(body: Body, mode: number): Promise<BodyTempState> {
         return new Promise<BodyTempState>((resolve, reject) => {
             //  [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
@@ -1746,7 +1779,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             // Calculate an id for the chlorinator.  The messed up part is that if a chlorinator is not attached to the OCP, its address
             // cannot be set by the MUX.  This will have to wait.
             id = 1;
-        }        
+        }
         // If this is a Nixie chlorinator then go to the base class and handle it from there.
         if (chlor.master === 1) return super.setChlorAsync(obj);
         // RKS: I am not even sure this can be done with Touch as the master on the RS485 bus.
@@ -1797,7 +1830,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
                     utils.makeBool(superChlorinate) && superChlorHours > 0 ? superChlorHours + 128 : 0,  // We only want to set the superChlor when the user sends superChlor = true
                         0, 0, 0, 0, 0, 0, 0],
                     retries: 3,
-                    response: true, 
+                    response: true,
                     // scope: Math.random(),
                     onComplete: (err)=>{
                         if (err) {
@@ -1817,7 +1850,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
                     if (typeof reject === 'undefined' || typeof resolve === 'undefined') return;
                     reject(new EquipmentTimeoutError(`no chlor response in 7 seconds`, `chlorTimeOut`));
                     reject = undefined;
-                    
+
                 }, 3000);
             });
             await request153packet;
@@ -1862,7 +1895,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             if (typeof _timeout !== 'undefined'){
                 clearTimeout(_timeout);
                 _timeout = undefined;
-            } 
+            }
             state.emitEquipmentChanges();
             return state.chlorinators.getItemById(id);
         } catch (err) {
@@ -2500,6 +2533,11 @@ class TouchChemControllerCommands extends ChemControllerCommands {
         chem.orp.tank.capacity = 6;
         let acidTankLevel = typeof data.ph !== 'undefined' && typeof data.ph.tank !== 'undefined' && typeof data.ph.tank.level !== 'undefined' ? parseInt(data.ph.tank.level, 10) : schem.ph.tank.level;
         let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' && typeof data.orp.tank.level !== 'undefined' ? parseInt(data.orp.tank.level, 10) : schem.orp.tank.level;
+        // OCP needs to set the IntelliChem as active so it knows that it exists
+        if (!sys.chemControllers.getItemById(data.id).isActive)
+        await sys.board.bodies.setBodyAsync({
+            "intellichem": true
+        });
         return new Promise<ChemController>((resolve, reject) => {
             let out = Outbound.create({
                 action: 211,
@@ -2563,7 +2601,12 @@ class TouchChemControllerCommands extends ChemControllerCommands {
         if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemController'));
         let chem = sys.chemControllers.getItemById(id);
         if (chem.master === 1) return super.deleteChemControllerAsync(data);
-        return new Promise<ChemController>((resolve, reject) => {
+        if (!chem.isActive){
+            // OCP needs to set the IntelliChem as inactive
+            await sys.board.bodies.setBodyAsync({
+                "intellichem": false
+            });            
+            return new Promise<ChemController>((resolve, reject) => {
             let out = Outbound.create({
                 action: 211,
                 response: Response.create({ protocol: Protocol.IntelliChem, action: 1, payload: [211] }),
@@ -2600,6 +2643,7 @@ class TouchChemControllerCommands extends ChemControllerCommands {
             out.setPayloadByte(13, 20);
             conn.queueSendMessage(out);
         });
+    }
     }
 
 }
