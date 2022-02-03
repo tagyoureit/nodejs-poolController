@@ -1065,16 +1065,20 @@ class TouchSystemCommands extends SystemCommands {
 }
 class TouchBodyCommands extends BodyCommands {
     public async setBodyAsync(obj: any): Promise<Body> {
+        // The 168 is a funky packet in *Touch because it can set:
+        // * Intellichem Installed (byte 3, bit 1)
+        // * Manual spa heat (byte 4, bit 1) which only applies to the spa but is a 
+        //    general option
+        // and this function can be called by either setIntelliChem (protected)
+        // or directly from setBodyAsync (/config/body endpoint).
+        // We also need to return the proper body setting manual heat, but it is irrelevant
+        // for when we are returning to chemController
         try {
             return new Promise<Body>((resolve, reject) => {
                 let manualHeat = sys.general.options.manualHeat;
                 if (typeof obj.manualHeat !== 'undefined') manualHeat = utils.makeBool(obj.manualHeat);
+                let body = sys.bodies.getItemById(obj.id, false);
                 let intellichemInstalled = sys.chemControllers.getItemByAddress(144, false).isActive;
-                // obj.intellichem should only ever be present when passed through the validation
-                // path of setChemControllerAsync -> setIntellchemAsync and hence we will not set
-                // intellichem as active here
-                if (typeof obj.intellichem !== 'undefined') intellichemInstalled = utils.makeBool(obj.intellichem);
-
                 let out = Outbound.create({
                     dest: 16,
                     action: 168,
@@ -1082,14 +1086,18 @@ class TouchBodyCommands extends BodyCommands {
                     response: true,
                     onComplete: (err, msg) => {
                         if (err) reject(err);
-                        sys.general.options.manualHeat = manualHeat;
-
-                        state.emitEquipmentChanges();
-                        resolve(sys.bodies.getItemById(1));
+                        else {
+                            sys.general.options.manualHeat = manualHeat;
+                            if (body.type === 1){ // spa
+                                body.manualHeat = manualHeat;
+                            };
+                            state.emitEquipmentChanges();
+                            resolve(body);
+                        }
                     }
                 });
                 out.insertPayloadBytes(0, 0, 9);
-                out.setPayloadByte(3,  intellichemInstalled ? 255 : 254);
+                out.setPayloadByte(3, intellichemInstalled ? 255 : 254);
                 out.setPayloadByte(4, manualHeat ? 1 : 0);
                 conn.queueSendMessage(out);
             });
@@ -2534,10 +2542,7 @@ class TouchChemControllerCommands extends ChemControllerCommands {
         let acidTankLevel = typeof data.ph !== 'undefined' && typeof data.ph.tank !== 'undefined' && typeof data.ph.tank.level !== 'undefined' ? parseInt(data.ph.tank.level, 10) : schem.ph.tank.level;
         let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' && typeof data.orp.tank.level !== 'undefined' ? parseInt(data.orp.tank.level, 10) : schem.orp.tank.level;
         // OCP needs to set the IntelliChem as active so it knows that it exists
-        if (!sys.chemControllers.getItemById(data.id).isActive)
-        await sys.board.bodies.setBodyAsync({
-            "intellichem": true
-        });
+
         return new Promise<ChemController>((resolve, reject) => {
             let out = Outbound.create({
                 action: 211,
@@ -2558,7 +2563,7 @@ class TouchChemControllerCommands extends ChemControllerCommands {
                         chem.cyanuricAcid = cyanuricAcid;
                         chem.alkalinity = alkalinity;
                         chem.borates = borates;
-                        chem.body = schem.body = body;
+                        chem.body = schem.body = body.val;
                         schem.isActive = chem.isActive = true;
                         chem.lsiRange.enabled = lsiRange.enabled;
                         chem.lsiRange.low = lsiRange.low;
@@ -2575,7 +2580,8 @@ class TouchChemControllerCommands extends ChemControllerCommands {
                         chem.address = schem.address = address;
                         chem.name = schem.name = name;
                         chem.flowSensor.enabled = false;
-                        resolve(chem);
+                        sys.board.bodies.setBodyAsync(sys.bodies.getItemById(1, false))
+                          .then(()=>{resolve(chem)});
                     }
                 }
             });
@@ -2599,51 +2605,48 @@ class TouchChemControllerCommands extends ChemControllerCommands {
     public async deleteChemControllerAsync(data: any): Promise<ChemController> {
         let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
         if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemController'));
-        let chem = sys.chemControllers.getItemById(id);
+        let chem = sys.board.chemControllers.findChemController(data);
         if (chem.master === 1) return super.deleteChemControllerAsync(data);
-        if (!chem.isActive){
-            // OCP needs to set the IntelliChem as inactive
-            await sys.board.bodies.setBodyAsync({
-                "intellichem": false
-            });            
-            return new Promise<ChemController>((resolve, reject) => {
-            let out = Outbound.create({
-                action: 211,
-                response: Response.create({ protocol: Protocol.IntelliChem, action: 1, payload: [211] }),
-                retries: 3,
-                payload: [],
-                onComplete: (err) => {
-                    if (err) { reject(err); }
-                    else {
-                        let schem = state.chemControllers.getItemById(id);
-                        chem.isActive = false;
-                        chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
-                        chem.ph.tank.units = chem.orp.tank.units = '';
-                        schem.isActive = false;
-                        sys.chemControllers.removeItemById(id);
-                        state.chemControllers.removeItemById(id);
-                        resolve(chem);
-                    }
+        return new Promise<ChemController>((resolve, reject) => {
+        let out = Outbound.create({
+            action: 211,
+            response: Response.create({ protocol: Protocol.IntelliChem, action: 1, payload: [211] }),
+            retries: 3,
+            payload: [],
+            onComplete: (err) => {
+                if (err) { reject(err); }
+                else {
+                    let schem = state.chemControllers.getItemById(id);
+                    chem.isActive = false;
+                    chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
+                    chem.ph.tank.units = chem.orp.tank.units = '';
+                    schem.isActive = false;
+                    sys.board.bodies.setBodyAsync(sys.bodies.getItemById(1, false))
+                        .then(()=>{
+                            sys.chemControllers.removeItemById(id);
+                            state.chemControllers.removeItemById(id);
+                            resolve(chem);
+                        })
+                        .catch(()=>{reject(err);});
                 }
-            });
-            // I think this payload should delete the controller on Touch.
-            out.insertPayloadBytes(0, 0, 22);
-            out.setPayloadByte(0, chem.address - 144);
-            out.setPayloadByte(1, Math.floor((chem.ph.setpoint * 100) / 256) || 0);
-            out.setPayloadByte(2, Math.round((chem.ph.setpoint * 100) % 256) || 0);
-            out.setPayloadByte(3, Math.floor(chem.orp.setpoint / 256) || 0);
-            out.setPayloadByte(4, Math.round(chem.orp.setpoint % 256) || 0);
-            out.setPayloadByte(5, 0);
-            out.setPayloadByte(6, 0);
-            out.setPayloadByte(7, Math.floor(chem.calciumHardness / 256) || 0);
-            out.setPayloadByte(8, Math.round(chem.calciumHardness % 256) || 0);
-            out.setPayloadByte(9, chem.cyanuricAcid || 0);
-            out.setPayloadByte(11, Math.floor(chem.alkalinity / 256) || 0);
-            out.setPayloadByte(12, Math.round(chem.alkalinity % 256) || 0);
-            out.setPayloadByte(13, 20);
-            conn.queueSendMessage(out);
+            }
         });
+        // I think this payload should delete the controller on Touch.
+        out.insertPayloadBytes(0, 0, 22);
+        out.setPayloadByte(0, chem.address - 144 || 0);
+        out.setPayloadByte(1, Math.floor((chem.ph.setpoint * 100) / 256) || 0);
+        out.setPayloadByte(2, Math.round((chem.ph.setpoint * 100) % 256) || 0);
+        out.setPayloadByte(3, Math.floor(chem.orp.setpoint / 256) || 0);
+        out.setPayloadByte(4, Math.round(chem.orp.setpoint % 256) || 0);
+        out.setPayloadByte(5, 0);
+        out.setPayloadByte(6, 0);
+        out.setPayloadByte(7, Math.floor(chem.calciumHardness / 256) || 0);
+        out.setPayloadByte(8, Math.round(chem.calciumHardness % 256) || 0);
+        out.setPayloadByte(9, chem.cyanuricAcid || 0);
+        out.setPayloadByte(11, Math.floor(chem.alkalinity / 256) || 0);
+        out.setPayloadByte(12, Math.round(chem.alkalinity % 256) || 0);
+        out.setPayloadByte(13, 20);
+        conn.queueSendMessage(out);
+    });
     }
-    }
-
 }
