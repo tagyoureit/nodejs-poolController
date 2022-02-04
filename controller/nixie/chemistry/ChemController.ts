@@ -1402,7 +1402,7 @@ export class NixieChemChlor extends NixieChildEquipment {
                     try {
                         await this.turnOn(schem);
                         if (schlor.currentOutput !== 100) {
-                            logger.warn(`Chlor dose not added because current output is not 100%`);
+                            logger.silly(`Chlor dose not added because current output is not 100%`);
                         }
                         else {
                             if (typeof dose._lastLatch !== 'undefined') {
@@ -1453,7 +1453,7 @@ export class NixieChemChlor extends NixieChildEquipment {
     }
     public async turnOff(schem: ChemicalState): Promise<ChlorinatorState> {
         try {
-            logger.info(`Turning off the chlorinator`);
+            //logger.info(`Turning off the chlorinator`);
             let chlor = sys.chlorinators.getItemById(1);
             let schlor = state.chlorinators.getItemById(1);
             if (schlor.currentOutput === 0 && schlor.targetOutput === 0 && !schlor.superChlor && chlor.disabled && !chlor.isDosing) {
