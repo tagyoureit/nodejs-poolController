@@ -1091,6 +1091,7 @@ class TouchBodyCommands extends BodyCommands {
                             if (body.type === 1){ // spa
                                 body.manualHeat = manualHeat;
                             };
+                            if (typeof obj.capacity !== 'undefined') body.capacity = parseInt(obj.capacity, 10);;
                             state.emitEquipmentChanges();
                             resolve(body);
                         }
