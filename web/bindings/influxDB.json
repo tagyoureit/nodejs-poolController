@@ -614,6 +614,11 @@
               "type": "int"
             },
             {
+              "name": "warning: pH daily limit reached",
+              "value": "@bind=data.warnings.pHDailyLimitReached.val;",
+              "type": "int"
+            },
+            {
               "name": "warning: water chemistry",
               "value": "@bind=data.warnings.waterChemistry.val;",
               "type": "int"
