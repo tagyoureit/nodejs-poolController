@@ -17,10 +17,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import * as path from "path";
 import * as fs from "fs";
 import { EventEmitter } from 'events';
-
-//import { conn } from "../controller/comms/Comms";
 const extend = require("extend");
 import { logger } from "../logger/Logger";
+import { utils } from "../controller/Constants";
 class Config {
     private cfgPath: string;
     private _cfg: any;
@@ -59,6 +58,7 @@ class Config {
                 else throw err;
             });
             this._isLoading = false;
+            this.getEnvVariables();
         } catch (err) {
             console.log(`Error reading configuration information.  Aborting startup: ${ err }`);
             // Rethrow this error so we exit the app with the appropriate pause in the console.
@@ -150,6 +150,28 @@ class Config {
                 return interfaces[i];
             }
         }
+    }
+    private getEnvVariables(){
+        // set docker env variables to config.json, if they are set
+        let env = process.env;
+        let bUpdate = false;
+        if (typeof env.POOL_RS485_PORT !== 'undefined' && env.POOL_RS485_PORT !== this._cfg.controller.comms.rs485Port) {
+            this._cfg.controller.comms.rs485Port = env.POOL_RS485_PORT;
+            bUpdate = true;
+        }
+        if (typeof env.POOL_NET_CONNECT !== 'undefined' && env.POOL_NET_CONNECT !== this._cfg.controller.comms.netConnect) {
+            this._cfg.controller.comms.netConnect = utils.makeBool(env.POOL_NET_CONNECT);
+            bUpdate = true;
+        }
+        if (typeof env.POOL_NET_HOST !== 'undefined' && env.POOL_NET_HOST !== this._cfg.controller.comms.netHost) {
+            this._cfg.controller.comms.netHost = env.POOL_NET_HOST;
+            bUpdate = true;
+        }
+        if (typeof env.POOL_NET_PORT !== 'undefined' && env.POOL_NET_PORT !== this._cfg.controller.comms.netPort) {
+            this._cfg.controller.comms.netPort = env.POOL_NET_PORT;
+            bUpdate = true;
+        }
+        if (bUpdate) this.update();
     }
 }
 export const config: Config = new Config();

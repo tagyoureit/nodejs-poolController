@@ -563,7 +563,7 @@ export class HttpServer extends ProtoServer {
     public app: express.Application;
     public server: http.Server;
     public sockServer: SocketIoServer<ClientToServerEvents, ServerToClientEvents>;
-    private _sockets: RemoteSocket<ServerToClientEvents>[] = [];
+    private _sockets: RemoteSocket<ServerToClientEvents, any>[] = [];
     public emitToClients(evt: string, ...data: any) {
         if (this.isRunning) {
             this.sockServer.emit(evt, ...data);
@@ -1344,7 +1344,7 @@ export class REMInterfaceServer extends ProtoServer {
     public sockClient;
     protected agent: http.Agent = new http.Agent({ keepAlive: true });
     public get isConnected() { return this.sockClient !== 'undefined' && this.sockClient.connected; };
-    private _sockets: RemoteSocket<ServerToClientEvents>[] = [];
+    private _sockets: RemoteSocket<ServerToClientEvents, any>[] = [];
     private async sendClientRequest(method: string, url: string, data?: any, timeout: number = 10000): Promise<InterfaceServerResponse> {
         try {
 
