@@ -1,4 +1,9 @@
 # Changelog
+
+## 7.6.1
+1. Many bugfixes: Intellichem, Touch body capacities, Ultratemp heaters, Nixie, more...
+2. Add env variables for Docker setup: POOL_RS485_PORT, POOL_NET_CONNECT, POOL_NET_HOST, POOL_NET_PORT, SOURCE_COMMIT, SOURCE_BRANCH
+3. Update dependencies
 ## 7.6
 1. MasterTemp RS485 support for Nixie and IntelliCenter
 2. Nixie Valve Rotation delay

@@ -45,7 +45,7 @@ class VersionCheck {
             let out: string;
             if (typeof env.SOURCE_BRANCH !== 'undefined') 
             {
-                out = `${env.SOURCE_BRANCH} - From environment variable`; // check for docker variable
+                out = env.SOURCE_BRANCH // check for docker variable
             }
             else {
                 let res = execSync('git rev-parse --abbrev-ref HEAD', { stdio: 'pipe' });
@@ -69,7 +69,7 @@ class VersionCheck {
             let out: string;
             if (typeof env.SOURCE_COMMIT !== 'undefined') 
             {
-                out = `${env.SOURCE_COMMIT} - From environment variable`; // check for docker variable
+                out = env.SOURCE_COMMIT; // check for docker variable
             }
             else {
                 let res = execSync('git rev-parse HEAD', { stdio: 'pipe' });
