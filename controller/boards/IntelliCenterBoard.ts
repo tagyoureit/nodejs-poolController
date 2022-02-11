@@ -133,7 +133,7 @@ export class IntelliCenterBoard extends SystemBoard {
             [4, { name: 'i10P', part: '521993Z', desc: 'i10P Personality Card', bodies: 1, valves: 2, circuits: 10, shared: false, dual: false, chlorinators: 1, chemControllers: 1 }], // This is a guess
             [5, { name: 'i10PS', part: '521873Z', desc: 'i10PS Personality Card', bodies: 2, valves: 4, circuits: 11, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
             [6, { name: 'i10x', part: '522997Z', desc: 'i10x Expansion Module', circuits: 10 }],
-            [7, { name: 'i10D', part: '523029Z', desc: 'i10D Personality Card', bodies: 2, valves: 2, circuits: 11, shared: false, dual: true, chlorinators: 1, chemControllers: 1 }], // We have witnessed this in the wild
+            [7, { name: 'i10D', part: '523029Z', desc: 'i10D Personality Card', bodies: 2, valves: 2, circuits: 11, shared: false, dual: true, chlorinators: 1, chemControllers: 2 }], // We have witnessed this in the wild
             [8, { name: 'Valve Exp', part: '522440', desc: 'Valve Expansion Module', valves: 6 }],
             [9, { name: 'A/D Module', part: '522039', desc: 'A/D Cover Module', covers: 2 }], // Finally have a user with one of these
             [10, { name: 'iChlor Mux', part: '522719', desc: 'iChlor MUX Card', chlorinators: 3 }], // This is a guess
