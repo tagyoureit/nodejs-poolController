@@ -296,6 +296,24 @@
           "filter": "@bind=typeof data.solar !== 'undefined';"
         },
         {
+          "topic": "state/temps/solarSensor2",
+          "message": "@bind=data.solarSensor2;",
+          "description": "Solar temp",
+          "filter": "@bind=typeof data.solarSensor2 !== 'undefined';"
+        },
+        {
+          "topic": "state/temps/solarSensor3",
+          "message": "@bind=data.solarSensor3;",
+          "description": "Solar temp",
+          "filter": "@bind=typeof data.solarSensor3 !== 'undefined';"
+        },
+        {
+          "topic": "state/temps/solarSensor4",
+          "message": "@bind=data.solarSensor4;",
+          "description": "Solar temp",
+          "filter": "@bind=typeof data.solarSensor4 !== 'undefined';"
+        },
+        {
           "topic": "state/temps/waterSensor1",
           "message": "@bind=data.waterSensor1;",
           "description": "Water temp sensor 1",
