@@ -38,6 +38,10 @@ export class NixieBoard extends SystemBoard {
         this.equipmentIds.features.start = 129;
         this.equipmentIds.circuitGroups.start = 193;
         this.equipmentIds.virtualCircuits.start = 237;
+        this.valueMaps.equipmentMaster = new byteValueMap([
+            [1, { val: 1, name: 'ncp', desc: 'Nixie Control Panel' }]
+        ]);
+
         this.valueMaps.featureFunctions = new byteValueMap([
             [0, { name: 'generic', desc: 'Generic' }],
             [1, { name: 'spillway', desc: 'Spillway' }],

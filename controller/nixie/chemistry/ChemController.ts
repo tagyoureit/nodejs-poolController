@@ -2338,7 +2338,7 @@ export class NixieChemProbePh extends NixieChemProbe {
                 changesOnly: false,
                 propertyDesc: '[chemController].pHLevel'
             }
-            let res = await NixieChemController.putDeviceService(this.probe.connectionId, '/config/feed', d);
+            let res = await NixieChemController.putDeviceService(this.probe.connectionId, '/config/verifyFeed', d);
             if (res.status.code === 200) { this.probe.remFeedEnabled = data.remFeedEnabled; }
             else { logger.warn(`setRemoteREMFeed: Cannot set remote feed. Message:${JSON.stringify(res.status)} for feed: ${JSON.stringify(d)}.`); }
         }
@@ -2421,7 +2421,7 @@ export class NixieChemProbeORP extends NixieChemProbe {
                 changesOnly: false,
                 propertyDesc: '[chemController].orpLevel'
             }
-            let res = await NixieChemController.putDeviceService(this.probe.connectionId, '/config/feed', d);
+            let res = await NixieChemController.putDeviceService(this.probe.connectionId, '/config/verifyFeed', d);
             if (res.status.code === 200) { this.probe.remFeedEnabled = data.remFeedEnabled; }
             else {
                 logger.warn(`setRemoteREMFeed: Cannot set remote feed. Message:${JSON.stringify(res.status)} for feed: ${JSON.stringify(d)}.`);
