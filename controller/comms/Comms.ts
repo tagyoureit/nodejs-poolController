@@ -557,9 +557,33 @@ export class SendRecieveBuffer {
         conn.buffer._inBuffer.push.apply(conn.buffer._inBuffer, pkt.toJSON().data); setTimeout(() => { self.processPackets(); }, 0);
     }
     public pushOut(msg) { conn.buffer._outBuffer.push(msg); setTimeout(() => { this.processPackets(); }, 0); }
-    public clear() { conn.buffer._inBuffer.length = 0; conn.buffer._outBuffer.length = 0; }
+    public clear() { conn.buffer._inBuffer.length = 0; this.clearOutbound(); }
     public close() { clearTimeout(conn.buffer.procTimer); conn.buffer.clear(); this._msg = undefined; }
-    public clearOutbound() { conn.buffer._outBuffer.length = 0; conn.buffer._waitingPacket = undefined; }
+    public clearOutbound() {
+        let processing = conn.buffer._processing;
+        clearTimeout(conn.buffer.procTimer);
+        conn.buffer.procTimer = null;
+        conn.buffer._processing = true;
+        conn.isRTS = false;
+        let msg: Outbound = typeof conn.buffer._waitingPacket !== 'undefined' ? conn.buffer._waitingPacket : conn.buffer._outBuffer.shift();
+        conn.buffer._waitingPacket = null;
+        while (typeof msg !== 'undefined') {
+            // Fail the message.
+            msg.failed = true;
+            if (typeof msg.onAbort === 'function') msg.onAbort();
+            else logger.warn(`Message cleared from outbound buffer: ${msg.toShortPacket()} `);
+            let err = new OutboundMessageError(msg, `Message cleared from outbound buffer: ${msg.toShortPacket()} `);
+            if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
+            if (msg.requiresResponse) {
+                // Wait for this current process to complete then bombard all the processes with the callback.
+                if (msg.response instanceof Response && typeof (msg.response.callback) === 'function') setImmediate(msg.response.callback, msg);
+            }
+            conn.buffer.counter.sndAborted++;
+            msg = conn.buffer._outBuffer.shift();
+        }
+        conn.buffer._processing = processing;
+        conn.isRTS = true;
+    }
     /********************************************************************
      * RKS: 06-06-20
      * This used to process every 175ms.  While the processing was light

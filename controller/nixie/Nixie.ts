@@ -118,11 +118,11 @@ export class NixieControlPanel implements INixieControlPanel {
     }
     public async closeAsync() {
         // Close all the associated equipment.
-        await this.pumps.closeAsync();
         await this.chemControllers.closeAsync();
         await this.chlorinators.closeAsync();
         await this.heaters.closeAsync();
         await this.circuits.closeAsync();
+        await this.pumps.closeAsync();
         await this.filters.closeAsync();
         await this.bodies.closeAsync();
         await this.valves.closeAsync();
