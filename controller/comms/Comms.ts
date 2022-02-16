@@ -567,7 +567,7 @@ export class SendRecieveBuffer {
         conn.isRTS = false;
         let msg: Outbound = typeof conn.buffer._waitingPacket !== 'undefined' ? conn.buffer._waitingPacket : conn.buffer._outBuffer.shift();
         conn.buffer._waitingPacket = null;
-        while (typeof msg !== 'undefined') {
+        while (typeof msg !== 'undefined' && msg) {
             // Fail the message.
             msg.failed = true;
             if (typeof msg.onAbort === 'function') msg.onAbort();
@@ -643,9 +643,14 @@ export class SendRecieveBuffer {
                 logger.warn(`Comms port is not open.Message aborted: ${msg.toShortPacket()} `);
                 // This is a hard fail.  We don't have any more tries left and the message didn't
                 // make it onto the wire.
+                if (typeof msg.onAbort === 'function') msg.onAbort();
+                else logger.warn(`Message aborted after ${msg.tries} attempt(s): ${msg.toShortPacket()} `);
                 let error = new OutboundMessageError(msg, `Comms port is not open.Message aborted: ${msg.toShortPacket()} `);
                 if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
                 conn.buffer._waitingPacket = null;
+                conn.buffer.counter.sndAborted++;
+                conn.buffer.counter.updatefailureRate();
+                webApp.emitToChannel('rs485PortStats', 'rs485Stats', conn.buffer.counter);
             }
         }
         // RG: added the last `|| typeof msg !== 'undef'` because virtual chem controller only sends a single packet
