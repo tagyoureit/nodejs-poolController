@@ -168,7 +168,6 @@ export class NixieGasHeater extends NixieHeaterBase {
             this.isOn = isOn;
             this.isCooling = false;
             let target = hstate.startupDelay === false && isOn;
-            if (this.getCooldownTime() > 0) target = false; 
             if (target && typeof hstate.endTime !== 'undefined') {
                 // Calculate a short cycle time so that the gas heater does not cycle
                 // too often.  For gas heaters this is 60 seconds.  This gives enough time
@@ -254,7 +253,6 @@ export class NixieSolarHeater extends NixieHeaterBase {
             this.isOn = isOn;
             this.isCooling = isCooling;
             let target = hstate.startupDelay === false && isOn;
-            if (this.getCooldownTime() > 0) target = false;
             if (target && typeof hstate.endTime !== 'undefined') {
                 // Calculate a short cycle time so that the solar heater does not cycle
                 // too often.  For solar heaters this is 60 seconds.  This gives enough time
@@ -459,7 +457,6 @@ export class NixieUltratemp extends NixieHeatpump {
     public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean, isCooling: boolean) {
         try {
             // Initialize the desired state.
-            this.isOn = this.getCooldownTime() > 0 ? false : isOn;
             this.isCooling = isCooling;
             if (hstate.isOn !== isOn) {
                 logger.info(`Nixie: Set Heater ${hstate.id}-${hstate.name} to ${isCooling ? 'cooling' : isOn ? 'heating' : 'off'}`);
@@ -529,7 +526,7 @@ export class NixieUltratemp extends NixieHeatpump {
                 if (sheater.startupDelay || this.closing)
                     out.setPayloadByte(1, 0, 0);
                 else {
-                    if (this.getCooldownTime() > 0 ? false : this.isOn) {
+                    if (this.isOn) {
                         if (!this.isCooling) this.lastHeatCycle = new Date();
                         else this.lastCoolCycle = new Date();
                     }
@@ -570,7 +567,6 @@ export class NixieMastertemp extends NixieGasHeater {
     public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean) {
         try {
             // Initialize the desired state.
-            this.isOn = this.getCooldownTime() > 0 ? false : isOn;
             this.isCooling = false;
             // Here we go we need to set the firemans switch state.
             if (hstate.isOn !== isOn) {
