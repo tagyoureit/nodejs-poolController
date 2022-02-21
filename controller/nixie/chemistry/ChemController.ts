@@ -2334,8 +2334,8 @@ export class NixieChemProbePh extends NixieChemProbe {
                 property: "pHLevel",
                 sendValue: 'all',
                 isActive: data.remFeedEnabled,
-                sampling: 1,
-                changesOnly: false,
+                //sampling: 1,
+                //changesOnly: false,
                 propertyDesc: '[chemController].pHLevel'
             }
             let res = await NixieChemController.putDeviceService(this.probe.connectionId, '/config/verifyFeed', d);
@@ -2417,8 +2417,8 @@ export class NixieChemProbeORP extends NixieChemProbe {
                 property: 'orpLevel',
                 sendValue: 'orp',
                 isActive: data.remFeedEnabled,
-                sampling: 1,
-                changesOnly: false,
+                //sampling: 1,
+                //changesOnly: false,
                 propertyDesc: '[chemController].orpLevel'
             }
             let res = await NixieChemController.putDeviceService(this.probe.connectionId, '/config/verifyFeed', d);
