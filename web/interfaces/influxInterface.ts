@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 import extend = require("extend");
-import { ClientOptions, InfluxDB, Point, WriteApi, WritePrecisionType } from '@influxdata/influxdb-client';
+import { ClientOptions, DEFAULT_WriteOptions, InfluxDB, Point, WriteApi, WriteOptions, WritePrecisionType } from '@influxdata/influxdb-client';
 import { utils, Timestamp } from '../../controller/Constants';
 import { logger } from "../../logger/Logger";
 import { BaseInterfaceBindings, InterfaceContext, InterfaceEvent } from "./baseInterface";
@@ -62,9 +62,6 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
             }
             influxDB = new InfluxDB(clientOptions);
         }
-        this.writeApi = influxDB.getWriteApi(org, bucket, 'ms');
-
-
         // set global tags from context
         let baseTags = {}
         baseOpts.tags.forEach(tag => {
@@ -74,7 +71,40 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
             if (typeof sname !== 'undefined' && typeof svalue !== 'undefined' && !sname.includes('@bind') && !svalue.includes('@bind'))
                 baseTags[sname] = svalue;
         })
-        this.writeApi.useDefaultTags(baseTags);
+        //this.writeApi.useDefaultTags(baseTags);
+        const writeOptions:WriteOptions = {
+            /* the maximum points/line to send in a single batch to InfluxDB server */
+            batchSize: baseOpts.batchSize || 100, 
+            /* default tags to add to every point */
+            defaultTags: baseTags,
+            /* maximum time in millis to keep points in an unflushed batch, 0 means don't periodically flush */
+            flushInterval: DEFAULT_WriteOptions.flushInterval,
+            /* maximum size of the retry buffer - it contains items that could not be sent for the first time */
+            maxBufferLines: DEFAULT_WriteOptions.maxBufferLines,
+            /* the count of retries, the delays between retries follow an exponential backoff strategy if there is no Retry-After HTTP header */
+            maxRetries: DEFAULT_WriteOptions.maxRetries,
+            /* maximum delay between retries in milliseconds */
+            maxRetryDelay: DEFAULT_WriteOptions.maxRetryDelay,
+            /* minimum delay between retries in milliseconds */
+            minRetryDelay: DEFAULT_WriteOptions.minRetryDelay, // minimum delay between retries
+            /* a random value of up to retryJitter is added when scheduling next retry */
+            retryJitter: DEFAULT_WriteOptions.retryJitter,
+            // ... or you can customize what to do on write failures when using a writeFailed fn, see the API docs for details
+            writeFailed: function(error, lines, failedAttempts){
+                /** return promise or void */
+                logger.error(`InfluxDB batch write failed writing ${lines.length} lines with ${failedAttempts} failed attempts.  ${error.message}`);
+            },
+            writeSuccess: function(lines){
+                logger.silly(`InfluxDB successfully wrote ${lines.length} lines.`)
+            },
+            maxRetryTime: DEFAULT_WriteOptions.maxRetryTime,
+            exponentialBase: DEFAULT_WriteOptions.exponentialBase,
+            randomRetry: DEFAULT_WriteOptions.randomRetry
+        }
+        this.writeApi = influxDB.getWriteApi(org, bucket, 'ms', writeOptions);
+
+
+
     }
     public bindEvent(evt: string, ...data: any) {
 
@@ -192,14 +222,14 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
                                 let sec = ts.getSeconds() - 1;
                                 ts.setSeconds(sec);
                                 point2.timestamp(ts);
-                                logger.silly(`Writing influx ${e.name} inverse data point ${point2.toString()})`)
+                                logger.silly(`Batching influx ${e.name} inverse data point ${point2.toString()})`)
                                 this.writeApi.writePoint(point2);
                             }
                             if (typeof point.toLineProtocol() !== 'undefined') {
-                                logger.silly(`Writing influx ${e.name} data point ${point.toString()}`)
+                                logger.silly(`Batching influx ${e.name} data point ${point.toString()}`)
                                 this.writeApi.writePoint(point);
-                                this.writeApi.flush()
-                                    .catch(error => { logger.error(`Error flushing Influx data point ${point.toString()} ${error}`); });
+                                // this.writeApi.flush()
+                                //     .catch(error => { logger.error(`Error flushing Influx data point ${point.toString()} ${error}`); });
                                 //logger.info(`INFLUX: ${point.toLineProtocol()}`)
                             }
                             else {
