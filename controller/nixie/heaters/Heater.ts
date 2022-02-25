@@ -152,6 +152,8 @@ export class NixieGasHeater extends NixieHeaterBase {
     constructor(ncp: INixieControlPanel, heater: Heater) {
         super(ncp, heater);
         this.heater = heater;
+        if (typeof this.heater.stopTempDelta === 'undefined') this.heater.stopTempDelta = 1;
+        if (typeof this.heater.minCycleTime === 'undefined') this.heater.minCycleTime = 2;
         this.pollEquipmentAsync();
     }
     public get id(): number { return typeof this.heater !== 'undefined' ? this.heater.id : -1; }
@@ -172,7 +174,7 @@ export class NixieGasHeater extends NixieHeaterBase {
                 // Calculate a short cycle time so that the gas heater does not cycle
                 // too often.  For gas heaters this is 60 seconds.  This gives enough time
                 // for the heater control circuit to make a full cycle.
-                if (new Date().getTime() - hstate.endTime.getTime() < 60000) {
+                if (new Date().getTime() - hstate.endTime.getTime() < this.heater.minCycleTime * 60000) {
                     logger.verbose(`${hstate.name} short cycle detected deferring turn on state`);
                     target = false;
                 }

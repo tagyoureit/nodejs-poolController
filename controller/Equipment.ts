@@ -1625,6 +1625,8 @@ export class Heater extends EqItem {
     public set economyTime(val: number) { this.setDataVal('economyTime', val); }
     public get connectionId(): string { return this.data.connectionId; }
     public set connectionId(val: string) { this.setDataVal('connectionId', val); }
+    public get minCycleTime(): number { return this.data.minCycleTime; }
+    public set minCycleTime(val: number) { this.setDataVal('minCycleTime', val); }
     public get deviceBinding(): string { return this.data.deviceBinding; }
     public set deviceBinding(val: string) { this.setDataVal('deviceBinding', val); }
 }

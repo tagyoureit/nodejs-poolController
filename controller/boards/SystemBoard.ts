@@ -4012,7 +4012,8 @@ export class HeaterCommands extends BoardCommands {
                                     case 'gas':
                                         // If we make it here, the other heater is not heating the body.
                                         if (mode === 'heater' || mode === 'solarpref' || mode === 'heatpumppref' || mode === 'ultratemppref') {
-                                            if (body.temp < cfgBody.setPoint) {
+                                            // Heat past the setpoint for the heater but only if the heater is currently on.
+                                            if ((body.temp - (hstate.isOn ? heater.stopTempDelta : 0)) < cfgBody.setPoint) {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
                                                 isHeating = true;
