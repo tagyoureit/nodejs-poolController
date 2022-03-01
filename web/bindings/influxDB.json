@@ -415,6 +415,16 @@
               "type": "int"
             },
             {
+              "name": "dose volume float",
+              "value": "@bind=data.orp.doseVolume;",
+              "type": "float"
+            },
+            {
+              "name": "dose volume remaining float",
+              "value": "@bind=data.orp.dosingVolumeRemaining;",
+              "type": "float"
+            },
+            {
               "name": "tank level",
               "value": "@bind=data.orp.tank.level;",
               "type": "float"
@@ -448,6 +458,11 @@
               "name": "max dosing volume",
               "value": "@bind=vars.cfg.orp.maxDosingVolume;",
               "type": "int"
+            },
+            {
+              "name": "max dosing volume float",
+              "value": "@bind=vars.cfg.orp.maxDosingVolume;",
+              "type": "float"
             },
             {
               "name": "mixing time",
@@ -498,6 +513,21 @@
               "name": "volume dosed",
               "value": "@bind=data.ph.volumeDosed;",
               "type": "int"
+            },
+            {
+              "name": "max daily volume float",
+              "value": "@bind=data.orp.maxDailyVolume;",
+              "type": "float"
+            },
+            {
+              "name": "daily volume dosed float",
+              "value": "@bind=data.ph.dailyVolumeDosed;",
+              "type": "float"
+            },
+            {
+              "name": "volume dosed float",
+              "value": "@bind=data.ph.volumeDosed;",
+              "type": "float"
             },
             {
               "name": "orp demand",
