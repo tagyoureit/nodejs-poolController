@@ -482,7 +482,8 @@ export class EquipmentStateMessage {
                 // pool
                 let tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
                 let cbody: Body = sys.bodies.getItemById(1);
-                tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(5) & 3;
+                // RKS: 02-26-22 - See communications doc for explanation of bits.  This needs to support UltraTemp ETi heatpumps.
+                tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(5) & 0x33;
                 tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(3);
                 tbody.coolSetpoint = cbody.coolSetpoint = msg.extractPayloadByte(9);
                 if (tbody.isOn) tbody.temp = state.temps.waterSensor1;
@@ -490,8 +491,8 @@ export class EquipmentStateMessage {
                 if (cbody.isActive) {
                     // spa
                     tbody = state.temps.bodies.getItemById(2, true);
-                    tbody.heatMode = cbody.heatMode =
-                        (msg.extractPayloadByte(5) & 12) >> 2;
+                    tbody.heatMode = cbody.heatMode = (msg.extractPayloadByte(5) & 0xCC) >> 2;
+                    //tbody.heatMode = cbody.heatMode = (msg.extractPayloadByte(5) & 12) >> 2;
                     tbody.setPoint = cbody.setPoint = msg.extractPayloadByte(4);
                     if (tbody.isOn) tbody.temp = state.temps.waterSensor2 = msg.extractPayloadByte(1);
                 }

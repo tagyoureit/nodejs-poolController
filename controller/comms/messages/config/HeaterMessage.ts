@@ -71,8 +71,22 @@ export class HeaterMessage {
         // Gas heater setup in EquipmentStateMessage upon *Touch discovery
         switch (msg.action) {
             // 1 = gas heater, 2 = solar, 3 = heat pump
-            case 34:
-            case 162:
+            case 34:   // Somebody requested the configuration
+            case 162:  // Somebody set the configuration
+                // Release any heaters that are tied to Nixie that should not be.
+                for (let i = sys.heaters.length - 1; i >= 0; i--) {
+                    let heater = sys.heaters.getItemByIndex(i);
+                    if (heater.id <= 4 && heater.master === 1) {
+                        // Return the heater control back to Touch
+                        (async function () {
+                            try {
+                                await ncp.heaters.deleteHeaterAsync(heater.id);
+                                logger.debug(`${heater.name} control returned to OCP.`);
+                            }
+                            catch (err) { logger.error(`Error with OCP reclaiming control over gas ${heater.name}: ${err}`) }
+                        })();
+                    }
+                }
                 // byte 0
                 // 21 = solar or heat pump disabled
                 // 23 = solar or heat pump enabled
@@ -94,6 +108,118 @@ export class HeaterMessage {
                 //             on/off (16) = solar as a heat pump
                 // bits 7,8 = stop temp delta
 
+
+
+                // Determine what type of heater should be in id number 1.  If this is a hybrid heater
+                // we will be installing it in id 1 although it will perform dual purpose.
+                let hasHeater = (msg.extractPayloadByte(0) & 0x01) === 0x01 || true;
+                let hasSolar = (msg.extractPayloadByte(1) & 0x02) === 0x02;
+                let hasHeatpump = (msg.extractPayloadByte(2) & 0x20) === 0x20;
+                let hasHybrid = !hasHeatpump && (msg.extractPayloadByte(2) & 0x10) === 0x10;
+
+                // Ok so it appears that the heater ids are as follows.
+                // 1 = Gas Heater
+                // 2 = Solar
+                // 3 = UltraTemp (HEATPUMPCOM)
+                // 4 = UltraTemp ETi (Hybrid)
+                // If an UltraTemp ETi is installed, no other heaters can be installed so they should be removed.  This is not
+                // an available option for IntelliTouch i10D so it does not apply to it.
+                if (!hasHeater) {
+                    sys.heaters.removeItemById(1);
+                    state.heaters.removeItemById(1);
+                    sys.heaters.removeItemById(2);
+                    state.heaters.removeItemById(2);
+                    sys.heaters.removeItemById(3);
+                    state.heaters.removeItemById(3);
+                    sys.heaters.removeItemById(4);
+                    state.heaters.removeItemById(4);
+                }
+                else {
+                    if (hasHybrid) {
+                        sys.heaters.removeItemById(1);
+                        state.heaters.removeItemById(1);
+                        sys.heaters.removeItemById(2);
+                        state.heaters.removeItemById(2);
+                        sys.heaters.removeItemById(3);
+                        state.heaters.removeItemById(3);
+                        let hybrid = sys.heaters.getItemById(4, true);
+                        let shybrid = state.heaters.getItemById(4, true);
+                        // [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
+                        shybrid.type = hybrid.type = 5;
+                        hybrid.address = 1; // Touch only supports address 1.
+                        hybrid.isActive = true;
+                        hybrid.master = 0;
+                        if (typeof hybrid.name === 'undefined') shybrid.name = hybrid.name = 'UltraTemp ETi';
+                        // The following 2 values need to come from somewhere.
+                        if (typeof hybrid.economyTime === 'undefined') hybrid.economyTime = 1;
+                        if (typeof hybrid.maxBoostTemp === 'undefined') hybrid.maxBoostTemp = 5;
+                        hasHeatpump = false; // You cannot have a heatpump and a hybrid heater.
+                    }
+                    else {
+                        // Hybrid heaters and gas heaters cannot co-exist but it appears you cannot disable the gas
+                        // heater on the touch panels.
+                        sys.heaters.removeItemById(4);
+                        state.heaters.removeItemById(4);
+                        let heater = sys.heaters.getItemById(1, true);
+                        let hstate = state.heaters.getItemById(1, true);
+                        // [1, { name: 'gas', desc: 'Gas Heater', hasAddress: false }],
+                        heater.type = hstate.type = 1;
+                        heater.isActive = true;
+                        heater.master = 0;
+                        if (typeof heater.name === 'undefined') heater.name = hstate.name = 'Gas Heater';
+                        if (typeof heater.cooldownDelay === 'undefined') heater.cooldownDelay = 5;
+                    }
+                    // Check to see if a heatpump is installed.  This will replace the solar heater so they cannot coexist.
+                    if (hasHeatpump) {
+                        // Remove the solar heater.  This will be replaced with the heatpump.
+                        sys.heaters.removeItemById(2);
+                        state.heaters.removeItemById(2);
+                        let heatpump = sys.heaters.getItemById(3, true);
+                        let sheatpump = state.heaters.getItemById(3, true);
+                        // [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true, hasPreference: true }],
+                        heatpump.type = sheatpump.type = 3;
+                        heatpump.body = 32;
+                        heatpump.isActive = true;
+                        heatpump.master = 0;
+                        if (typeof heatpump.name === 'undefined') sheatpump.name = heatpump.name = 'UltraTemp';
+                        heatpump.heatingEnabled = (msg.extractPayloadByte(1) & 0x01) === 1;
+                        heatpump.coolingEnabled = (msg.extractPayloadByte(1) & 0x02) === 2;
+                        sys.board.equipmentIds.invalidIds.add(20); // exclude Aux Extra
+                    }
+                    else if (hasSolar) {
+                        sys.heaters.removeItemById(3);
+                        state.heaters.removeItemById(3);
+                        let solar = sys.heaters.getItemById(2, true);
+                        let ssolar = sys.heaters.getItemById(2, true);
+                        // [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false, hasPreference: true }],
+                        solar.type = ssolar.type = 2;
+                        solar.body = 32;
+                        solar.isActive = true;
+                        solar.master = 0;
+                        if (typeof solar.name === 'undefined') solar.name = ssolar.name = 'Solar Heater';
+                        solar.freeze = (msg.extractPayloadByte(1) & 0x80) >> 7 === 1;
+                        solar.coolingEnabled = (msg.extractPayloadByte(1) & 0x20) >> 5 === 1;
+                        solar.startTempDelta = ((msg.extractPayloadByte(2) & 0xE) >> 1) + 3;
+                        solar.stopTempDelta = ((msg.extractPayloadByte(2) & 0xC0) >> 6) + 2;
+                        sys.board.equipmentIds.invalidIds.add(20); // exclude Aux Extra
+                    }
+                    else {
+                        sys.board.equipmentIds.invalidIds.remove(20); // Allow access to Aux Extra
+                    }
+                }
+                sys.board.heaters.updateHeaterServices();
+                for (let i = 0; i < sys.bodies.length; i++) {
+                    let body = sys.bodies.getItemByIndex(i);
+                    let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
+                    let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
+                    btemp.heaterOptions = opts;
+                }
+                sys.board.heaters.syncHeaterStates();
+                sys.equipment.setEquipmentIds();
+                msg.isProcessed = true;
+
+
+                /*
                 // gas heater only; solar/heatpump/ultratemp disabled
                 if ((msg.extractPayloadByte(0) & 0x2) === 0) {
                     let heater = sys.heaters.getItemById(1);
@@ -112,14 +238,14 @@ export class HeaterMessage {
                     sys.heaters.getItemById(3).isActive = false;
                     sys.heaters.getItemById(4).isActive = false;
                     sys.board.equipmentIds.invalidIds.remove(20); // include Aux Extra
-/*                     sys.equipment.setEquipmentIds();
-                    for (let i = 0; i < sys.bodies.length; i++) {
-                        let body = sys.bodies.getItemByIndex(i);
-                        let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
-                        let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
-                        btemp.heaterOptions = opts;
-                    }
-                    return; */
+                    //sys.equipment.setEquipmentIds();
+                    //for (let i = 0; i < sys.bodies.length; i++) {
+                    //    let body = sys.bodies.getItemByIndex(i);
+                    //    let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
+                    //    let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
+                    //    btemp.heaterOptions = opts;
+                    //}
+                    return;
                 }
                 // Ultratemp (+ cooling?); 
                 else if ((msg.extractPayloadByte(2) & 0x30) === 0x30) {
@@ -220,7 +346,9 @@ export class HeaterMessage {
                 sys.board.heaters.syncHeaterStates();
                 sys.equipment.setEquipmentIds();
                 msg.isProcessed = true;
+                */
                 break;
+
         }
     }
     private static processCooldownDelay(msg: Inbound) {

@@ -1115,6 +1115,15 @@ class TouchBodyCommands extends BodyCommands {
             // 1    | 97  | Spa setpoint
             // 2    | 7   | Pool/spa heat modes (01 = Heater spa 11 = Solar Only pool)
             // 3    | 0   | Cool set point for ultratemp
+            
+
+            // Heat modes
+            // 0 = Off
+            // 1 = Heater
+            // 2 = Solar/Heatpump Pref
+            // 3 = Solar
+            // 
+
             const body1 = sys.bodies.getItemById(1);
             const body2 = sys.bodies.getItemById(2);
             const temp1 = body1.setPoint || 100;
@@ -2427,45 +2436,58 @@ class TouchHeaterCommands extends HeaterCommands {
         let heatPumpInstalled = htypes.heatpump > 0;
         let ultratempInstalled = htypes.ultratemp > 0;
         let gasHeaterInstalled = htypes.gas > 0;
+        let hybridInstalled = htypes.hybrid > 0;
         sys.board.valueMaps.heatModes.set(0, { name: 'off', desc: 'Off' });
         sys.board.valueMaps.heatSources.set(0, { name: 'off', desc: 'Off' });
-        if (gasHeaterInstalled) {
-            sys.board.valueMaps.heatModes.set(1, { name: 'heater', desc: 'Heater' });
-            sys.board.valueMaps.heatSources.set(2, { name: 'heater', desc: 'Heater' });
-        }
-        else {
-            // no heaters (virtual controller)
-            sys.board.valueMaps.heatModes.delete(1);
-            sys.board.valueMaps.heatSources.delete(2);
-        }
-        if (solarInstalled && gasHeaterInstalled) {
-            sys.board.valueMaps.heatModes.set(2, { name: 'solarpref', desc: 'Solar Preferred' });
-            sys.board.valueMaps.heatModes.set(3, { name: 'solar', desc: 'Solar Only' });
-            sys.board.valueMaps.heatSources.set(5, { name: 'solarpref', desc: 'Solar Preferred' });
-            sys.board.valueMaps.heatSources.set(21, { name: 'solar', desc: 'Solar Only' });
-        }
-        else if (heatPumpInstalled && gasHeaterInstalled) {
-            sys.board.valueMaps.heatModes.set(2, { name: 'heatpumppref', desc: 'Heat Pump Preferred' });
+        if (hybridInstalled) {
+            sys.board.valueMaps.heatModes.set(1, { name: 'heater', desc: 'Gas Heat' });
+            sys.board.valueMaps.heatModes.set(2, { name: 'heatpumppref', desc: 'Hybrid' });
             sys.board.valueMaps.heatModes.set(3, { name: 'heatpump', desc: 'Heat Pump Only' });
-            sys.board.valueMaps.heatSources.set(5, { name: 'heatpumppref', desc: 'Heat Pump Preferred' });
+            sys.board.valueMaps.heatModes.set(16, { name: 'dual', desc: 'Dual Heat' });
+            sys.board.valueMaps.heatSources.set(2, { name: 'heater', desc: 'Gas Heat' });
+            sys.board.valueMaps.heatSources.set(5, { name: 'heatpumppref', desc: 'Hybrid' });
+            sys.board.valueMaps.heatSources.set(20, { name: 'dual', desc: 'Dual Heat' });
             sys.board.valueMaps.heatSources.set(21, { name: 'heatpump', desc: 'Heat Pump Only' });
         }
-        else if (ultratempInstalled && gasHeaterInstalled) {
-            sys.board.valueMaps.heatModes.merge([
-                [2, { name: 'ultratemppref', desc: 'UltraTemp Pref' }],
-                [3, { name: 'ultratemp', desc: 'UltraTemp Only' }]
-            ]);
-            sys.board.valueMaps.heatSources.merge([
-                [5, { name: 'ultratemppref', desc: 'Ultratemp Pref', hasCoolSetpoint: htypes.hasCoolSetpoint }],
-                [21, { name: 'ultratemp', desc: 'Ultratemp Only', hasCoolSetpoint: htypes.hasCoolSetpoint }]
-            ])
-        }
         else {
-            // only gas
-            sys.board.valueMaps.heatModes.delete(2);
-            sys.board.valueMaps.heatModes.delete(3);
-            sys.board.valueMaps.heatSources.delete(5);
-            sys.board.valueMaps.heatSources.delete(21);
+            if (gasHeaterInstalled) {
+                sys.board.valueMaps.heatModes.set(1, { name: 'heater', desc: 'Heater' });
+                sys.board.valueMaps.heatSources.set(2, { name: 'heater', desc: 'Heater' });
+            }
+            else {
+                // no heaters (virtual controller)
+                sys.board.valueMaps.heatModes.delete(1);
+                sys.board.valueMaps.heatSources.delete(2);
+            }
+            if (solarInstalled && gasHeaterInstalled) {
+                sys.board.valueMaps.heatModes.set(2, { name: 'solarpref', desc: 'Solar Preferred' });
+                sys.board.valueMaps.heatModes.set(3, { name: 'solar', desc: 'Solar Only' });
+                sys.board.valueMaps.heatSources.set(5, { name: 'solarpref', desc: 'Solar Preferred' });
+                sys.board.valueMaps.heatSources.set(21, { name: 'solar', desc: 'Solar Only' });
+            }
+            else if (heatPumpInstalled && gasHeaterInstalled) {
+                sys.board.valueMaps.heatModes.set(2, { name: 'heatpumppref', desc: 'Heat Pump Preferred' });
+                sys.board.valueMaps.heatModes.set(3, { name: 'heatpump', desc: 'Heat Pump Only' });
+                sys.board.valueMaps.heatSources.set(5, { name: 'heatpumppref', desc: 'Heat Pump Preferred' });
+                sys.board.valueMaps.heatSources.set(21, { name: 'heatpump', desc: 'Heat Pump Only' });
+            }
+            else if (ultratempInstalled && gasHeaterInstalled) {
+                sys.board.valueMaps.heatModes.merge([
+                    [2, { name: 'ultratemppref', desc: 'UltraTemp Pref' }],
+                    [3, { name: 'ultratemp', desc: 'UltraTemp Only' }]
+                ]);
+                sys.board.valueMaps.heatSources.merge([
+                    [5, { name: 'ultratemppref', desc: 'Ultratemp Pref', hasCoolSetpoint: htypes.hasCoolSetpoint }],
+                    [21, { name: 'ultratemp', desc: 'Ultratemp Only', hasCoolSetpoint: htypes.hasCoolSetpoint }]
+                ])
+            }
+            else {
+                // only gas
+                sys.board.valueMaps.heatModes.delete(2);
+                sys.board.valueMaps.heatModes.delete(3);
+                sys.board.valueMaps.heatSources.delete(5);
+                sys.board.valueMaps.heatSources.delete(21);
+            }
         }
         sys.board.valueMaps.heatSources.set(32, { name: 'nochange', desc: 'No Change' });
         this.setActiveTempSensors();

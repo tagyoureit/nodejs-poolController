@@ -22,9 +22,13 @@ export class HeaterStateMessage {
     public static process(msg: Inbound) {
         if (msg.protocol === Protocol.Heater) {
             switch (msg.action) {
-                case 112: // This is a message from a master controlling MasterTemp
+                case 112: // This is a message from a master controlling MasterTemp or UltraTemp ETi
+                    break;
                 case 114: // This is a message from a master controlling UltraTemp
                     msg.isProcessed = true;
+                    break;
+                case 113:
+                    HeaterStateMessage.processHybridStatus(msg);
                     break;
                 case 116:
                     HeaterStateMessage.processMasterTempStatus(msg);
@@ -34,6 +38,32 @@ export class HeaterStateMessage {
                     break;
             }
         }
+    }
+    public static processHeaterCommand(msg: Inbound) {
+        let heater: Heater = sys.heaters.getItemByAddress(msg.source);
+        // At this point there is no other configuration data for ET
+        if (sys.controllerType === ControllerType.EasyTouch) {
+            let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
+            switch (htype.name) {
+                case 'hybrid':
+                    heater.economyTime = msg.extractPayloadByte(3);
+                    heater.maxBoostTemp = msg.extractPayloadByte(4);
+                    break;
+            }
+        }
+    }
+    public static processHybridStatus(msg: Inbound) {
+        //[165, 0, 16, 112, 113, 10][1, 1, 0, 0, 0, 0, 0, 0, 0, 0][1, 162]
+        let heater: Heater = sys.heaters.getItemByAddress(msg.source);
+        let sheater = state.heaters.getItemById(heater.id);
+        sheater.isOn = msg.extractPayloadByte(0) > 0;
+
+        let byte = msg.extractPayloadByte(2);
+        //sheater.isOn = byte >= 1;
+        //sheater.isCooling = byte === 2;
+        sheater.commStatus = 0;
+        state.equipment.messages.removeItemByCode(`heater:${heater.id}:comms`);
+        msg.isProcessed = true;
     }
     public static processUltraTempStatus(msg: Inbound) {
         // RKS: 07-03-21 - We only know byte 2 at this point for Ultratemp for the 115 message we are processing here.  The 
