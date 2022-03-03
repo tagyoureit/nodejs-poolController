@@ -115,8 +115,8 @@ export class HeaterMessage {
                 // we will be installing it in id 1 although it will perform dual purpose.
                 let hasHeater = (msg.extractPayloadByte(0) & 0x01) === 0x01 || true;
                 let hasSolar = (msg.extractPayloadByte(1) & 0x02) === 0x02;
-                let hasHeatpump = (msg.extractPayloadByte(2) & 0x20) === 0x20;
-                let hasHybrid = !hasHeatpump && (msg.extractPayloadByte(2) & 0x10) === 0x10;
+                let hasHeatpump = (msg.extractPayloadByte(1) & 0x20) === 0x20;
+                let hasHybrid = !hasHeatpump && (msg.extractPayloadByte(1) & 0x10) === 0x10;
 
                 // Ok so it appears that the heater ids are as follows.
                 // 1 = Gas Heater
