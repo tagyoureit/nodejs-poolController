@@ -357,17 +357,41 @@ export class EquipmentStateMessage {
                             tbody.setPoint = cbody.setPoint;
                             tbody.name = cbody.name;
                             tbody.circuit = cbody.circuit = 6;
-                            tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(22) & 0x03;
+
+                            //RKS: This heat mode did not include all the bits necessary for hybrid heaters
+                            //tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(22) & 0x03;
+                            tbody.heatMode = cbody.heatMode = msg.extractPayloadByte(22) & 0x33;
                             let heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
                             if (tbody.isOn) {
-                                //const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
-                                //const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
-                                const heaterActive = (msg.extractPayloadByte(10) & 0x04) === 0x04;
-                                const solarActive = (msg.extractPayloadByte(10) & 0x10) === 0x10;
-                                const cooling = solarActive && tbody.temp > tbody.setPoint;
-                                if (heaterActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                                if (cooling) heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
-                                else if (solarActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                                if (tbody.heaterOptions.hybrid > 0) {
+                                    // ETi When heating with
+                                    // Heatpump (1) = 12    H:true S:false C:false
+                                    // Gas (2) = 48         H:false S:true C:false
+                                    // Hybrid (3) = 48      H:true S:false C:false
+                                    // Dual (16) = 60       H:true S:true C:false
+                                    // What this means is that Touch actually treats the heat status as either heating with
+                                    // the primary heater for the body or the secondary.  In the case of a hybrid heater
+                                    // the primary is a heatpump and the secondary is gas.  In the case of gas + solar or gas + heatpump
+                                    // the gas heater is the primary and solar or heatpump is the secondary.   So we need to dance a little bit
+                                    // here.  We do this by checking the heater options.
+
+                                    // This can be the only heater solar cannot be installed with this.
+                                    let byte = msg.extractPayloadByte(10);
+                                    // Either the primary, secondary, or both is engaged.
+                                    if ((byte & 0x14) === 0x14) heatStatus = sys.board.valueMaps.heatStatus.getValue('dual');
+                                    else if (byte & 0x10) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                    else if (byte & 0x04) heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                                }
+                                else {
+                                    //const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
+                                    //const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
+                                    const heaterActive = (msg.extractPayloadByte(10) & 0x04) === 0x04;
+                                    const solarActive = (msg.extractPayloadByte(10) & 0x10) === 0x10;
+                                    const cooling = solarActive && tbody.temp > tbody.setPoint;
+                                    if (heaterActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                    if (cooling) heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
+                                    else if (solarActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                                }
                             }
                             tbody.heatStatus = heatStatus;
                             sys.board.schedules.syncScheduleHeatSourceAndSetpoint(cbody, tbody);
@@ -380,21 +404,32 @@ export class EquipmentStateMessage {
                                 tbody.temp = sys.equipment.shared ? state.temps.waterSensor1 : state.temps.waterSensor2;
                                 tbody.isOn = true;
                             } else tbody.isOn = false;
-                            tbody.heatMode = cbody.heatMode = (msg.extractPayloadByte(22) & 0x0C) >> 2;
+                            //RKS: This heat mode did not include all the bits necessary for hybrid heaters
+                            //tbody.heatMode = cbody.heatMode = (msg.extractPayloadByte(22) & 0x0C) >> 2;
+                            tbody.heatMode = cbody.heatMode = (msg.extractPayloadByte(22) & 0xCC) >> 2;
                             tbody.setPoint = cbody.setPoint;
                             tbody.name = cbody.name;
                             tbody.circuit = cbody.circuit = 1;
                             let heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
                             if (tbody.isOn) {
-                                //const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
-                                //const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
-                                const heaterActive = (msg.extractPayloadByte(10) & 0x08) === 0x08;
-                                const solarActive = (msg.extractPayloadByte(10) & 0x20) === 0x20;
-
-                                const cooling = solarActive && tbody.temp > tbody.setPoint;
-                                if (heaterActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                                if (cooling) heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
-                                else if (solarActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                                if (tbody.heaterOptions.hybrid > 0) {
+                                    // This can be the only heater solar cannot be installed with this.
+                                    let byte = msg.extractPayloadByte(10);
+                                    // Either the primary, secondary, or both is engaged.
+                                    if ((byte & 0x28) === 0x28) heatStatus = sys.board.valueMaps.heatStatus.getValue('dual');
+                                    else if (byte & 0x20) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                    else if (byte & 0x08) heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                                }
+                                else {
+                                    //const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
+                                    //const solarActive = (msg.extractPayloadByte(10) & 0x30) === 48;
+                                    const heaterActive = (msg.extractPayloadByte(10) & 0x08) === 0x08;
+                                    const solarActive = (msg.extractPayloadByte(10) & 0x20) === 0x20;
+                                    const cooling = solarActive && tbody.temp > tbody.setPoint;
+                                    if (heaterActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                    if (cooling) heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
+                                    else if (solarActive) heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                                }
                             }
                             tbody.heatStatus = heatStatus;
                             sys.board.schedules.syncScheduleHeatSourceAndSetpoint(cbody, tbody);

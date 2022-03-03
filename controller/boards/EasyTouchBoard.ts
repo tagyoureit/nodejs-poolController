@@ -44,7 +44,9 @@ export class EasyTouchBoard extends SystemBoard {
             [0, { name: 'off', desc: 'Off' }],
             [1, { name: 'heater', desc: 'Heater' }],
             [2, { name: 'cooling', desc: 'Cooling' }],
-            [3, { name: 'solar', desc: 'Solar' }]
+            [3, { name: 'solar', desc: 'Solar' }],
+            [4, { name: 'hpheat', desc: 'Heatpump' }],
+            [5, { name: 'dual', desc: 'Dual'}]
         ]);
         this.valueMaps.customNames = new byteValueMap(
             sys.customNames.get().map((el, idx) => {
@@ -2440,10 +2442,16 @@ class TouchHeaterCommands extends HeaterCommands {
         sys.board.valueMaps.heatModes.set(0, { name: 'off', desc: 'Off' });
         sys.board.valueMaps.heatSources.set(0, { name: 'off', desc: 'Off' });
         if (hybridInstalled) {
-            sys.board.valueMaps.heatModes.set(1, { name: 'heater', desc: 'Gas Heat' });
-            sys.board.valueMaps.heatModes.set(2, { name: 'heatpumppref', desc: 'Hybrid' });
-            sys.board.valueMaps.heatModes.set(3, { name: 'heatpump', desc: 'Heat Pump Only' });
+            // Source Issue #390
+            // 1 = Heat Pump
+            // 2 = Gas Heater
+            // 3 = Hybrid
+            // 16 = Dual 
+            sys.board.valueMaps.heatModes.set(1, { name: 'heatpump', desc: 'Heat Pump Only' });
+            sys.board.valueMaps.heatModes.set(2, { name: 'heater', desc: 'Gas Heat' });
+            sys.board.valueMaps.heatModes.set(3, { name: 'heatpumppref', desc: 'Hybrid' });
             sys.board.valueMaps.heatModes.set(16, { name: 'dual', desc: 'Dual Heat' });
+
             sys.board.valueMaps.heatSources.set(2, { name: 'heater', desc: 'Gas Heat' });
             sys.board.valueMaps.heatSources.set(5, { name: 'heatpumppref', desc: 'Hybrid' });
             sys.board.valueMaps.heatSources.set(20, { name: 'dual', desc: 'Dual Heat' });
