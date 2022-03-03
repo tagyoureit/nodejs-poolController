@@ -150,6 +150,7 @@ export class HeaterMessage {
                         hybrid.address = 1; // Touch only supports address 1.
                         hybrid.isActive = true;
                         hybrid.master = 0;
+                        hybrid.body = sys.equipment.shared ? 32 : 0;
                         if (typeof hybrid.name === 'undefined') shybrid.name = hybrid.name = 'UltraTemp ETi';
                         // The following 2 values need to come from somewhere.
                         if (typeof hybrid.economyTime === 'undefined') hybrid.economyTime = 1;
@@ -163,6 +164,7 @@ export class HeaterMessage {
                         state.heaters.removeItemById(4);
                         let heater = sys.heaters.getItemById(1, true);
                         let hstate = state.heaters.getItemById(1, true);
+                        heater.body = sys.equipment.shared ? 32 : 0;
                         // [1, { name: 'gas', desc: 'Gas Heater', hasAddress: false }],
                         heater.type = hstate.type = 1;
                         heater.isActive = true;
@@ -179,9 +181,10 @@ export class HeaterMessage {
                         let sheatpump = state.heaters.getItemById(3, true);
                         // [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true, hasPreference: true }],
                         heatpump.type = sheatpump.type = 3;
-                        heatpump.body = 32;
+                        heatpump.body = sys.equipment.shared ? 32 : 0;
                         heatpump.isActive = true;
                         heatpump.master = 0;
+
                         if (typeof heatpump.name === 'undefined') sheatpump.name = heatpump.name = 'UltraTemp';
                         heatpump.heatingEnabled = (msg.extractPayloadByte(1) & 0x01) === 1;
                         heatpump.coolingEnabled = (msg.extractPayloadByte(1) & 0x02) === 2;
@@ -194,7 +197,7 @@ export class HeaterMessage {
                         let ssolar = sys.heaters.getItemById(2, true);
                         // [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false, hasPreference: true }],
                         solar.type = ssolar.type = 2;
-                        solar.body = 32;
+                        solar.body = sys.equipment.shared ? 32 : 0;
                         solar.isActive = true;
                         solar.master = 0;
                         if (typeof solar.name === 'undefined') solar.name = ssolar.name = 'Solar Heater';

@@ -339,15 +339,17 @@ export class EasyTouchBoard extends SystemBoard {
         ]);
     }
     public initHeaterDefaults() {
-        let heater = sys.heaters.getItemById(1, true);
-        heater.isActive = true;
-        heater.type = 1;
-        heater.name = "Gas Heater";
-        let sheater = state.heaters.getItemById(1, true);
-        sheater.type = heater.type;
-        sheater.name = heater.name;
-        //sheater.isVirtual = heater.isVirtual = false;
-        sys.equipment.shared ? heater.body = 32 : heater.body = 0;
+        // RKS: 03-03-22 This is not correct.  As it turns out there is a case where the only heater installed is not
+        // a gas heater.  This also does not work for dual body systems.
+        //let heater = sys.heaters.getItemById(1, true);
+        //heater.isActive = true;
+        //heater.type = 1;
+        //heater.name = "Gas Heater";
+        //let sheater = state.heaters.getItemById(1, true);
+        //sheater.type = heater.type;
+        //sheater.name = heater.name;
+        ////sheater.isVirtual = heater.isVirtual = false;
+        //sys.equipment.shared ? heater.body = 32 : heater.body = 0;
     }
     public initBodyDefaults() {
         // Initialize the bodies.  We will need these very soon.
