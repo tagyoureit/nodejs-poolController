@@ -1666,9 +1666,12 @@ export class BodyCommands extends BoardCommands {
     }
     public getHeatModes(bodyId: number) {
         let heatModes = [];
+        sys.board.heaters.updateHeaterServices();
+
         // RKS: 09-26-20 This will need to be overloaded in IntelliCenterBoard when the other heater types are identified. (e.g. ultratemp, hybrid, maxetherm, and mastertemp)
         heatModes.push(this.board.valueMaps.heatModes.transformByName('off')); // In IC fw 1.047 off is no longer 0.
         let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
+        if (heatTypes.hybrid > 0) heatModes = this.board.valueMaps.heatModes.toArray();
         if (heatTypes.gas > 0) heatModes.push(this.board.valueMaps.heatModes.transformByName('heater'));
         if (heatTypes.mastertemp > 0) heatModes.push(this.board.valueMaps.heatModes.transformByName('mtheater'));
         if (heatTypes.solar > 0) {
@@ -4061,6 +4064,8 @@ export class HeaterCommands extends BoardCommands {
                                     if (hstatus === 'heater') isHeating = isOn = true;
                                     break;
                                 case 'hybrid':
+                                    if (hstatus === 'mtheat' || hstatus === 'heater' || hstatus === 'dual') isHeating = isOn = true;
+                                    break;
                                 case 'ultratemp':
                                 case 'heatpump':
                                     if (mode === 'ultratemp' || mode === 'ultratemppref' || mode === 'heatpump' || mode === 'heatpumppref') {
