@@ -2399,26 +2399,146 @@ class TouchHeaterCommands extends HeaterCommands {
             let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
             if (isNaN(id)) return reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
             let heater: Heater;
+            let address: number;
+            let out = Outbound.create({
+                action: 162,
+                payload: [5, 0, 0],
+                retries: 2,
+                // I am assuming that there should be an action 34 when the 162 is sent but I do not have this
+                // data.
+                response: Response.create({ dest: -1, action: 34 })
+            });
+            let htype;
             if (id <= 0) {
-                // We are adding a heater.  In this case all heaters are virtual.
-                let heaters = sys.heaters.filter(h => h.master === 1);
-                id = heaters.getMaxId() + 1;
-            }
-            heater = sys.heaters.getItemById(id, true);
-            if (typeof obj !== undefined) {
-                for (var s in obj) {
-                    if (s === 'id') continue;
-                    heater[s] = obj[s];
+                // Touch only supports two installed heaters.  So the type determines the id.
+                if (sys.heaters.length > sys.equipment.maxHeaters) return reject(new InvalidEquipmentDataError('The maximum number of heaters are already installed.', 'Heater', sys.heaters.length));
+                htype = sys.board.valueMaps.heaterTypes.findItem(obj.type);
+                if (typeof htype === 'undefined') return reject(new InvalidEquipmentDataError('Heater type is not valid.', 'Heater', obj.heaterType));
+                // Check to see if we can find any heaters of this type already installed.
+                if (sys.heaters.count(h => h.type === htype.val) > 0) return reject(new InvalidEquipmentDataError(`Only one ${htype.desc} heater can be installed`, 'Heater', htype));
+                // Next we need to see if this heater is compatible with all the other heaters.  For Touch you may only have the following combos.
+                // 1 Gas + 1 Solar
+                // 1 Gas + 1 Heatpump
+                // 1 Hybrid
+
+                // Heater ids are as follows.
+                // 1 = Gas Heater
+                // 2 = Solar
+                // 3 = UltraTemp (HEATPUMPCOM)
+                // 4 = UltraTemp ETi (Hybrid)
+                switch (htype.name) {
+                    case 'gas':
+                        id = 1;
+                        break;
+                    case 'solar':
+                        out.setPayloadByte(0, out.payload[0] | 0x02);
+                        // Set the start and stop temp delta.
+                        out.setPayloadByte(1, (obj.freeze ? 0x80 : 0x00) | (obj.coolingEnabled ? 0x20 : 0x00));
+                        out.setPayloadByte(2, ((obj.startTempDelta || 6) - 3 << 6) | ((obj.stopTempDelta || 3) - 2 << 1));
+                        id = 2;
+                        break;
+                    case 'ultratemp':
+                    case 'heatpump':
+                        address = 112;
+                        out.setPayloadByte(0, out.payload[0] | 0x02);
+                        out.setPayloadByte(1, out.payload[1] | 0x10 | (obj.coolingEnabled ? 0x20 : 0x00));
+                        id = 3;
+                        break;
+                    case 'hybrid':
+                        // If we are adding a hybrid heater this means that the gas heater is to be replaced.  This means that only
+                        // a gas heater can be installed.
+                        if (sys.heaters.length > 1) return reject(new InvalidEquipmentDataError(`Hybrid heaters can only be installed by themselves`, 'Heater', htype));
+                        if (sys.heaters.getItemByIndex(0).type > 1) return reject(new InvalidEquipmentDataError(`Hybrid heaters can only replace the gas heater`, 'Heater', htype));
+                        out.setPayloadByte(0, 5);
+                        out.setPayloadByte(1, 16);
+                        // NOTE: byte 2 makes absolutely no sense. Perhaps this is because we have no idea what message action 16 is.  This probably contains the rest of the info
+                        // for heaters on Touch panels.
+                        out.setPayloadByte(2, 118);
+                        id = 4;
+                        break;
                 }
             }
-            let hstate = state.heaters.getItemById(id, true);
-
-            hstate.name = heater.name;
-            hstate.type = heater.type;
-            heater.master = 1;
-            sys.board.heaters.updateHeaterServices();
-            sys.board.heaters.syncHeaterStates();
-            resolve(heater);
+            else {
+                // This all works because there are 0 items that can be set on a Touch heater with the exception of a few items on solar.  This means that the
+                // first two bytes are calculated based upon the existing heaters.
+                heater = sys.heaters.find(x => id === x.id);
+                if (typeof heater === 'undefined') return reject(new InvalidEquipmentIdError(`Heater #${id} is not installed and cannot be updated.`, id, 'Heater'));
+                // So here we go with the settings.
+                htype = sys.board.valueMaps.heaterTypes.findItem(heater.type);
+                switch (htype.name) {
+                    case 'gas':
+                        break;
+                    case 'solar':
+                        out.setPayloadByte(0, out.payload[0] | 0x02);
+                        // Set the start and stop temp delta.
+                        out.setPayloadByte(1, (obj.freeze ? 0x80 : 0x00) | (obj.coolingEnabled ? 0x20 : 0x00));
+                        out.setPayloadByte(2, ((obj.startTempDelta || 6) - 3 << 6) | ((obj.stopTempDelta || 3) - 2 << 1));
+                        break;
+                    case 'ultratemp':
+                    case 'heatpump':
+                        address = 112;
+                        out.setPayloadByte(0, out.payload[0] | 0x02);
+                        out.setPayloadByte(1, out.payload[1] | 0x10 | (obj.coolingEnabled ? 0x20 : 0x00));
+                        break;
+                    case 'hybrid':
+                        address = 112;
+                        out.setPayloadByte(0, 5);
+                        out.setPayloadByte(1, 16);
+                        // NOTE: byte 2 makes absolutely no sense. Perhaps this is because we have no idea what message action 144/16 is.  This probably contains the rest of the info
+                        // for heaters on Touch panels.
+                        out.setPayloadByte(2, 118);
+                        break;
+                }
+            }
+            // Set the bytes from the existing installed heaters.
+            for (let i = 0; i < sys.heaters.length; i++) {
+                let h = sys.heaters.getItemByIndex(i);
+                if (h.id === id) continue;
+                let ht = sys.board.valueMaps.heaterTypes.transform(h.type);
+                switch (ht.name) {
+                    case 'gas':
+                        break;
+                    case 'solar':
+                        out.setPayloadByte(0, out.payload[0] | 0x02);
+                        out.setPayloadByte(1, (h.freeze ? 0x80 : 0x00) | (h.coolingEnabled ? 0x20 : 0x00));
+                        out.setPayloadByte(2, ((h.startTempDelta || 6) - 3 << 6) | ((h.stopTempDelta || 3) - 2 << 1));
+                        break;
+                    case 'ultratemp':
+                    case 'heatpump':
+                        out.setPayloadByte(0, out.payload[0] | 0x02);
+                        out.setPayloadByte(1, out.payload[1] | 0x10 | (h.coolingEnabled ? 0x20 : 0x00));
+                        break;
+                    case 'hybrid':
+                        break;
+                }
+            }
+            out.onComplete = (err, msg) => {
+                if (err) reject(err);
+                else {
+                    heater = sys.heaters.getItemById(id, true);
+                    let sheater = state.heaters.getItemById(id, true);
+                    for (var s in obj) {
+                        switch (s) {
+                            case 'id':
+                            case 'name':
+                            case 'type':
+                            case 'address':
+                                break;
+                            default:
+                                heater[s] = obj[s];
+                                break;
+                        }
+                    }
+                    sheater.name = heater.name = typeof obj.name !== 'undefined' ? obj.name : heater.name;
+                    sheater.type = heater.type = htype.val;
+                    heater.address = address;
+                    heater.master = 0;
+                    heater.body = sys.equipment.shared ? 32 : 0;
+                    sys.board.heaters.updateHeaterServices();
+                    sys.board.heaters.syncHeaterStates();
+                    resolve(heater);
+                }
+            }
         });
     }
     public async deleteHeaterAsync(obj: any): Promise<Heater> {

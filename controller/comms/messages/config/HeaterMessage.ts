@@ -147,7 +147,7 @@ export class HeaterMessage {
                         let shybrid = state.heaters.getItemById(4, true);
                         // [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
                         shybrid.type = hybrid.type = 5;
-                        hybrid.address = 1; // Touch only supports address 1.
+                        hybrid.address = 112; // Touch only supports address 1.
                         hybrid.isActive = true;
                         hybrid.master = 0;
                         hybrid.body = sys.equipment.shared ? 32 : 0;

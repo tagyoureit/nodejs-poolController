@@ -612,7 +612,7 @@ class EqItemCollection<T> implements IEqItemCollection {
         });
     }
     public sort(fn: (a, b) => number) { this.data.sort(fn); }
-    public count(fn: () => boolean): number { return this.data.filter(fn).length; }
+    public count(fn: (value: T, index?: any, array?: any[]) => boolean): number { return this.data.filter(fn).length; }
     public getNextEquipmentId(range: EquipmentIdRange, exclude?: number[]): number {
         for (let i = range.start; i <= range.end; i++) {
             let eq = this.data.find(elem => elem.id === i);
