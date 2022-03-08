@@ -1029,6 +1029,7 @@ export class Body extends EqItem {
     public dataName = 'bodyConfig';
     public initData() {
         if (typeof this.data.capacityUnits === 'undefined') this.data.capacityUnits = 1;
+        if (typeof this.data.showInDashboard === 'undefined') this.data.showInDashboard = true;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
@@ -1054,6 +1055,8 @@ export class Body extends EqItem {
     public set heatSetpoint(val: number) { this.setDataVal('setPoint', val); }
     public get coolSetpoint(): number { return this.data.coolSetpoint; }
     public set coolSetpoint(val: number) { this.setDataVal('coolSetpoint', val); }
+    public get showInDashboard(): boolean { return this.data.showInDashboard; }
+    public set showInDashboard(val: boolean) { this.setDataVal('showInDashboard', val); }
     public get capacityUnits(): number | any { return this.data.capacityUnits; }
     public set capacityUnits(val: number | any) { this.setDataVal('capacityUnits', sys.board.valueMaps.volumeUnits.encode(val)); }
     public getHeatModes() { return sys.board.bodies.getHeatModes(this.id); }

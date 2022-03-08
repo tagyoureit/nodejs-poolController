@@ -1542,15 +1542,18 @@ export class BodyCommands extends BoardCommands {
       }
     } catch (err) { logger.error(`Error initializing filters`); }
   }
-  public async setBodyAsync(obj: any): Promise<Body> {
-    return new Promise<Body>(function (resolve, reject) {
-      let id = parseInt(obj.id, 10); 1
-      if (isNaN(id)) reject(new InvalidEquipmentIdError('Body Id has not been defined', obj.id, 'Body'));
-      let body = sys.bodies.getItemById(id, false);
-      body.set(obj);
-      resolve(body);
-    });
-  }
+    public async setBodyAsync(obj: any): Promise<Body> {
+        return new Promise<Body>(function (resolve, reject) {
+            let id = parseInt(obj.id, 10); 1
+            if (isNaN(id)) reject(new InvalidEquipmentIdError('Body Id has not been defined', obj.id, 'Body'));
+            let body = sys.bodies.getItemById(id, false);
+            let sbody = state.temps.bodies.getItemById(id, false);
+            body.set(obj);
+            sbody.name = body.name;
+            sbody.showInDashboard = body.showInDashboard;
+            resolve(body);
+        });
+    }
   public mapBodyAssociation(val: any): any {
     if (typeof val === 'undefined') return;
     let ass = sys.board.bodies.getBodyAssociations();

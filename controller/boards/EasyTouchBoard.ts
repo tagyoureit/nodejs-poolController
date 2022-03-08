@@ -1093,10 +1093,13 @@ class TouchBodyCommands extends BodyCommands {
                         if (err) reject(err);
                         else {
                             sys.general.options.manualHeat = manualHeat;
+                            let sbody = state.temps.bodies.getItemById(body.id, true);
                             if (body.type === 1){ // spa
                                 body.manualHeat = manualHeat;
                             };
-                            if (typeof obj.capacity !== 'undefined') body.capacity = parseInt(obj.capacity, 10);;
+                            if (typeof obj.name !== 'undefined') body.name = sbody.name = obj.name;
+                            if (typeof obj.capacity !== 'undefined') body.capacity = parseInt(obj.capacity, 10);
+                            if (typeof obj.showInDashboard !== 'undefined') body.showInDashboard = sbody.showInDashboard = utils.makeBool(obj.showInDashboard);
                             state.emitEquipmentChanges();
                             resolve(body);
                         }

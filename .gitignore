@@ -37,3 +37,4 @@ bin/
 .vscode/
 # end
 
+/web/bindings/njsPCAux.json

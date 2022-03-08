@@ -1334,6 +1334,7 @@ export class BodyTempState extends EqState {
         if (typeof this.heaterCooldownDelay === 'undefined') this.data.heaterCooldownDelay = false;
         if (typeof this.data.startDelay === 'undefined') this.data.startDelay = false;
         if (typeof this.data.stopDelay === 'undefined') this.data.stopDelay = false;
+        if (typeof this.data.showInDashboard === 'undefined') this.data.showInDashboard = true;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
@@ -1376,6 +1377,8 @@ export class BodyTempState extends EqState {
     public set startDelay(val: boolean) { this.setDataVal('startDelay', val); }
     public get stopDelay(): boolean { return this.data.stopDelay; }
     public set stopDelay(val: boolean) { this.setDataVal('stopDelay', val); }
+    public get showInDashboard(): boolean { return this.data.showInDashboard; }
+    public set showInDashboard(val: boolean) { this.setDataVal('showInDashboard', val); }
 
     public get isCovered(): boolean { return this.data.isCovered; }
     public set isCovered(val: boolean) { this.setDataVal('isCovered', val); }

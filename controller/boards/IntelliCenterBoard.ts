@@ -3204,6 +3204,10 @@ class IntelliCenterBodyCommands extends BodyCommands {
                     });
                 }
             }
+            if (typeof obj.showInDashBoard !== 'undefined') {
+                let sbody = state.temps.bodies.getItemById(id, false);
+                body.showInDashboard = sbody.showInDashboard = utils.makeBool(obj.showInDashboard);
+            }
             return Promise.resolve(body);
         }
         catch (err) { return Promise.reject(err); }
