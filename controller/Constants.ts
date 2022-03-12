@@ -301,7 +301,8 @@ export enum ControllerType {
     EasyTouch = 'easytouch',
     Unknown = 'unknown',
     Virtual = 'virtual',
-    Nixie = 'nixie'
+    Nixie = 'nixie',
+    AquaLink = 'aqualink'
 }
 // export enum VirtualDeviceType {
 //     Pump = 'pump',

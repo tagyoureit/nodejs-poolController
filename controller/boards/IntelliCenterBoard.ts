@@ -3089,6 +3089,9 @@ class IntelliCenterPumpCommands extends PumpCommands {
         // We now need to get the type for the pump.  If the incoming data doesn't include it then we need to
         // get it from the current pump configuration.
         let pump = sys.pumps.getItemById(id, false);
+        // Check to see if this happens to be a Nixie Pump.
+        if (pump.master === 1) return super.deletePumpAsync(data);
+
         if (typeof pump.type === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Pump #${data.id} does not exist in configuration`, data.id, 'Schedule'));
         let outc = Outbound.create({ action: 168, payload: [4, 0, id - 1, 0, 0, id + 95] });
         outc.appendPayloadInt(450);  // 6

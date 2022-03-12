@@ -4573,82 +4573,82 @@ export class FilterCommands extends BoardCommands {
             }
         } catch (err) { logger.error(`syncFilterStates: Error synchronizing filters ${err.message}`); }
     }
-  public async setFilterPressure(id: number, pressure: number, units?: string) {
-    try {
-      let filter = sys.filters.find(elem => elem.id === id);
-      if (typeof filter === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`setFilterPressure: Invalid equipmentId ${id}`, id, 'Filter'));
-      if (isNaN(pressure)) return Promise.reject(new InvalidEquipmentDataError(`setFilterPressure: Invalid filter pressure ${pressure} for ${filter.name}`, 'Filter', pressure));
-      let sfilter = state.filters.getItemById(filter.id, true);
-      // Convert the pressure to the units that we have set on the filter for the pressure units.
-      let pu = sys.board.valueMaps.pressureUnits.transform(filter.pressureUnits || 0);
-      if (typeof units === 'undefined' || units === '') units = pu.name;
-      sfilter.pressureUnits = filter.pressureUnits;
-      sfilter.pressure = Math.round(pressure * 1000) / 1000; // Round this to 3 decimal places just in case we are getting stupid scales.
-      // Check to see if our circuit is the only thing on.  If it is then we will be setting our current clean pressure to the incoming pressure and calculating a percentage.
-      // Rules for the circuit.
-      // 1. The assigned circuit must be on.
-      // 2. There must not be a current freeze condition
-      // 3. No heaters can be on.
-      // 4. The assigned circuit must be on exclusively but we will be ignoring any of the light circuit types for the exclusivity.
-      let cstate = state.circuits.getInterfaceById(filter.pressureCircuitId);
-      if (cstate.isOn && state.freeze !== true) {
-        // Ok so our circuit is on.  We need to check to see if any other circuits are on.  This includes heaters.  The reason for this is that even with
-        // a gas heater there may be a heater bypass that will screw up our numbers.  Certainly reflow on a solar heater will skew the numbers.
-        let hon = state.temps.bodies.toArray().find(elem => elem.isOn && (elem.heatStatus || 0) !== 0);
-        if (typeof hon === 'undefined') {
-          // Put together the circuit types that could be lights.  We don't want these.
-          let ctypes = [];
-          let funcs = sys.board.valueMaps.circuitFunctions.toArray();
-          for (let i = 0; i < funcs.length; i++) {
-            let f = funcs[i];
-            if (f.isLight) ctypes.push(f.val);
-          }
-          let con = state.circuits.find(elem => elem.isOn === true && elem.id !== filter.pressureCircuitId && elem.id !== 1 && elem.id !== 6 && !ctypes.includes(elem.type));
-          if (typeof con === 'undefined') {
-            // This check is the one that will be the most problematic.  For this reason we are only going to check features that are not generic.  If they are spillway
-            // it definitely has to be off.
-            let feats = state.features.toArray();
-            let fon = false;
-            for (let i = 0; i < feats.length && fon === false; i++) {
-              let f = feats[i];
-              if (!f.isOn) continue;
-              if (f.id === filter.pressureCircuitId) continue;
-              if (f.type !== 0) fon = true;
-              // Check to see if this feature is used on a valve.  This will make it
-              // not include this pressure either.  We do not care whether the valve is diverted or not.
-              if (typeof sys.valves.find(elem => elem.circuitId === f.id) !== 'undefined')
-                fon = true;
-              else {
-                // Finally if the feature happens to be used on a pump then we don't want it either.
-                let pumps = sys.pumps.get();
-                for (let j = 0; j < pumps.length; j++) {
-                  let pmp = pumps[j];
-                  if (typeof pmp.circuits !== 'undefined') {
-                    if (typeof pmp.circuits.find(elem => elem.circuit === f.id) !== 'undefined') {
-                      fon = true;
-                      break;
+    public async setFilterPressure(id: number, pressure: number, units?: string) {
+        try {
+            let filter = sys.filters.find(elem => elem.id === id);
+            if (typeof filter === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`setFilterPressure: Invalid equipmentId ${id}`, id, 'Filter'));
+            if (isNaN(pressure)) return Promise.reject(new InvalidEquipmentDataError(`setFilterPressure: Invalid filter pressure ${pressure} for ${filter.name}`, 'Filter', pressure));
+            let sfilter = state.filters.getItemById(filter.id, true);
+            // Convert the pressure to the units that we have set on the filter for the pressure units.
+            let pu = sys.board.valueMaps.pressureUnits.transform(filter.pressureUnits || 0);
+            if (typeof units === 'undefined' || units === '') units = pu.name;
+            sfilter.pressureUnits = filter.pressureUnits;
+            sfilter.pressure = Math.round(pressure * 1000) / 1000; // Round this to 3 decimal places just in case we are getting stupid scales.
+            // Check to see if our circuit is the only thing on.  If it is then we will be setting our current clean pressure to the incoming pressure and calculating a percentage.
+            // Rules for the circuit.
+            // 1. The assigned circuit must be on.
+            // 2. There must not be a current freeze condition
+            // 3. No heaters can be on.
+            // 4. The assigned circuit must be on exclusively but we will be ignoring any of the light circuit types for the exclusivity.
+            let cstate = state.circuits.getInterfaceById(filter.pressureCircuitId);
+            if (cstate.isOn && state.freeze !== true) {
+                // Ok so our circuit is on.  We need to check to see if any other circuits are on.  This includes heaters.  The reason for this is that even with
+                // a gas heater there may be a heater bypass that will screw up our numbers.  Certainly reflow on a solar heater will skew the numbers.
+                let hon = state.temps.bodies.toArray().find(elem => elem.isOn && (elem.heatStatus || 0) !== 0);
+                if (typeof hon === 'undefined') {
+                    // Put together the circuit types that could be lights.  We don't want these.
+                    let ctypes = [];
+                    let funcs = sys.board.valueMaps.circuitFunctions.toArray();
+                    for (let i = 0; i < funcs.length; i++) {
+                        let f = funcs[i];
+                        if (f.isLight) ctypes.push(f.val);
                     }
-                  }
+                    let con = state.circuits.find(elem => elem.isOn === true && elem.id !== filter.pressureCircuitId && elem.id !== 1 && elem.id !== 6 && !ctypes.includes(elem.type));
+                    if (typeof con === 'undefined') {
+                        // This check is the one that will be the most problematic.  For this reason we are only going to check features that are not generic.  If they are spillway
+                        // it definitely has to be off.
+                        let feats = state.features.toArray();
+                        let fon = false;
+                        for (let i = 0; i < feats.length && fon === false; i++) {
+                            let f = feats[i];
+                            if (!f.isOn) continue;
+                            if (f.id === filter.pressureCircuitId) continue;
+                            if (f.type !== 0) fon = true;
+                            // Check to see if this feature is used on a valve.  This will make it
+                            // not include this pressure either.  We do not care whether the valve is diverted or not.
+                            if (typeof sys.valves.find(elem => elem.circuit === f.id) !== 'undefined')
+                                fon = true;
+                            else {
+                                // Finally if the feature happens to be used on a pump then we don't want it either.
+                                let pumps = sys.pumps.get();
+                                for (let j = 0; j < pumps.length; j++) {
+                                    let pmp = pumps[j];
+                                    if (typeof pmp.circuits !== 'undefined') {
+                                        if (typeof pmp.circuits.find(elem => elem.circuit === f.id) !== 'undefined') {
+                                            fon = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        if (!fon) {
+                            // Finally we have a value we can believe in.
+                            sfilter.refPressure = pressure;
+                        }
+                    }
+                    else {
+                        logger.verbose(`Circuit ${con.id}-${con.name} is currently on filter pressure for cleaning ignored.`);
+                    }
                 }
-              }
+                else {
+                    logger.verbose(`Heater for body ${hon.name} is currently on ${hon.heatStatus} filter pressure for cleaning skipped.`);
+                }
             }
-            if (!fon) {
-              // Finally we have a value we can believe in.
-              sfilter.refPressure = pressure;
-            }
-          }
-          else {
-            logger.verbose(`Circuit ${con.id}-${con.name} is currently on filter pressure for cleaning ignored.`);
-          }
+            sfilter.emitEquipmentChange();
         }
-        else {
-          logger.verbose(`Heater for body ${hon.name} is currently on ${hon.heatStatus} filter pressure for cleaning skipped.`);
-        }
-      }
-      sfilter.emitEquipmentChange();
+        catch (err) { logger.error(`setFilterPressure: Error setting filter #${id} pressure to ${pressure}${units || ''}`); }
     }
-    catch (err) { logger.error(`setFilterPressure: Error setting filter #${id} pressure to ${pressure}${units || ''}`); }
-  }
   public async setFilterStateAsync(filter: Filter, fstate: FilterState, isOn: boolean) { fstate.isOn = isOn; }
   public async setFilterAsync(data: any): Promise<Filter> {
     let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);

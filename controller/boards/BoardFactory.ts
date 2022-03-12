@@ -22,6 +22,8 @@ import { SystemBoard } from './SystemBoard';
 import { ControllerType } from '../Constants';
 import { PoolSystem } from '../Equipment';
 import { NixieBoard } from './NixieBoard';
+import { AquaLinkBoard } from './AquaLinkBoard';
+
 
 export class BoardFactory {
     // Factory create the system board from the controller type.  Resist storing
@@ -38,6 +40,8 @@ export class BoardFactory {
                 return new EasyTouchBoard(system);
             case ControllerType.Nixie:
                 return new NixieBoard(system);
+            case ControllerType.AquaLink:
+                return new AquaLinkBoard(system);
         }
         return new SystemBoard(system);
     }

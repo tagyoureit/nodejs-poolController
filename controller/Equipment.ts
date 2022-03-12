@@ -537,7 +537,7 @@ class EqItemCollection<T> implements IEqItemCollection {
         return this.createItem(extend({}, { id: ndx + 1 }, data));
     }
     public getItemById(id: number | string, add?: boolean, data?: any): T {
-        let itm = this.find(elem => elem.id === id && typeof elem.id !== 'undefined');
+        let itm = this.find(elem => { return typeof (elem as { id?}).id !== 'undefined' && (elem as { id?}).id === id });
         if (typeof itm !== 'undefined') return itm;
         if (typeof add !== 'undefined' && add) return this.add(extend(true, { id: id }, data));
         return this.createItem(data || { id: id });
@@ -567,7 +567,7 @@ class EqItemCollection<T> implements IEqItemCollection {
         this.data.splice(ndx, 1);
     }
     // Finds an item and returns undefined if it doesn't exist.
-    public find(f: (value: any, index?: number, obj?: any) => boolean): T {
+    public find(f: (value: T, index?: number, obj?: any) => boolean): T {
         let itm = this.data.find(f);
         if (typeof itm !== 'undefined') return this.createItem(itm);
     }

@@ -42,6 +42,8 @@ import { TouchScheduleCommands } from "controller/boards/EasyTouchBoard";
 import { IntelliValveStateMessage } from "./status/IntelliValveStateMessage";
 import { IntelliChemStateMessage } from "./status/IntelliChemStateMessage";
 import { OutboundMessageError } from "../../Errors";
+import { prototype } from "events";
+import extend = require("extend");
 export enum Direction {
     In = 'in',
     Out = 'out'
@@ -54,6 +56,8 @@ export enum Protocol {
     IntelliChem = 'intellichem',
     IntelliValve = 'intellivalve',
     Heater = 'heater',
+    AquaLink = 'aqualink',
+    Hayward = 'hayward',
     Unidentified = 'unidentified'
 }
 export class Message {
@@ -85,32 +89,56 @@ export class Message {
     public get isComplete(): boolean { return this._complete; }
     public get sub(): number { return this.header.length > 1 ? this.header[1] : -1; }
     public get dest(): number {
-        if (this.protocol === Protocol.Chlorinator) {
-            return this.header[2] >= 80 ? this.header[2] - 79 : 0;
+        if (this.header.length > 2) {
+            if (this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink) {
+                return this.header.length > 2 ? (this.header[2] >= 80 ? this.header[2] - 79 : 0) : -1;
+            }
+            else if (this.protocol === Protocol.Hayward) {
+                //            src   act   dest             
+                //0x10, 0x02, 0x00, 0x0C, 0x00, 0x00, 0x2D, 0x02, 0x36, 0x00, 0x83, 0x10, 0x03 -- Response from pump
+                return this.header.length > 4 ? this.header[4] : -1;
+            }
+            else return this.header.length > 2 ? this.header[2] : -1;
         }
-        if (this.header.length > 2) return this.header[2];
         else return -1;
     }
     public get source(): number {
         if (this.protocol === Protocol.Chlorinator) {
-            return this.header[2] >= 80 ? 0 : 1;
+            return this.header.length > 2 ? (this.header[2] >= 80 ? 0 : 1) : -1;
             // have to assume incoming packets with header[2] >= 80 (sent to a chlorinator)
             // are from controller (0);
             // likewise, if the destination is 0 (controller) we
             // have to assume it was sent from the 1st chlorinator (1)
             // until we learn otherwise.  
         }
+        else if (this.protocol === Protocol.AquaLink) {
+            // Once we decode the devices we will be able to tell where it came from based upon the commands.
+            return 0;
+        }
+        else if (this.protocol === Protocol.Hayward) {
+            //            src   act   dest             
+            //0x10, 0x02, 0x00, 0x0C, 0x00, 0x00, 0x2D, 0x02, 0x36, 0x00, 0x83, 0x10, 0x03 -- Response from pump
+            //0x10, 0x02, 0x0C, 0x01, 0x02, 0x2D, 0x00, 0x4E, 0x10, 0x03 -- Command to AUX2 Pump
+            return this.header.length > 2 ? this.header[2] : -1;
+        }
         if (this.header.length > 3) return this.header[3];
         else return -1;
     }
     public get action(): number {
-        if (this.protocol === Protocol.Chlorinator) return this.header[3];
-        if (this.header.length > 5) return this.header[4];
+        // The action byte is actually the 4th byte in the header the destination address is the 5th byte.
+        if (this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink) return this.header.length > 3 ? this.header[3] : -1;
+        else if (this.protocol === Protocol.Hayward) {
+            //            src   act   dest             
+            //0x10, 0x02, 0x00, 0x0C, 0x00, 0x00, 0x2D, 0x02, 0x36, 0x00, 0x83, 0x10, 0x03 -- Response from pump
+            //0x10, 0x02, 0x0C, 0x01, 0x02, 0x2D, 0x00, 0x4E, 0x10, 0x03 -- Command to AUX2 Pump
+            this.header.length > 3 ? this.header[3] : -1;
+        }
+        if (this.header.length > 4) return this.header[4];
         else return -1;
     }
-    public get datalen(): number { return this.protocol === Protocol.Chlorinator ? this.payload.length : this.header.length > 5 ? this.header[5] : -1; }
-    public get chkHi(): number { return this.protocol === Protocol.Chlorinator ? 0 : this.term.length > 0 ? this.term[0] : -1; }
-    public get chkLo(): number { return this.protocol === Protocol.Chlorinator ? this.term[0] : this.term[1]; }
+    public get datalen(): number { return this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink || this.protocol === Protocol.Hayward ? this.payload.length : this.header.length > 5 ? this.header[5] : -1; }
+    public get chkHi(): number { return this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink ? 0 : this.term.length > 0 ? this.term[0] : -1; }
+    public get chkLo(): number { return this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink ? this.term[0] : this.term[1]; }
     public get checksum(): number {
         var sum = 0;
         for (let i = 0; i < this.header.length; i++) sum += this.header[i];
@@ -160,7 +188,7 @@ export class Inbound extends Message {
     public collisions: number = 0;
     // Private methods
     private isValidChecksum(): boolean {
-        if (this.protocol === Protocol.Chlorinator) return this.checksum % 256 === this.chkLo;
+        if (this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink) return this.checksum % 256 === this.chkLo;
         return (this.chkHi * 256) + this.chkLo === this.checksum;
     }
     public toLog() {
@@ -173,11 +201,25 @@ export class Inbound extends Message {
         // prev been detected as chlor packets;
         // valid chlor packets should have 16,2,0 or 16,2,[80-96];
         // this should reduce the number of false chlor packets
-        return (ndx + 2 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2 && (bytes[ndx + 2] === 0 || (bytes[ndx + 2] >= 80 && bytes[ndx + 2] <= 96)))
+        return (ndx + 3 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2 && (bytes[ndx + 2] === 0 || (bytes[ndx + 2] >= 80 && bytes[ndx + 2] <= 96)))
     }
+    private testAquaLinkHeader(bytes: number[], ndx: number): boolean {
+        return (sys.controllerType === 'aqualink' && ndx + 3 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2);
+    }
+    private testHaywardHeader(bytes: number[], ndx: number): boolean {
+        //0x10, 0x02, 0x0C, 0x01, 0x00, 0x2D, 0x00, 0x4C, 0x10, 0x03 -- Command to pump
+        //0x10, 0x02, 0x0C, 0x01, 0x00, 0x2D, 0x00, 0x4C, 0x10, 0x03 -- Command to Filter Pump
+        //0x10, 0x02, 0x0C, 0x01, 0x02, 0x2D, 0x00, 0x4E, 0x10, 0x03 -- Command to AUX2 Pump
+        //            src   act   dest             
+        //0x10, 0x02, 0x00, 0x0C, 0x00, 0x00, 0x2D, 0x02, 0x36, 0x00, 0x83, 0x10, 0x03 -- Response from pump
+        return (sys.controllerType === 'nixie' && ndx + 4 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2 && (bytes[ndx + 2] === 12 && bytes[ndx + 3] === 12));
+    }
+
     private testBroadcastHeader(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] === 165; }
     private testUnidentifiedHeader(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] !== 165; }
-    private testChlorTerm(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 2 && bytes[ndx + 1] === 16 && bytes[ndx + 2] === 3; }
+    private testChlorTerm(bytes: number[], ndx: number): boolean { return ndx + 2 < bytes.length && bytes[ndx + 1] === 16 && bytes[ndx + 2] === 3; }
+    private testAquaLinkTerm(bytes: number[], ndx: number): boolean { return ndx + 2 < bytes.length && bytes[ndx + 1] === 16 && bytes[ndx + 2] === 3; }
+    private testHaywardTerm(bytes: number[], ndx: number): boolean { return ndx + 3 < bytes.length && bytes[ndx + 2] === 16 && bytes[ndx + 3] === 3; }
     private pushBytes(target: number[], bytes: number[], ndx: number, length: number): number {
         let end = ndx + length;
         while (ndx < bytes.length && ndx < end)
@@ -231,6 +273,14 @@ export class Inbound extends Message {
         while (ndx < bytes.length) {
             if (this.testChlorHeader(bytes, ndx)) {
                 this.protocol = Protocol.Chlorinator;
+                break;
+            }
+            if (this.testAquaLinkHeader(bytes, ndx)) {
+                this.protocol = Protocol.AquaLink;
+                break;
+            }
+            if (this.testHaywardHeader(bytes, ndx)) {
+                this.protocol = Protocol.Hayward;
                 break;
             }
             if (this.testBroadcastHeader(bytes, ndx)) {
@@ -298,6 +348,28 @@ export class Inbound extends Message {
                     return ndxHeader;
                 }
                 break;
+            case Protocol.Hayward:
+                ndx = this.pushBytes(this.header, bytes, ndx, 4);
+                if (this.header.length < 4) {
+                    // We actually don't have a complete header yet so just return.
+                    // we will pick it up next go around.
+                    logger.debug(`We have an incoming AquaLink message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    this.preamble = [];
+                    this.header = [];
+                    return ndxHeader;
+                }
+                break;
+            case Protocol.AquaLink:
+                ndx = this.pushBytes(this.header, bytes, ndx, 5);
+                if (this.header.length < 5) {
+                    // We actually don't have a complete header yet so just return.
+                    // we will pick it up next go around.
+                    logger.debug(`We have an incoming AquaLink message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    this.preamble = [];
+                    this.header = [];
+                    return ndxHeader;
+                }
+                break;
             default:
                 // We didn't get a message signature. don't do anything with it.
                 ndx = ndxStart;
@@ -341,6 +413,31 @@ export class Inbound extends Message {
                     }
                 }
                 break;
+            case Protocol.AquaLink:
+                // We need to deal with AquaLink packets where the terminator is actually split meaning only the first byte or
+                // two of the total payload is provided for the term.  We need at least 3 bytes to make this determination.
+                while (ndx + 3 <= bytes.length && !this.testAquaLinkTerm(bytes, ndx)) {
+                    this.payload.push(bytes[ndx++]);
+                    if (this.payload.length > 25) {
+                        this.isValid = false; // We have a runaway packet.  Some collision occurred so lets preserve future packets.
+                        logger.debug(`AquaLink message marked as invalid after not finding 16,3 in payload after ${this.payload.length} bytes`);
+                        break;
+                    }
+                }
+                break;
+            case Protocol.Hayward:
+                // We need to deal with AquaLink packets where the terminator is actually split meaning only the first byte or
+                // two of the total payload is provided for the term.  We need at least 3 bytes to make this determination.
+                while (ndx + 4 <= bytes.length && !this.testHaywardTerm(bytes, ndx)) {
+                    this.payload.push(bytes[ndx++]);
+                    if (this.payload.length > 25) {
+                        this.isValid = false; // We have a runaway packet.  Some collision occurred so lets preserve future packets.
+                        logger.debug(`Hayward message marked as invalid after not finding 16,3 in payload after ${this.payload.length} bytes`);
+                        break;
+                    }
+                }
+                break;
+
         }
         return ndx;
     }
@@ -369,6 +466,21 @@ export class Inbound extends Message {
                     this.isValid = this.isValidChecksum();
                 }
                 break;
+            case Protocol.AquaLink:
+                if (ndx + 3 <= bytes.length && this.testAquaLinkTerm(bytes, ndx)) {
+                    this._complete = true;
+                    ndx = this.pushBytes(this.term, bytes, ndx, 3);
+                    this.isValid = this.isValidChecksum();
+                }
+                break;
+            case Protocol.Hayward:
+                if (ndx + 4 <= bytes.length && this.testHaywardTerm(bytes, ndx)) {
+                    this._complete = true;
+                    ndx = this.pushBytes(this.term, bytes, ndx, 4);
+                    this.isValid = this.isValidChecksum();
+                }
+                break;
+
         }
         return ndx;
     }
@@ -546,6 +658,9 @@ export class Inbound extends Message {
             case Protocol.Chlorinator:
                 ChlorinatorStateMessage.process(this);
                 break;
+            case Protocol.Hayward:
+                PumpStateMessage.processHayward(this);
+                break;
             default:
                 logger.debug(`Unprocessed Message ${this.toPacket()}`)
                 break;
@@ -553,15 +668,24 @@ export class Inbound extends Message {
     }
 }
 class OutboundCommon extends Message {
-    public set sub(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[1] = val; }
+    public set sub(val: number) { if (this.protocol !== Protocol.Chlorinator && this.protocol !== Protocol.AquaLink) this.header[1] = val; }
     public get sub() { return super.sub; }
-    public set dest(val: number) { this.protocol !== Protocol.Chlorinator ? this.header[2] = val : this.header[2] = val + 79; }
+    public set dest(val: number) {
+        if (this.protocol === Protocol.Chlorinator) this.header[2] = val + 79;
+        else if (this.protocol === Protocol.Hayward) this.header[4] = val;
+        else this.header[2] = val;
+    }
     public get dest() { return super.dest; }
-    public set source(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[3] = val; }
+    public set source(val: number) {
+        if (this.protocol === Protocol.Hayward) this.header[2] = val;
+        else if (this.protocol !== Protocol.Chlorinator) this.header[3] = val;
+    }
     public get source() { return super.source; }
-    public set action(val: number) { (this.protocol !== Protocol.Chlorinator) ? this.header[4] = val : this.header[3] = val; }
+    public set action(val: number) {
+        (this.protocol !== Protocol.Chlorinator && this.protocol !== Protocol.Hayward) ? this.header[4] = val : this.header[3] = val;
+    }
     public get action() { return super.action; }
-    public set datalen(val: number) { if (this.protocol !== Protocol.Chlorinator) this.header[5] = val; }
+    public set datalen(val: number) { if (this.protocol !== Protocol.Chlorinator && this.protocol !== Protocol.Hayward) this.header[5] = val; }
     public get datalen() { return super.datalen; }
     public set chkHi(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[0] = val; }
     public get chkHi() { return super.chkHi; }
@@ -581,8 +705,13 @@ class OutboundCommon extends Message {
                 this.chkHi = Math.floor(sum / 256);
                 this.chkLo = (sum - (super.chkHi * 256));
                 break;
+            case Protocol.AquaLink:
             case Protocol.Chlorinator:
                 this.term[0] = sum;
+                break;
+            case Protocol.Hayward:
+                this.chkHi = Math.floor(sum / 256);
+                this.chkLo = (sum - (super.chkHi * 256));
                 break;
         }
     }
@@ -598,7 +727,7 @@ export class Outbound extends OutboundCommon {
         this.header.length = 0;
         this.term.length = 0;
         this.payload.length = 0;
-        if (proto === Protocol.Chlorinator) {
+        if (proto === Protocol.Chlorinator || proto === Protocol.AquaLink) {
             this.header.push.apply(this.header, [16, 2, 0, 0]);
             this.term.push.apply(this.term, [0, 16, 3]);
         }
@@ -611,6 +740,10 @@ export class Outbound extends OutboundCommon {
             this.preamble.push.apply(this.preamble, [255, 0, 255]);
             this.header.push.apply(this.header, [165, 0, 15, Message.pluginAddress, 0, 0]);
             this.term.push.apply(this.term, [0, 0]);
+        }
+        else if (proto === Protocol.Hayward) {
+            this.header.push.apply(this.header, [16, 2, 0, 0, 0]);
+            this.term.push.apply(this.term, [0, 0, 16, 3]);
         }
         this.scope = scope;
         this.source = source;
@@ -625,8 +758,18 @@ export class Outbound extends OutboundCommon {
     }
     // Factory
     public static create(obj?: any) {
-        let out = new Outbound(obj.protocol || Protocol.Broadcast,
-            obj.source || sys.board.commandSourceAddress || Message.pluginAddress, obj.dest || sys.board.commandDestAddress || 16, obj.action || 0, obj.payload || [], obj.retries || 0, obj.response || false, obj.scope || undefined);
+        let o = extend({
+            protocol: Protocol.Broadcast,
+            source: sys.board.commandDestAddress || Message.pluginAddress,
+            dest: sys.board.commandDestAddress || 16,
+            action: 0,
+            payload: [],
+            retries: 0,
+            response: false,
+        }, obj, true);
+        let out = new Outbound(o.protocol, o.source, o.dest, o.action, o.payload, o.retries, o.response, o.scope);
+        //let out = new Outbound(obj.protocol || Protocol.Broadcast,
+        //    obj.source || sys.board.commandSourceAddress || Message.pluginAddress, obj.dest || sys.board.commandDestAddress || 16, obj.action || 0, obj.payload || [], obj.retries || 0, obj.response || false, obj.scope || undefined);
         out.onComplete = obj.onComplete;
         out.onAbort = obj.onAbort;
         out.timeout = obj.timeout;
@@ -659,7 +802,6 @@ export class Outbound extends OutboundCommon {
         return false;
     }
     public get remainingTries(): number { return this.retries - this.tries + 1; } // Always allow 1 try.
-
     public setPayloadByte(ndx: number, value: number, def?: number) {
         if (typeof value === 'undefined' || isNaN(value)) value = def;
         if (ndx < this.payload.length) this.payload[ndx] = value;

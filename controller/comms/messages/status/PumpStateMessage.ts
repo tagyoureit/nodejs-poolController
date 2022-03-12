@@ -55,7 +55,29 @@ export class PumpStateMessage {
         state.emitEquipmentChanges();
         // if (msg.action !== 7) this.processDirectPumpMessages(msg);
     }
-
+    public static processHayward(msg: Inbound) {
+        switch (msg.action) {
+            case 12:
+                PumpStateMessage.processHaywardStar(msg);
+                break;
+        }
+    }
+    public static processHaywardStar(msg: Inbound) {
+        //             src   act   dest             
+        //[0x10, 0x02, 0x00, 0x0C, 0x00][0x00, 0x62, 0x17, 0x81][0x01, 0x18, 0x10, 0x03]
+        //[0x10, 0x02, 0x00, 0x0C, 0x00][0x00, 0x2D, 0x02, 0x36][0x00, 0x83, 0x10, 0x03] -- Response from pump
+        let ptype = sys.board.valueMaps.pumpTypes.transformByName('hwvs');
+        let pump = sys.pumps.find(elem => elem.address === msg.source + 96 && elem.type === 6);
+        if (typeof pump !== 'undefined') {
+            let pstate = state.pumps.getItemById(pump.id, true);
+            // 3450 * .5
+            pstate.rpm = Math.round(ptype.maxSpeed * (msg.extractPayloadByte(1) / 100));
+            // This is really goofy as the watts are actually the hex string from the two bytes.
+            pstate.watts = parseInt(msg.extractPayloadByte(2).toString(16) + msg.extractPayloadByte(3).toString(16), 10);
+            pstate.isActive = true;
+            state.emitEquipmentChanges();
+        }
+    }
     public static processDirectPumpMessages(msg: Inbound) {
 
         if (msg.payload.length === 2)

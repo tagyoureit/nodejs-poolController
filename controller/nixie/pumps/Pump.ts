@@ -8,7 +8,7 @@ import { CircuitState, PumpState, state, } from "../../State";
 import { setTimeout, clearTimeout } from 'timers';
 import { NixieControlPanel } from '../Nixie';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
-import { Outbound, Protocol } from '../../comms/messages/Messages';
+import { Outbound, Protocol, Response } from '../../comms/messages/Messages';
 import { conn } from '../../comms/Comms';
 
 export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
@@ -117,6 +117,8 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
                 return new NixiePumpSF(this.controlPanel, pump);
             case 'vs':
                 return new NixiePumpVS(this.controlPanel, pump);
+            case 'hwvs':
+                return new NixiePumpHWVS(this.controlPanel, pump);
             default:
                 throw new EquipmentNotFoundError(`NCP: Cannot create pump ${pump.name}.`, type);
         }
@@ -455,7 +457,7 @@ export class NixiePumpRS485 extends NixiePump {
                 action: 5,
                 payload: typeof feature === 'undefined' ? [] : [ feature ],
                 retries: 2,
-                repsonse: true,
+                response: true,
                 onComplete: (err, msg: Outbound) => {
                     if (err) {
                         logger.error(`Error sending setPumpManual for ${this.pump.name}: ${err.message}`);
@@ -659,3 +661,88 @@ export class NixiePumpVSF extends NixiePumpRS485 {
         });
     };
 };
+export class NixiePumpHWVS extends NixiePumpRS485 {
+    public setTargetSpeed(pState: PumpState) {
+        let _newSpeed = 0;
+        if (!pState.pumpOnDelay) {
+            let pumpCircuits = this.pump.circuits.get();
+
+            for (let i = 0; i < pumpCircuits.length; i++) {
+                let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
+                let pc = pumpCircuits[i];
+                if (circ.isOn) _newSpeed = Math.max(_newSpeed, pc.speed);
+            }
+        }
+        if (isNaN(_newSpeed)) _newSpeed = 0;
+        this._targetSpeed = _newSpeed;
+        if (this._targetSpeed !== 0) Math.min(Math.max(this.pump.minSpeed, this._targetSpeed), this.pump.maxSpeed);
+        if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed} RPM.`);
+    }
+    public async setPumpStateAsync(pstate: PumpState) {
+        // Don't poll while we are seting the state.
+        this.suspendPolling = true;
+        try {
+            let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
+            // Since these process are async the closing flag can be set
+            // between calls.  We need to check it in between each call.
+            try { if (!this.closing) { await this.setPumpRPMAsync(); } } catch (err) { }
+            return new InterfaceServerResponse(200, 'Success');
+        }
+        catch (err) {
+            logger.error(`Error running pump sequence for ${this.pump.name}: ${err.message}`);
+            return Promise.reject(err);
+        }
+        finally { this.suspendPolling = false; }
+    };
+    protected async requestPumpStatus() { return Promise.resolve(); };
+    protected setPumpFeature(feature?: number) { return Promise.resolve(); }
+    protected setPumpToRemoteControl(running: boolean = true) {
+        // We do nothing on this pump to set it to remote control.  That is unless we are turning it off.
+        return new Promise<void>((resolve, reject) => {
+            if (!running) {
+                let out = Outbound.create({
+                    protocol: Protocol.Hayward,
+                    source: 12, // Use the broadcast address
+                    dest: this.pump.address,
+                    action: 1,
+                    payload: [0], // when stopAsync is called, pass false to return control to pump panel
+                    // payload: spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running') ? [255] : [0],
+                    retries: 1,
+                    response: Response.create({ protocol: Protocol.Hayward, action: 12, source: this.pump.address }),
+                    onComplete: (err) => {
+                        if (err) {
+                            logger.error(`Error sending setPumpToRemoteControl for ${this.pump.name}: ${err.message}`);
+                            reject(err);
+                        }
+                        else resolve();
+                    }
+                });
+                conn.queueSendMessage(out);
+            }
+            else resolve();
+        });
+    }
+    protected async setPumpRPMAsync() {
+        return new Promise<void>((resolve, reject) => {
+            let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
+            let out = Outbound.create({
+                protocol: Protocol.Hayward,
+                source: 12, // Use the broadcast address
+                dest: this.pump.address - 96,
+                action: 1,
+                payload: [Math.min(Math.round((this._targetSpeed / pt.maxSpeed) * 100), 100)], // when stopAsync is called, pass false to return control to pump panel
+                retries: 1,
+                response: Response.create({ protocol: Protocol.Hayward, action: 12, source: this.pump.address }),
+                onComplete: (err) => {
+                    if (err) {
+                        logger.error(`Error sending setPumpRPM for ${this.pump.name}: ${err.message}`);
+                        reject(err);
+                    }
+                    else resolve();
+                }
+            });
+            conn.queueSendMessage(out);
+        });
+    };
+
+}
