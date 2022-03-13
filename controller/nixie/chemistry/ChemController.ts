@@ -883,7 +883,7 @@ class NixieChemical extends NixieChildEquipment {
                 chemical.maxDosingTime = typeof data.maxDosingTime !== 'undefined' ? parseInt(data.maxDosingTime, 10) : chemical.maxDosingTime;
                 chemical.maxDosingVolume = typeof data.maxDosingVolume !== 'undefined' ? parseInt(data.maxDosingVolume, 10) : chemical.maxDosingVolume;
                 chemical.startDelay = typeof data.startDelay !== 'undefined' ? parseFloat(data.startDelay) : chemical.startDelay;
-                chemical.maxDailyVolume = typeof data.maxDailyVolume !== 'undefined' ? parseInt(data.maxDailyVolume, 10) : chemical.maxDailyVolume;
+                chemical.maxDailyVolume = typeof data.maxDailyVolume !== 'undefined' ? typeof data.maxDailyVolume === 'number' ? data.maxDailyVolume : parseInt(data.maxDailyVolume, 10) : chemical.maxDailyVolume;
             }
         } catch (err) { logger.error(`setDosing: ${err.message}`); return Promise.reject(err); }
     }
