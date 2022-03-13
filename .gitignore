@@ -38,3 +38,4 @@ bin/
 # end
 
 /web/bindings/njsPCAux.json
+/web/bindings/njsPCMaster.json
