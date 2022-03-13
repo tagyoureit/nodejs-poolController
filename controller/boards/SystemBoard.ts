@@ -1555,20 +1555,20 @@ export class BodyCommands extends BoardCommands {
             resolve(body);
         });
     }
-  public mapBodyAssociation(val: any): any {
-    if (typeof val === 'undefined') return;
-    let ass = sys.board.bodies.getBodyAssociations();
-    let nval = parseInt(val, 10);
-    if (!isNaN(nval)) {
-      return ass.find(elem => elem.val === nval);
+    public mapBodyAssociation(val: any): any {
+        if (typeof val === 'undefined') return;
+        let ass = sys.board.bodies.getBodyAssociations();
+        let nval = parseInt(val, 10);
+        if (!isNaN(nval)) {
+            return ass.find(elem => elem.val === nval);
+        }
+        else if (typeof val === 'string') return ass.find(elem => elem.name === val);
+        else if (typeof val.val !== 'undefined') {
+            nval = parseInt(val.val);
+            return ass.find(elem => elem.val === val) !== undefined;
+        }
+        else if (typeof val.name !== 'undefined') return ass.find(elem => elem.name === val.name);
     }
-    else if (typeof val === 'string') return ass.find(elem => elem.name === val);
-    else if (typeof val.val !== 'undefined') {
-      nval = parseInt(val.val);
-      return ass.find(elem => elem.val === val) !== undefined;
-    }
-    else if (typeof val.name !== 'undefined') return ass.find(elem => elem.name === val.name);
-  }
   // This method provides a list of enumerated values for configuring associations
   // tied to the current configuration.  It is used to supply only the valid values
   // for tying things like heaters, chem controllers, ss & ds pumps to a particular body within

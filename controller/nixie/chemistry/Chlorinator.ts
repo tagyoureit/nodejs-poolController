@@ -120,8 +120,12 @@ export class NixieChlorinator extends NixieEquipment {
             chlor.isDosing = isDosing;
             schlor.name = chlor.name = data.name || chlor.name || `Chlorinator ${chlor.id}`;
             schlor.isActive = chlor.isActive = true;
+            
         }
         catch (err) { logger.error(`setChlorinatorAsync: ${err.message}`); return Promise.reject(err); }
+    }
+    public setSuperChlor(val: boolean) {
+       
     }
     public async closeAsync() {
         try {
@@ -197,7 +201,9 @@ export class NixieChlorinator extends NixieEquipment {
                     payload: [0],
                     retries: 3, // IntelliCenter tries 4 times to get a response.
                     response: Response.create({ protocol: Protocol.Chlorinator, action: 1 }),
-                    onAbort: () => {},
+                    onAbort: () => {
+                        this.chlor.superChlor = cstate.superChlor = false;
+                    },
                     onComplete: (err) => {
                         if (err) {
                             // This flag is cleared in ChlorinatorStateMessage
