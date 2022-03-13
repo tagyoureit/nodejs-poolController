@@ -39,7 +39,8 @@ export class NixieBoard extends SystemBoard {
         this.equipmentIds.circuitGroups.start = 193;
         this.equipmentIds.virtualCircuits.start = 237;
         this.valueMaps.equipmentMaster = new byteValueMap([
-            [1, { val: 1, name: 'ncp', desc: 'Nixie Control Panel' }]
+            [1, { val: 1, name: 'ncp', desc: 'Nixie Control Panel' }],
+            [2, { val: 2, name: 'ext', desc: 'External Control Panel'}]
         ]);
 
         this.valueMaps.featureFunctions = new byteValueMap([
@@ -477,7 +478,6 @@ export class NixieFilterCommands extends FilterCommands {
         catch (err) { return Promise.reject(new BoardProcessError(`Nixie: Error setFiterStateAsync ${err.message}`, 'setFilterStateAsync')); }
     }
 }
-
 export class NixieSystemCommands extends SystemCommands {
     public cancelDelay(): Promise<any> {
         delayMgr.cancelPumpValveDelays();

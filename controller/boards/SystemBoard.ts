@@ -211,7 +211,8 @@ export class byteValueMaps {
     // Identifies which controller manages the underlying equipment.
     public equipmentMaster: byteValueMap = new byteValueMap([
         [0, { val: 0, name: 'ocp', desc: 'Outdoor Control Panel' }],
-        [1, { val: 1, name: 'ncp', desc: 'Nixie Control Panel' }]
+        [1, { val: 1, name: 'ncp', desc: 'Nixie Control Panel' }],
+        [2, { val: 2, name: 'ext', desc: 'External Control Panel' }]
     ]);
     public equipmentCommStatus: byteValueMap = new byteValueMap([
         [0, { val: 0, name: 'ready', desc: 'Ready' }],
@@ -3245,21 +3246,67 @@ export class ChlorinatorCommands extends BoardCommands {
     } catch (err) { logger.error(`Error validating chlorinators for restore: ${err.message}`); }
   }
 
-  public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
-    try {
-      let id = parseInt(obj.id, 10);
-      if (isNaN(id) || id <= 0) id = 1;
-      let cchlor = sys.chlorinators.getItemById(id, true);
-      await ncp.chlorinators.setChlorinatorAsync(cchlor, obj);
-      let schlor = state.chlorinators.getItemById(cchlor.id, true);
-      state.emitEquipmentChanges();
-      return Promise.resolve(schlor);
+    public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
+        try {
+            let id = parseInt(obj.id, 10);
+            let chlor: Chlorinator;
+            let master = parseInt(obj.master, 10);
+            if (isNaN(master)) master = 1; // NCP to control.
+            if (isNaN(id) || id <= 0) {
+                if (master === 2) {
+                    // We can add as many external chlorinators as we want.
+                    id = sys.chlorinators.count(elem => elem.master === 2) + 50;
+                    chlor = sys.chlorinators.getItemById(id, false, { master: parseInt(obj.master, 10) });
+                }
+                else {
+                    // We are adding so we need to see if there is another chlorinator that is not external.
+                    if (sys.chlorinators.count(elem => elem.master !== 2) > sys.equipment.maxChlorinators) return Promise.reject(new InvalidEquipmentDataError(`The max number of chlorinators has been exceeded you may only add ${sys.equipment.maxChlorinators}`, 'chlorinator', sys.equipment.maxChlorinators));
+                    id = 1;
+                    chlor = sys.chlorinators.getItemById(id, false, { master: 1 });
+                }
+            }
+            else chlor = sys.chlorinators.getItemById(id, false);
+            if (chlor.master === 1)
+                await ncp.chlorinators.setChlorinatorAsync(chlor, obj);
+            else {
+                chlor = sys.chlorinators.getItemById(id, true);
+                let schlor = state.chlorinators.getItemById(chlor.id, true);
+                chlor.name = schlor.name = obj.name || chlor.name || 'Chlorinator --' + id;
+                chlor.superChlorHours = schlor.superChlorHours = typeof obj.superChlorHours !== 'undefined' ? parseInt(obj.superChlorHours, 10) : isNaN(chlor.superChlorHours) ? 8 : chlor.superChlorHours;
+                chlor.superChlor = schlor.superChlor = typeof obj.superChlorinate !== 'undefined' ? utils.makeBool(obj.superChlorinate) : chlor.superChlor;
+                chlor.superChlor = schlor.superChlor = typeof obj.superChlor !== 'undefined' ? utils.makeBool(obj.superChlor) : chlor.superChlor;
+                chlor.isDosing = typeof obj.isDosing !== 'undefined' ? utils.makeBool(obj.isDosing) : chlor.isDosing || false;
+                chlor.disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled || false;
+                let poolSetpoint = typeof obj.poolSetpoint !== 'undefined' ? parseInt(obj.poolSetpoint, 10) : isNaN(chlor.poolSetpoint) ? 50 : chlor.poolSetpoint;
+                let spaSetpoint = typeof obj.spaSetpoint !== 'undefined' ? parseInt(obj.spaSetpoint, 10) : isNaN(chlor.spaSetpoint) ? 10 : chlor.spaSetpoint;
+                chlor.model = typeof obj.model !== 'undefined' ? sys.board.valueMaps.chlorinatorModel.encode(obj.model) : chlor.model;
+                chlor.type = schlor.type = typeof obj.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(obj.type) : chlor.type || 0;
+                let body = sys.board.bodies.mapBodyAssociation(typeof obj.body !== 'undefined' ? parseInt(obj.body, 10) : chlor.body);
+                if (typeof body === 'undefined') {
+                    if (sys.equipment.shared) body = 32;
+                    else if (!sys.equipment.dual) body = 1;
+                    else return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${body}`, 'chlorinator', body));
+                }
+                if (poolSetpoint > 100 || poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
+                if (spaSetpoint > 100 || spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
+                chlor.body = schlor.body = body.val;
+                schlor.poolSetpoint = chlor.poolSetpoint = poolSetpoint;
+                schlor.spaSetpoint = chlor.spaSetpoint = spaSetpoint;
+                chlor.ignoreSaltReading = typeof obj.ignoreSaltReading !== 'undefined' ? utils.makeBool(obj.ignoreSaltReading) : utils.makeBool(chlor.ignoreSaltReading);
+                schlor.isActive = chlor.isActive = typeof obj.isActive !== 'undefined' ? utils.makeBool(obj.isActive) : typeof chlor.isActive !== 'undefined' ? utils.makeBool(chlor.isActive) : true;
+                chlor.master = 2;
+                schlor.currentOutput = typeof obj.currentOutput !== 'undefined' ? parseInt(obj.currentOutput, 10) : schlor.currentOutput;
+                schlor.lastComm = typeof obj.lastComm !== 'undefined' ? obj.lastComm : schlor.lastComm || Date.now();
+                schlor.status = typeof obj.status !== 'undefined' ? sys.board.valueMaps.chlorinatorStatus.encode(obj.status) : sys.board.valueMaps.chlorinatorStatus.encode(schlor.status || 0);
+            }
+            state.emitEquipmentChanges();
+            return Promise.resolve(state.chlorinators.getItemById(id));
+        }
+        catch (err) {
+            logger.error(`Error setting chlorinator: ${err}`)
+            return Promise.reject(err);
+        }
     }
-    catch (err) {
-      logger.error(`Error setting chlorinator: ${err}`)
-      return Promise.reject(err);
-    }
-  }
   public async deleteChlorAsync(obj: any): Promise<ChlorinatorState> {
     try {
       let id = parseInt(obj.id, 10);

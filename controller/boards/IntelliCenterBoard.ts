@@ -17,7 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import * as extend from 'extend';
 import { EventEmitter } from 'events';
 import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChlorinatorCommands, PumpCommands, BodyCommands, ScheduleCommands, HeaterCommands, EquipmentIdRange, ValveCommands, SystemCommands, ChemControllerCommands } from './SystemBoard';
-import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup, ExpansionPanel, ExpansionModule, ExpansionModuleCollection, Valve, General, Options, Location, Owner, ICircuit, Feature, CircuitGroup, ChemController, TempSensorCollection } from '../Equipment';
+import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup, ExpansionPanel, ExpansionModule, ExpansionModuleCollection, Valve, General, Options, Location, Owner, ICircuit, Feature, CircuitGroup, ChemController, TempSensorCollection, Chlorinator } from '../Equipment';
 import { Protocol, Outbound, Inbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
@@ -2669,20 +2669,18 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
 class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
     public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);
+        // Bail out right away if this is not controlled by the OCP.
+        if (typeof obj.master !== 'undefined' && parseInt(obj.master, 10) !== 0) return super.setChlorAsync(obj);
         let isAdd = false;
-        let chlor = sys.chlorinators.getItemById(id);
-        if (id <= 0 || isNaN(id)) {
-            isAdd = true;
-            chlor.master = utils.makeBool(obj.master) ? 1 : 0;
-            // Calculate an id for the chlorinator.  The messed up part is that if a chlorinator is not attached to the OCP, its address
-            // cannot be set by the MUX.  This will have to wait.
+        if (isNaN(id) || id <= 0) {
+            // We are adding so we need to see if there is another chlorinator that is not external.
+            if (sys.chlorinators.count(elem => elem.master !== 2) > sys.equipment.maxChlorinators) return Promise.reject(new InvalidEquipmentDataError(`The max number of chlorinators has been exceeded you may only add ${sys.equipment.maxChlorinators}`, 'chlorinator', sys.equipment.maxChlorinators));
             id = 1;
+            isAdd = true;
         }
+        let chlor = sys.chlorinators.getItemById(id);
+        if (chlor.master !== 0 && !isAdd) return super.setChlorAsync(obj);
 
-        //let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
-        // If this is a virtual chlorinator then go to the base class and handle it from there.
-        if (chlor.master === 1) return super.setChlorAsync(obj);
-        if (typeof chlor.master === 'undefined') chlor.master = 0;
         let name = obj.name || chlor.name || 'IntelliChlor' + id;
         let superChlorHours = parseInt(obj.superChlorHours, 10);
         if (typeof obj.superChlorinate !== 'undefined') obj.superChlor = utils.makeBool(obj.superChlorinate);
@@ -2695,8 +2693,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         let poolSetpoint = typeof obj.poolSetpoint !== 'undefined' ? parseInt(obj.poolSetpoint, 10) : chlor.poolSetpoint;
         let spaSetpoint = typeof obj.spaSetpoint !== 'undefined' ? parseInt(obj.spaSetpoint, 10) : chlor.spaSetpoint;
         if (poolSetpoint === 0) console.log(obj);
-
-        let model = typeof obj.model !== 'undefined' ? obj.model : chlor.model;
+        let model = typeof obj.model !== 'undefined' ? sys.board.valueMaps.chlorinatorModel.encode(obj.model) : chlor.model || 0;
         let chlorType = typeof obj.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(obj.type) : chlor.type || 0;
         if (isAdd) {
             if (isNaN(poolSetpoint)) poolSetpoint = 50;
@@ -2732,6 +2729,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
                     else {
                         let schlor = state.chlorinators.getItemById(id, true);
                         let cchlor = sys.chlorinators.getItemById(id, true);
+                        chlor.master = 0;
                         schlor.body = chlor.body = body.val;
                         chlor.disabled = disabled;
                         chlor.model = model;
@@ -3945,153 +3943,6 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
             conn.queueSendMessage(out);
         });
     }
-
-    //protected async setIntelliChemStateAsync(data: any): Promise<ChemControllerState> {
-    //    try {
-    //        // This is a protected method so the id will always be valid if we made it here. Do
-    //        // one more check since we cannot lock a thread.
-    //        let chem = sys.chemControllers.find(elem => elem.id === data.id);
-    //        if (typeof chem === 'undefined') return Promise.reject(`A valid IntelliChem controller could not be found at id ${data.id}`);
-    //        // If we are virtual send it back to the SystemBoard for processing.
-    //        if (chem.master !== 0) return super.setIntelliChemStateAsync(data);
-    //        let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : chem.address;
-    //        if (typeof address === 'undefined' || isNaN(address) || (address < 144 || address > 158)) return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address`, 'chemController', address));
-    //        let pHSetpoint = typeof data.ph !== 'undefined' && typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
-    //        let orpSetpoint = typeof data.orp !== 'undefined' && typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
-    //        let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
-    //        let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
-    //        let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
-    //        let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
-    //        if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
-    //        // Do a final validation pass so we dont send this off in a mess.
-    //        if (isNaN(pHSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH Setpoint`, 'chemController', pHSetpoint));
-    //        if (isNaN(orpSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp Setpoint`, 'chemController', orpSetpoint));
-    //        if (isNaN(calciumHardness)) return Promise.reject(new InvalidEquipmentDataError(`Invalid calcium hardness`, 'chemController', calciumHardness));
-    //        if (isNaN(cyanuricAcid)) return Promise.reject(new InvalidEquipmentDataError(`Invalid cyanuric acid`, 'chemController', cyanuricAcid));
-    //        if (isNaN(alkalinity)) return Promise.reject(new InvalidEquipmentDataError(`Invalid alkalinity`, 'chemController', alkalinity));
-    //        return new Promise<ChemControllerState>(async (resolve, reject) => {
-    //            let out = Outbound.create({
-    //                action: 168,
-    //                response: IntelliCenterBoard.getAckResponse(168),
-    //                retries: 3,
-    //                payload: [8, 0, chem.id - 1, body.val, 1, chem.address, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
-    //                onComplete: (err) => {
-    //                    if (err) { reject(err); }
-    //                    else {
-    //                        let cstate = state.chemControllers.getItemById(chem.id, true);
-    //                        chem.isActive = true;
-    //                        chem.isVirtual = false;
-    //                        //chem.address = address;
-    //                        chem.body = body;
-    //                        chem.calciumHardness = calciumHardness;
-    //                        chem.orp.setpoint = cstate.orp.setpoint = orpSetpoint;
-    //                        chem.ph.setpoint = cstate.ph.setpoint = pHSetpoint;
-    //                        chem.cyanuricAcid = cyanuricAcid;
-    //                        chem.alkalinity = alkalinity;
-    //                        chem.type = 2;
-    //                        chem.name = typeof chem.name === 'undefined' ? `IntelliChem ${chem.id}` : chem.name;
-    //                        chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
-    //                        chem.ph.tank.units = chem.orp.tank.units = '';
-    //                        cstate.body = chem.body;
-    //                        cstate.address = chem.address;
-    //                        cstate.name = chem.name;
-    //                        cstate.type = chem.type;
-    //                        cstate.isActive = chem.isActive;
-    //                        resolve(cstate);
-    //                    }
-    //                }
-    //            });
-    //            out.setPayloadInt(7, Math.round(pHSetpoint * 100), 700);
-    //            out.setPayloadInt(9, orpSetpoint, 400);
-    //            out.setPayloadInt(13, calciumHardness, 25);
-    //            out.setPayloadInt(15, cyanuricAcid, 0);
-    //            out.setPayloadInt(17, alkalinity, 25);
-    //            conn.queueSendMessage(out);
-    //        });
-    //    }
-    //    catch (err) { return Promise.reject(err); }
-    //}
-    //protected async setIntelliChemAsync(data: any): Promise<ChemController> {
-    //    try {
-    //        // This is a protected method so the id will always be valid if we made it here. Do
-    //        // one more check since we cannot lock a thread.
-    //        let chem = sys.chemControllers.find(elem => elem.id === data.id);
-    //        let ichemType = sys.board.valueMaps.chemControllerTypes.encode('intellichem');
-    //        if (typeof chem === 'undefined') {
-    //            // We are adding an IntelliChem.  Check to see how many intellichems we have.
-    //            let arr = sys.chemControllers.toArray();
-    //            let count = 0;
-    //            for (let i = 0; i < arr.length; i++) {
-    //                let cc: ChemController = arr[i];
-    //                if (cc.type === ichemType) count++;
-    //            }
-    //            if (count >= sys.equipment.maxChemControllers) return Promise.reject(new InvalidEquipmentDataError(`The max number of IntelliChem controllers has been reached: ${sys.equipment.maxChemControllers}`, 'chemController', sys.equipment.maxChemControllers));
-    //            let id = (sys.chemControllers.getMaxId() || 0) + 1;
-    //            chem = sys.chemControllers.getItemById(id);
-    //        }
-    //        let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : chem.address;
-    //        if (typeof address === 'undefined' || isNaN(address) || (address < 144 || address > 158)) return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address`, 'chemController', address));
-    //        if (typeof sys.chemControllers.find(elem => elem.id !== data.id && elem.type === ichemType && elem.address === address) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address: Address is used on another IntelliChem`, 'chemController', address));
-    //        let pHSetpoint = typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
-    //        let orpSetpoint = typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
-    //        let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
-    //        let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
-    //        let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
-    //        let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
-    //        let name = typeof data.name === 'undefined' ? chem.name || `IntelliChem ${chem.id}` : data.name;
-    //        if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
-    //        // Do a final validation pass so we dont send this off in a mess.
-    //        if (isNaN(address)) return Promise.reject(new InvalidEquipmentDataError(`Invalid address ${data.address}`, 'chemController', data.address));
-    //        if (isNaN(pHSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH Setpoint`, 'chemController', pHSetpoint));
-    //        if (isNaN(orpSetpoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp Setpoint`, 'chemController', orpSetpoint));
-    //        if (isNaN(calciumHardness)) return Promise.reject(new InvalidEquipmentDataError(`Invalid calcium hardness`, 'chemController', calciumHardness));
-    //        if (isNaN(cyanuricAcid)) return Promise.reject(new InvalidEquipmentDataError(`Invalid cyanuric acid`, 'chemController', cyanuricAcid));
-    //        if (isNaN(alkalinity)) return Promise.reject(new InvalidEquipmentDataError(`Invalid alkalinity`, 'chemController', alkalinity));
-
-    //        return new Promise<ChemController>(async (resolve, reject) => {
-    //            let out = Outbound.create({
-    //                action: 168,
-    //                response: IntelliCenterBoard.getAckResponse(168),
-    //                retries: 3,
-    //                payload: [8, 0, chem.id - 1, body.val, 1, address, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
-    //                onComplete: (err) => {
-    //                    if (err) { reject(err); }
-    //                    else {
-    //                        chem = sys.chemControllers.getItemById(chem.id, true);
-    //                        let cstate = state.chemControllers.getItemById(chem.id, true);
-    //                        chem.master = sys.board.equipmentMaster;
-    //                        chem.isActive = true;
-    //                        chem.isVirtual = false;
-    //                        chem.address = address;
-    //                        chem.body = body;
-    //                        chem.calciumHardness = calciumHardness;
-    //                        chem.orp.setpoint = cstate.orp.setpoint = orpSetpoint;
-    //                        chem.ph.setpoint = cstate.ph.setpoint = pHSetpoint;
-    //                        chem.cyanuricAcid = cyanuricAcid;
-    //                        chem.alkalinity = alkalinity;
-    //                        chem.type = 2;
-    //                        chem.name = name;
-    //                        chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
-    //                        chem.ph.tank.units = chem.orp.tank.units = '';
-    //                        cstate.body = chem.body;
-    //                        cstate.address = chem.address;
-    //                        cstate.name = chem.name;
-    //                        cstate.type = chem.type;
-    //                        cstate.isActive = chem.isActive;
-    //                        resolve(chem);
-    //                    }
-    //                }
-    //            });
-    //            out.setPayloadInt(7, Math.round(pHSetpoint * 100), 700);
-    //            out.setPayloadInt(9, Math.floor(orpSetpoint), 400);
-    //            out.setPayloadInt(13, Math.floor(calciumHardness), 25);
-    //            out.setPayloadInt(15, Math.floor(cyanuricAcid), 0);
-    //            out.setPayloadInt(17, Math.floor(alkalinity), 25);
-    //            conn.queueSendMessage(out);
-    //        });
-    //    }
-    //    catch (err) { return Promise.reject(err); }
-    //}
     public async deleteChemControllerAsync(data: any): Promise<ChemController> {
         let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
         if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemController'));

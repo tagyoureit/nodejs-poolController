@@ -1797,17 +1797,18 @@ class TouchFeatureCommands extends FeatureCommands {
 class TouchChlorinatorCommands extends ChlorinatorCommands {
     public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);
+        // Bail out right away if this is not controlled by the OCP.
+        if (typeof obj.master !== 'undefined' && parseInt(obj.master, 10) !== 0) return super.setChlorAsync(obj);
         let isAdd = false;
-        let chlor = sys.chlorinators.getItemById(id);
-        if (id <= 0 || isNaN(id)) {
-            isAdd = true;
-            chlor.master = utils.makeBool(obj.master) ? 1 : 0;
-            // Calculate an id for the chlorinator.  The messed up part is that if a chlorinator is not attached to the OCP, its address
-            // cannot be set by the MUX.  This will have to wait.
+        if (isNaN(id) || id <= 0) {
+            // We are adding so we need to see if there is another chlorinator that is not external.
+            if (sys.chlorinators.count(elem => elem.master !== 2) > sys.equipment.maxChlorinators) return Promise.reject(new InvalidEquipmentDataError(`The max number of chlorinators has been exceeded you may only add ${sys.equipment.maxChlorinators}`, 'chlorinator', sys.equipment.maxChlorinators));
             id = 1;
+            isAdd = true;
         }
-        // If this is a Nixie chlorinator then go to the base class and handle it from there.
-        if (chlor.master === 1) return super.setChlorAsync(obj);
+        let chlor = sys.chlorinators.getItemById(id);
+        if (chlor.master !== 0 && !isAdd) return super.setChlorAsync(obj);
+
         // RKS: I am not even sure this can be done with Touch as the master on the RS485 bus.
         if (typeof chlor.master === 'undefined') chlor.master = 0;
         let name = obj.name || chlor.name || 'IntelliChlor' + id;
@@ -1818,7 +1819,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         let disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled;
         let poolSetpoint = typeof obj.poolSetpoint !== 'undefined' ? parseInt(obj.poolSetpoint, 10) : chlor.poolSetpoint;
         let spaSetpoint = typeof obj.spaSetpoint !== 'undefined' ? parseInt(obj.spaSetpoint, 10) : chlor.spaSetpoint;
-        let model = typeof obj.model !== 'undefined' ? obj.model : chlor.model;
+        let model = typeof obj.model !== 'undefined' ? sys.board.valueMaps.chlorinatorModel.encode(obj.model) : chlor.model || 0;
         let chlorType = typeof obj.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(obj.type) : chlor.type || 0;
         if (isAdd) {
             if (isNaN(poolSetpoint)) poolSetpoint = 50;
