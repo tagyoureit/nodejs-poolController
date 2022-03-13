@@ -3300,6 +3300,7 @@ export class ChlorinatorCommands extends BoardCommands {
                 schlor.status = typeof obj.status !== 'undefined' ? sys.board.valueMaps.chlorinatorStatus.encode(obj.status) : sys.board.valueMaps.chlorinatorStatus.encode(schlor.status || 0);
                 schlor.superChlorRemaining = typeof obj.superChlorRemaining !== 'undefined' ? parseInt(obj.superChlorRemaining, 10) : schlor.superChlorRemaining;
                 schlor.targetOutput = typeof obj.targetOutput !== 'undefined' ? parseInt(obj.targetOutput, 10) : schlor.targetOutput;
+                schlor.saltLevel = typeof obj.saltLevel !== 'undefined' ? parseInt(obj.saltLevel, 10) : schlor.saltLevel;
             }
             state.emitEquipmentChanges();
             return Promise.resolve(state.chlorinators.getItemById(id));
