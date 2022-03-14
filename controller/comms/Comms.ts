@@ -212,6 +212,7 @@ export class Connection {
             this.emitter.on('packetread', (pkt) => { this.buffer.pushIn(pkt); });
             this.emitter.on('messagewrite', (msg) => { this.buffer.pushOut(msg); });
         }
+        if (!this._cfg.enabled) return;
         if (this._cfg.netConnect && !this._cfg.mockPort) {
             if (typeof this._port !== 'undefined' && this._port.isOpen) {
                 // This used to try to reconnect and recreate events even though the socket was already connected.  This resulted in
@@ -497,7 +498,7 @@ export class Connection {
             netPort: 9801,
             inactivityRetry: 10
         });
-        if (conn._cfg.enabled) conn.openAsync().then(() => { logger.debug(`Connection opened from init function;`); }).catch((err) => { logger.error(`Connection failed to open from init function. ${err}`); });
+        conn.openAsync().then(() => { logger.debug(`Connection opened from init function;`); }).catch((err) => { logger.error(`Connection failed to open from init function. ${err}`); });
         config.emitter.on('reloaded', () => {
             console.log('Config reloaded');
             this.reloadConfig(config.getSection('controller.comms', {
