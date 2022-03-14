@@ -2285,7 +2285,13 @@ export class NixieChemProbePh extends NixieChemProbe {
                 if (this.probe.type !== 1 || this.probe.deviceBinding !== data.deviceBinding) {
                     let disabledFeed = this.probe;
                     disabledFeed.remFeedEnabled = false;
-                    await this.setRemoteREMFeed(disabledFeed);
+                    try {
+                        // if remote REM server was not found this would error out
+                        await this.setRemoteREMFeed(disabledFeed);
+                    }
+                    catch (err){
+                        logger.silly(`Disabling remote REM connection for PH Probe returned error ${err.message}.  Continuing.`)
+                    }
                     this.probe.remFeedId = undefined;
                 }
                 await this.setProbeAsync(this.probe, sprobe, data);
@@ -2294,6 +2300,7 @@ export class NixieChemProbePh extends NixieChemProbe {
                 sprobe.temperature = typeof data.temperature !== 'undefined' ? parseFloat(data.temperature) : sprobe.temperature;
                 sprobe.tempUnits = typeof data.tempUnits !== 'undefined' ? data.tempUnits : sprobe.tempUnits;
                 this.probe.feedBodyTemp = typeof data.feedBodyTemp !== 'undefined' ? utils.makeBool(data.feedBodyTemp) : utils.makeBool(this.probe.feedBodyTemp);
+                //this.probe.connectionId = typeof data.connectionId !== 'undefined' ? data.connectionId : this.probe.connectionId;
                 await this.setRemoteREMFeed(data);
             }
         } catch (err) { logger.error(`setProbeAsync pH: ${err.message}`); return Promise.reject(err); }
@@ -2391,7 +2398,13 @@ export class NixieChemProbeORP extends NixieChemProbe {
                 if (this.probe.type !== 1 || this.probe.deviceBinding !== data.deviceBinding) {
                     let disabledFeed = this.probe;
                     disabledFeed.remFeedEnabled = false;
-                    await this.setRemoteREMFeed(disabledFeed);
+                    try {
+                        // if remote REM server was not found this would error out
+                        await this.setRemoteREMFeed(disabledFeed);
+                    }
+                    catch (err){
+                        logger.silly(`Disabling remote REM connection for ORP Probe returned error ${err.message}.  Continuing.`)
+                    }
                     this.probe.remFeedId = undefined;
                 }
                 await this.setProbeAsync(this.probe, sprobe, data);
