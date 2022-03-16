@@ -760,7 +760,7 @@ export class Outbound extends OutboundCommon {
     public static create(obj?: any) {
         let o = extend({
             protocol: Protocol.Broadcast,
-            source: sys.board.commandDestAddress || Message.pluginAddress,
+            source: sys.board.commandSourceAddress || Message.pluginAddress,
             dest: sys.board.commandDestAddress || 16,
             action: 0,
             payload: [],
