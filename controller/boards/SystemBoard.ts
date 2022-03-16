@@ -3275,6 +3275,7 @@ export class ChlorinatorCommands extends BoardCommands {
                 chlor.superChlorHours = schlor.superChlorHours = typeof obj.superChlorHours !== 'undefined' ? parseInt(obj.superChlorHours, 10) : isNaN(chlor.superChlorHours) ? 8 : chlor.superChlorHours;
                 chlor.superChlor = schlor.superChlor = typeof obj.superChlorinate !== 'undefined' ? utils.makeBool(obj.superChlorinate) : chlor.superChlor;
                 chlor.superChlor = schlor.superChlor = typeof obj.superChlor !== 'undefined' ? utils.makeBool(obj.superChlor) : chlor.superChlor;
+                
                 chlor.isDosing = typeof obj.isDosing !== 'undefined' ? utils.makeBool(obj.isDosing) : chlor.isDosing || false;
                 chlor.disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled || false;
                 let poolSetpoint = typeof obj.poolSetpoint !== 'undefined' ? parseInt(obj.poolSetpoint, 10) : isNaN(chlor.poolSetpoint) ? 50 : chlor.poolSetpoint;
@@ -3298,7 +3299,7 @@ export class ChlorinatorCommands extends BoardCommands {
                 schlor.currentOutput = typeof obj.currentOutput !== 'undefined' ? parseInt(obj.currentOutput, 10) : schlor.currentOutput;
                 schlor.lastComm = typeof obj.lastComm !== 'undefined' ? obj.lastComm : schlor.lastComm || Date.now();
                 schlor.status = typeof obj.status !== 'undefined' ? sys.board.valueMaps.chlorinatorStatus.encode(obj.status) : sys.board.valueMaps.chlorinatorStatus.encode(schlor.status || 0);
-                schlor.superChlorRemaining = typeof obj.superChlorRemaining !== 'undefined' ? parseInt(obj.superChlorRemaining, 10) : schlor.superChlorRemaining;
+                if(typeof obj.superChlorRemaining !== 'undefined') schlor.superChlorRemaining = parseInt(obj.superChlorRemaining, 10);
                 schlor.targetOutput = typeof obj.targetOutput !== 'undefined' ? parseInt(obj.targetOutput, 10) : schlor.targetOutput;
                 schlor.saltLevel = typeof obj.saltLevel !== 'undefined' ? parseInt(obj.saltLevel, 10) : schlor.saltLevel;
             }
