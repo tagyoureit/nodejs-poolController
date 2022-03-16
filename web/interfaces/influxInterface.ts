@@ -34,7 +34,7 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
         if (typeof baseOpts.protocol !== 'undefined' && baseOpts.protocol) url = baseOpts.protocol;
         if (!url.endsWith('://')) url += '://';
         url = `${url}${baseOpts.host}`;
-        if(typeof baseOpts.port !== 'undefined' && baseOpts.port !== null && !isNaN(baseOpts.port)) url = `${url}:${ baseOpts.port }`;
+        if(typeof baseOpts.port !== 'undefined' && baseOpts.port !== null && !isNaN(baseOpts.port)) url = `${url}:${baseOpts.port}`;
         let influxDB: InfluxDB;
         let bucket;
         let org;
