@@ -1085,12 +1085,11 @@ export class SystemCommands extends BoardCommands {
   }
   public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
   public async setGeneralAsync(obj: any): Promise<General> {
-    let general = sys.general.get();
     if (typeof obj.alias === 'string') sys.general.alias = obj.alias;
     if (typeof obj.options !== 'undefined') await sys.board.system.setOptionsAsync(obj.options);
     if (typeof obj.location !== 'undefined') await sys.board.system.setLocationAsync(obj.location);
     if (typeof obj.owner !== 'undefined') await sys.board.system.setOwnerAsync(obj.owner);
-    return new Promise<General>(function (resolve, reject) { resolve(sys.general); });
+    return sys.general;
   }
   public async setTempSensorsAsync(obj: any): Promise<TempSensorCollection> {
     if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.equipment.tempSensors.getCalibration('water1')) {
@@ -1120,7 +1119,7 @@ export class SystemCommands extends BoardCommands {
     if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.equipment.tempSensors.getCalibration('air')) {
       sys.equipment.tempSensors.setCalibration('air', parseFloat(obj.airTempAdj));
     }
-    return new Promise<TempSensorCollection>((resolve, reject) => { resolve(sys.equipment.tempSensors); });
+    return sys.equipment.tempSensors;
   }
   public async setOptionsAsync(obj: any): Promise<Options> {
     if (obj.clockSource === 'server') sys.board.system.setTZ();
@@ -1129,15 +1128,15 @@ export class SystemCommands extends BoardCommands {
     let bodyUnits = sys.general.options.units === 0 ? 1 : 2;
     for (let i = 0; i < sys.bodies.length; i++) sys.bodies.getItemByIndex(i).capacityUnits = bodyUnits;
     state.temps.units = sys.general.options.units === 0 ? 1 : 4;
-    return new Promise<Options>(function (resolve, reject) { resolve(sys.general.options); });
+    return sys.general.options;
   }
   public async setLocationAsync(obj: any): Promise<Location> {
     sys.general.location.set(obj);
-    return new Promise<Location>(function (resolve, reject) { resolve(sys.general.location); });
+    return sys.general.location;
   }
   public async setOwnerAsync(obj: any): Promise<Owner> {
     sys.general.owner.set(obj);
-    return new Promise<Owner>(function (resolve, reject) { resolve(sys.general.owner); });
+    return sys.general.owner;
   }
   public async setTempsAsync(obj: any): Promise<TemperatureState> {
     return new Promise<TemperatureState>((resolve, reject) => {

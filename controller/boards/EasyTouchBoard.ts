@@ -19,7 +19,7 @@ import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { Message, Outbound, Protocol, Response } from '../comms/messages/Messages';
 import { utils } from '../Constants';
-import { Body, ChemController, ConfigVersion, CustomName, EggTimer, Feature, Heater, ICircuit, LightGroup, LightGroupCircuit, PoolSystem, Pump, Schedule, sys } from '../Equipment';
+import { Body, ChemController, ConfigVersion, CustomName, EggTimer, Feature, Heater, ICircuit, LightGroup, LightGroupCircuit, Options, PoolSystem, Pump, Schedule, sys } from '../Equipment';
 import { EquipmentTimeoutError, InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError } from '../Errors';
 import { ncp } from "../nixie/Nixie";
 import { BodyTempState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, state } from '../State';
@@ -1067,6 +1067,11 @@ class TouchSystemCommands extends SystemCommands {
             conn.queueSendMessage(out);
         });
     }
+    public async setOptionsAsync(obj: any): Promise<Options> {
+        // Proxy for setBodyAsync.  See below for explanation.
+        await sys.board.bodies.setBodyAsync(obj);
+        return sys.general.options;
+    }
 }
 class TouchBodyCommands extends BodyCommands {
     public async setBodyAsync(obj: any): Promise<Body> {
@@ -1074,14 +1079,18 @@ class TouchBodyCommands extends BodyCommands {
         // * Intellichem Installed (byte 3, bit 1)
         // * Manual spa heat (byte 4, bit 1) which only applies to the spa but is a 
         //    general option
+        // * Manual Priority (byte 5, bit 1 - Intellitouch only)
         // and this function can be called by either setIntelliChem (protected)
-        // or directly from setBodyAsync (/config/body endpoint).
+        // or directly from setBodyAsync (/config/body endpoint) or from setGeneralAsync (/config/options)
+        // for Manual Priority.
         // We also need to return the proper body setting manual heat, but it is irrelevant
         // for when we are returning to chemController
         try {
             return new Promise<Body>((resolve, reject) => {
                 let manualHeat = sys.general.options.manualHeat;
+                let manualPriority = sys.general.options.manualPriority;
                 if (typeof obj.manualHeat !== 'undefined') manualHeat = utils.makeBool(obj.manualHeat);
+                if (typeof obj.manualPriority !== 'undefined') manualPriority = utils.makeBool(obj.manualPriority);
                 let body = sys.bodies.getItemById(obj.id, false);
                 let intellichemInstalled = sys.chemControllers.getItemByAddress(144, false).isActive;
                 let out = Outbound.create({
@@ -1093,6 +1102,7 @@ class TouchBodyCommands extends BodyCommands {
                         if (err) reject(err);
                         else {
                             sys.general.options.manualHeat = manualHeat;
+                            sys.general.options.manualPriority = manualPriority;
                             let sbody = state.temps.bodies.getItemById(body.id, true);
                             if (body.type === 1){ // spa
                                 body.manualHeat = manualHeat;
@@ -1108,6 +1118,7 @@ class TouchBodyCommands extends BodyCommands {
                 out.insertPayloadBytes(0, 0, 9);
                 out.setPayloadByte(3, intellichemInstalled ? 255 : 254);
                 out.setPayloadByte(4, manualHeat ? 1 : 0);
+                out.setPayloadByte(5, manualPriority ? 1 : 0);
                 conn.queueSendMessage(out);
             });
 

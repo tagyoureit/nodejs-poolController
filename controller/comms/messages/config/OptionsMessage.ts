@@ -145,10 +145,13 @@ export class OptionsMessage {
                 // [165,33,16,34,168,10],[0,0,0,254,0,0,0,0,0,0],[2,168 = manual heat mode off
                 // [165,33,16,34,168,10],[0,0,0,254,1,0,0,0,0,0],[2,169] = manual heat mode on
                 sys.general.options.manualHeat = msg.extractPayloadByte(4) === 1;
+                // From https://github.com/tagyoureit/nodejs-poolController/issues/362 = Intellitouch
+                // [0,0,0,0,1,x,0,0,0,0]  x=0 Manual OP heat Off; x=1 Manual OP heat On 
+                sys.general.options.manualPriority = msg.extractPayloadByte(5) === 1;
                 if ((msg.extractPayloadByte(3) & 0x01) === 1) {
                     // only support for 1 ic with EasyTouch
                     let chem = sys.chemControllers.getItemByAddress(144, true);
-                    let schem = state.chemControllers.getItemById(chem.id, true);
+                    //let schem = state.chemControllers.getItemById(chem.id, true);
                     chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
                     chem.ph.tank.units = chem.orp.tank.units = '';
                     
@@ -161,26 +164,6 @@ export class OptionsMessage {
                 msg.isProcessed = true;
                 break;
             }
-            /* case 168:
-                {
-                    // IntelliChem Installed
-                    if ((msg.extractPayloadByte(3) & 0x01) === 1) {
-                        // only support for 1 ic with EasyTouch
-                        let chem = sys.chemControllers.getItemByAddress(144, true);
-                        let schem = state.chemControllers.getItemById(chem.id, true);
-                        chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
-                        chem.ph.tank.units = chem.orp.tank.units = '';
-
-                    }
-                    else {
-                        let chem = sys.chemControllers.getItemByAddress(144);
-                        state.chemControllers.removeItemById(chem.id);
-                        sys.chemControllers.removeItemById(chem.id);
-                    }
-                    // Spa Manual Heat on/off
-                    sys.general.options.manualHeat = msg.extractPayloadByte(4) === 1 ? true : false;
-                    msg.isProcessed = true;
-                } */
         }
     }
 }
