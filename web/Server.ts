@@ -618,42 +618,6 @@ export class HttpServer extends ProtoServer {
             self._sockets = await self.sockServer.fetchSockets();
         });
         sock.on('echo', (msg) => { sock.emit('echo', msg); });
-/*         sock.on('receivePacketRaw', function (incomingPacket: any[]) {
-            //var str = 'Add packet(s) to incoming buffer: ';
-            logger.silly('User request (replay.html) to RECEIVE packet: %s', JSON.stringify(incomingPacket));
-            for (var i = 0; i < incomingPacket.length; i++) {
-                conn.buffer.pushIn(Buffer.from(incomingPacket[i]));
-                // str += JSON.stringify(incomingPacket[i]) + ' ';
-            }
-            //logger.info(str);
-        });
-        sock.on('replayPackets', function (inboundPkts: number[][]) {
-            // used for replay
-            logger.debug(`Received replayPackets: ${inboundPkts}`);
-            inboundPkts.forEach(inbound => {
-                conn.buffer.pushIn(Buffer.from([].concat.apply([], inbound)));
-                // conn.queueInboundMessage([].concat.apply([], inbound));
-            });
-        });
-        sock.on('sendPackets', function (bytesToProcessArr: number[][]) {
-            // takes an input of bytes (src/dest/action/payload) and sends
-            if (!bytesToProcessArr.length) return;
-            logger.silly('User request (replay.html) to SEND packet: %s', JSON.stringify(bytesToProcessArr));
-
-            do {
-                let bytesToProcess: number[] = bytesToProcessArr.shift();
-
-                // todo: logic for chlor packets
-                let out = Outbound.create({
-                    source: bytesToProcess.shift(),
-                    dest: bytesToProcess.shift(),
-                    action: bytesToProcess.shift(),
-                    payload: bytesToProcess.splice(1, bytesToProcess[0])
-                });
-                conn.queueSendMessage(out);
-            } while (bytesToProcessArr.length > 0);
-
-        }); */
         sock.on('sendOutboundMessage', (mdata) => {
             let msg: Outbound = Outbound.create({});
             Object.assign(msg, mdata);

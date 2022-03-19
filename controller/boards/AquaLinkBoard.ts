@@ -63,11 +63,7 @@ class AquaLinkConfigQueue extends ConfigQueue {
     protected queueItems(cat: number, items: number[] = [0]) { }
     public queueChanges() {
         this.reset();
-        if (conn.mockPort) {
-            logger.info(`Skipping configuration request from OCP because MockPort enabled.`);
-        } else {
-            logger.info(`Requesting ${sys.controllerType} configuration`);
-        }
+        logger.info(`Requesting ${sys.controllerType} configuration`);
         if (this.remainingItems > 0) {
             var self = this;
             setTimeout(() => { self.processNext(); }, 50);

@@ -70,6 +70,7 @@ interface IPoolSystem {
 
 export class PoolSystem implements IPoolSystem {
     public _hasChanged: boolean = false;
+    public isReady: boolean = false;
     constructor() {
         this.cfgPath = path.posix.join(process.cwd(), '/data/poolConfig.json');
     }
@@ -142,6 +143,7 @@ export class PoolSystem implements IPoolSystem {
         }
         else
             this.initNixieController();
+        this.isReady = true;
     }
     public init() {
         let cfg = this.loadConfigFile(this.cfgPath, {});
@@ -202,7 +204,7 @@ export class PoolSystem implements IPoolSystem {
     }
 
     public resetSystem() {
-        conn.pause();
+        conn.pauseAll();
         this.resetData();
         state.resetData();
         this.data.controllerType === 'unknown';
@@ -210,7 +212,7 @@ export class PoolSystem implements IPoolSystem {
         this.controllerType = ControllerType.Unknown;
         state.status = 0;
         this.board = BoardFactory.fromControllerType(ControllerType.Unknown, this);
-        setTimeout(function () { state.status = 0; conn.resume(); }, 0);
+        setTimeout(function () { state.status = 0; conn.resumeAll(); }, 0);
     }
     public get controllerType(): ControllerType { return this.data.controllerType as ControllerType; }
     public set controllerType(val: ControllerType) {

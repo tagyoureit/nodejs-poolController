@@ -71,7 +71,7 @@ export class Message {
     // Fields
     private static _messageId: number = 0;
     public static get nextMessageId(): number { return this._messageId < 80000 ? ++this._messageId : this._messageId = 0; }
-
+    public portId = 0; // This will be the target or source port for the message.  If this is from or to an Aux RS485 port the value will be > 0.
     public timestamp: Date = new Date();
     public direction: Direction = Direction.In;
     public protocol: Protocol = Protocol.Unknown;
@@ -186,6 +186,7 @@ export class Inbound extends Message {
     public responseFor: number[] = [];
     public isProcessed: boolean = false;
     public collisions: number = 0;
+    public rewinds: number = 0;
     // Private methods
     private isValidChecksum(): boolean {
         if (this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink) return this.checksum % 256 === this.chkLo;
@@ -193,8 +194,8 @@ export class Inbound extends Message {
     }
     public toLog() {
         if (this.responseFor.length > 0)
-            return `{"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","for":${JSON.stringify(this.responseFor)},"pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${Timestamp.toISOLocal(this.timestamp)}"}`;
-        return `{"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${Timestamp.toISOLocal(this.timestamp)}"}`;
+            return `{"port:${this.portId || 0} id":${this.id},"valid":${this.isValid},"dir":"${ this.direction } ","proto":"${ this.protocol } ","for":${JSON.stringify(this.responseFor)},"pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${ Timestamp.toISOLocal(this.timestamp) } "}`;
+        return `{"port: ${this.portId || 0} id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${Timestamp.toISOLocal(this.timestamp)}"}`;
     }
     private testChlorHeader(bytes: number[], ndx: number): boolean {
         // if packets have 16,2 (eg status=16,2,29) in them and they come as partial packets, they would have
@@ -247,6 +248,7 @@ export class Inbound extends Message {
         this.isValid = true;
 
         this.collisions++;
+        this.rewinds++;
         logger.info(`rewinding message collision ${this.collisions} ${ndx} ${bytes.length} ${JSON.stringify(buff)}`);
         this.readPacket(buff);
         return ndx;
@@ -327,6 +329,7 @@ export class Inbound extends Message {
                     this.preamble = [];
                     this.header = [];
                     this.collisions++;
+                    this.rewinds++;
                     return ndxHeader + 1;
                 }
                 break;

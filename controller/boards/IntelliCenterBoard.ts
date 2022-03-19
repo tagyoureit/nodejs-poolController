@@ -669,14 +669,14 @@ class IntelliCenterConfigQueue extends ConfigQueue {
                 response: Response.create({ dest:-1, action: 30, payload: [this.curr.category, itm], callback: () => { self.processNext(out); } })
             });
             logger.verbose(`Requesting config for: ${ConfigCategories[this.curr.category]} - Item: ${itm}`);
-            setTimeout(conn.queueSendMessage, 50, out);
+            setTimeout(() => { conn.queueSendMessage(out) }, 50);
         } else {
             // Now that we are done check the configuration a final time.  If we have anything outstanding
             // it will get picked up.
             state.status = 1;
             this.curr = null;
             this._processing = false;
-            if (this._failed) setTimeout(function () { sys.checkConfiguration(); }, 100);
+            if (this._failed) setTimeout(() => { sys.checkConfiguration(); }, 100);
             logger.info(`Configuration Complete`);
             sys.board.heaters.updateHeaterServices();
             state.cleanupState();
@@ -815,7 +815,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         }
         this.maybeQueueItems(curr.systemState, ver.systemState, ConfigCategories.systemState, [0]);
         logger.info(`Queued ${this.remainingItems} configuration items`);
-        if (this.remainingItems > 0) setTimeout(function () { self.processNext(); }, 50);
+        if (this.remainingItems > 0) setTimeout(() => { self.processNext(); }, 50);
         else {
             this._processing = false;
             if (this._newRequest) {

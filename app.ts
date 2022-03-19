@@ -30,7 +30,7 @@ export async function initAsync() {
     try {
         await config.init();
         await logger.init();
-        await conn.init();
+        await conn.initAsync();
         await sys.init();
         await state.init();
         await webApp.init();

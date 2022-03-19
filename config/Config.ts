@@ -86,6 +86,20 @@ class Config {
 
         }
     }
+    public removeSection(section: string) {
+        let c = this._cfg;
+        if (section.indexOf('.') !== -1) {
+            let arr = section.split('.');
+            for (let i = 0; i < arr.length - 1; i++) {
+                if (typeof c[arr[i]] === 'undefined')
+                    c[arr[i]] = {};
+                c = c[arr[i]];
+            }
+            section = arr[arr.length - 1];
+        }
+        if(typeof c[section] !== 'undefined') delete c[section];
+        this.update();
+    }
     public setSection(section: string, val) {
         let c = this._cfg;
         if (section.indexOf('.') !== -1) {

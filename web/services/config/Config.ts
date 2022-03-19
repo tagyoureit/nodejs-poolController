@@ -63,10 +63,16 @@ export class ConfigRoute {
             return res.status(200).send(opts);
         });
         app.get('/config/options/rs485', (req, res) => {
-            let opts = {
-                port: config.getSection('controller.comms', { enabled: false, netConnect: false }),
-                stats: conn.buffer.counter
-            };
+            let opts = { ports: [] }
+            let cfg = config.getSection('controller');
+            for (let section in cfg) {
+                if (section.startsWith('comms')) {
+                    let cport = extend(true, { enabled: false, netConnect: false }, cfg[section]);
+                    let port = conn.findPortById(cport.portId || 0);
+                    if (typeof port !== 'undefined') cport.stats = port.stats;
+                    opts.ports.push(cport);
+                }
+            }
             return res.status(200).send(opts);
         });
         app.get('/config/options/circuits', async (req, res, next) => {
@@ -752,6 +758,13 @@ export class ConfigRoute {
         app.put('/app/rs485Port', async (req, res, next) => {
             try {
                 let port = await conn.setPortAsync(req.body);
+                return res.status(200).send(port);
+            }
+            catch (err) { next(err); }
+        });
+        app.delete('/app/rs485Port', async (req, res, next) => {
+            try {
+                let port = await conn.deleteAuxPort(req.body);
                 return res.status(200).send(port);
             }
             catch (err) { next(err); }
