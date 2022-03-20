@@ -62,18 +62,21 @@ export class ConfigRoute {
             };
             return res.status(200).send(opts);
         });
-        app.get('/config/options/rs485', (req, res) => {
-            let opts = { ports: [] }
-            let cfg = config.getSection('controller');
-            for (let section in cfg) {
-                if (section.startsWith('comms')) {
-                    let cport = extend(true, { enabled: false, netConnect: false }, cfg[section]);
-                    let port = conn.findPortById(cport.portId || 0);
-                    if (typeof port !== 'undefined') cport.stats = port.stats;
-                    opts.ports.push(cport);
+        app.get('/config/options/rs485', async (req, res, next) => {
+            try {
+                let opts = { ports: [], local: [] }
+                let cfg = config.getSection('controller');
+                for (let section in cfg) {
+                    if (section.startsWith('comms')) {
+                        let cport = extend(true, { enabled: false, netConnect: false }, cfg[section]);
+                        let port = conn.findPortById(cport.portId || 0);
+                        if (typeof port !== 'undefined') cport.stats = port.stats;
+                        opts.ports.push(cport);
+                    }
                 }
-            }
-            return res.status(200).send(opts);
+                opts.local = await conn.getLocalPortsAsync() || [];
+                return res.status(200).send(opts);
+            } catch (err) { next(err); }
         });
         app.get('/config/options/circuits', async (req, res, next) => {
             try {

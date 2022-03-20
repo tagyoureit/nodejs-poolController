@@ -177,6 +177,11 @@ export class Connection {
             port.resume();
         }
     }
+    public async getLocalPortsAsync(): Promise<any> {
+        try {
+            return await SerialPort.list();
+        } catch (err) { logger.error(`Error retrieving local ports ${err.message}`); }
+    }
 }
 export class Counter {
     constructor() {
