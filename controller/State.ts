@@ -1046,6 +1046,8 @@ export class ScheduleState extends EqState {
     public set endTime(val: number) { this.setDataVal('endTime', val); }
     public get circuit(): number { return this.data.circuit; }
     public set circuit(val: number) { this.setDataVal('circuit', val); }
+    public get disabled(): boolean { return this.data.disabled; }
+    public set disabled(val: boolean) { this.setDataVal('disabled', val); }
     public get scheduleType(): number { return typeof (this.data.scheduleType) !== 'undefined' ? this.data.scheduleType.val : undefined; }
     public set scheduleType(val: number) {
         if (this.scheduleType !== val) {

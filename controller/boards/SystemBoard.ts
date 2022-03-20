@@ -3489,6 +3489,7 @@ export class ScheduleCommands extends BoardCommands {
         let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays);
         let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? data.changeHeatSetpoint : false;
         let display = typeof data.display !== 'undefined' ? data.display : sched.display || 0;
+        let disabled = typeof data.disabled !== 'undefined' ? utils.makeBool(data.disabled) : sched.disabled;
 
         // Ensure all the defaults.
         if (isNaN(startDate.getTime())) startDate = new Date();
@@ -3526,6 +3527,7 @@ export class ScheduleCommands extends BoardCommands {
         sched.startMonth = startDate.getMonth() + 1;
         sched.startDay = startDate.getDate();
         ssched.isActive = sched.isActive = true;
+        ssched.disabled = sched.disabled = disabled;
         ssched.display = sched.display = display;
         if (typeof sched.startDate === 'undefined')
             sched.master = 1;

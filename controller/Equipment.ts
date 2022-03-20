@@ -1113,6 +1113,8 @@ export class Schedule extends EqItem {
     public set coolSetpoint(val: number) { this.setDataVal('coolSetpoint', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    public get disabled(): boolean { return this.data.disabled; }
+    public set disabled(val: boolean) { this.setDataVal('disabled', val); }
     public get startMonth(): number { return this._startDate.getMonth() + 1; }
     public set startMonth(val: number) { if (typeof this._startDate === 'undefined') this._startDate = new Date(); this._startDate.setMonth(val - 1); this._saveStartDate(); }
     public get startDay(): number { if (typeof this._startDate === 'undefined') this._startDate = new Date(); return this._startDate.getDate(); }
