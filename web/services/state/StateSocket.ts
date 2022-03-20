@@ -174,7 +174,7 @@ export class StateSocket {
         sock.on('/circuit', async (data: any) => {
             try {
                 data = JSON.parse(data);
-                let id = data.parseInt(data.id, 10);
+                let id = parseInt(data.id, 10);
                 if (!isNaN(id) && (typeof data.isOn !== 'undefined' || typeof data.state !== 'undefined')) {
                     await sys.board.circuits.setCircuitStateAsync(id, utils.makeBool(data.isOn || typeof data.state));
                 }
@@ -184,7 +184,7 @@ export class StateSocket {
         sock.on('/feature', async (data: any) => {
             try {
                 data = JSON.parse(data);
-                let id = data.parseInt(data.id, 10);
+                let id = parseInt(data.id, 10);
                 if (!isNaN(id) && (typeof data.isOn !== 'undefined' || typeof data.state !== 'undefined')) {
                     await sys.board.features.setFeatureStateAsync(id, utils.makeBool(data.isOn || typeof data.state));
                 }
@@ -194,7 +194,7 @@ export class StateSocket {
         sock.on('/circuitGroup', async (data: any) => {
             try {
                 data = JSON.parse(data);
-                let id = data.parseInt(data.id, 10);
+                let id = parseInt(data.id, 10);
                 if (!isNaN(id) && (typeof data.isOn !== 'undefined' || typeof data.state !== 'undefined')) {
                     await sys.board.circuits.setCircuitGroupStateAsync(id, utils.makeBool(data.isOn || typeof data.state));
                 }
@@ -204,7 +204,7 @@ export class StateSocket {
         sock.on('/lightGroup', async (data: any) => {
             try {
                 data = JSON.parse(data);
-                let id = data.parseInt(data.id, 10);
+                let id = parseInt(data.id, 10);
                 if (!isNaN(id) && (typeof data.isOn !== 'undefined' || typeof data.state !== 'undefined')) {
                     await sys.board.circuits.setLightGroupStateAsync(id, utils.makeBool(data.isOn || typeof data.state));
                 }

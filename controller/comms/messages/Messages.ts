@@ -164,7 +164,7 @@ export class Message {
         return pkt;
     }
     public toLog(): string {
-        return `{"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts":"${Timestamp.toISOLocal(this.timestamp)}"}`;
+        return `{"portId":${this.portId},"id":${ this.id },"valid":${ this.isValid },"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)}, ${JSON.stringify(this.header)}, ${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts":"${Timestamp.toISOLocal(this.timestamp)}"}`;
     }
 }
 export class Inbound extends Message {
@@ -194,8 +194,8 @@ export class Inbound extends Message {
     }
     public toLog() {
         if (this.responseFor.length > 0)
-            return `{"port:${this.portId || 0} id":${this.id},"valid":${this.isValid},"dir":"${ this.direction } ","proto":"${ this.protocol } ","for":${JSON.stringify(this.responseFor)},"pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${ Timestamp.toISOLocal(this.timestamp) } "}`;
-        return `{"port: ${this.portId || 0} id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${Timestamp.toISOLocal(this.timestamp)}"}`;
+            return `{"port":${this.portId || 0},"id":${this.id},"valid":${this.isValid},"dir":"${ this.direction }","proto":"${ this.protocol }","for":${JSON.stringify(this.responseFor)},"pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${ Timestamp.toISOLocal(this.timestamp) }"}`;
+        return `{"port":${this.portId || 0},"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${Timestamp.toISOLocal(this.timestamp)}"}`;
     }
     private testChlorHeader(bytes: number[], ndx: number): boolean {
         // if packets have 16,2 (eg status=16,2,29) in them and they come as partial packets, they would have
