@@ -513,7 +513,7 @@ export class RS485Port {
             this._port.write(bytes, cb);
     }
     private pushIn(pkt) { this._inBuffer.push.apply(this._inBuffer, pkt.toJSON().data); if(sys.isReady) setImmediate(() => { this.processPackets(); }); }
-    private pushOut(msg) { this._outBuffer.push(msg); setTimeout(() => { this.processPackets(); }, 0); }
+    private pushOut(msg) { this._outBuffer.push(msg); setImmediate(() => { this.processPackets(); }); }
     private clearBuffer() { this._inBuffer.length = 0; this.clearOutboundBuffer(); }
     private closeBuffer() { clearTimeout(this.procTimer); this.clearBuffer(); this._msg = undefined; }
     private clearOutboundBuffer() {

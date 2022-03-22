@@ -270,7 +270,6 @@ export class IntelliCenterBoard extends SystemBoard {
     public heaters: IntelliCenterHeaterCommands = new IntelliCenterHeaterCommands(this);
     public valves: IntelliCenterValveCommands = new IntelliCenterValveCommands(this);
     public chemControllers: IntelliCenterChemControllerCommands = new IntelliCenterChemControllerCommands(this);
-
     public reloadConfig() {
         //sys.resetSystem();
         sys.configVersion.clear();
@@ -3135,6 +3134,94 @@ class IntelliCenterPumpCommands extends PumpCommands {
     }
 }
 class IntelliCenterBodyCommands extends BodyCommands {
+    private bodyHeatSettings: {
+        processing: boolean,
+        bytes: number[],
+        body1: { heatMode: number, heatSetpoint: number, coolSetpoint: number },
+        body2: { heatMode: number, heatSetpoint: number, coolSetpoint: number }
+    };
+    private async queueBodyHeatSettings(bodyId?: number, byte?: number, data?: any): Promise<Boolean> {
+        if (typeof this.bodyHeatSettings === 'undefined') {
+            let body1 = sys.bodies.getItemById(1);
+            let body2 = sys.bodies.getItemById(2);
+            this.bodyHeatSettings = {
+                processing: false,
+                bytes: [],
+                body1: { heatMode: body1.heatMode || 1, heatSetpoint: body1.heatSetpoint || 78, coolSetpoint: body1.coolSetpoint || 100 },
+                body2: { heatMode: body2.heatMode || 1, heatSetpoint: body2.heatSetpoint || 78, coolSetpoint: body2.coolSetpoint || 100 }
+            }
+        }
+        let bhs = this.bodyHeatSettings;
+        if (typeof data !== 'undefined' && typeof bodyId !== 'undefined' && bodyId > 0) {
+            let body = bodyId === 2 ? bhs.body2 : bhs.body1;
+            if (!bhs.bytes.includes(byte) && byte) bhs.bytes.push(byte);
+            if (typeof data.heatSetpoint !== 'undefined') body.heatSetpoint = data.heatSetpoint;
+            if (typeof data.coolSetpoint !== 'undefined') body.coolSetpoint = data.coolSetpoint;
+            if (typeof data.heatMode !== 'undefined') body.heatMode = data.heatMode;
+        }
+        if (!bhs.processing && bhs.bytes.length > 0) {
+            bhs.processing = true;
+            let byte2 = bhs.bytes.shift();
+            let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : Math.abs(num) || 0; };
+            let payload = [0, 0, byte2, 1,
+                fnToByte(sys.equipment.tempSensors.getCalibration('water1')),
+                fnToByte(sys.equipment.tempSensors.getCalibration('solar1')),
+                fnToByte(sys.equipment.tempSensors.getCalibration('air')),
+                fnToByte(sys.equipment.tempSensors.getCalibration('water2')),
+                fnToByte(sys.equipment.tempSensors.getCalibration('solar2')),
+                fnToByte(sys.equipment.tempSensors.getCalibration('water3')),
+                fnToByte(sys.equipment.tempSensors.getCalibration('solar3')),
+                fnToByte(sys.equipment.tempSensors.getCalibration('water4')),
+                fnToByte(sys.equipment.tempSensors.getCalibration('solar4')),
+                0,
+                0x10 | (sys.general.options.clockMode === 24 ? 0x40 : 0x00) | (sys.general.options.adjustDST ? 0x80 : 0x00) | (sys.general.options.clockSource === 'internet' ? 0x20 : 0x00),
+                89, 27, 110, 3, 0, 0,
+                bhs.body1.heatSetpoint, bhs.body1.coolSetpoint, bhs.body2.heatSetpoint, bhs.body2.coolSetpoint, bhs.body1.heatMode, bhs.body2.heatMode, 0, 0, 15,
+                sys.general.options.pumpDelay ? 1 : 0, sys.general.options.cooldownDelay ? 1 : 0, 0, 100, 0, 0, 0, 0, sys.general.options.manualPriority ? 1 : 0, sys.general.options.manualHeat ? 1 : 0, 0
+            ];
+            return new Promise<boolean>((resolve, reject) => {
+                let out = Outbound.create({
+                    action: 168,
+                    payload: payload,
+                    retries: 2,
+                    response: IntelliCenterBoard.getAckResponse(168),
+                    onComplete: (err, msg) => {
+                        bhs.processing = false;
+                        if (err) reject(err);
+                        else {
+                            let body1 = sys.bodies.getItemById(1);
+                            let sbody1 = state.temps.bodies.getItemById(1);
+                            body1.heatMode = sbody1.heatMode = bhs.body1.heatMode;
+                            body1.heatSetpoint = sbody1.heatSetpoint = bhs.body1.heatSetpoint;
+                            body1.coolSetpoint = sbody1.coolSetpoint = bhs.body1.coolSetpoint;
+                            if (sys.equipment.dual || sys.equipment.shared) {
+                                let body2 = sys.bodies.getItemById(2);
+                                let sbody2 = state.temps.bodies.getItemById(2);
+                                body2.heatMode = sbody2.heatMode = bhs.body2.heatMode;
+                                body2.heatSetpoint = sbody2.heatSetpoint = bhs.body2.heatSetpoint;
+                                body2.coolSetpoint = sbody2.coolSetpoint = bhs.body2.coolSetpoint;
+                            }
+                            state.emitEquipmentChanges();
+                            resolve(true);
+                        }
+                    }
+                });
+                conn.queueSendMessage(out);
+            });
+        }
+        else {
+            // Try every second to re-try if we have a bunch at once.
+            if (bhs.bytes.length > 0) {
+                setTimeout(async () => {
+                    try {
+                        await this.queueBodyHeatSettings();
+                    } catch (err) { logger.error(`Error sending queued body setpoint message: ${err.message}`); }
+                }, 3000);
+            }
+            else bhs.processing = false;
+            return true;
+        }
+    }
     public async setBodyAsync(obj: any): Promise<Body> {
         let byte = 0;
         let id = parseInt(obj.id, 10);
@@ -3214,34 +3301,39 @@ class IntelliCenterBodyCommands extends BodyCommands {
         catch (err) { return Promise.reject(err); }
     }
     public async setHeatModeAsync(body: Body, mode: number): Promise<BodyTempState> {
+        let modes = sys.board.bodies.getHeatModes(body.id);
+        if (typeof modes.find(elem => elem.val === mode) === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot set heat mode to ${mode} since this is not a valid mode for the ${body.name}`, 'Body', mode));
+        await this.queueBodyHeatSettings(body.id, body.id === 2 ? 23 : 22, { heatMode: mode });
+        return state.temps.bodies.getItemById(body.id);
+        /*
+
+        let byte2 = 22;
+        let body1 = sys.bodies.getItemById(1);
+        let body2 = sys.bodies.getItemById(2);
+
+        let heat1 = body1.heatSetpoint || 78;
+        let cool1 = body1.coolSetpoint || 100;
+        let heat2 = body2.heatSetpoint || 78;
+        let cool2 = body2.coolSetpoint || 103;
+
+        let mode1 = body1.heatMode || 1;
+        let mode2 = body2.heatMode || 1;
+        let bitopts = 0;
+        if (sys.general.options.clockSource) bitopts += 32;
+        if (sys.general.options.clockMode === 24) bitopts += 64;
+        if (sys.general.options.adjustDST) bitopts += 128;
+
+        switch (body.id) {
+            case 1:
+                byte2 = 22;
+                mode1 = mode;
+                break;
+            case 2:
+                byte2 = 23;
+                mode2 = mode;
+                break;
+        }
         return new Promise<BodyTempState>((resolve, reject) => {
-            const self = this;
-            let byte2 = 22;
-            let body1 = sys.bodies.getItemById(1);
-            let body2 = sys.bodies.getItemById(2);
-
-            let heat1 = body1.heatSetpoint || 78;
-            let cool1 = body1.coolSetpoint || 100;
-            let heat2 = body2.heatSetpoint || 78;
-            let cool2 = body2.coolSetpoint || 103;
-
-            let mode1 = body1.heatMode || 1;
-            let mode2 = body2.heatMode || 1;
-            let bitopts = 0;
-            if (sys.general.options.clockSource) bitopts += 32;
-            if (sys.general.options.clockMode === 24) bitopts += 64;
-            if (sys.general.options.adjustDST) bitopts += 128;
-
-            switch (body.id) {
-                case 1:
-                    byte2 = 22;
-                    mode1 = mode;
-                    break;
-                case 2:
-                    byte2 = 23;
-                    mode2 = mode;
-                    break;
-            }
             let out = Outbound.create({
                 action: 168,
                 payload: [0, 0, byte2, 1, 0, 0, 129, 0, 0, 0, 0, 0, 0, 0, bitopts, 89, 27, 110, 3, 0, 0,
@@ -3262,8 +3354,14 @@ class IntelliCenterBodyCommands extends BodyCommands {
             })
             conn.queueSendMessage(out);
         });
+        */
     }
     public async setHeatSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
+        if (typeof setPoint === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot set heat setpoint to undefined for the ${body.name}`, 'Body', setPoint));
+        else if (setPoint < 0 || setPoint > 110) return Promise.reject(new InvalidEquipmentDataError(`Cannot set heat setpoint to ${setPoint} for the ${body.name}`, 'Body', setPoint));
+        await this.queueBodyHeatSettings(body.id, body.id === 2 ? 20 : 18, { heatSetpoint: setPoint });
+        return state.temps.bodies.getItemById(body.id);
+        /*
         let byte2 = 18;
         let body1 = sys.bodies.getItemById(1);
         let body2 = sys.bodies.getItemById(2);
@@ -3308,9 +3406,15 @@ class IntelliCenterBodyCommands extends BodyCommands {
             };
             conn.queueSendMessage(out);
         });
+        */
     }
     public async setCoolSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
-        let byte2 = 18;
+        if (typeof setPoint === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot set cooling setpoint to undefined for the ${body.name}`, 'Body', setPoint));
+        else if (setPoint < 0 || setPoint > 110) return Promise.reject(new InvalidEquipmentDataError(`Cannot set cooling setpoint to ${setPoint} for the ${body.name}`, 'Body', setPoint));
+        await this.queueBodyHeatSettings(body.id, body.id === 2 ? 21 : 19, { coolSetpoint: setPoint });
+        return state.temps.bodies.getItemById(body.id);
+        /*
+        let byte2 = 19;
         let body1 = sys.bodies.getItemById(1);
         let body2 = sys.bodies.getItemById(2);
 
@@ -3348,12 +3452,13 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 if (err) reject(err);
                 else {
                     let bstate = state.temps.bodies.getItemById(body.id);
-                    body.heatSetpoint = bstate.heatSetpoint = setPoint;
+                    body.coolSetpoint = bstate.coolSetpoint = setPoint;
                     resolve(bstate);
                 }
             };
             conn.queueSendMessage(out);
         });
+        */
     }
 }
 class IntelliCenterScheduleCommands extends ScheduleCommands {
