@@ -389,6 +389,7 @@ export class NixiePumpRS485 extends NixiePump {
     protected async setDriveStateAsync(running: boolean = true) {
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
+                portId: this.pump.portId || 0,
                 protocol: Protocol.Pump,
                 dest: this.pump.address,
                 action: 6,
@@ -409,6 +410,7 @@ export class NixiePumpRS485 extends NixiePump {
     protected async requestPumpStatus() {
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
+                portId: this.pump.portId || 0,
                 protocol: Protocol.Pump,
                 dest: this.pump.address,
                 action: 7,
@@ -429,6 +431,7 @@ export class NixiePumpRS485 extends NixiePump {
     protected setPumpToRemoteControl(running: boolean = true) {
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
+                portId: this.pump.portId || 0,
                 protocol: Protocol.Pump,
                 dest: this.pump.address,
                 action: 4,
@@ -452,6 +455,7 @@ export class NixiePumpRS485 extends NixiePump {
         // 6: Feature 1
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
+                portId: this.pump.portId || 0,
                 protocol: Protocol.Pump,
                 dest: this.pump.address,
                 action: 5,
@@ -472,6 +476,7 @@ export class NixiePumpRS485 extends NixiePump {
     protected async setPumpRPMAsync() {
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
+                portId: this.pump.portId || 0,
                 protocol: Protocol.Pump,
                 dest: this.pump.address,
                 action: 1,
@@ -494,6 +499,7 @@ export class NixiePumpRS485 extends NixiePump {
         // packet for vf; vsf will override
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
+                portId: this.pump.portId || 0,
                 protocol: Protocol.Pump,
                 dest: this.pump.address,
                 action: 1,
@@ -620,6 +626,7 @@ export class NixiePumpVSF extends NixiePumpRS485 {
         // vsf action is 10 for rpm
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
+                portId: this.pump.portId || 0,
                 protocol: Protocol.Pump,
                 dest: this.pump.address,
                 action: 10,
@@ -642,6 +649,7 @@ export class NixiePumpVSF extends NixiePumpRS485 {
         // vsf payload; different from vf payload
         return new Promise<void>((resolve, reject) => {
             let out = Outbound.create({
+                portId: this.pump.portId || 0,
                 protocol: Protocol.Pump,
                 dest: this.pump.address,
                 action: 9,
@@ -701,6 +709,7 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
         return new Promise<void>((resolve, reject) => {
             if (!running) {
                 let out = Outbound.create({
+                    portId: this.pump.portId || 0,
                     protocol: Protocol.Hayward,
                     source: 12, // Use the broadcast address
                     dest: this.pump.address,
@@ -726,6 +735,7 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
         return new Promise<void>((resolve, reject) => {
             let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
             let out = Outbound.create({
+                portId: this.pump.portId || 0,
                 protocol: Protocol.Hayward,
                 source: 12, // Use the broadcast address
                 dest: this.pump.address - 96,

@@ -773,6 +773,7 @@ export class Outbound extends OutboundCommon {
         let out = new Outbound(o.protocol, o.source, o.dest, o.action, o.payload, o.retries, o.response, o.scope);
         //let out = new Outbound(obj.protocol || Protocol.Broadcast,
         //    obj.source || sys.board.commandSourceAddress || Message.pluginAddress, obj.dest || sys.board.commandDestAddress || 16, obj.action || 0, obj.payload || [], obj.retries || 0, obj.response || false, obj.scope || undefined);
+        out.portId = obj.portId || 0;
         out.onComplete = obj.onComplete;
         out.onAbort = obj.onAbort;
         out.timeout = obj.timeout;

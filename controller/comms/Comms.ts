@@ -158,6 +158,26 @@ export class Connection {
         }
         return port;
     }
+    public async listInstalledPorts(): Promise<any> {
+        try {
+            let ports = [];
+            // So now that we are now allowing multiple comm ports we need to initialize each one.  We are keeping the comms section from the config.json
+            // simply because I have no idea what the Docker folks do with this.  So the default comms will be the one with an OCP or if there are no aux ports.
+            let cfg = config.getSection('controller');
+            for (let section in cfg) {
+                if (section.startsWith('comms')) {
+                    let port = config.getSection(`controller.${section}`);
+                    if (port.portId === 0) port.name = 'Primary';
+                    else port.name = `Aux${port.portId}`;
+                    let p = this.findPortById(port.portId);
+                    port.isOpen = typeof p !== 'undefined' ? p.isOpen : false;
+                    ports.push(port);
+                }
+            }
+            return ports;
+        } catch (err) { logger.error(`Error listing installed RS485 ports ${err.message}`); }
+
+    }
     public queueSendMessage(msg: Outbound) {
         let port = this.findPortById(msg.portId);
         if (typeof port !== 'undefined')
@@ -385,7 +405,7 @@ export class RS485Port {
                 // for a successul connect and false otherwise.
                 sp.on('open', () => {
                     if (typeof this._port !== 'undefined') logger.info(`Serial Port ${this.portId}: ${this._cfg.rs485Port} recovered from lost connection.`)
-                    else logger.info(`Serial port: ${this._cfg.rs485Port} request to open successful`);
+                    else logger.info(`Serial port: ${this._cfg.rs485Port} request to open successful ${this._cfg.portSettings.baudRate}b ${this._cfg.portSettings.dataBits}-${this._cfg.portSettings.parity}-${this._cfg.portSettings.stopBits}`);
                     this._port = sp;
                     this.isOpen = true;
                     sp.on('data', (data) => { if (!this.mockPort && !this.isPaused) this.resetConnTimer(); this.pushIn(data); });

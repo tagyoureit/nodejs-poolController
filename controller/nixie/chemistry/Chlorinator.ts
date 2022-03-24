@@ -195,6 +195,7 @@ export class NixieChlorinator extends NixieEquipment {
             //[16, 2, 80, 0][0][98, 16, 3]
             let success = await new Promise<boolean>((resolve, reject) => {
                 let out = Outbound.create({
+                    portId: this.chlor.portId || 0,
                     protocol: Protocol.Chlorinator,
                     dest: this.chlor.id,
                     action: 0,
@@ -248,6 +249,7 @@ export class NixieChlorinator extends NixieEquipment {
             cstate.targetOutput = setpoint;
             let success = await new Promise<boolean>((resolve, reject) => {
                 let out = Outbound.create({
+                    portId: this.chlor.portId || 0,
                     protocol: Protocol.Chlorinator,
                     dest: this.chlor.id,
                     action: 17,
@@ -297,6 +299,7 @@ export class NixieChlorinator extends NixieEquipment {
                 //[16, 2, 80, 20][0][118, 16, 3]
                 let success = await new Promise<boolean>((resolve, reject) => {
                     let out = Outbound.create({
+                        portId: this.chlor.portId || 0,
                         protocol: Protocol.Chlorinator,
                         dest: this.chlor.id,
                         action: 20,

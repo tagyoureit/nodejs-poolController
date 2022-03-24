@@ -395,6 +395,7 @@ export class NixieHeatpump extends NixieHeaterBase {
             sheater.type = 2;
             let success = await new Promise<boolean>((resolve, reject) => {
                 let out = Outbound.create({
+                    portId: this.heater.portId || 0,
                     protocol: Protocol.Heater,
                     source: 16,
                     dest: this.heater.address,
@@ -472,6 +473,7 @@ export class NixieUltratemp extends NixieHeatpump {
         try {
             let success = await new Promise<boolean>((resolve, reject) => {
                 let out = Outbound.create({
+                    portId: this.heater.portId || 0,
                     protocol: Protocol.Heater,
                     source: 16,
                     dest: this.heater.address,
@@ -503,6 +505,7 @@ export class NixieUltratemp extends NixieHeatpump {
         try {
             let success = await new Promise<boolean>((resolve, reject) => {
                 let out = Outbound.create({
+                    portId: this.heater.portId || 0,
                     protocol: Protocol.Heater,
                     source: 16,
                     dest: this.heater.address,
@@ -599,6 +602,7 @@ export class NixieMastertemp extends NixieGasHeater {
         try {
             let success = await new Promise<boolean>((resolve, reject) => {
                 let out = Outbound.create({
+                    portId: this.heater.portId || 0,
                     protocol: Protocol.Heater,
                     source: 16,
                     dest: this.heater.address,

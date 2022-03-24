@@ -165,7 +165,8 @@ export class ConfigRoute {
                     circuits: sys.board.circuits.getCircuitReferences(true, true, true, true),
                     bodies: sys.board.valueMaps.pumpBodies.toArray(),
                     pumps: sys.pumps.get(),
-                    servers: await sys.ncp.getREMServers()
+                    servers: await sys.ncp.getREMServers(),
+                    rs485ports: await conn.listInstalledPorts()
                 };
                 // RKS: Why do we need the circuit names?  We have the circuits.  Is this so
                 // that we can name the pump.  I thought that *Touch uses the pump type as the name
@@ -212,7 +213,8 @@ export class ConfigRoute {
                     heaterTypes: sys.board.valueMaps.heaterTypes.toArray(),
                     heatModes: sys.board.valueMaps.heatModes.toArray(),
                     coolDownDelay: sys.general.options.cooldownDelay,
-                    servers: []
+                    servers: [],
+                    rs485ports: await conn.listInstalledPorts()
                 };
                 // We only need the servers data when the controller is a Nixie controller.  We don't need to
                 // wait for this information if we are dealing with an OCP.
@@ -292,16 +294,19 @@ export class ConfigRoute {
                 return res.status(200).send(opts);
             } catch (err) { next(err); }
         });
-        app.get('/config/options/chlorinators', (req, res) => {
-            let opts = {
-                types: sys.board.valueMaps.chlorinatorType.toArray(),
-                bodies: sys.board.bodies.getBodyAssociations(),
-                chlorinators: sys.chlorinators.get(),
-                maxChlorinators: sys.equipment.maxChlorinators,
-                models: sys.board.valueMaps.chlorinatorModel.toArray(),
-                equipmentMasters: sys.board.valueMaps.equipmentMaster.toArray()
-            };
-            return res.status(200).send(opts);
+        app.get('/config/options/chlorinators', async (req, res, next) => {
+            try {
+                let opts = {
+                    types: sys.board.valueMaps.chlorinatorType.toArray(),
+                    bodies: sys.board.bodies.getBodyAssociations(),
+                    chlorinators: sys.chlorinators.get(),
+                    maxChlorinators: sys.equipment.maxChlorinators,
+                    models: sys.board.valueMaps.chlorinatorModel.toArray(),
+                    equipmentMasters: sys.board.valueMaps.equipmentMaster.toArray(),
+                    rs485ports: await conn.listInstalledPorts()
+                };
+                return res.status(200).send(opts);
+            } catch (err) { next(err); }
         });
         app.get('/config/options/dateTime', (req, res) => {
             let opts = {

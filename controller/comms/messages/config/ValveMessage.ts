@@ -131,7 +131,7 @@ export class ValveMessage {
                 // there is no circuit.  The circuitry for the valve always exists although I am not sure
                 // how the valve expansion is represented.
                 valve.isActive = true;
-                valve.isReturn = false; 
+                valve.isReturn = false;
                 valve.isIntake = false;
                 valve.type = 0;
                 // Allow users to name the valve whatever they want.  *Touch apparently only allows the valve to be named the same

@@ -1334,9 +1334,12 @@ export class Pump extends EqItem {
     public dataName = 'pumpConfig';
     public initData() {
         if (typeof this.data.isVirtual !== 'undefined') delete this.data.isVirtual;
+        if (typeof this.data.portId === 'undefined') this.data.portId = 0;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
+    public get portId(): number { return this.data.portId; }
+    public set portId(val: number) { this.setDataVal('portId', val); }
     public get address(): number { return this.data.address || this.data.id + 95; }
     public set address(val: number) { this.setDataVal('address', val); }
     public get name(): string { return this.data.name; }
@@ -1487,9 +1490,12 @@ export class Chlorinator extends EqItem {
         if (typeof this.data.disabled === 'undefined') this.data.disabled = false;
         if (typeof this.data.ignoreSaltReading === 'undefined') this.data.ignoreSaltReading = false;
         if (typeof this.data.isVirtual !== 'undefined') delete this.data.isVirtual;
+        if (typeof this.data.portId === 'undefined') this.data.portId = 0;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
+    public get portId(): number { return this.data.portId; }
+    public set portId(val: number) { this.setDataVal('portId', val); }
     public get type(): number | any { return this.data.type; }
     public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.chlorinatorType.encode(val)); }
     public get body(): number | any { return this.data.body; }
@@ -1597,9 +1603,12 @@ export class Heater extends EqItem {
     public dataName = 'heaterConfig';
     public initData() {
         if (typeof this.data.isActive === 'undefined') this.data.isActive = true;
+        if (typeof this.data.portId === 'undefined') this.data.portId = 0;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
+    public get portId(): number { return this.data.portId; }
+    public set portId(val: number) { this.setDataVal('portId', val); }
     public get type(): number | any { return this.data.type; }
     public set type(val: number | any) { this.setDataVal('type', sys.board.valueMaps.heaterTypes.encode(val)); }
     public get name(): string { return this.data.name; }
