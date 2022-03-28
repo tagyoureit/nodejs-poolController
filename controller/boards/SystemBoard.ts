@@ -3252,22 +3252,43 @@ export class ChlorinatorCommands extends BoardCommands {
             let master = parseInt(obj.master, 10);
             if (isNaN(master)) master = 1; // NCP to control.
             if (isNaN(id) || id <= 0) {
+                let body = sys.board.bodies.mapBodyAssociation(typeof obj.body !== 'undefined' ? parseInt(obj.body, 10) : 0);
+                if (typeof body === 'undefined') {
+                    if (sys.equipment.shared) body = 32;
+                    else if (!sys.equipment.dual) body = 1;
+                    else return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${body}`, 'chlorinator', body));
+                }
+                let poolSetpoint = typeof obj.poolSetpoint !== 'undefined' ? parseInt(obj.poolSetpoint, 10) : 50;
+                let spaSetpoint = typeof obj.spaSetpoint !== 'undefined' ? parseInt(obj.spaSetpoint, 10) : 10;
+                if (isNaN(poolSetpoint) || poolSetpoint > 100 || poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', poolSetpoint));
+                if (isNaN(spaSetpoint) || spaSetpoint > 100 || spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', spaSetpoint));
                 if (master === 2) {
                     // We can add as many external chlorinators as we want.
                     id = sys.chlorinators.count(elem => elem.master === 2) + 50;
-                    chlor = sys.chlorinators.getItemById(id, false, { master: parseInt(obj.master, 10) });
+                    chlor = sys.chlorinators.getItemById(id, true, { id: id, master: parseInt(obj.master, 10) });
                 }
                 else {
                     // We are adding so we need to see if there is another chlorinator that is not external.
                     if (sys.chlorinators.count(elem => elem.master !== 2) > sys.equipment.maxChlorinators) return Promise.reject(new InvalidEquipmentDataError(`The max number of chlorinators has been exceeded you may only add ${sys.equipment.maxChlorinators}`, 'chlorinator', sys.equipment.maxChlorinators));
                     id = 1;
-                    chlor = sys.chlorinators.getItemById(id, false, { master: 1 });
+                    chlor = sys.chlorinators.getItemById(id, true, { id: id, master: 1 });
                 }
             }
             else chlor = sys.chlorinators.getItemById(id, false);
             if (chlor.master === 1)
                 await ncp.chlorinators.setChlorinatorAsync(chlor, obj);
             else {
+                let body = sys.board.bodies.mapBodyAssociation(typeof obj.body !== 'undefined' ? parseInt(obj.body, 10) : chlor.body);
+                if (typeof body === 'undefined') {
+                    if (sys.equipment.shared) body = 32;
+                    else if (!sys.equipment.dual) body = 1;
+                    else return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${body}`, 'chlorinator', body));
+                }
+                let poolSetpoint = typeof obj.poolSetpoint !== 'undefined' ? parseInt(obj.poolSetpoint, 10) : isNaN(chlor.poolSetpoint) ? 50 : chlor.poolSetpoint;
+                let spaSetpoint = typeof obj.spaSetpoint !== 'undefined' ? parseInt(obj.spaSetpoint, 10) : isNaN(chlor.spaSetpoint) ? 10 : chlor.spaSetpoint;
+                if (poolSetpoint > 100 || poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
+                if (spaSetpoint > 100 || spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
+
                 chlor = sys.chlorinators.getItemById(id, true);
                 let schlor = state.chlorinators.getItemById(chlor.id, true);
                 chlor.name = schlor.name = obj.name || chlor.name || 'Chlorinator --' + id;
@@ -3277,18 +3298,8 @@ export class ChlorinatorCommands extends BoardCommands {
                 
                 chlor.isDosing = typeof obj.isDosing !== 'undefined' ? utils.makeBool(obj.isDosing) : chlor.isDosing || false;
                 chlor.disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled || false;
-                let poolSetpoint = typeof obj.poolSetpoint !== 'undefined' ? parseInt(obj.poolSetpoint, 10) : isNaN(chlor.poolSetpoint) ? 50 : chlor.poolSetpoint;
-                let spaSetpoint = typeof obj.spaSetpoint !== 'undefined' ? parseInt(obj.spaSetpoint, 10) : isNaN(chlor.spaSetpoint) ? 10 : chlor.spaSetpoint;
                 chlor.model = typeof obj.model !== 'undefined' ? sys.board.valueMaps.chlorinatorModel.encode(obj.model) : chlor.model;
                 chlor.type = schlor.type = typeof obj.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(obj.type) : chlor.type || 0;
-                let body = sys.board.bodies.mapBodyAssociation(typeof obj.body !== 'undefined' ? parseInt(obj.body, 10) : chlor.body);
-                if (typeof body === 'undefined') {
-                    if (sys.equipment.shared) body = 32;
-                    else if (!sys.equipment.dual) body = 1;
-                    else return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${body}`, 'chlorinator', body));
-                }
-                if (poolSetpoint > 100 || poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
-                if (spaSetpoint > 100 || spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
                 chlor.body = schlor.body = body.val;
                 schlor.poolSetpoint = chlor.poolSetpoint = poolSetpoint;
                 schlor.spaSetpoint = chlor.spaSetpoint = spaSetpoint;

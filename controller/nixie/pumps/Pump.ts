@@ -119,6 +119,8 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
                 return new NixiePumpVS(this.controlPanel, pump);
             case 'hwvs':
                 return new NixiePumpHWVS(this.controlPanel, pump);
+            case 'hwrly':
+                return new NixiePumpHWRLY(this.controlPanel, pump);
             default:
                 throw new EquipmentNotFoundError(`NCP: Cannot create pump ${pump.name}.`, type);
         }
@@ -359,6 +361,100 @@ export class NixiePumpSF extends NixiePumpDS {
     public logSpeed(_newSpeed: number) {
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} relays to Relay 1: ${_newSpeed & 1 ? 'on' : 'off'}, Relay 2: ${_newSpeed & 2 ? 'on' : 'off'}, Relay 3: ${_newSpeed & 4 ? 'on' : 'off'}, and Relay 4: ${_newSpeed & 8 ? 'on' : 'off'}.`);
     }
+}
+export class NixiePumpHWRLY extends NixiePumpDS {
+    // This operates as a relay pump with up to 8 speeds.  The speeds are defined as follows.  The override
+    // relay should be defined as being normally closed.  When it opens then the pump will turn on to the speed.
+    // +-------+---------+---------+---------+---------+
+    // + Speed | Relay 1 | Relay 2 | Relay 3 |  OVRD   |
+    // +-------+---------+---------+---------+---------+
+    // |  OFF  |   OFF   |   OFF   |   OFF   |   OFF   |
+    // +-------+---------+---------+---------+---------+
+    // |   1   |   OFF   |   OFF   |   OFF   |   ON    |
+    // +-------+---------+---------+---------+---------+
+    // |   2   |   ON    |   OFF   |   OFF   |   ON    |
+    // +-------+---------+---------+---------+---------+
+    // |   3   |   OFF   |   ON    |   OFF   |   ON    |
+    // +-------+---------+---------+---------+---------+
+    // |   4   |   ON    |   ON    |   OFF   |   ON    |
+    // +-------+---------+---------+---------+---------+
+    // |   5   |   OFF   |   OFF   |   ON    |   ON    |
+    // +-------+---------+---------+---------+---------+
+    // |   6   |   ON    |   OFF   |   ON    |   ON    |
+    // +-------+---------+---------+---------+---------+
+    // |   7   |   OFF   |   ON    |   ON    |   ON    |
+    // +-------+---------+---------+---------+---------+
+    // |   8   |   ON    |   ON    |   ON    |   ON    |
+    // +-------+---------+---------+---------+---------+
+
+    public setTargetSpeed(pState: PumpState) {
+        let _newSpeed = 0;
+        if (!pState.pumpOnDelay) {
+            let pumpCircuits = this.pump.circuits.get();
+            for (let i = 0; i < pumpCircuits.length; i++) {
+                let circ = state.circuits.getInterfaceById(pumpCircuits[i].circuit);
+                let pc = pumpCircuits[i];
+                if (circ.isOn) {
+                    _newSpeed = Math.max(_newSpeed, pc.relay);
+                }
+            }
+        }
+        if (isNaN(_newSpeed)) _newSpeed = 0;
+        this._targetSpeed = _newSpeed;
+        if (this._targetSpeed !== 0) Math.min(Math.max(this.pump.minSpeed, this._targetSpeed), this.pump.maxSpeed);
+        if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed}.`);
+    }
+    public async setPumpStateAsync(pstate: PumpState) {
+        // Don't poll while we are seting the state.
+        this.suspendPolling = true;
+        try {
+            let relays: PumpRelay[] = this.pump.relays.get();
+            let relayState = 0;
+            let targetState = 0;
+            for (let i = 0; i < relays.length; i++) {
+                let pr = relays[i];
+                if (typeof pr.id === 'undefined') pr.id = i + 1; // remove when id is added to dP relays upon save.
+                // If we are turning on the pump relay #4 needs to be on.  NOTE: It is expected that the OVRD relay is hooked up in a normally closed
+                // configuration so that whenever the pump is off the relay terminals are closed.
+                let isOn = this._targetSpeed > 0 ? i === 3 ? true : (this._targetSpeed - 1 & (1 << i)) > 0 : false;
+                let bit = isOn ? (1 << i) : 0;
+                targetState |= bit;
+                if (utils.isNullOrEmpty(pr.connectionId) || utils.isNullOrEmpty(pr.deviceBinding)) {
+                    // Determine whether the relay should be on.
+                    relayState |= bit;
+                }
+                else {
+                    try {
+                        let res = await NixieEquipment.putDeviceService(pr.connectionId, `/state/device/${pr.deviceBinding}`, { isOn, latch: isOn ? 5000 : undefined });
+                        if (res.status.code === 200) {
+                            relayState |= bit;
+                        }
+                        else pstate.status = 16;
+                    }
+                    catch (err) {
+                        logger.error(`NCP: Error setting pump ${this.pump.name} relay ${pr.id} to ${isOn ? 'on' : 'off'}.  Error ${err.message}}`);
+                        pstate.status = 16;
+                    }
+                }
+            }
+            pstate.command = this._targetSpeed;
+            if (targetState === relayState) {
+                pstate.status = relayState > 0 ? 1 : 0;
+                pstate.driveState = relayState > 0 ? 2 : 0;
+                pstate.relay = relayState;
+            }
+            else {
+                pstate.driveState = 0;
+            }
+            return new InterfaceServerResponse(200, 'Success');
+        }
+        catch (err) {
+            logger.error(`Error running pump sequence for ${this.pump.name}: ${err.message}`);
+            return Promise.reject(err);
+        }
+        finally { this.suspendPolling = false; }
+    };
+
 }
 export class NixiePumpRS485 extends NixiePump {
     public async setPumpStateAsync(pstate: PumpState) {

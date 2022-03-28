@@ -913,6 +913,8 @@ export class PumpState extends EqState {
     public set rpm(val: number) { this.setDataVal('rpm', val, this.exceedsThreshold(this.data.rpm, val)); }
     public get relay(): number { return this.data.relay; }
     public set relay(val: number) { this.setDataVal('relay', val); }
+    public get program(): number { return this.data.program; }
+    public set program(val: number) { this.setDataVal('program', val); }
     public get watts(): number { return this.data.watts; }
     public set watts(val: number) { this.setDataVal('watts', val, this.exceedsThreshold(this.data.watts, val)); }
     public get flow(): number { return this.data.flow; }
