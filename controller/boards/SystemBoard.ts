@@ -3269,9 +3269,10 @@ export class ChlorinatorCommands extends BoardCommands {
                     chlor = sys.chlorinators.getItemById(id, true, { id: id, master: parseInt(obj.master, 10) });
                 }
                 else {
-                    if (sys.chlorinators.count(elem => elem.portId === portId && elem.master !== 2) > 0) return Promise.reject(new InvalidEquipmentDataError(`There is already a chlorinator using port #${portId}.  Only one chlorinator may be installed per port.`, 'chlorinator', portId));
+                    if (portId === 0 && sys.controllerType !== ControllerType.Nixie) return Promise.reject(new InvalidEquipmentDataError(`You may not install a chlorinator on an ${sys.controllerType} system that is assigned to the Primary Port`, 'Chlorinator', portId));
+                    if (sys.chlorinators.count(elem => elem.portId === portId && elem.master !== 2) > 0) return Promise.reject(new InvalidEquipmentDataError(`There is already a chlorinator using port #${portId}.  Only one chlorinator may be installed per port.`, 'Chlorinator', portId));
                     // We are adding so we need to see if there is another chlorinator that is not external.
-                    if (sys.chlorinators.count(elem => elem.master !== 2) > sys.equipment.maxChlorinators) return Promise.reject(new InvalidEquipmentDataError(`The max number of chlorinators has been exceeded you may only add ${sys.equipment.maxChlorinators}`, 'chlorinator', sys.equipment.maxChlorinators));
+                    if (sys.chlorinators.count(elem => elem.master !== 2) > sys.equipment.maxChlorinators) return Promise.reject(new InvalidEquipmentDataError(`The max number of chlorinators has been exceeded you may only add ${sys.equipment.maxChlorinators}`, 'Chlorinator', sys.equipment.maxChlorinators));
                     id = sys.chlorinators.getMaxId(false, 0) + 1;
                     chlor = sys.chlorinators.getItemById(id, true, { id: id, master: 1 });
                 }

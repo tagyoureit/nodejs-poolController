@@ -1,5 +1,5 @@
 ﻿import { InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError } from '../../Errors';
-import { utils, Timestamp } from '../../Constants';
+import { utils, Timestamp, ControllerType } from '../../Constants';
 import { logger } from '../../../logger/Logger';
 
 import { NixieEquipment, NixieChildEquipment, NixieEquipmentCollection, INixieControlPanel } from "../NixieEquipment";
@@ -104,9 +104,10 @@ export class NixieChlorinator extends NixieEquipment {
             let isDosing = typeof data.isDosing !== 'undefined' ? utils.makeBool(data.isDosing) : chlor.isDosing;
             let model = typeof data.model !== 'undefined' ? sys.board.valueMaps.chlorinatorModel.encode(data.model) : chlor.model || 0;
             let portId = typeof data.portId !== 'undefined' ? parseInt(data.portId, 10) : chlor.portId;
+            if (portId === 0 && sys.controllerType !== ControllerType.Nixie) return Promise.reject(new InvalidEquipmentDataError(`You may not install a chlorinator on an ${sys.controllerType} system that is assigned to the Primary Port that is under Nixe control`, 'Chlorinator', portId));
             if (portId !== chlor.portId && sys.chlorinators.count(elem => elem.id !== this.chlor.id && elem.portId === portId && elem.master !== 2) > 0) return Promise.reject(new InvalidEquipmentDataError(`Another chlorinator is installed on port #${portId}.  Only one chlorinator can be installed per port.`, 'Chlorinator', portId));
-            if (isNaN(portId)) return Promise.reject(new InvalidEquipmentDataError(`Invalid port Id`, 'chlorinator', data.portId));
-            if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chlorinator', data.body || chlor.body));
+            if (isNaN(portId)) return Promise.reject(new InvalidEquipmentDataError(`Invalid port Id`, 'Chlorinator', data.portId));
+            if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'Chlorinator', data.body || chlor.body));
             if (isNaN(poolSetpoint)) poolSetpoint = 0;
             if (isNaN(spaSetpoint)) spaSetpoint = 0;
             
