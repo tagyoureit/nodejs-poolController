@@ -103,9 +103,13 @@ export class NixieChlorinator extends NixieEquipment {
             let disabled = typeof data.disabled !== 'undefined' ? utils.makeBool(data.disabled) : chlor.disabled;
             let isDosing = typeof data.isDosing !== 'undefined' ? utils.makeBool(data.isDosing) : chlor.isDosing;
             let model = typeof data.model !== 'undefined' ? sys.board.valueMaps.chlorinatorModel.encode(data.model) : chlor.model || 0;
+            let portId = typeof data.portId !== 'undefined' ? parseInt(data.portId, 10) : chlor.portId;
+            if (portId !== chlor.portId && sys.chlorinators.count(elem => elem.id !== this.chlor.id && elem.portId === portId && elem.master !== 2) > 0) return Promise.reject(new InvalidEquipmentDataError(`Another chlorinator is installed on port #${portId}.  Only one chlorinator can be installed per port.`, 'Chlorinator', portId));
+            if (isNaN(portId)) return Promise.reject(new InvalidEquipmentDataError(`Invalid port Id`, 'chlorinator', data.portId));
             if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chlorinator', data.body || chlor.body));
             if (isNaN(poolSetpoint)) poolSetpoint = 0;
             if (isNaN(spaSetpoint)) spaSetpoint = 0;
+            
             chlor.ignoreSaltReading = (typeof data.ignoreSaltReading !== 'undefined') ? utils.makeBool(data.ignoreSaltReading) : utils.makeBool(chlor.ignoreSaltReading);
             // Do a final validation pass so we dont send this off in a mess.
             let schlor = state.chlorinators.getItemById(chlor.id, true);
@@ -116,6 +120,7 @@ export class NixieChlorinator extends NixieEquipment {
             schlor.type = chlor.type = chlorType;
             chlor.model = model;
             schlor.body = chlor.body = body.val;
+            chlor.portId = portId;
             chlor.disabled = disabled;
             chlor.isDosing = isDosing;
             schlor.name = chlor.name = data.name || chlor.name || `Chlorinator ${chlor.id}`;

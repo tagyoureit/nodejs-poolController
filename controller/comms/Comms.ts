@@ -602,12 +602,12 @@ export class RS485Port {
                 // port is closed, reject message
                 msg = this._outBuffer.shift();
                 msg.failed = true;
-                logger.warn(`Comms port is not open. Message aborted: ${msg.toShortPacket()} `);
+                logger.warn(`Comms port ${msg.portId} is not open. Message aborted: ${msg.toShortPacket()} `);
                 // This is a hard fail.  We don't have any more tries left and the message didn't
                 // make it onto the wire.
                 if (typeof msg.onAbort === 'function') msg.onAbort();
                 else logger.warn(`Message aborted after ${msg.tries} attempt(s): ${msg.toShortPacket()} `);
-                let error = new OutboundMessageError(msg, `Comms port is not open. Message aborted: ${msg.toShortPacket()} `);
+                let error = new OutboundMessageError(msg, `Comms port ${msg.portId} is not open. Message aborted: ${msg.toShortPacket()} `);
                 if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
                 this._waitingPacket = null;
                 this.counter.sndAborted++;

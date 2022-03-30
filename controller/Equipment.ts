@@ -1483,6 +1483,13 @@ export class ChlorinatorCollection extends EqItemCollection<Chlorinator> {
             body === 32 && elem.body <= 2 ||
             elem.body === 32 && body <= 2);
     }
+    public getItemByPortId(portId: number, add?: boolean, data?: any): Chlorinator {
+        let itm = this.find(elem => { return typeof (elem as { portId?}).portId !== 'undefined' && (elem as { portId?}).portId === portId });
+        if (typeof itm !== 'undefined') return itm;
+        if (typeof add !== 'undefined' && add) return this.add(extend(true, { portId: portId }, data));
+        return this.createItem(extend(true, data, { portId: portId }));
+    }
+    public findItemByPortId(portId: number) { return this.find(elem => { return typeof (elem as { portId?}).portId !== 'undefined' && (elem as { portId?}).portId === portId }); }
 }
 export class Chlorinator extends EqItem {
     public dataName = 'chlorinatorConfig';

@@ -1833,6 +1833,8 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         let spaSetpoint = typeof obj.spaSetpoint !== 'undefined' ? parseInt(obj.spaSetpoint, 10) : chlor.spaSetpoint;
         let model = typeof obj.model !== 'undefined' ? sys.board.valueMaps.chlorinatorModel.encode(obj.model) : chlor.model || 0;
         let chlorType = typeof obj.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(obj.type) : chlor.type || 0;
+        let portId = typeof obj.portId !== 'undefined' ? parseInt(obj.portId, 10) : chlor.portId;
+        if (portId !== chlor.portId && sys.chlorinators.count(elem => elem.id !== chlor.id && elem.portId === portId && elem.master !== 2) > 0) return Promise.reject(new InvalidEquipmentDataError(`Another chlorinator is installed on port #${portId}.  Only one chlorinator can be installed per port.`, 'Chlorinator', portId));
         if (isAdd) {
             if (isNaN(poolSetpoint)) poolSetpoint = 50;
             if (isNaN(spaSetpoint)) spaSetpoint = 10;
@@ -1906,6 +1908,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             chlor.model = model;
             schlor.type = chlor.type = chlorType;
             chlor.isDosing = isDosing;
+            chlor.portId = portId;
 
             let request217Packet = new Promise<void>((resolve, reject) => {
                 let out = Outbound.create({

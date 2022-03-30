@@ -3250,6 +3250,7 @@ export class ChlorinatorCommands extends BoardCommands {
             let id = parseInt(obj.id, 10);
             let chlor: Chlorinator;
             let master = parseInt(obj.master, 10);
+            let portId = typeof obj.portId !== 'undefined' ? parseInt(obj.portId, 10) : 0;
             if (isNaN(master)) master = 1; // NCP to control.
             if (isNaN(id) || id <= 0) {
                 let body = sys.board.bodies.mapBodyAssociation(typeof obj.body !== 'undefined' ? parseInt(obj.body, 10) : 0);
@@ -3268,13 +3269,15 @@ export class ChlorinatorCommands extends BoardCommands {
                     chlor = sys.chlorinators.getItemById(id, true, { id: id, master: parseInt(obj.master, 10) });
                 }
                 else {
+                    if (sys.chlorinators.count(elem => elem.portId === portId && elem.master !== 2) > 0) return Promise.reject(new InvalidEquipmentDataError(`There is already a chlorinator using port #${portId}.  Only one chlorinator may be installed per port.`, 'chlorinator', portId));
                     // We are adding so we need to see if there is another chlorinator that is not external.
                     if (sys.chlorinators.count(elem => elem.master !== 2) > sys.equipment.maxChlorinators) return Promise.reject(new InvalidEquipmentDataError(`The max number of chlorinators has been exceeded you may only add ${sys.equipment.maxChlorinators}`, 'chlorinator', sys.equipment.maxChlorinators));
-                    id = 1;
+                    id = sys.chlorinators.getMaxId(false, 0) + 1;
                     chlor = sys.chlorinators.getItemById(id, true, { id: id, master: 1 });
                 }
             }
             else chlor = sys.chlorinators.getItemById(id, false);
+
             if (chlor.master === 1)
                 await ncp.chlorinators.setChlorinatorAsync(chlor, obj);
             else {
