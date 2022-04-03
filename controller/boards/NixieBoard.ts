@@ -64,7 +64,8 @@ export class NixieBoard extends SystemBoard {
             [12, { name: 'pool', desc: 'Pool', hasHeatSource: true, body: 1 }],
             [13, { name: 'spa', desc: 'Spa', hasHeatSource: true, body: 2 }],
             [14, { name: 'colorlogic', desc: 'ColorLogic', isLight: true, theme: 'colorlogic' }],
-            [15, { name: 'spadrain', desc: 'Spa Drain'}]
+            [15, { name: 'spadrain', desc: 'Spa Drain' }],
+            [16, { name: 'pooltone', desc: 'Pool Tone', isLight: true, theme: 'pooltone' }],
         ]);
         this.valueMaps.pumpTypes = new byteValueMap([
             [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true, maxRelays: 1, relays: [{ id: 1, name: 'Pump On/Off' }]}],
@@ -191,7 +192,23 @@ export class NixieBoard extends SystemBoard {
             [33, { name: 'usa', desc: 'USA', types: ['colorlogic'], sequence: 15 }],
             [34, { name: 'mardigras', desc: 'Mardi Gras', types: ['colorlogic'], sequence: 16 }],
             [35, { name: 'coolcabaret', desc: 'Cabaret', types: ['colorlogic'], sequence: 17 }],
-
+            // Sunseeker PoolTone Themes
+            [36, { name: 'eveningsea', desc: 'Evening Sea', types: ['pooltone'], sequence: 1 }],
+            [37, { name: 'eveningrivers', desc: 'Evening Rivers', types: ['pooltone'], sequence: 2 }],
+            [38, { name: 'riviera', desc: 'Riviera', types: ['pooltone'], sequence: 3 }],
+            [39, { name: 'neutralwhite', desc: 'Neutral White', types: ['pooltone'], sequence: 4 }],
+            [40, { name: 'rainbow', desc: 'Rainbow', types: ['pooltone'], sequence: 5 }],
+            [41, { name: 'colorriver', desc: 'Color River', types: ['pooltone'], sequence: 6 }],
+            [42, { name: 'disco', desc: 'Disco', types: ['pooltone'], sequence: 7 }],
+            [43, { name: 'fourseasons', desc: 'Four Seasons', types: ['pooltone'], sequence: 8 }],
+            [44, { name: 'Party', desc: 'Party', types: ['pooltone'], sequence: 9 }],
+            [45, { name: 'sunwhite', desc: 'Sun White', types: ['pooltone'], sequence: 10 }],
+            [46, { name: 'red', desc: 'Red', types: ['pooltone'], sequence: 11 }],
+            [47, { name: 'green', desc: 'Green', types: ['pooltone'], sequence: 12 }],
+            [48, { name: 'blue', desc: 'Blue', types: ['pooltone'], sequence: 13 }],
+            [49, { name: 'greenblue', desc: 'Green-Blue', types: ['pooltone'], sequence: 14 }],
+            [50, { name: 'redgreen', desc: 'Red-Green', types: ['pooltone'], sequence: 15 }],
+            [51, { name: 'bluered', desc: 'Blue-red', types: ['pooltone'], sequence: 16 }],
             [255, { name: 'none', desc: 'None' }]
         ]);
         this.valueMaps.lightColors = new byteValueMap([
