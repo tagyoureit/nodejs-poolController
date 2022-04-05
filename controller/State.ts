@@ -1807,9 +1807,16 @@ export class CoverState extends EqState {
     public set isClosed(val: boolean) { this.setDataVal('isClosed', val); }
 }
 export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorState> {
+    public superChlor: { id:number, lastDispatch: number, reference: number }[] = [];
+    public getSuperChlor(id: number): { id: number, lastDispatch: number, reference: number } {
+        let sc = this.superChlor.find(elem => id === elem.id);
+        if (typeof sc === 'undefined') {
+            sc = { id: id, lastDispatch: 0, reference: 0 };
+            this.superChlor.push(sc);
+        }
+        return sc;
+    }
     public createItem(data: any): ChlorinatorState { return new ChlorinatorState(data); }
-    public superChlorReference: number = 0;
-    public lastDispatchSuperChlor: number = 0;
     public cleanupState() {
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (isNaN(this.data[i].id)) this.data.splice(i, 1);
@@ -1825,7 +1832,6 @@ export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorSta
             s.name = c.name;
             s.isActive = c.isActive;
         }
-
     }
 }
 export class ChlorinatorState extends EqState {
@@ -1922,37 +1928,55 @@ export class ChlorinatorState extends EqState {
     }
     public get superChlorRemaining(): number { return this.data.superChlorRemaining || 0; }
     public set superChlorRemaining(val: number) {
+        if (val === this.data.superChlorRemaining) return;
         let remaining: number;
-        if (sys.controllerType === 'nixie') {
-            remaining = Math.max(0, val);
+        let sc = state.chlorinators.getSuperChlor(this.id);
+        let chlor = sys.chlorinators.getItemById(this.id);
+        if (chlor.master === 1) {
+            // If we are 10 seconds different then we need to send it off and save the data.
+            if (Math.floor(val / 10) !== Math.floor(this.superChlorRemaining / 10)) {
+                this.hasChanged = true;
+                remaining = val;
+                sc.reference = Math.floor(new Date().getTime() / 1000);
+                this.setDataVal('superChlorRemaining', remaining);
+            }
+        }
+        else if (chlor.master === 2) {
+            // If we are 10 seconds different then we need to send it off and save the data.
+            if (Math.floor(val / 10) !== Math.floor(this.superChlorRemaining / 10)) {
+                this.hasChanged = true;
+                remaining = val;
+                sc.reference = Math.floor(new Date().getTime() / 1000);
+                this.setDataVal('superChlorRemaining', remaining);
+            }
         }
         else if (sys.controllerType === 'intellicenter') {
             // Trim the seconds off both of these as we will be keeping the seconds separately since this
             // only reports in minutes.  That way our seconds become self healing.
             if (Math.ceil(this.superChlorRemaining / 60) * 60 !== val) {
-                state.chlorinators.superChlorReference = Math.floor(new Date().getTime() / 1000); // Get the epoc and strip the milliseconds.
+                sc.reference = Math.floor(new Date().getTime() / 1000); // Get the epoc and strip the milliseconds.
                 this.hasChanged = true;
             }
-            let secs = Math.floor(new Date().getTime() / 1000) - state.chlorinators.superChlorReference;
+            let secs = Math.floor(new Date().getTime() / 1000) - sc.reference;
             remaining = Math.max(0, val - Math.min(secs, 60));
+            if (sc.lastDispatch - 5 > remaining) this.hasChanged = true;
+            this.data.superChlorRemaining = remaining;
         }
         else {
             // *Touch only reports superchlor hours remaining. 
             // If we have the same hours as existing, retain the mins + secs
             if (Math.ceil(this.superChlorRemaining / 3600) * 60 !== val / 60) {
-                state.chlorinators.superChlorReference = Math.floor(new Date().getTime() / 1000); // Get the epoc and strip the milliseconds.
+                sc.reference = Math.floor(new Date().getTime() / 1000); // Get the epoc and strip the milliseconds.
                 this.hasChanged = true;
             }
-            let secs = Math.floor(new Date().getTime() / 1000) - state.chlorinators.superChlorReference;
+            let secs = Math.floor(new Date().getTime() / 1000) - sc.reference;
             remaining = Math.max(0, val - Math.min(secs, 3600));
+            if (sc.lastDispatch - 5 > remaining) this.hasChanged = true;
+            this.data.superChlorRemaining = remaining;
         }
-        if (state.chlorinators.lastDispatchSuperChlor - 5 > remaining) this.hasChanged = true;
-        if (this.hasChanged) state.chlorinators.lastDispatchSuperChlor = remaining;
-        this.data.superChlorRemaining = remaining;
-        if (remaining > 0)
-            this.setDataVal('superChlor', true);
-        else
-            this.setDataVal('superChlor', false);
+        if (this.hasChanged) sc.lastDispatch = remaining;
+        this.setDataVal('superChlor', remaining > 0);
+        chlor.superChlor = remaining > 0;
     }
     public getExtended(): any {
         let schlor = this.get(true);
