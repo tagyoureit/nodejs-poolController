@@ -162,10 +162,7 @@ export class NixieChlorinator extends NixieEquipment {
             this.pollEquipment();
         } catch (err) { logger.error(`Error initializing ${this.chlor.name} : ${err.message}`); }
     }
-    public isBodyOn() {
-        let isOn = sys.board.bodies.isBodyOn(this.chlor.body);
-        return isOn;
-    }
+    public isBodyOn() { return sys.board.bodies.isBodyOn(this.chlor.body); }
     public setSuperChlor(cstate: ChlorinatorState) {
         if (this.chlor.superChlor) {
             if (!this.superChlorinating) {
@@ -262,14 +259,20 @@ export class NixieChlorinator extends NixieEquipment {
             // 3. If we are superchlorinating and the remaing superChlor time is > 0 then we need to keep it at 100%.
             // 4. If the chlorinator disabled flag is set then we need to make sure the setpoint is 0.
             let cstate = state.chlorinators.getItemById(this.chlor.id, true);
-            let body = state.temps.bodies.getBodyIsOn();
             let setpoint = 0;
-            if (typeof body !== 'undefined') {
-                setpoint = (body.id === 1) ? this.chlor.poolSetpoint : this.chlor.spaSetpoint;
-                if (this.chlor.superChlor === true || this.chlor.isDosing) setpoint = 100;
-                if (this.chlor.disabled === true) setpoint = 0; // Our target should be 0 because we have other things going on.  For instance,
-                // we may be dosing acid which will cause the disabled flag to be true.
+            if (this.isBodyOn()) {
+                if (sys.equipment.shared) {
+                    let body = state.temps.bodies.getBodyIsOn();
+                    setpoint = (body.id === 1) ? this.chlor.poolSetpoint : this.chlor.spaSetpoint;
+                }
+                else setpoint = this.chlor.body === 0 ? this.chlor.poolSetpoint : this.chlor.spaSetpoint;
+                if (this.chlor.isDosing) setpoint = 100;
             }
+            else {
+                this.chlor.superChlor = cstate.superChlor = false;
+                this.setSuperChlor(cstate);
+            }
+            if (this.chlor.disabled === true) setpoint = 0; // Our target should be 0 because we have other things going on.  For instance,
             // RKS: Not sure if it needs to be smart enough to force an off message when the comms die.
             //if (cstate.status === 128) setpoint = 0; // If we haven't been able to get a response from the clorinator tell is to turn itself off.
             // Perhaps we will be luckier on the next poll cycle.
