@@ -1829,6 +1829,7 @@ export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorSta
             let c = cfg[i];
             let s = this.getItemById(cfg[i].id, true);
             s.type = c.type;
+            s.model = c.model;
             s.name = c.name;
             s.isActive = c.isActive;
         }
@@ -1878,6 +1879,13 @@ export class ChlorinatorState extends EqState {
     public set type(val: number) {
         if (this.type !== val) {
             this.data.type = sys.board.valueMaps.chlorinatorType.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get model(): number { return typeof (this.data.model) !== 'undefined' ? this.data.model.val : 0; }
+    public set model(val: number) {
+        if (this.model !== val) {
+            this.data.model = sys.board.valueMaps.chlorinatorModel.transform(val);
             this.hasChanged = true;
         }
     }

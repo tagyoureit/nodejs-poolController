@@ -347,6 +347,11 @@
           "description": "Send type."
         },
         {
+          "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/model",
+          "message": "{\"type\":@bind=data.model;}",
+          "description": "Send Model."
+        },
+        {
           "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/targetOutput",
           "message": "{\"targetOutput\":@bind=data.targetOutput;}",
           "description": "Send targetOutput."

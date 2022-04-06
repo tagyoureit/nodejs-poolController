@@ -51,6 +51,7 @@ export class ChlorinatorMessage {
                         schlor.poolSetpoint = chlor.poolSetpoint;
                         schlor.spaSetpoint = chlor.spaSetpoint;
                         schlor.type = chlor.type;
+                        schlor.model = chlor.model;
                         schlor.isActive = chlor.isActive;
                         schlor.superChlorHours = chlor.superChlorHours;
                         state.emitEquipmentChanges();

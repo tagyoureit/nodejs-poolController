@@ -1905,7 +1905,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             schlor.body = chlor.body = body;
             chlor.address = 79 + id;
             chlor.name = schlor.name = name;
-            chlor.model = model;
+            schlor.model = chlor.model = model;
             schlor.type = chlor.type = chlorType;
             chlor.isDosing = isDosing;
             chlor.portId = portId;

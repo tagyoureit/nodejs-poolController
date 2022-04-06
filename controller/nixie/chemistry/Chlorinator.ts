@@ -123,7 +123,7 @@ export class NixieChlorinator extends NixieEquipment {
             schlor.superChlor = chlor.superChlor = superChlor;
             schlor.superChlorHours = chlor.superChlorHours = superChlorHours;
             schlor.type = chlor.type = chlorType;
-            chlor.model = model;
+            schlor.model = chlor.model = model;
             schlor.body = chlor.body = body.val;
             chlor.portId = portId;
             chlor.disabled = disabled;

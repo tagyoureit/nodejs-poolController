@@ -3302,7 +3302,7 @@ export class ChlorinatorCommands extends BoardCommands {
                 
                 chlor.isDosing = typeof obj.isDosing !== 'undefined' ? utils.makeBool(obj.isDosing) : chlor.isDosing || false;
                 chlor.disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled || false;
-                chlor.model = typeof obj.model !== 'undefined' ? sys.board.valueMaps.chlorinatorModel.encode(obj.model) : chlor.model;
+                schlor.model = chlor.model = typeof obj.model !== 'undefined' ? sys.board.valueMaps.chlorinatorModel.encode(obj.model) : chlor.model;
                 chlor.type = schlor.type = typeof obj.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(obj.type) : chlor.type || 0;
                 chlor.body = schlor.body = body.val;
                 schlor.poolSetpoint = chlor.poolSetpoint = poolSetpoint;

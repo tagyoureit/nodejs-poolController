@@ -2734,7 +2734,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
                         chlor.master = 0;
                         schlor.body = chlor.body = body.val;
                         chlor.disabled = disabled;
-                        chlor.model = model;
+                        schlor.model = chlor.model = model;
                         schlor.type = chlor.type = chlorType;
                         chlor.name = schlor.name = name;
                         chlor.isDosing = isDosing;
