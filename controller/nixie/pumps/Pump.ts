@@ -465,15 +465,16 @@ export class NixiePumpRS485 extends NixiePump {
             // Since these process are async the closing flag can be set
             // between calls.  We need to check it in between each call.
             try { if (!this.closing) await this.setDriveStateAsync(); } catch (err) {}
-            try { if (!this.closing) {
-                if (this._targetSpeed >= pt.minFlow && this._targetSpeed <= pt.maxFlow) await this.setPumpGPMAsync();
-                else if (this._targetSpeed >= pt.minSpeed && this._targetSpeed <= pt.maxSpeed) await this.setPumpRPMAsync();  
-            } } catch (err) {}
-           
-            try { if(!this.closing) await this.setPumpFeature(6);  } catch (err) {};
-            try { if(!this.closing) await utils.sleep(1000); } catch (err) {};
-            try { if(!this.closing) await this.requestPumpStatus();  } catch (err) {};
-            try { if(!this.closing) await this.setPumpToRemoteControl();  } catch (err) {};
+            try {
+                if (!this.closing) {
+                    if (this._targetSpeed >= pt.minFlow && this._targetSpeed <= pt.maxFlow) await this.setPumpGPMAsync();
+                    else if (this._targetSpeed >= pt.minSpeed && this._targetSpeed <= pt.maxSpeed) await this.setPumpRPMAsync();
+                }
+            } catch (err) { };
+            try { if (!this.closing && pt.name !== 'vsf') await this.setPumpFeature(6); } catch (err) { };
+            try { if(!this.closing) await utils.sleep(1000); } catch (err) { };
+            try { if (!this.closing) await this.requestPumpStatus(); } catch (err) { };
+            try { if (!this.closing) await this.setPumpToRemoteControl(); } catch (err) { };
             return new InterfaceServerResponse(200, 'Success');
         }
         catch (err) {
