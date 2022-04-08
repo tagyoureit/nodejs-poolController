@@ -113,7 +113,7 @@ Need to be updated:
 * [ISY Polyglot NodeServer](https://github.com/brianmtreese/nodejs-pool-controller-polyglotv2) created by @brianmtreese
 
 # Support
-1. For discussions, recommendations, designs, and clarifications, we recommend you join our [Gitter Chat room](https://gitter.im/pentair_pool/Lobby).
+1. For discussions, recommendations, designs, and clarifications, we recommend you join the [Github discussions](https://github.com/tagyoureit/nodejs-poolController/discussions or [Gitter Chat room](https://gitter.im/pentair_pool/Lobby).
 1. Check the [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki) for tips, tricks and additional documentation.
 1. For bug reports you can open a [github issue](https://github.com/tagyoureit/nodejs-poolController/issues/new),
 
