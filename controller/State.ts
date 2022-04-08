@@ -987,23 +987,43 @@ export class PumpState extends EqState {
         pump.speedStepSize = cpump.speedStepSize;
         pump.flowStepSize = cpump.flowStepSize;
         pump.circuits = [];
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < cpump.circuits.length; i++) {
             let c = cpump.circuits.getItemByIndex(i).get(true);
             c.circuit = state.circuits.getInterfaceById(c.circuit).get(true);
-            if (typeof c.circuit.id === 'undefined' || typeof c.circuit.name === 'undefined') {
-                // return "blank" circuit if none defined
-                c.circuit.id = 0;
-                c.circuit.name = 'Not Used';
-                if (sys.board.valueMaps.pumpTypes.getName(cpump.type) === 'vf') {
-                    c.units = sys.board.valueMaps.pumpUnits.getValue('gpm');
-                    c.circuit.flow = 0;
-                }
-                else {
-                    c.units = sys.board.valueMaps.pumpUnits.getValue('rpm');
-                    c.circuit.speed = 0;
-                }
+            switch (pump.type.name) {
+                case 'vf':
+                    c.units = sys.board.valueMaps.pumpUnits.transformByName('gpm');
+                    break;
+                case 'hwvs':
+                case 'vssvrs':
+                case 'vs':
+                    c.units = sys.board.valueMaps.pumpUnits.transformByName('rpm');
+                    break;
+                case 'ss':
+                case 'ds':
+                case 'sf':
+                case 'hwrly':
+                    c.units = 'undefined';
+                    break;
+                default:
+                    c.units = sys.board.valueMaps.pumpUnits.transform(c.units || 0);
+                    break;
             }
-            c.units = sys.board.valueMaps.pumpUnits.transform(c.units);
+            // RKS: 04-08-22 - This is just wrong.  If the user did not define circuits then they should not be sent down and it creates a whole host of issues.
+            //if (typeof c.circuit.id === 'undefined' || typeof c.circuit.name === 'undefined') {
+            //    // return "blank" circuit if none defined
+            //    c.circuit.id = 0;
+            //    c.circuit.name = 'Not Used';
+            //    if (sys.board.valueMaps.pumpTypes.getName(cpump.type) === 'vf') {
+            //        c.units = sys.board.valueMaps.pumpUnits.getValue('gpm');
+            //        c.circuit.flow = 0;
+            //    }
+            //    else {
+            //        c.units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+            //        c.circuit.speed = 0;
+            //    }
+            //}
+            //c.units = sys.board.valueMaps.pumpUnits.transform(c.units);
             pump.circuits.push(c);
         }
         pump.circuits.sort((a, b) => { return a.id > b.id ? 1 : -1; });

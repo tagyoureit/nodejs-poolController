@@ -2203,13 +2203,22 @@ class TouchPumpCommands extends PumpCommands {
             }
             if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
                 for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
-                    let c = data.circuits[i - 1];
+                    // RKS: This notion of always returning the max number of circuits was misguided.  It leaves gaps in the circuit definitions and makes the pump
+                    // layouts difficult when there are a variety of supported circuits.  For instance with SF pumps you only get 4.
+                    let c = i >= data.circuits.length - 1 ? { speed: type.minSpeed || 0, flow: type.minFlow || 0, circuit: 0 } : data.circuits[i - 1];
+                    //let c = data.circuits[i - 1];
                     let speed = parseInt(c.speed, 10);
                     let flow = parseInt(c.flow, 10);
                     if (isNaN(speed)) speed = type.minSpeed;
                     if (isNaN(flow)) flow = type.minFlow;
                     outc.setPayloadByte(i * 2 + 3, parseInt(c.circuit, 10), 0);
-                    c.units = parseInt(c.units, 10) || type.name === 'vf' ? sys.board.valueMaps.pumpUnits.getValue('gpm') : sys.board.valueMaps.pumpUnits.getValue('rpm');
+                    let units;
+                    if (type.name === 'vf') units = sys.board.valueMaps.pumpUnits.getValue('gpm');
+                    else if (type.name === 'vs') units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                    else units = sys.board.valueMaps.pumpUnits.encode(c.units);
+                    if (isNaN(units)) units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                    c.units = units;
+                    //c.units = parseInt(c.units, 10) || type.name === 'vf' ? sys.board.valueMaps.pumpUnits.getValue('gpm') : sys.board.valueMaps.pumpUnits.getValue('rpm');
                     if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
                         outc.setPayloadByte(i * 2 + 4, Math.floor(speed / 256)); // Set to rpm
                         outc.setPayloadByte(i + 21, speed % 256);

@@ -2950,10 +2950,11 @@ class IntelliCenterPumpCommands extends PumpCommands {
                                 let speed = parseInt(c.speed, 10);
                                 let flow = parseInt(c.flow, 10);
                                 let circuit = i < type.maxCircuits ? parseInt(c.circuit, 10) : 256;
-                                let units = parseInt(c.units, 10);
-                                if (isNaN(units)) units = 0;
-                                if (type.name === 'vs') units = 0;
-                                else if (type.name === 'vf') units = 1;
+                                let units;
+                                if (type.name === 'vf') units = sys.board.valueMaps.pumpUnits.getValue('gpm');
+                                else if (type.name === 'vs') units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                                else units = sys.board.valueMaps.pumpUnits.encode(c.units);
+                                if (isNaN(units)) units = sys.board.valueMaps.pumpUnits.getValue('rpm');
                                 outc.setPayloadByte(i + 18, circuit - 1, circ.circuit - 1);
                                 if (typeof type.minSpeed !== 'undefined' && (parseInt(c.units, 10) === 0 || isNaN(parseInt(c.units, 10)))) {
                                     outc.setPayloadByte(i + 26, 0); // Set to rpm

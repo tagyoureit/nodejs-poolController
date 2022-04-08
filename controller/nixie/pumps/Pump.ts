@@ -184,13 +184,34 @@ export class NixiePump extends NixieEquipment {
             if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
                 for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
                     let c = data.circuits[i - 1];
+                    let circuit = parseInt(c.circuit, 10);
+                    let cd = this.pump.circuits.find(elem => elem.circuit === circuit);
                     let speed = parseInt(c.speed, 10);
                     let relay = parseInt(c.relay, 10);
                     let flow = parseInt(c.flow, 10);
+                    let units = typeof c.units !== 'undefined' ? sys.board.valueMaps.pumpUnits.encode(c.units) : undefined;
+                    switch (type.name) {
+                        case 'vf':
+                            units = sys.board.valueMaps.pumpUnits.getValue('gpm');
+                            break;
+                        case 'hwvs':
+                        case 'vssvrs':
+                        case 'vs':
+                            c.units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                            break;
+                        case 'ss':
+                        case 'ds':
+                        case 'sf':
+                        case 'hwrly':
+                            c.units = 'undefined';
+                            break;
+                    }
+                    if (isNaN(units)) units = typeof cd !== 'undefined' ? cd.units : sys.board.valueMaps.pumpUnits.getValue('rpm');
                     if (isNaN(speed)) speed = type.minSpeed;
                     if (isNaN(flow)) flow = type.minFlow;
                     if (isNaN(relay)) relay = 1;
-                    c.units = parseInt(c.units, 10) || type.name === 'vf' ? sys.board.valueMaps.pumpUnits.getValue('gpm') : sys.board.valueMaps.pumpUnits.getValue('rpm');
+                    c.units = units;
+                    //c.units = parseInt(c.units, 10) || type.name === 'vf' ? sys.board.valueMaps.pumpUnits.getValue('gpm') : sys.board.valueMaps.pumpUnits.getValue('rpm');
                     if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
                         c.speed = speed;
                     }
