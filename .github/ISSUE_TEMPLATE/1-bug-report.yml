@@ -40,12 +40,12 @@ body:
     attributes:
       label: RS485 Adapter
       description: Elfin? JBTek?
-- type: checkboxes
-  attributes:
-    label: Are you using Docker?
-    options:
-    - label: Yes
-      required: true
+  - type: checkboxes
+    attributes:
+      label: Are you using Docker?
+      options:
+      - label: Yes
+        required: true
   - type: input
     attributes:
       label: OCP
