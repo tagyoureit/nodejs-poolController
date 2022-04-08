@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: ⁉️ Need help with nodejs-poolController?
+    url: https://github.com/tagyoureit/nodejs-poolController/discussions
+    about: Please start a discussion before opening a bug.
+   - name: Gitter Discussions
+    url: https://gitter.im/nodejs-poolController/Lobby
+    about: Legacy Gitter discussion forums
