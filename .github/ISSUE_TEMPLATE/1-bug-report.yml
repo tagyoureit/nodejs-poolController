@@ -44,7 +44,7 @@ body:
     attributes:
       label: Are you using Docker?
       options:
-        - label: Yes
+        - label: Yes.
   - type: input
     attributes:
       label: OCP
