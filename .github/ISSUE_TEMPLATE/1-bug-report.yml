@@ -1,0 +1,84 @@
+name: "\U0001F41B Bug report"
+description: Create a report to help us improve
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for reporting an issue.  Most issues can be more readily resolved by attaching a Packet Capture.  Follow the instructions to complete a [packet capture](https://github.com/tagyoureit/nodejs-poolController/wiki/How-to-capture-all-packets-for-issue-resolution) and attach the resulting zip/log files.
+
+        If you require more general support please file an start a discussion on our discussion board https://github.com/tagyoureit/nodejs-poolController/discussions
+
+        Having trouble installing? Be sure to check out the wiki! https://github.com/tagyoureit/nodejs-poolController/wiki
+
+        Please fill in as much of the form below as you're able.
+  - type: input
+    attributes:
+      label: nodejs-poolController Version/commit
+      description: can be viewed under dashPanel.  Hamburger menu => System.
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: nodejs-poolController-dashPanel Version/commit
+      description: if applicable
+  - type: input
+    attributes:
+      label: relayEquipmentManager Version/commit 
+      description: if applicable
+  - type: input
+    attributes:
+      label: Node Version
+      description: Output of `node -v`
+  - type: input
+    attributes:
+      label: Platform
+      description: |
+        UNIX: output of `uname -a`
+        Windows: output of `"$([Environment]::OSVersion | ForEach-Object VersionString) $(if ([Environment]::Is64BitOperatingSystem) { "x64" } else { "x86" })"` in PowerShell console
+  - type: input
+    attributes:
+      label: RS485 Adapter
+      description: Elfin? JBTek?
+- type: checkboxes
+  attributes:
+    label: Are you using Docker?
+    options:
+    - label: Yes
+      required: true
+  - type: input
+    attributes:
+      label: OCP
+      description: Outdoor Control Panel.  Eg EasyTouch2 8P, Intellicenter i5PS, none.
+      placeholder: None / Nixie (standalone setup)
+  - type: input
+    attributes:
+      label: Pump(s)
+      description: Please list all pumps.  EG Intelliflo 2 VST, Intelliflo VS
+      placeholder: Intelliflo VS
+  - type: input
+    attributes:
+      label: Chlorinator(s)
+      description: Please list all chlorinators.  EG Intellichlor IC-40, Aquarite, None
+      placeholder: None
+  - type: textarea
+    attributes:
+      label: What steps will reproduce the bug?
+      description: Enter details about your bug, preferably a simple code snippet that can be run using `node` directly without installing third-party dependencies.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What happens?
+      description: If possible please provide textual output instead of screenshots.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: What should have happened?
+      description: If possible please provide textual output instead of screenshots.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional information
+      description: Tell us anything else you think we should know.
