@@ -363,10 +363,15 @@ export class EasyTouchBoard extends SystemBoard {
             cbody.isActive = true;
             // If the body doesn't represent a spa then we set the type.
             // RSG - 10-5-21: If a single body IT (i5+3s/i9+3s) the bodies are the same; set to pool
-            tbody.type = cbody.type = i > 1 && !sys.equipment.shared && sys.equipment.intakeReturnValves ? 1 : 0;
+            // RKS: 04-13-22 - This is not really correct.  IntelliTouch (S) models are actually shared body systems that do
+            // not have intake/return valves but there are two bodies that are named Hi-Temp (spa) and Lo-Temp (pool).  This
+            // is very confusing in the control panels but I see why it is done this way.  If they didn't they would need
+            // different controllers for the Indoor and Wireless controllers since the top 2 horizontal buttons are body controls.
+            //tbody.type = cbody.type = i > 1 && !sys.equipment.shared && sys.equipment.intakeReturnValves ? 1 : 0;
+            tbody.type = cbody.type = i - 1;  // This will set the first body to pool/Lo-Temp and the second body to spa/Hi-Temp.
             if (typeof cbody.name === 'undefined') {
                 let bt = sys.board.valueMaps.bodyTypes.transform(cbody.type);
-                tbody.name = cbody.name = bt.name;
+                tbody.name = cbody.name = bt.desc;
             }
         }
         if (!sys.equipment.shared && !sys.equipment.dual && state.equipment.controllerType !== 'intellitouch') {
@@ -435,6 +440,17 @@ export class EasyTouchBoard extends SystemBoard {
             let b = sys.bodies.getItemByIndex(i);
             b.master = 0;
         }
+        state.equipment.maxBodies = sys.equipment.maxBodies;
+        state.equipment.maxCircuitGroups = sys.equipment.maxCircuitGroups;
+        state.equipment.maxCircuits = sys.equipment.maxCircuits;
+        state.equipment.maxFeatures = sys.equipment.maxFeatures;
+        state.equipment.maxHeaters = sys.equipment.maxHeaters;
+        state.equipment.maxLightGroups = sys.equipment.maxLightGroups;
+        state.equipment.maxPumps = sys.equipment.maxPumps;
+        state.equipment.maxSchedules = sys.equipment.maxSchedules;
+        state.equipment.maxValves = sys.equipment.maxValves;
+        state.equipment.shared = sys.equipment.shared;
+        state.equipment.dual = sys.equipment.dual;
         state.emitControllerChange();
     }
     public bodies: TouchBodyCommands = new TouchBodyCommands(this);
@@ -1854,7 +1870,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         let body = sys.board.bodies.mapBodyAssociation(chlor.body);
         if (typeof body === 'undefined') {
             if (sys.equipment.shared) body = 32;
-            else if (!sys.equipment.dual) body = 1;
+            else if (!sys.equipment.dual) body = 0;
             else return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${body}`, 'chlorinator', body));
         }
         if (poolSetpoint > 100 || poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));

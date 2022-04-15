@@ -37,11 +37,16 @@ export class IntelliTouchBoard extends EasyTouchBoard {
             [4, { name: 'IT9S', part: 'i9+3S', desc: 'IntelliTouch i9+3S', circuits: 9, shared: false, bodies: 1, intakeReturnValves: false }],
             [5, { name: 'IT10D', part: 'i10D', desc: 'IntelliTouch i10D', circuits: 10, shared: false, dual: true }],
             [32, { name: 'IT5X', part: 'i5X', desc: 'IntelliTouch i5X', circuits: 5 }],
-            [33, { name: 'IT10X', part: 'i10X', desc: 'IntelliTouch i10X', circuits: 10 }]
+            [33, { name: 'IT10X', part: 'i10X', desc: 'IntelliTouch i10X', circuits: 10 }],
+            [64, { name: 'Valve Exp', part: '520285', desc: 'Valve Expansion Module', valves: 3 }]
         ]);
     }
     public initExpansionModules(byte1: number, byte2: number) {
         console.log(`Pentair IntelliTouch System Detected!`);
+        // For i9+3S with valve expansion the bytes are 4, 32 the expectation is
+        // that the 32 contains the indicator that there is a valve expansion module.
+
+
         // Initialize the installed personality board.
         let mt = this.valueMaps.expansionBoards.transform(byte1);
         let mod = sys.equipment.modules.getItemById(0, true);
@@ -50,7 +55,6 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         mod.type = byte1;
         mod.part = mt.part;
         let eq = sys.equipment;
-        let bd = sys.board;
         let md = mod.get();
 
         eq.maxBodies = md.bodies = typeof mt.bodies !== 'undefined' ? mt.bodies : mt.shared || mt.dual ? 2 : 1;
@@ -65,7 +69,11 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         eq.maxChemControllers = md.chemControllers = 1;
         eq.maxCustomNames = 20;
         eq.maxCircuitGroups = 10; // Not sure why this is 10 other than to allow for those that we are in control of.
-
+        if (!eq.shared && !eq.dual) {
+            // Replace the body types with Hi-Temp and Lo-Temp
+            sys.board.valueMaps.bodyTypes.merge([[0, { name: 'pool', desc: 'Lo-Temp' }],
+            [1, { name: 'spa', desc: 'Hi-Temp' }]]);
+        }
         // Calculate out the invalid ids.
         // sys.board.equipmentIds.invalidIds.set([]);
         // Add in all the invalid ids from the base personality board.
@@ -112,6 +120,19 @@ export class IntelliTouchBoard extends EasyTouchBoard {
             eq.maxCircuits += emt.circuits;
         }
         else sys.equipment.expansions.removeItemById(3);
+        // Detect the valve expansion module.
+        if ((byte2 & 0x20) === 20) {
+            // The valve expansion module is installed so this should add 3 valves.
+            eq.maxValves += 3;
+            let vexp = eq.modules.getItemById(1, true);
+            vexp.isActive = true;
+            let mt = this.valueMaps.expansionBoards.transform(64);
+            vexp.name = mt.name;
+            vexp.desc = mt.desc;
+            vexp.type = byte1;
+            vexp.part = mt.part;
+        }
+        else eq.modules.removeItemById(1);
         if (byte1 !== 14) sys.board.equipmentIds.invalidIds.merge([10, 19]);
         state.equipment.model = sys.equipment.model = mt.desc;
         state.equipment.controllerType = 'intellitouch';
@@ -135,6 +156,17 @@ export class IntelliTouchBoard extends EasyTouchBoard {
             let b = sys.bodies.getItemByIndex(i);
             b.master = 0;
         }
+        state.equipment.maxBodies = sys.equipment.maxBodies;
+        state.equipment.maxCircuitGroups = sys.equipment.maxCircuitGroups;
+        state.equipment.maxCircuits = sys.equipment.maxCircuits;
+        state.equipment.maxFeatures = sys.equipment.maxFeatures;
+        state.equipment.maxHeaters = sys.equipment.maxHeaters;
+        state.equipment.maxLightGroups = sys.equipment.maxLightGroups;
+        state.equipment.maxPumps = sys.equipment.maxPumps;
+        state.equipment.maxSchedules = sys.equipment.maxSchedules;
+        state.equipment.maxValves = sys.equipment.maxValves;
+        state.equipment.shared = sys.equipment.shared;
+        state.equipment.dual = sys.equipment.dual;
         state.emitControllerChange();
     }
     public circuits: ITTouchCircuitCommands = new ITTouchCircuitCommands(this);

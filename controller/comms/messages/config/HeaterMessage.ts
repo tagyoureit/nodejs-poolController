@@ -114,7 +114,7 @@ export class HeaterMessage {
                 // Determine what type of heater should be in id number 1.  If this is a hybrid heater
                 // we will be installing it in id 1 although it will perform dual purpose.
                 let hasHeater = (msg.extractPayloadByte(0) & 0x01) === 0x01 || true;
-                let hasSolar = (msg.extractPayloadByte(1) & 0x02) === 0x02;
+                let hasSolar = (msg.extractPayloadByte(0) & 0x02) === 0x02;
                 let hasHeatpump = (msg.extractPayloadByte(1) & 0x20) === 0x20;
                 let hasHybrid = !hasHeatpump && (msg.extractPayloadByte(1) & 0x10) === 0x10;
 

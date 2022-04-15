@@ -70,6 +70,7 @@ export class ChlorinatorMessage {
         }
     }
     public static processTouch(msg: Inbound) {
+        //[255, 0, 255][165, 1, 15, 16, 25, 22][1, 90, 128, 58, 128, 0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 54, 48][8, 50]
         // This is for the 25 message that is broadcast from the OCP.
         let chlor = sys.chlorinators.getItemById(1);
         if (chlor.master !== 0) return;  // Some Aquarite chlors need more frequent control (via Nixie) but will be disabled via Touch.  https://github.com/tagyoureit/nodejs-poolController/issues/349
