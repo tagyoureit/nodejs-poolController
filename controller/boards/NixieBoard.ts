@@ -1269,12 +1269,14 @@ export class NixieCircuitCommands extends CircuitCommands {
             if (circuit.desiredState === 1) cval = val ? true : false;
             else if (circuit.desiredState === 2) cval = val ? false : true;
             else continue;
-            arr.push(sys.board.circuits.setCircuitStateAsync(circuit.circuit, cval));
+            await sys.board.circuits.setCircuitStateAsync(circuit.circuit, cval);
+            //arr.push(sys.board.circuits.setCircuitStateAsync(circuit.circuit, cval));
         }
-        return new Promise<ICircuitGroupState>(async (resolve, reject) => {
-            await Promise.all(arr).catch((err) => { reject(err) });
-            resolve(gstate);
-        });
+        return state.circuitGroups.getItemById(grp.id, grp.isActive !== false);
+        //return new Promise<ICircuitGroupState>(async (resolve, reject) => {
+        //    await Promise.all(arr).catch((err) => { reject(err) });
+        //    resolve(gstate);
+        //});
     }
     public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
         let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
