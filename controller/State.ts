@@ -1968,6 +1968,10 @@ export class ChlorinatorState extends EqState {
                 sc.reference = Math.floor(new Date().getTime() / 1000);
                 this.setDataVal('superChlorRemaining', remaining);
             }
+            else if (val <= 0)
+                remaining = 0;
+            else
+                remaining = this.superChlorRemaining;
         }
         else if (chlor.master === 2) {
             // If we are 10 seconds different then we need to send it off and save the data.
