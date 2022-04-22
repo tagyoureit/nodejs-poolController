@@ -162,7 +162,8 @@ export class EasyTouchBoard extends SystemBoard {
             [101, { name: 'feature8', desc: 'Feature 8' }]
         ]);
         // We need this because there is a no-pump thing in *Touch.
-        // RKS: 05-04-21 The no-pump item was removed as this was only required for -webClient.  deletePumpAsync should remove the pump from operation.
+        // RKS: 05-04-21 The no-pump item was removed as this was only required for -webClient.  deletePumpAsync should remove the pump from operation.  Do not use 255 as EasyTouch reports
+        // 255 or 0 for pumps that are not installed.
         this.valueMaps.pumpTypes = new byteValueMap([
             [1, { name: 'vf', desc: 'Intelliflo VF', maxPrimingTime: 6, minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
             [64, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
