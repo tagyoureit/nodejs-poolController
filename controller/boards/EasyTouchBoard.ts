@@ -1088,6 +1088,11 @@ class TouchSystemCommands extends SystemCommands {
     public async setOptionsAsync(obj: any): Promise<Options> {
         // Proxy for setBodyAsync.  See below for explanation.
         await sys.board.bodies.setBodyAsync(obj);
+        if (typeof obj.clockSource !== 'undefined') {
+            sys.general.options.clockSource = obj.clockSource;
+            if (sys.general.options.clockSource === 'server') sys.board.system.setTZ();
+        }
+
         return sys.general.options;
     }
 }
