@@ -1055,7 +1055,7 @@ export class SystemCommands extends BoardCommands {
         ctx.filters = await sys.board.filters.validateRestore(rest);
         ctx.schedules = await sys.board.schedules.validateRestore(rest);
       }
-      else ctx.board.errors.push(`Panel Types do not match cannot restore bakup from ${sys.controllerType} to ${rest.poolConfig.controllerType}`);
+      else ctx.board.errors.push(`Panel Types do not match cannot restore backup from ${sys.controllerType} to ${rest.poolConfig.controllerType}`);
 
       return ctx;
 
