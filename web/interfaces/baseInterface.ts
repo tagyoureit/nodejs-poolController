@@ -126,6 +126,7 @@ export class InterfaceEvent {
     public options: any = {};
     public body: any = {};
     public vars: any = {};
+    public processor?: string[]
 }
 export class InterfaceContext {
     public name: string;

@@ -236,10 +236,28 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                             topic = `${rootTopic}/${this.replaceTokens(t.topic, topicToks)}`;
                             // Filter out any topics where there may be undefined in it.  We don't want any of this if that is the case.
                             if (topic.endsWith('/undefined') || topic.indexOf('/undefined/') !== -1 || topic.startsWith('null/') || topic.indexOf('/null') !== -1) return;
-
-
-                            this.buildTokens(t.message, evt, topicToks, e, data[0]);
-                            message = this.tokensReplacer(t.message, evt, topicToks, e, data[0]);
+                            if (typeof t.processor !== 'undefined') {
+                                if (t.ignoreProcessor) message = "err";
+                                else {
+                                    if (typeof t._fnProcessor !== 'function') {
+                                        let fnBody = Array.isArray(t.processor) ? t.processor.join('\n') : t.processor;
+                                        try {
+                                            // Try to compile it.
+                                            t._fnProcessor = new Function('ctx', 'pub', 'sys', 'state', 'data', fnBody) as (ctx: any, pub: MQTTPublishTopic, sys: PoolSystem, state: State, data: any) => any;
+                                        } catch (err) { logger.error(`Error compiling subscription processor: ${err} -- ${fnBody}`); t.ignoreProcessor = true; }
+                                    }
+                                    if (typeof t._fnProcessor === 'function') {
+                                        let ctx = { util: utils }
+                                        try {
+                                            message = t._fnProcessor(ctx, t, sys, state, data[0]).toString();
+                                        } catch (err) { logger.error(`Error publishing MQTT data for topic ${t.topic}: ${err.message}`); message = "err"; }
+                                    }
+                                }
+                            }
+                            else {
+                                this.buildTokens(t.message, evt, topicToks, e, data[0]);
+                                message = this.tokensReplacer(t.message, evt, topicToks, e, data[0]);
+                            }
 
                             let publishOptions: IClientPublishOptions = { retain: typeof baseOpts.retain !== 'undefined' ? baseOpts.retain : true, qos: typeof baseOpts.qos !== 'undefined' ? baseOpts.qos : 2 };
                             let changesOnly = typeof baseOpts.changesOnly !== 'undefined' ? baseOpts.changesOnly : true;
@@ -288,9 +306,9 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             if (typeof sub === 'undefined') return;
             // Alright so now lets process our results.
             if (typeof sub.processor === 'function') {
-                let value = msg;
-                sub.processor(sub, sys, state, value);
-                state.emitEquipmentChanges();
+                //let value = msg;
+                sub.executeProcessor(msg);
+                //state.emitEquipmentChanges();
                 return;
             }
             const topics = topic.split('/');
@@ -460,36 +478,9 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
     }
 }
 class MqttInterfaceEvent extends InterfaceEvent {
-    public topics: IMQTT[]
+    public topics: MQTTPublishTopic[]
 }
-class MqttSubscriptions {
-    public subscriptions: IMQTTSubscription[]
-}
-class MqttTopicSubscription {
-    root: string;
-    topic: string;
-    enabled: boolean;
-    processor: (sub: MqttTopicSubscription, sys: PoolSystem, state: State, value: any) => void;
-    constructor(root: string, sub: any) {
-        this.root = sub.root || root;
-        this.topic = sub.topic;
-        if (typeof sub.processor !== 'undefined') {
-            let fnBody = Array.isArray(sub.processor) ? sub.processor.join('\n') : sub.processor;
-            try {
-                this.processor = new Function('sub', 'sys', 'state', 'value', fnBody) as (sub: MqttTopicSubscription, sys: PoolSystem, state: State, value: any) => void;
-            } catch (err) { logger.error(`Error compiling subscription processor: ${err} -- ${fnBody}`); }
-        }
-    }
-    public get topicPath(): string { return `${this.root}/${this.topic}` };
-        
-}
-export interface IMQTTSubscription {
-    topic: string,
-    description: string,
-    processor?: string,
-    enabled?: boolean
-}
-export interface IMQTT {
+export class MQTTPublishTopic {
     topic: string;
     message: string;
     description: string;
@@ -500,8 +491,44 @@ export interface IMQTT {
     filter?: string;
     lastSent: MQTTMessage[];
     options: any;
+    processor?: string[];
+    ignoreProcessor: boolean = false;
+    _fnProcessor: (ctx: any, pub: MQTTPublishTopic, sys: PoolSystem, state: State, data: any) => any
 }
 class MQTTMessage {
     topic: string;
     message: string;
+}
+
+class MqttSubscriptions {
+    public subscriptions: IMQTTSubscription[]
+}
+class MqttTopicSubscription {
+    root: string;
+    topic: string;
+    enabled: boolean;
+    processor: (ctx: any, sub: MqttTopicSubscription, sys: PoolSystem, state: State, value: any) => void;
+    constructor(root: string, sub: any) {
+        this.root = sub.root || root;
+        this.topic = sub.topic;
+        if (typeof sub.processor !== 'undefined') {
+            let fnBody = Array.isArray(sub.processor) ? sub.processor.join('\n') : sub.processor;
+            try {
+                this.processor = new Function('ctx', 'sub', 'sys', 'state', 'value', fnBody) as (ctx: any, sub: MqttTopicSubscription, sys: PoolSystem, state: State, value: any) => void;
+            } catch (err) { logger.error(`Error compiling subscription processor: ${err} -- ${fnBody}`); }
+        }
+    }
+    public get topicPath(): string { return `${this.root}/${this.topic}` };
+    public executeProcessor(value: any) {
+        let ctx = { util:utils }
+        this.processor(ctx, this, sys, state, value);
+        state.emitEquipmentChanges();
+    }
+        
+}
+export interface IMQTTSubscription {
+    topic: string,
+    description: string,
+    processor?: string,
+    enabled?: boolean
 }
