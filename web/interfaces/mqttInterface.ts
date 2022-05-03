@@ -98,7 +98,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         if (typeof this.subscriptions !== 'undefined') {
             for (let i = 0; i < this.subscriptions.length; i++) {
                 let sub = this.subscriptions[i];
-                this.topics.push(new MqttTopicSubscription(root, sub));
+                if(sub.enabled !== false) this.topics.push(new MqttTopicSubscription(root, sub));
             }
         }
         else {
@@ -468,6 +468,7 @@ class MqttSubscriptions {
 class MqttTopicSubscription {
     root: string;
     topic: string;
+    enabled: boolean;
     processor: (sub: MqttTopicSubscription, sys: PoolSystem, state: State, value: any) => void;
     constructor(root: string, sub: any) {
         this.root = sub.root || root;
@@ -485,7 +486,8 @@ class MqttTopicSubscription {
 export interface IMQTTSubscription {
     topic: string,
     description: string,
-    processor?:string
+    processor?: string,
+    enabled?: boolean
 }
 export interface IMQTT {
     topic: string;

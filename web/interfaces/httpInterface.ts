@@ -20,14 +20,15 @@ import * as http from "http";
 import * as https from "https";
 import extend=require("extend");
 import { logger } from "../../logger/Logger";
-import { sys } from "../../controller/Equipment";
-import { state } from "../../controller/State";
+import { PoolSystem, sys } from "../../controller/Equipment";
+import { State, state } from "../../controller/State";
 import { InterfaceContext, InterfaceEvent, BaseInterfaceBindings } from "./baseInterface";
 
 export class HttpInterfaceBindings extends BaseInterfaceBindings {
     constructor(cfg) {
         super(cfg);
     }
+    declare sockets: HttpInterfaceSocketEvent[];
     public bindEvent(evt: string, ...data: any) {
         // Find the binding by first looking for the specific event name.  
         // If that doesn't exist then look for the "*" (all events).
@@ -121,4 +122,24 @@ export class HttpInterfaceBindings extends BaseInterfaceBindings {
         }
     }
 }
+class HttpInterfaceSocketEvent {
+    event: string;
+    description: string;
+    processor: (sock: HttpInterfaceSocketEvent, sys: PoolSystem, state: State, value: any) => void;
+    constructor(sock: any) {
+        this.event = sock.event;
+        if (typeof sock.processor !== 'undefined') {
+            let fnBody = Array.isArray(sock.processor) ? sock.processor.join('\n') : sock.processor;
+            try {
+                this.processor = new Function('sock', 'sys', 'state', 'value', fnBody) as (sock: HttpInterfaceSocketEvent, sys: PoolSystem, state: State, value: any) => void;
+            } catch (err) { logger.error(`Error compiling socket event processor: ${err} -- ${fnBody}`); }
+        }
+    }
+}
+export interface IHTTPInterfaceSocketEvent {
+    event: string,
+    description: string,
+    processor?: string
+}
+
 

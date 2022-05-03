@@ -505,8 +505,8 @@ export class NixiePumpRS485 extends NixiePump {
         finally { this.suspendPolling = false; }
     };
     protected async setDriveStateAsync(running: boolean = true) {
-        if (conn.isPortEnabled(this.pump.portId || 0)) {
-            return new Promise<void>((resolve, reject) => {
+        return new Promise<void>((resolve, reject) => {
+            if (conn.isPortEnabled(this.pump.portId || 0)) {
                 let out = Outbound.create({
                     portId: this.pump.portId || 0,
                     protocol: Protocol.Pump,
@@ -524,8 +524,13 @@ export class NixiePumpRS485 extends NixiePump {
                     }
                 });
                 conn.queueSendMessage(out);
-            });
-        }
+            }
+            else {
+                let pstate = state.pumps.getItemById(this.pump.id);
+                pstate.command = pstate.rpm > 0 || pstate.flow > 0 ? 10 : 0;
+                resolve();
+            }
+        });
     };
     protected async requestPumpStatus() {
         if (conn.isPortEnabled(this.pump.portId || 0)) {
@@ -598,6 +603,9 @@ export class NixiePumpRS485 extends NixiePump {
                 conn.queueSendMessage(out);
             });
         }
+        else {
+            
+        }
     };
     protected async setPumpRPMAsync() {
         if (conn.isPortEnabled(this.pump.portId || 0)) {
@@ -621,6 +629,9 @@ export class NixiePumpRS485 extends NixiePump {
                 });
                 conn.queueSendMessage(out);
             });
+        }
+        else {
+
         }
     };
     protected async setPumpGPMAsync() {
