@@ -54,13 +54,13 @@
       "processor": [ "sys.board.circuits.setCircuitStateAsync(4, parseInt(value, 10) === 1);" ]
     },
     {
-      "topic": "Aux_5",
-      "description": "State of the Aux_5 circuit on AqualinkD",
+      "topic": "Aux_4",
+      "description": "State of the Aux_4 circuit on AqualinkD",
       "processor": [ "sys.board.circuits.setCircuitStateAsync(5, parseInt(value, 10) === 1);" ]
     },
     {
-      "topic": "Aux_4",
-      "description": "State of the Aux_4 circuit on AqualinkD",
+      "topic": "Aux_5",
+      "description": "State of the Aux_5 circuit on AqualinkD",
       "processor": [ "sys.board.circuits.setCircuitStateAsync(7, parseInt(value, 10) === 1);" ]
     },
     {
@@ -81,42 +81,42 @@
     {
       "topic": "Aux_B1",
       "description": "State of the Aux_B1 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(1, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(129, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Aux_B2",
       "description": "State of the Aux_B2 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(2, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(130, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Aux_B3",
       "description": "State of the Aux_B3 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(3, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(131, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Aux_B4",
       "description": "State of the Aux_B4 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(4, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(132, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Aux_B5",
       "description": "State of the Aux_B5 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(5, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(133, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Aux_B6",
       "description": "State of the Aux_B6 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(6, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(134, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Aux_B7",
       "description": "State of the Aux_B7 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(7, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(135, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Aux_B8",
       "description": "State of the Aux_B8 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(8, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(136, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Filter_Pump",
@@ -157,16 +157,6 @@
       "topic": "Temperature/Solar",
       "description": "The current temperature emitted by the controller for solar.",
       "processor": [ "sys.board.setTempsAsync({ solarSensor1: parseFloat(value) });" ]
-    },
-    {
-      "topic": "Pool_Heater/setpoint",
-      "description": "The setpoint for the pool body",
-      "processor": [ "let body = sys.bodies.getItemById(1); sys.board.setHeatSetpointAsync(body, parseInt(value, 10));" ]
-    },
-    {
-      "topic": "Spa_Heater/setpoint",
-      "description": "The setpoint for the spa body",
-      "processor": [ "let body = sys.bodies.getItemById(2); sys.board.setHeatSetpointAsync(body, parseInt(value, 10));" ]
     },
     {
       "topic": "Filter_Pump/RPM",
@@ -309,6 +299,37 @@
       ]
     },
     {
+      "topic": "Pool_Heater/enabled",
+      "description": "The current heat mode for the pool heater",
+      "processor": [ "sys.bodies.getItemById(1).heatMode = state.temps.bodies.getItemById(1).heatMode = parseInt(value, 10) === 1 ? 2 : 1;" ]
+    },
+    {
+      "topic": "Spa_Heater/enabled",
+      "description": "The current heat mode for the spa heater",
+      "processor": [ "sys.bodies.getItemById(2).heatMode = state.temps.bodies.getItemById(2).heatMode = parseInt(value, 10) === 1 ? 2 : 1;" ]
+    },
+    {
+      "topic": "Pool_Heater/setpoint",
+      "description": "The setpoint for the pool body",
+      "processor": [ "let body = sys.bodies.getItemById(1); sys.board.bodies.setHeatSetpointAsync(body, parseInt(value, 10));" ]
+    },
+    {
+      "topic": "Spa_Heater/setpoint",
+      "description": "The setpoint for the spa body",
+      "processor": [ "let body = sys.bodies.getItemById(2); sys.board.bodies.setHeatSetpointAsync(body, parseInt(value, 10));" ]
+    },
+    {
+      "topic": "Pool_Heater",
+      "description": "The heat status for the pool heater",
+      "processor": [ "let body = state.temps.bodies.getItemById(1); body.heatStatus = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Spa_Heater",
+      "description": "The heat status for the spa heater",
+      "processor": [ "let body = state.temps.bodies.getItemById(2); body.heatStatus = parseInt(value, 10);" ]
+    },
+
+    {
       "topic": "SWG/Percent",
       "description": "The current status for the chlorinator",
       "processor": [ "sys.chlorinators.getItemById(1).poolSetpoint = state.chlorinators.getItemById(1).poolSetpoint = parseInt(value, 10);" ]
@@ -317,7 +338,13 @@
       "topic": "Freeze_Protect/setpoint",
       "description": "The current freeze protection setpoint",
       "processor": [ "sys.general.options.freezeThreshold = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Freeze_Protect",
+      "description": "The current freeze protection setpoint",
+      "processor": [ "state.freeze = parseInt(value, 10) === 1;" ]
     }
+
   ],
   "events": [
     {
@@ -396,7 +423,7 @@
       "description": "Populate the features topics",
       "topics": [
         {
-          "topic": "Aux_B@bind=data.id;/set",
+          "topic": "Aux_B@bind=data.id - 128;/set",
           "message": "@bind=data.isOn ? 1 : 0;",
           "description": "Bind the state"
         }
@@ -409,16 +436,23 @@
       "topics": [
         {
           "topic": "Pool_Heater/setpoint/set",
-          "message": "@bind=data.heatSetpoint;",
+          "message": "@bind=data.setPoint;",
           "description": "Set the heat setpoint for the pool",
           "filter": "@bind=data.id; === 1;"
         },
         {
           "topic": "Spa_Heater/setpoint/set",
-          "message": "@bind=data.heatSetpoint;",
+          "message": "@bind=data.setPoint;",
           "description": "Set the heat setpoint for the spa",
           "filter": "@bind=data.id; === 2;"
+        },
+        {
+          "topic": "Pool_Heater/enabled/set",
+          "message": "@bind=data.heatMode == 2 ? 1 : 0;",
+          "description": "Bind the state",
+          "filter": "@bind=data.id === 1;"
         }
+
       ]
     },
     {
