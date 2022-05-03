@@ -81,42 +81,42 @@
     {
       "topic": "Aux_B1",
       "description": "State of the Aux_B1 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(129, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(129, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Aux_B2",
       "description": "State of the Aux_B2 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(130, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(130, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Aux_B3",
       "description": "State of the Aux_B3 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(131, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(131, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Aux_B4",
       "description": "State of the Aux_B4 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(132, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(132, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Aux_B5",
       "description": "State of the Aux_B5 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(133, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(133, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Aux_B6",
       "description": "State of the Aux_B6 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(134, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(134, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Aux_B7",
       "description": "State of the Aux_B7 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(135, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(135, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Aux_B8",
       "description": "State of the Aux_B8 feature on AqualinkD",
-      "processor": [ "sys.board.circuits.setFeatureStateAsync(136, parseInt(value, 10) === 1);" ]
+      "processor": [ "sys.board.features.setFeatureStateAsync(136, parseInt(value, 10) === 1);" ]
     },
     {
       "topic": "Filter_Pump",
@@ -338,7 +338,13 @@
       "topic": "Freeze_Protect/setpoint",
       "description": "The current freeze protection setpoint",
       "processor": [ "sys.general.options.freezeThreshold = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Freeze_Protect",
+      "description": "The current freeze protection setpoint",
+      "processor": [ "state.freeze = parseInt(value, 10) === 1;" ]
     }
+
   ],
   "events": [
     {
