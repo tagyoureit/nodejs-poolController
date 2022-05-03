@@ -154,7 +154,8 @@ export class NixieBoard extends SystemBoard {
             [254, { name: 'solar2', desc: 'Solar Body 2' }],
             [255, { name: 'solar3', desc: 'Solar Body 3' }],
             [256, { name: 'solar4', desc: 'Solar Body 4' }],
-            [257, { name: 'poolHeatEnable', desc: 'Pool Heat Enable' }]
+            [257, { name: 'poolHeatEnable', desc: 'Pool Heat Enable' }],
+            [258, { name: 'anyHeater', desc: 'Any Heater' }]
         ]);
         this.valueMaps.scheduleTimeTypes.merge([
             [1, { name: 'sunrise', desc: 'Sunrise' }],

@@ -473,7 +473,7 @@ export class RS485Port {
                             }
                             else {
                                 this._port = undefined;
-                                logger.info(`Successfully closed ${this.portId} seral port ${this._cfg.rs485Port}`);
+                                logger.info(`Successfully closed ${this.portId} serial port ${this._cfg.rs485Port}`);
                                 resolve(true);
                                 this.isOpen = false;
                             }
