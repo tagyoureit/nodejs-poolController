@@ -34,6 +34,10 @@ export class Connection {
         let port = this.findPortById(0);
         return typeof port !== 'undefined' && port.mockPort ? true : false;
     }
+    public isPortEnabled(portId: number) {
+        let port: RS485Port = this.findPortById(portId);
+        return typeof port === 'undefined' ? false : port.enabled;
+    }
     public async deleteAuxPort(data: any): Promise<any> {
         try {
             let portId = parseInt(data.portId, 10);

@@ -1021,7 +1021,7 @@ export class BodyCollection extends EqItemCollection<Body> {
         let body = this.find(elem => {
             if (typeof obj.id !== 'undefined') return obj.id === elem.id;
             else if (typeof obj.circuit !== 'undefined') return obj.circuit === elem.circuit;
-            else if (typeof obj.name !== 'undefined') return obj.name === body.name;
+            else if (typeof obj.name !== 'undefined') return obj.name === elem.name;
             else return false;
         });
         return body;

@@ -505,135 +505,147 @@ export class NixiePumpRS485 extends NixiePump {
         finally { this.suspendPolling = false; }
     };
     protected async setDriveStateAsync(running: boolean = true) {
-        return new Promise<void>((resolve, reject) => {
-            let out = Outbound.create({
-                portId: this.pump.portId || 0,
-                protocol: Protocol.Pump,
-                dest: this.pump.address,
-                action: 6,
-                payload: running && this._targetSpeed > 0 ? [10] : [4],
-                retries: 1,
-                response: true,
-                onComplete: (err, msg: Outbound) => {
-                    if (err) {
-                        logger.error(`Error sending setDriveState for ${this.pump.name} : ${err.message}`);
-                        reject(err);
+        if (conn.isPortEnabled(this.pump.portId || 0)) {
+            return new Promise<void>((resolve, reject) => {
+                let out = Outbound.create({
+                    portId: this.pump.portId || 0,
+                    protocol: Protocol.Pump,
+                    dest: this.pump.address,
+                    action: 6,
+                    payload: running && this._targetSpeed > 0 ? [10] : [4],
+                    retries: 1,
+                    response: true,
+                    onComplete: (err, msg: Outbound) => {
+                        if (err) {
+                            logger.error(`Error sending setDriveState for ${this.pump.name} : ${err.message}`);
+                            reject(err);
+                        }
+                        else resolve();
                     }
-                    else resolve();
-                }
+                });
+                conn.queueSendMessage(out);
             });
-            conn.queueSendMessage(out);
-        });
+        }
     };
     protected async requestPumpStatus() {
-        return new Promise<void>((resolve, reject) => {
-            let out = Outbound.create({
-                portId: this.pump.portId || 0,
-                protocol: Protocol.Pump,
-                dest: this.pump.address,
-                action: 7,
-                payload: [],
-                retries: 2,
-                response: true,
-                onComplete: (err, msg) => {
-                    if (err) {
-                        logger.error(`Error sending requestPumpStatus for ${this.pump.name}: ${err.message}`);
-                        reject(err);
+        if (conn.isPortEnabled(this.pump.portId || 0)) {
+            return new Promise<void>((resolve, reject) => {
+                let out = Outbound.create({
+                    portId: this.pump.portId || 0,
+                    protocol: Protocol.Pump,
+                    dest: this.pump.address,
+                    action: 7,
+                    payload: [],
+                    retries: 2,
+                    response: true,
+                    onComplete: (err, msg) => {
+                        if (err) {
+                            logger.error(`Error sending requestPumpStatus for ${this.pump.name}: ${err.message}`);
+                            reject(err);
+                        }
+                        else resolve();
                     }
-                    else resolve();
-                }
+                });
+                conn.queueSendMessage(out);
             });
-            conn.queueSendMessage(out);
-        })
+        }
     };
     protected setPumpToRemoteControl(running: boolean = true) {
-        return new Promise<void>((resolve, reject) => {
-            let out = Outbound.create({
-                portId: this.pump.portId || 0,
-                protocol: Protocol.Pump,
-                dest: this.pump.address,
-                action: 4,
-                payload: running ? [255] : [0], // when stopAsync is called, pass false to return control to pump panel
-                // payload: spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running') ? [255] : [0],
-                retries: 1,
-                response: true,
-                onComplete: (err) => {
-                    if (err) {
-                        logger.error(`Error sending setPumpToRemoteControl for ${this.pump.name}: ${err.message}`);
-                        reject(err);
+        if (conn.isPortEnabled(this.pump.portId || 0)) {
+            return new Promise<void>((resolve, reject) => {
+                let out = Outbound.create({
+                    portId: this.pump.portId || 0,
+                    protocol: Protocol.Pump,
+                    dest: this.pump.address,
+                    action: 4,
+                    payload: running ? [255] : [0], // when stopAsync is called, pass false to return control to pump panel
+                    // payload: spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running') ? [255] : [0],
+                    retries: 1,
+                    response: true,
+                    onComplete: (err) => {
+                        if (err) {
+                            logger.error(`Error sending setPumpToRemoteControl for ${this.pump.name}: ${err.message}`);
+                            reject(err);
+                        }
+                        else resolve();
                     }
-                    else resolve();
-                }
+                });
+                conn.queueSendMessage(out);
             });
-            conn.queueSendMessage(out);
-        });
+        }
     }
     protected setPumpFeature(feature?: number) {
-        // empty payload (possibly 0?, too) is no feature
-        // 6: Feature 1
-        return new Promise<void>((resolve, reject) => {
-            let out = Outbound.create({
-                portId: this.pump.portId || 0,
-                protocol: Protocol.Pump,
-                dest: this.pump.address,
-                action: 5,
-                payload: typeof feature === 'undefined' ? [] : [ feature ],
-                retries: 2,
-                response: true,
-                onComplete: (err, msg: Outbound) => {
-                    if (err) {
-                        logger.error(`Error sending setPumpManual for ${this.pump.name}: ${err.message}`);
-                        reject(err);
+        if (conn.isPortEnabled(this.pump.portId || 0)) {
+            // empty payload (possibly 0?, too) is no feature
+            // 6: Feature 1
+            return new Promise<void>((resolve, reject) => {
+                let out = Outbound.create({
+                    portId: this.pump.portId || 0,
+                    protocol: Protocol.Pump,
+                    dest: this.pump.address,
+                    action: 5,
+                    payload: typeof feature === 'undefined' ? [] : [feature],
+                    retries: 2,
+                    response: true,
+                    onComplete: (err, msg: Outbound) => {
+                        if (err) {
+                            logger.error(`Error sending setPumpManual for ${this.pump.name}: ${err.message}`);
+                            reject(err);
+                        }
+                        else resolve();
                     }
-                    else resolve();
-                }
+                });
+                conn.queueSendMessage(out);
             });
-            conn.queueSendMessage(out);
-        });
+        }
     };
     protected async setPumpRPMAsync() {
-        return new Promise<void>((resolve, reject) => {
-            let out = Outbound.create({
-                portId: this.pump.portId || 0,
-                protocol: Protocol.Pump,
-                dest: this.pump.address,
-                action: 1,
-                payload: [2, 196, Math.floor(this._targetSpeed / 256), this._targetSpeed % 256],
-                retries: 1,
-                // timeout: 250,
-                response: true,
-                onComplete: (err, msg) => {
-                    if (err) {
-                        logger.error(`Error sending setPumpRPMAsync for ${this.pump.name}: ${err.message}`);
-                        reject(err);
+        if (conn.isPortEnabled(this.pump.portId || 0)) {
+            return new Promise<void>((resolve, reject) => {
+                let out = Outbound.create({
+                    portId: this.pump.portId || 0,
+                    protocol: Protocol.Pump,
+                    dest: this.pump.address,
+                    action: 1,
+                    payload: [2, 196, Math.floor(this._targetSpeed / 256), this._targetSpeed % 256],
+                    retries: 1,
+                    // timeout: 250,
+                    response: true,
+                    onComplete: (err, msg) => {
+                        if (err) {
+                            logger.error(`Error sending setPumpRPMAsync for ${this.pump.name}: ${err.message}`);
+                            reject(err);
+                        }
+                        else resolve();
                     }
-                    else resolve();
-                }
+                });
+                conn.queueSendMessage(out);
             });
-            conn.queueSendMessage(out);
-        });
+        }
     };
     protected async setPumpGPMAsync() {
-        // packet for vf; vsf will override
-        return new Promise<void>((resolve, reject) => {
-            let out = Outbound.create({
-                portId: this.pump.portId || 0,
-                protocol: Protocol.Pump,
-                dest: this.pump.address,
-                action: 1,
-                payload: [2, 228, 0, this._targetSpeed],
-                retries: 1,
-                response: true,
-                onComplete: (err, msg) => {
-                    if (err) {
-                        logger.error(`Error sending setPumpGPMAsync for ${this.pump.name}: ${err.message}`);
-                        reject(err);
+        if (conn.isPortEnabled(this.pump.portId || 0)) {
+            // packet for vf; vsf will override
+            return new Promise<void>((resolve, reject) => {
+                let out = Outbound.create({
+                    portId: this.pump.portId || 0,
+                    protocol: Protocol.Pump,
+                    dest: this.pump.address,
+                    action: 1,
+                    payload: [2, 228, 0, this._targetSpeed],
+                    retries: 1,
+                    response: true,
+                    onComplete: (err, msg) => {
+                        if (err) {
+                            logger.error(`Error sending setPumpGPMAsync for ${this.pump.name}: ${err.message}`);
+                            reject(err);
+                        }
+                        else resolve();
                     }
-                    else resolve();
-                }
+                });
+                conn.queueSendMessage(out);
             });
-            conn.queueSendMessage(out);
-        });
+        }
     };
     public async closeAsync() {
         try {
@@ -742,49 +754,53 @@ export class NixiePumpVSF extends NixiePumpRS485 {
     }
     protected async setPumpRPMAsync() {
         // vsf action is 10 for rpm
-        return new Promise<void>((resolve, reject) => {
-            let out = Outbound.create({
-                portId: this.pump.portId || 0,
-                protocol: Protocol.Pump,
-                dest: this.pump.address,
-                action: 10,
-                payload: [2, 196, Math.floor(this._targetSpeed / 256), this._targetSpeed % 256],
-                retries: 1,
-                // timeout: 250,
-                response: true,
-                onComplete: (err, msg) => {
-                    if (err) {
-                        logger.error(`Error sending setPumpRPMAsync for ${this.pump.name}: ${err.message}`);
-                        reject(err);
+        if (conn.isPortEnabled(this.pump.portId || 0)) {
+            return new Promise<void>((resolve, reject) => {
+                let out = Outbound.create({
+                    portId: this.pump.portId || 0,
+                    protocol: Protocol.Pump,
+                    dest: this.pump.address,
+                    action: 10,
+                    payload: [2, 196, Math.floor(this._targetSpeed / 256), this._targetSpeed % 256],
+                    retries: 1,
+                    // timeout: 250,
+                    response: true,
+                    onComplete: (err, msg) => {
+                        if (err) {
+                            logger.error(`Error sending setPumpRPMAsync for ${this.pump.name}: ${err.message}`);
+                            reject(err);
+                        }
+                        else resolve();
                     }
-                    else resolve();
-                }
+                });
+                conn.queueSendMessage(out);
             });
-            conn.queueSendMessage(out);
-        });
+        }
     };
     protected async setPumpGPMAsync() {
-        // vsf payload; different from vf payload
-        return new Promise<void>((resolve, reject) => {
-            let out = Outbound.create({
-                portId: this.pump.portId || 0,
-                protocol: Protocol.Pump,
-                dest: this.pump.address,
-                action: 9,
-                payload: [2, 196, 0, this._targetSpeed],
-                retries: 1,
-                response: true,
-                onComplete: (err, msg) => {
-                    if (err) {
-                        logger.error(`Error sending setPumpGPMAsync for ${this.pump.name}: ${err.message}`);
-                        reject(err);
+        if (conn.isPortEnabled(this.pump.portId || 0)) {
+            // vsf payload; different from vf payload
+            return new Promise<void>((resolve, reject) => {
+                let out = Outbound.create({
+                    portId: this.pump.portId || 0,
+                    protocol: Protocol.Pump,
+                    dest: this.pump.address,
+                    action: 9,
+                    payload: [2, 196, 0, this._targetSpeed],
+                    retries: 1,
+                    response: true,
+                    onComplete: (err, msg) => {
+                        if (err) {
+                            logger.error(`Error sending setPumpGPMAsync for ${this.pump.name}: ${err.message}`);
+                            reject(err);
+                        }
+                        else resolve();
+                        return
                     }
-                    else resolve();
-                    return
-                }
+                });
+                conn.queueSendMessage(out);
             });
-            conn.queueSendMessage(out);
-        });
+        }
     };
 };
 export class NixiePumpHWVS extends NixiePumpRS485 {
@@ -823,54 +839,57 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
     protected async requestPumpStatus() { return Promise.resolve(); };
     protected setPumpFeature(feature?: number) { return Promise.resolve(); }
     protected setPumpToRemoteControl(running: boolean = true) {
-        // We do nothing on this pump to set it to remote control.  That is unless we are turning it off.
-        return new Promise<void>((resolve, reject) => {
-            if (!running) {
+        if (conn.isPortEnabled(this.pump.portId || 0)) {
+            // We do nothing on this pump to set it to remote control.  That is unless we are turning it off.
+            return new Promise<void>((resolve, reject) => {
+                if (!running) {
+                    let out = Outbound.create({
+                        portId: this.pump.portId || 0,
+                        protocol: Protocol.Hayward,
+                        source: 12, // Use the broadcast address
+                        dest: this.pump.address,
+                        action: 1,
+                        payload: [0], // when stopAsync is called, pass false to return control to pump panel
+                        // payload: spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running') ? [255] : [0],
+                        retries: 1,
+                        response: Response.create({ protocol: Protocol.Hayward, action: 12, source: this.pump.address }),
+                        onComplete: (err) => {
+                            if (err) {
+                                logger.error(`Error sending setPumpToRemoteControl for ${this.pump.name}: ${err.message}`);
+                                reject(err);
+                            }
+                            else resolve();
+                        }
+                    });
+                    conn.queueSendMessage(out);
+                }
+                else resolve();
+            });
+        }
+    }
+    protected async setPumpRPMAsync() {
+        if (conn.isPortEnabled(this.pump.portId || 0)) {
+            return new Promise<void>((resolve, reject) => {
+                let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
                 let out = Outbound.create({
                     portId: this.pump.portId || 0,
                     protocol: Protocol.Hayward,
                     source: 12, // Use the broadcast address
-                    dest: this.pump.address,
+                    dest: this.pump.address - 96,
                     action: 1,
-                    payload: [0], // when stopAsync is called, pass false to return control to pump panel
-                    // payload: spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running') ? [255] : [0],
+                    payload: [Math.min(Math.round((this._targetSpeed / pt.maxSpeed) * 100), 100)], // when stopAsync is called, pass false to return control to pump panel
                     retries: 1,
                     response: Response.create({ protocol: Protocol.Hayward, action: 12, source: this.pump.address }),
                     onComplete: (err) => {
                         if (err) {
-                            logger.error(`Error sending setPumpToRemoteControl for ${this.pump.name}: ${err.message}`);
+                            logger.error(`Error sending setPumpRPM for ${this.pump.name}: ${err.message}`);
                             reject(err);
                         }
                         else resolve();
                     }
                 });
                 conn.queueSendMessage(out);
-            }
-            else resolve();
-        });
-    }
-    protected async setPumpRPMAsync() {
-        return new Promise<void>((resolve, reject) => {
-            let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
-            let out = Outbound.create({
-                portId: this.pump.portId || 0,
-                protocol: Protocol.Hayward,
-                source: 12, // Use the broadcast address
-                dest: this.pump.address - 96,
-                action: 1,
-                payload: [Math.min(Math.round((this._targetSpeed / pt.maxSpeed) * 100), 100)], // when stopAsync is called, pass false to return control to pump panel
-                retries: 1,
-                response: Response.create({ protocol: Protocol.Hayward, action: 12, source: this.pump.address }),
-                onComplete: (err) => {
-                    if (err) {
-                        logger.error(`Error sending setPumpRPM for ${this.pump.name}: ${err.message}`);
-                        reject(err);
-                    }
-                    else resolve();
-                }
             });
-            conn.queueSendMessage(out);
-        });
+        }
     };
-
 }

@@ -1,0 +1,441 @@
+{
+  "context": {
+    "name": "AqualinkD",
+    "options": {
+      "formatter": [
+        {
+          "transform": ".toLowerCase()"
+        },
+        {
+          "regexkey": "\\s",
+          "replace": "",
+          "description": "Remove whitespace"
+        },
+        {
+          "regexkey": "\\/",
+          "replace": "",
+          "description": "Remove /"
+        },
+        {
+          "regexkey": "\\+",
+          "replace": "",
+          "description": "Remove +"
+        },
+        {
+          "regexkey": "\\$",
+          "replace": "",
+          "description": "Remove $"
+        },
+        {
+          "regexkey": "\\#",
+          "replace": "",
+          "description": "Remove #"
+        }
+      ],
+      "rootTopic-DIRECTIONS": "You can override the root topic by renaming _rootTopic to rootTopic",
+      "_rootTopic": "@bind=(state.equipment.alias).replace(' ','-').replace('/','').toLowerCase();",
+      "clientId": "@bind='aqualinkd_njsPC_'+ Math.random().toString(16).substr(2, 8);"
+    }
+  },
+  "subscriptions": [
+    {
+      "topic": "Aux_1",
+      "description": "State of the Aux_1 circuit on AqualinkD",
+      "processor": [ "sys.board.circuits.setCircuitStateAsync(2, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Aux_2",
+      "description": "State of the Aux_2 circuit on AqualinkD",
+      "processor": [ "sys.board.circuits.setCircuitStateAsync(3, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Aux_3",
+      "description": "State of the Aux_3 circuit on AqualinkD",
+      "processor": [ "sys.board.circuits.setCircuitStateAsync(4, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Aux_5",
+      "description": "State of the Aux_5 circuit on AqualinkD",
+      "processor": [ "sys.board.circuits.setCircuitStateAsync(5, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Aux_4",
+      "description": "State of the Aux_4 circuit on AqualinkD",
+      "processor": [ "sys.board.circuits.setCircuitStateAsync(7, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Aux_6",
+      "description": "State of the Aux_1 circuit on AqualinkD",
+      "processor": [ "sys.board.circuits.setCircuitStateAsync(8, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Aux_7",
+      "description": "State of the Aux_7 circuit on AqualinkD",
+      "processor": [ "sys.board.circuits.setCircuitStateAsync(9, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Aux_8",
+      "description": "State of the Aux_8 circuit on AqualinkD",
+      "processor": [ "sys.board.circuits.setCircuitStateAsync(10, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Aux_B1",
+      "description": "State of the Aux_B1 feature on AqualinkD",
+      "processor": [ "sys.board.circuits.setFeatureStateAsync(1, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Aux_B2",
+      "description": "State of the Aux_B2 feature on AqualinkD",
+      "processor": [ "sys.board.circuits.setFeatureStateAsync(2, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Aux_B3",
+      "description": "State of the Aux_B3 feature on AqualinkD",
+      "processor": [ "sys.board.circuits.setFeatureStateAsync(3, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Aux_B4",
+      "description": "State of the Aux_B4 feature on AqualinkD",
+      "processor": [ "sys.board.circuits.setFeatureStateAsync(4, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Aux_B5",
+      "description": "State of the Aux_B5 feature on AqualinkD",
+      "processor": [ "sys.board.circuits.setFeatureStateAsync(5, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Aux_B6",
+      "description": "State of the Aux_B6 feature on AqualinkD",
+      "processor": [ "sys.board.circuits.setFeatureStateAsync(6, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Aux_B7",
+      "description": "State of the Aux_B7 feature on AqualinkD",
+      "processor": [ "sys.board.circuits.setFeatureStateAsync(7, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Aux_B8",
+      "description": "State of the Aux_B8 feature on AqualinkD",
+      "processor": [ "sys.board.circuits.setFeatureStateAsync(8, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Filter_Pump",
+      "description": "State of the Filter_Pump on AqualinkD",
+      "processor": [
+        "if(state.circuits.getItemById(1).isOn === false) ",
+        "   sys.board.circuits.setCircuitStateAsync(6, parseInt(value, 10) === 1);",
+        "else sys.board.circuits.setCircuitStateAsync(1, parseInt(value, 10) === 1);"
+      ]
+    },
+    {
+      "topic": "Spa_Mode",
+      "description": "The body mode for the controller.  If 1 then we are in spa mode otherwise we are in pool mode.",
+      "processor": [ "sys.board.circuits.setCircuitStateAsync(1, parseInt(value, 10) === 1);" ]
+    },
+    {
+      "topic": "Temperature/Pool",
+      "description": "The current temperature emitted by the controller for the pool.  However, we only want to set this when the pool circuit is on.",
+      "processor": [
+        "if(!state.circuits.getItemById(6).isOn) state.temps.bodies.getItemById(1).temp = parseFloat(value);",
+        "else sys.board.setTempsAsync({ waterSensor1: parseFloat(value) });"
+      ]
+    },
+    {
+      "topic": "Temperature/Spa",
+      "description": "The current temperature emitted by the controller for the spa.  However, we only want to set this when the spa circuit is on.",
+      "processor": [
+        "if(!state.circuits.getItemById(1).isOn) state.temps.bodies.getItemById(2).temp = parseFloat(value);",
+        "else sys.board.setTempsAsync({ waterSensor1: parseFloat(value) });"
+      ]
+    },
+    {
+      "topic": "Temperature/Air",
+      "description": "The current temperature emitted by the controller for air temperature.",
+      "processor": [ "sys.board.setTempsAsync({ air: parseFloat(value) });" ]
+    },
+    {
+      "topic": "Temperature/Solar",
+      "description": "The current temperature emitted by the controller for solar.",
+      "processor": [ "sys.board.setTempsAsync({ solarSensor1: parseFloat(value) });" ]
+    },
+    {
+      "topic": "Pool_Heater/setpoint",
+      "description": "The setpoint for the pool body",
+      "processor": [ "let body = sys.bodies.getItemById(1); sys.board.setHeatSetpointAsync(body, parseInt(value, 10));" ]
+    },
+    {
+      "topic": "Spa_Heater/setpoint",
+      "description": "The setpoint for the spa body",
+      "processor": [ "let body = sys.bodies.getItemById(2); sys.board.setHeatSetpointAsync(body, parseInt(value, 10));" ]
+    },
+    {
+      "topic": "Filter_Pump/RPM",
+      "description": "The RPM for the first pump",
+      "processor": [ "state.pumps.getPumpByAddress(96).rpm = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Filter_Pump/Watts",
+      "description": "The Watts for the first pump",
+      "processor": [ "state.pumps.getPumpByAddress(96).watts = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Filter_Pump/GPM",
+      "description": "The flow for the first pump",
+      "processor": [ "state.pumps.getPumpByAddress(96).flow = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_1/RPM",
+      "description": "The RPM for aux the pump",
+      "processor": [ "state.pumps.getPumpByAddress(97).rpm = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_1/Watts",
+      "description": "The Watts for aux the pump",
+      "processor": [ "state.pumps.getPumpByAddress(97).watts = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_1/GPM",
+      "description": "The flow for the aux pump",
+      "processor": [ "state.pumps.getPumpByAddress(97).flow = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_2/RPM",
+      "description": "The RPM for aux the pump",
+      "processor": [ "state.pumps.getPumpByAddress(98).rpm = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_2/Watts",
+      "description": "The Watts for aux the pump",
+      "processor": [ "state.pumps.getPumpByAddress(98).watts = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_2/GPM",
+      "description": "The flow for the aux pump",
+      "processor": [ "state.pumps.getPumpByAddress(98).flow = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_3/RPM",
+      "description": "The RPM for aux the pump",
+      "processor": [ "state.pumps.getPumpByAddress(99).rpm = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_3/Watts",
+      "description": "The Watts for aux the pump",
+      "processor": [ "state.pumps.getPumpByAddress(99).watts = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_3/GPM",
+      "description": "The flow for the aux pump",
+      "processor": [ "state.pumps.getPumpByAddress(99).flow = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_4/RPM",
+      "description": "The RPM for aux the pump",
+      "processor": [ "state.pumps.getPumpByAddress(100).rpm = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_4/Watts",
+      "description": "The Watts for aux the pump",
+      "processor": [ "state.pumps.getPumpByAddress(100).watts = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_4/GPM",
+      "description": "The flow for the aux pump",
+      "processor": [ "state.pumps.getPumpByAddress(100).flow = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_5/RPM",
+      "description": "The RPM for aux the pump",
+      "processor": [ "state.pumps.getPumpByAddress(101).rpm = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_5/Watts",
+      "description": "The Watts for aux the pump",
+      "processor": [ "state.pumps.getPumpByAddress(101).watts = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_5/GPM",
+      "description": "The flow for the aux pump",
+      "processor": [ "state.pumps.getPumpByAddress(101).flow = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_6/RPM",
+      "description": "The RPM for aux the pump",
+      "processor": [ "state.pumps.getPumpByAddress(102).rpm = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_6/Watts",
+      "description": "The Watts for aux the pump",
+      "processor": [ "state.pumps.getPumpByAddress(102).watts = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_6/GPM",
+      "description": "The flow for the aux pump",
+      "processor": [ "state.pumps.getPumpByAddress(102).flow = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_7/RPM",
+      "description": "The RPM for aux the pump",
+      "processor": [ "state.pumps.getPumpByAddress(103).rpm = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_7/Watts",
+      "description": "The Watts for aux the pump",
+      "processor": [ "state.pumps.getPumpByAddress(103).watts = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Pump_7/GPM",
+      "description": "The flow for the aux pump",
+      "processor": [ "state.pumps.getPumpByAddress(103).flow = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "SWG/PPM",
+      "description": "The salt level for the chlorinator",
+      "processor": [ "state.chlorinators.getItemById(1).saltLevel = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "SWG/fullstatus",
+      "description": "The current status for the chlorinator",
+      "processor": [
+        "switch(parseInt(value, 10)) {",
+        "case 8: state.chlorinators.getItemById(1).status = 5;",
+        "case 9: state.chlorinators.getItemById(1).status = 0;",
+        "case 16: state.chlorinators.getItemById(1).status = 4;",
+        "case 32: state.chlorinators.getItemById(1).status = 6;",
+        "case 64: state.chlorinators.getItemById(1).status = 7;",
+        "case 128: state.chlorinators.getItemById(1).status = 8;",
+        "case 255: state.chlorinators.getItemById(1).status = 128;",
+        "default: state.chlorinators.getItemById(1).status = parseInt(value, 10); }"
+      ]
+    },
+    {
+      "topic": "SWG/Percent",
+      "description": "The current status for the chlorinator",
+      "processor": [ "sys.chlorinators.getItemById(1).poolSetpoint = state.chlorinators.getItemById(1).poolSetpoint = parseInt(value, 10);" ]
+    },
+    {
+      "topic": "Freeze_Protect/setpoint",
+      "description": "The current freeze protection setpoint",
+      "processor": [ "sys.general.options.freezeThreshold = parseInt(value, 10);" ]
+    }
+  ],
+  "events": [
+    {
+      "name": "config",
+      "description": "Don't flood the MQTT bus.",
+      "enabled": false
+    },
+    {
+      "name": "circuit",
+      "description": "Populate the circuits topics",
+      "topics": [
+        {
+          "topic": "Filter_Pump/set",
+          "message": "@bind=data.isOn ? 1 : 0;",
+          "description": "Bind the state",
+          "filter": "@bind=data.id; === 6;"
+        },
+        {
+          "topic": "Spa_Mode/set",
+          "message": "@bind=data.isOn ? 1 : 0;",
+          "description": "Bind the state",
+          "filter": "@bind=data.id; === 1;"
+        },
+        {
+          "topic": "Aux_1/set",
+          "message": "@bind=data.isOn ? 1 : 0;",
+          "description": "Bind the state",
+          "filter": "@bind=data.id; === 2;"
+        },
+        {
+          "topic": "Aux_2/set",
+          "message": "@bind=data.isOn ? 1 : 0;",
+          "description": "Bind the state",
+          "filter": "@bind=data.id; === 3;"
+        },
+        {
+          "topic": "Aux_3/set",
+          "message": "@bind=data.isOn ? 1 : 0;",
+          "description": "Bind the state",
+          "filter": "@bind=data.id; === 4;"
+        },
+        {
+          "topic": "Aux_4/set",
+          "message": "@bind=data.isOn ? 1 : 0;",
+          "description": "Bind the state",
+          "filter": "@bind=data.id; === 5;"
+        },
+        {
+          "topic": "Aux_5/set",
+          "message": "@bind=data.isOn ? 1 : 0;",
+          "description": "Bind the state",
+          "filter": "@bind=data.id; === 7;"
+        },
+        {
+          "topic": "Aux_6/set",
+          "message": "@bind=data.isOn ? 1 : 0;",
+          "description": "Bind the state",
+          "filter": "@bind=data.id; === 8;"
+        },
+        {
+          "topic": "Aux_7/set",
+          "message": "@bind=data.isOn ? 1 : 0;",
+          "description": "Bind the state",
+          "filter": "@bind=data.id; === 9;"
+        },
+        {
+          "topic": "Aux_8/set",
+          "message": "@bind=data.isOn; ? 1 : 0;",
+          "description": "Bind the state",
+          "filter": "@bind=data.id === 10;"
+        }
+      ]
+    },
+    {
+      "name": "feature",
+      "description": "Populate the features topics",
+      "topics": [
+        {
+          "topic": "Aux_B@bind=data.id;/set",
+          "message": "@bind=data.isOn ? 1 : 0;",
+          "description": "Bind the state"
+        }
+      ]
+    },
+    {
+      "name": "body",
+      "description": "Populate the body topic",
+      "filter": "@bind=data.isActive;",
+      "topics": [
+        {
+          "topic": "Pool_Heater/setpoint/set",
+          "message": "@bind=data.heatSetpoint;",
+          "description": "Set the heat setpoint for the pool",
+          "filter": "@bind=data.id; === 1;"
+        },
+        {
+          "topic": "Spa_Heater/setpoint/set",
+          "message": "@bind=data.heatSetpoint;",
+          "description": "Set the heat setpoint for the spa",
+          "filter": "@bind=data.id; === 2;"
+        }
+      ]
+    },
+    {
+      "name": "chlorinator",
+      "description": "Populate the chlorinator topic",
+      "topics": [
+        {
+          "topic": "SWG/Percent/set",
+          "message": "@bind=data.superChlor ? 100 : data.disabled ? 0 : data.poolSetpoint;",
+          "description": "Bind the setpoint topic.  Unfortunately aqualink only supports one setpoint."
+        }
+      ]
+    },
+    {
+      "name": "pump",
+      "description": "Populate the pumps topic.  We will need to figure this one out.  Perhaps if the RS485 comm port is disabled we don't try to send anything.",
+      "topics": []
+    }
+  ]
+}

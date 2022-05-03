@@ -160,6 +160,25 @@
           "changesOnly": true
         }
       },
+      "aqualinkD": {
+        "name": "AquaLinkD",
+        "type": "mqtt",
+        "enabled": false,
+        "fileName": "aqualinkD.json",
+        "globals": {},
+        "options": {
+          "protocol": "mqtt://",
+          "host": "192.168.0.1",
+          "port": 1883,
+          "username": "",
+          "password": "",
+          "rootTopic": "aqualinkd",
+          "retain": true,
+          "qos": 0,
+          "changesOnly": true
+        }
+
+      },
       "mqttAlt": {
         "name": "MQTTAlt",
         "type": "mqtt",

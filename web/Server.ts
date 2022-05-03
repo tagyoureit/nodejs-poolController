@@ -1066,7 +1066,6 @@ export class HttpInterfaceServer extends ProtoServer {
         catch (err) { }
     }
 }
-
 export class InfluxInterfaceServer extends ProtoServer {
     public bindingsPath: string;
     public bindings: InfluxInterfaceBindings;
@@ -1127,7 +1126,6 @@ export class InfluxInterfaceServer extends ProtoServer {
         }
     }
 }
-
 export class MqttInterfaceServer extends ProtoServer {
     public bindingsPath: string;
     public bindings: HttpInterfaceBindings;
@@ -1414,7 +1412,7 @@ export class REMInterfaceServer extends ProtoServer {
     }
     private isJSONString(s: string): boolean {
         if (typeof s !== 'string') return false;
-        if (typeof s.startsWith('{') || typeof s.startsWith('[')) return true;
+        if (s.startsWith('{') || s.startsWith('[')) return true;
         return false;
     }
     public async getApiService(url: string, data?: any, timeout: number = 3600): Promise<InterfaceServerResponse> {
