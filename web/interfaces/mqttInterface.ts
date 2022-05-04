@@ -102,22 +102,23 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             }
         }
         else {
-            let arrTopics = [`state/+/setState`,
+            let arrTopics = [
+                `state/+/setState`,
                 `state/+/setstate`,
-                `Pumpstate/+/toggleState`,
-                `Pumpstate/+/togglestate`,
-                `Pumpstate/body/setPoint`,
-                `Pumpstate/body/setpoint`,
-                `Pumpstate/body/heatMode`,
-                `Pumpstate/body/heatmode`,
-                `Pumpstate/+/setTheme`,
-                `Pumpstate/+/settheme`,
-                `Pumpstate/temps`,
-                `Pumpconfig/tempSensors`,
-                `Pumpconfig/chemController`,
-                `Pumpstate/chemController`,
-                `Pumpconfig/chlorinator`,
-                `Pumpstate/chlorinator`];
+                `state/+/toggleState`,
+                `state/+/togglestate`,
+                `state/body/setPoint`,
+                `state/body/setpoint`,
+                `state/body/heatMode`,
+                `state/body/heatmode`,
+                `state/+/setTheme`,
+                `state/+/settheme`,
+                `state/temps`,
+                `config/tempSensors`,
+                `config/chemController`,
+                `state/chemController`,
+                `config/chlorinator`,
+                `state/chlorinator`];
             for (let i = 0; i < arrTopics.length; i++) {
                 this.topics.push(new MqttTopicSubscription(root, { topic: arrTopics[i] }));
             }
