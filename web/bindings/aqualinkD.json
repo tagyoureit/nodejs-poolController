@@ -471,13 +471,13 @@
           ]
         },
         {
-          "topic": "Pool_Heater/enabled/set",
+          "topic": "Pool_Heater/set",
           "message": "@bind=data.heatMode.val === 2 ? 1 : 0;",
           "description": "Bind the state",
           "filter": "@bind=data.id === 1;"
         },
         {
-          "topic": "Spa_Heater/enabled/set",
+          "topic": "Spa_Heater/set",
           "message": "@bind=data.heatMode.val === 2 ? 1 : 0;",
           "description": "Bind the state",
           "filter": "@bind=data.id === 2;"
