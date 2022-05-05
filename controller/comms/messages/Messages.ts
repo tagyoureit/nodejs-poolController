@@ -164,7 +164,7 @@ export class Message {
         return pkt;
     }
     public toLog(): string {
-        return `{"portId":${this.portId},"id":${ this.id },"valid":${ this.isValid },"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)}, ${JSON.stringify(this.header)}, ${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts":"${Timestamp.toISOLocal(this.timestamp)}"}`;
+        return `{"port":${this.portId},"id":${ this.id },"valid":${ this.isValid },"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)}, ${JSON.stringify(this.header)}, ${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts":"${Timestamp.toISOLocal(this.timestamp)}"}`;
     }
 }
 export class Inbound extends Message {
