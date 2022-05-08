@@ -18,16 +18,18 @@ import * as express from 'express';
 import { SsdpServer} from '../../Server';
 import { state } from "../../../controller/State";
 import { sys } from "../../../controller/Equipment";
-
+import { webApp } from "../../Server";
 const extend = require("extend");
 export class UtilitiesRoute {
 
     public static initRoutes(app: express.Application) {
-        app.get('/device', function(req, res) {
-            // there's got to be a better way to get this than instantiating SsdpServer() again.
-            // RKS: There was I made the function static.
-            let xml = SsdpServer.deviceXML();
-            res.status(200).set('Content-Type', 'text/xml').send(xml);
+        app.use('/upnp.xml', async (req, res, next) => {
+            try {
+                // Put together the upnp device description.
+                let ssdp = webApp.findServer('ssdp') as SsdpServer;
+                if (typeof ssdp === 'undefined') throw new Error(`SSDP Server not initialized.  No upnp information available.`);
+                res.status(200).set('Content-Type', 'text/xml').send(ssdp.deviceXML());
+            } catch (err) { next(err); }
         });
         app.get('/extended/:section', (req, res) => {
             let cfg = sys.getSection(req.params.section);

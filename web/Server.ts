@@ -54,6 +54,7 @@ export class WebServer {
     private _servers: ProtoServer[] = [];
     private family = 'IPv4';
     private _autoBackupTimer: NodeJS.Timeout;
+    private _httpPort: number;
     constructor() { }
     public async init() {
         try {
@@ -68,12 +69,15 @@ export class WebServer {
                 switch (s) {
                     case 'http':
                         srv = new HttpServer(s, s);
+                        if (c.enabled !== false) this._httpPort = c.port;
                         break;
                     case 'http2':
                         srv = new Http2Server(s, s);
+                        if (c.enabled !== false) this._httpPort = c.port;
                         break;
                     case 'https':
                         srv = new HttpsServer(s, s);
+                        if (c.enabled !== false) this._httpPort = c.port;
                         break;
                     case 'mdns':
                         srv = new MdnsServer(s, s);
@@ -173,12 +177,9 @@ export class WebServer {
             }
         }
     }
-    public ip() {
-        return typeof this.getInterface() === 'undefined' ? '0.0.0.0' : this.getInterface().address;
-    }
-    public mac() {
-        return typeof this.getInterface() === 'undefined' ? '00:00:00:00' : this.getInterface().mac;
-    }
+    public ip() { return typeof this.getInterface() === 'undefined' ? '0.0.0.0' : this.getInterface().address; }
+    public mac() { return typeof this.getInterface() === 'undefined' ? '00:00:00:00' : this.getInterface().mac; }
+    public httpPort(): number { return this._httpPort }
     public findServer(name: string): ProtoServer { return this._servers.find(elem => elem.name === name); }
     public findServersByType(type: string) { return this._servers.filter(elem => elem.type === type); }
     public findServerByGuid(uuid: string) { return this._servers.find(elem => elem.uuid === uuid); }
@@ -697,7 +698,7 @@ export class HttpServer extends ProtoServer {
                     res.header('Access-Control-Allow-Methods', 'OPTIONS, GET, POST, PUT, DELETE');
                     if ('OPTIONS' === req.method) { res.sendStatus(200); }
                     else {
-                        if (req.url !== '/device') {
+                        if (req.url !== '/upnp.xml') {
                             logger.info(`[${new Date().toLocaleTimeString()}] ${req.ip} ${req.method} ${req.url} ${typeof req.body === 'undefined' ? '' : JSON.stringify(req.body)}`);
                             logger.logAPI(`{"dir":"in","proto":"api","requestor":"${req.ip}","method":"${req.method}","path":"${req.url}",${typeof req.body === 'undefined' ? '' : `"body":${JSON.stringify(req.body)},`}"ts":"${Timestamp.toISOLocal(new Date())}"}${os.EOL}`);
                         }
@@ -788,7 +789,7 @@ export class HttpsServer extends HttpServer {
                 res.header('Access-Control-Allow-Methods', 'OPTIONS, GET, POST, PUT, DELETE');
                 if ('OPTIONS' === req.method) { res.sendStatus(200); }
                 else {
-                    if (req.url !== '/device') {
+                    if (req.url !== '/upnp.xml') {
                         logger.info(`[${new Date().toLocaleString()}] ${req.ip} ${req.method} ${req.url} ${typeof req.body === 'undefined' ? '' : JSON.stringify(req.body)}`);
                         logger.logAPI(`{"dir":"in","proto":"api","requestor":"${req.ip}","method":"${req.method}","path":"${req.url}",${typeof req.body === 'undefined' ? '' : `"body":${JSON.stringify(req.body)},`}"ts":"${Timestamp.toISOLocal(new Date())}"}${os.EOL}`);
                     }
@@ -838,6 +839,84 @@ export class HttpsServer extends HttpServer {
     }
 }
 export class SsdpServer extends ProtoServer {
+    // Simple service discovery protocol
+    public server: any; //node-ssdp;
+    public deviceUUID: string;
+    public upnpPath: string;
+    public modelName: string;
+    public modelNumber: string;
+    public serialNumber: string;
+    public deviceType = 'urn:schemas-tagyoureit-org:device:PoolController:1';
+    public async init(cfg) {
+        this.uuid = cfg.uuid;
+        if (cfg.enabled) {
+            let self = this;
+            logger.info('Starting up SSDP server');
+            let ver = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version || '0.0.0';
+            this.deviceUUID = 'uuid:806f52f4-1f35-4e33-9299-' + webApp.mac().replace(/:/g, '');
+            this.serialNumber = webApp.mac();
+            this.modelName = `njsPC v${ver}`;
+            this.modelNumber = `njsPC${ver.replace(/\./g, '-')}`;
+            // todo: should probably check if http/https is enabled at this point
+            let port = config.getSection('web').servers.http.port || 7777;
+            this.upnpPath = 'http://' + webApp.ip() + ':' + port + '/upnp.xml';
+            let SSDP = ssdp.Server;
+            this.server = new SSDP({
+                //customLogger: (...args) => console.log.apply(null, args),
+                logLevel: 'INFO',
+                udn: this.deviceUUID,
+                location: this.upnpPath,
+                sourcePort: 1900
+            });
+            this.server.addUSN('upnp:rootdevice'); // This line will make the server show up in windows.
+            this.server.addUSN(this.deviceType);
+            // start the server
+            this.server.start()
+                .then(function () {
+                    logger.silly('SSDP/UPnP Server started.');
+                    self.isRunning = true;
+                });
+
+            this.server.on('error', function (e) {
+                logger.error('error from SSDP:', e);
+            });
+        }
+    }
+    public deviceXML(): string {
+        let XML = `<?xml version="1.0"?>
+        <root xmlns="urn:schemas-upnp-org:device-1-0">
+            <specVersion>
+                <major>1</major>
+                <minor>0</minor>
+            </specVersion>
+            <device>
+                <deviceType>${this.deviceType}</deviceType>
+                <friendlyName>NodeJS Pool Controller</friendlyName> 
+                <manufacturer>tagyoureit</manufacturer>
+                <manufacturerURL>https://github.com/tagyoureit/nodejs-poolController</manufacturerURL>
+                <presentationURL>http://${webApp.ip()}:${webApp.httpPort()}/state/all</presentationURL>
+                <modelName>${this.modelName}</modelName>
+                <modelNumber>${this.modelNumber}</modelNumber>
+                <modelDescription>An application to control pool equipment.</modelDescription>
+                <serialNumber>${this.serialNumber}</serialNumber>
+                <UDN>uuid::${this.deviceUUID}::${this.deviceType}</UDN>
+                <serviceList></serviceList>
+                <deviceList></deviceList>
+            </device>
+        </root>`;
+        return XML;
+    }
+    public async stopAsync() {
+        try {
+            if (typeof this.server !== 'undefined') {
+                this.server.stop();
+                logger.info(`Stopped SSDP server: ${this.name}`);
+            }
+        } catch (err) { logger.error(`Error stopping SSDP server ${err.message}`); }
+    }
+}
+/* RKS DEPRECATED: 05-07-22 - This did not follow the upnp rules so it was not detecting properly.  The entire class above emits the proper xml layout.
+export class SsdpServer1 extends ProtoServer {
     // Simple service discovery protocol
     public server: any; //node-ssdp;
     public async init(cfg) {
@@ -903,6 +982,10 @@ export class SsdpServer extends ProtoServer {
         } catch (err) { logger.error(`Error stopping SSDP server ${err.message}`); }
     }
 }
+*/
+
+
+
 export class MdnsServer extends ProtoServer {
     // Multi-cast DNS server
     public server;
