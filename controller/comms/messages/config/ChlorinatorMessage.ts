@@ -28,11 +28,12 @@ export class ChlorinatorMessage {
                 for (let i = 0; i < 4 && i + 30 < msg.payload.length; i++) {
                     let isActive = msg.extractPayloadByte(i + 22) === 1;
                     chlor = sys.chlorinators.getItemById(chlorId);
-                    if (chlor.master !== 0) continue; // RSG: probably never need this.  See Touch chlor below.
+                    //if (chlor.master !== 0) continue; // RSG: probably never need this.  See Touch chlor below.
                     if (isActive) {
                         chlor = sys.chlorinators.getItemById(chlorId, true);
                         let schlor = state.chlorinators.getItemById(chlor.id, true);
                         chlor.isActive = schlor.isActive = true;
+                        chlor.master = 0;
                         chlor.body = msg.extractPayloadByte(i + 2);
                         chlor.type = msg.extractPayloadByte(i + 6);
                         if (!chlor.disabled && !chlor.isDosing) {
@@ -73,7 +74,7 @@ export class ChlorinatorMessage {
         //[255, 0, 255][165, 1, 15, 16, 25, 22][1, 90, 128, 58, 128, 0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 54, 48][8, 50]
         // This is for the 25 message that is broadcast from the OCP.
         let chlor = sys.chlorinators.getItemById(1);
-        if (chlor.master !== 0) return;  // Some Aquarite chlors need more frequent control (via Nixie) but will be disabled via Touch.  https://github.com/tagyoureit/nodejs-poolController/issues/349
+        if (chlor.master !== 0 && typeof chlor.master !== 'undefined') return;  // Some Aquarite chlors need more frequent control (via Nixie) but will be disabled via Touch.  https://github.com/tagyoureit/nodejs-poolController/issues/349
         let isActive = (msg.extractPayloadByte(0) & 0x01) === 1;
         if (isActive) {
             let chlor = sys.chlorinators.getItemById(1, true);

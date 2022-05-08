@@ -243,6 +243,7 @@ export class CircuitMessage {
         if (_isActive) {
             const type = functionId & 63;
             let circuit: ICircuit = sys.circuits.getInterfaceById(id, _isActive);
+            circuit.master = 0;
             circuit.name = sys.board.circuits.getNameById(nameId);
             circuit.nameId = nameId;
             circuit.type = type;

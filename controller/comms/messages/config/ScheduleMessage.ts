@@ -127,6 +127,7 @@ export class ScheduleMessage {
                 const schedule: Schedule = sys.schedules.getItemByIndex(i);
                 if (schedule.scheduleType === sys.board.valueMaps.scheduleTypes.getValue('runonce') && schedule.circuit === eggTimer.circuit){
                     const sstate = state.schedules.getItemById(schedule.id);
+                    schedule.master = 0;
                     sstate.endTime = schedule.endTime = (schedule.startTime + eggTimer.runTime) % 1440; // remove days if we go past midnight                   
                 }
             }
@@ -150,6 +151,7 @@ export class ScheduleMessage {
             if (sys.circuits.getItemById(schedule.circuit).hasHeatSource && typeof schedule.heatSource === 'undefined') schedule.heatSource = sys.board.valueMaps.heatSources.getValue('nochange');
             // todo: add to base sched item
             //  (msg.extractPayloadByte(1) & 128) === 1 ? schedule.smartStart = 1 : schedule.smartStart = 0;
+            schedule.master = 0;
             if (schedule.isActive) {
                 const sstate = state.schedules.getItemById(schedule.id, true);
                 sstate.circuit = schedule.circuit;
@@ -266,6 +268,7 @@ export class ScheduleMessage {
                 // If bit 8 is set on the time type then this indicates whether the schedule is active.  If it is not
                 // active then we will be removing it.
                 schedule.isActive = true;
+                schedule.master = 0;
                 schedule.scheduleType = (byte & 1 & 0xFF) === 1 ? 0 : 128;
                 if ((byte & 4 & 0xFF) === 4) schedule.startTimeType = 1;
                 else if ((byte & 8 & 0xFF) === 8) schedule.startTimeType = 2;

@@ -61,6 +61,7 @@ export class PumpMessage {
                 pump = sys.pumps.getItemById(pumpId, isActive);
             }
             pump.address = pumpId + 95;
+            pump.master = 0;
             switch (type) {
                 case 0: // none
                     pump.type = 0;
@@ -240,6 +241,7 @@ export class PumpMessage {
                 }
                 if (typeof pump.model === 'undefined') pump.model = 0;
                 pump.type = type;
+                pump.master = 0;
                 let spump = state.pumps.getItemById(pump.id, true);
                 spump.type = pump.type;
                 spump.isActive = pump.isActive = true;
