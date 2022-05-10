@@ -304,13 +304,13 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             if (msg[0] === '{') msg = JSON.parse(msg);
 
             let sub: MqttTopicSubscription = this.topics.find(elem => topic === elem.topicPath);
-            if (typeof sub === 'undefined') return;
-            // Alright so now lets process our results.
-            if (typeof sub.processor === 'function') {
-                //let value = msg;
-                sub.executeProcessor(msg);
-                //state.emitEquipmentChanges();
-                return;
+            if (typeof sub !== 'undefined') {
+                logger.debug(`Topic not found ${topic}`)
+                // Alright so now lets process our results.
+                if (typeof sub.processor === 'function') {
+                    sub.executeProcessor(msg);
+                    return;
+                }
             }
             const topics = topic.split('/');
             logger.debug(`MQTT: Inbound ${topic}: ${message.toString()}`);
