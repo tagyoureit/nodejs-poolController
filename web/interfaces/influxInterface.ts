@@ -100,7 +100,8 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
             },
             maxRetryTime: DEFAULT_WriteOptions.maxRetryTime,
             exponentialBase: DEFAULT_WriteOptions.exponentialBase,
-            randomRetry: DEFAULT_WriteOptions.randomRetry
+            randomRetry: DEFAULT_WriteOptions.randomRetry,
+            maxBatchBytes: 4096
         }
         this.writeApi = influxDB.getWriteApi(org, bucket, 'ms', writeOptions);
 
