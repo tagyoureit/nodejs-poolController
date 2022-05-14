@@ -503,9 +503,15 @@ export class NixieSystemCommands extends SystemCommands {
         delayMgr.cancelHeaterCooldownDelays();
         delayMgr.cancelHeaterStartupDelays();
         delayMgr.cancelCleanerStartDelays();
+        delayMgr.cancelManualPriorityDelays();
         state.delay = sys.board.valueMaps.delay.getValue('nodelay');
         return Promise.resolve(state.data.delay);
     }
+    public setManualOperationPriority(id: number): Promise<any> { 
+        let cstate = state.circuits.getInterfaceById(id);
+        delayMgr.setManualPriorityDelay(cstate);
+        return Promise.resolve(cstate); 
+     }
     public setDateTimeAsync(obj: any): Promise<any> { return Promise.resolve(); }
     public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
     public async setGeneralAsync(obj: any): Promise<General> {
@@ -984,6 +990,8 @@ export class NixieCircuitCommands extends CircuitCommands {
             if (typeof data.connectionId !== 'undefined') circuit.connectionId = data.connectionId;
             if (typeof data.deviceBinding !== 'undefined') circuit.deviceBinding = data.deviceBinding;
             circuit.dontStop = circuit.eggTimer === 1440;
+            // update end time in case egg timer is changed while circuit is on
+            sys.board.circuits.setEndTime(circuit, scircuit, scircuit.isOn, true);
             sys.emitEquipmentChange();
             state.emitEquipmentChanges();
             ncp.circuits.setCircuitAsync(circuit, data);
@@ -1035,6 +1043,8 @@ export class NixieCircuitCommands extends CircuitCommands {
                 }
                 group.circuits.length = obj.circuits.length;  // RSG - removed as this will delete circuits that were not changed
             }
+            // update end time in case group is changed while circuit is on
+            sys.board.circuits.setEndTime(group, sgroup, sgroup.isOn, true);
             resolve(group);
         });
 
@@ -1284,7 +1294,7 @@ export class NixieCircuitCommands extends CircuitCommands {
         if (grp.dataName === 'circuitGroupConfig') return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
         let gstate = state.lightGroups.getItemById(grp.id, grp.isActive !== false);
         let circuits = grp.circuits.toArray();
-        sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(gstate.id), gstate, val);
+        sys.board.circuits.setEndTime(grp, gstate, val);
         gstate.isOn = val;
         let arr = [];
         for (let i = 0; i < circuits.length; i++) {
@@ -1322,6 +1332,8 @@ export class NixieFeatureCommands extends FeatureCommands {
         if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
         if (typeof obj.eggTimer !== 'undefined') feature.eggTimer = parseInt(obj.eggTimer, 10);
         feature.dontStop = feature.eggTimer === 1440;
+        // update end time in case feature is changed while circuit is on
+        sys.board.circuits.setEndTime(feature, sfeature, sfeature.isOn, true);
         return new Promise<Feature>((resolve, reject) => { resolve(feature); });
     }
     public async deleteFeatureAsync(obj: any): Promise<Feature> {
@@ -1351,6 +1363,7 @@ export class NixieFeatureCommands extends FeatureCommands {
             let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
             feature.master = 1;
             let ftype = sys.board.valueMaps.featureFunctions.getName(feature.type);
+            if(val && !fstate.isOn) sys.board.circuits.setEndTime(feature, fstate, val);
             switch (ftype) {
                 case 'spadrain':
                     this.setDrainFeatureStateAsync(id, val, ignoreDelays);
@@ -1362,9 +1375,12 @@ export class NixieFeatureCommands extends FeatureCommands {
                     fstate.isOn = val;
                     break;
             }
-            if(fstate.isOn === val) sys.board.circuits.setEndTime(feature, fstate, val);
             sys.board.valves.syncValveStates();
             ncp.pumps.syncPumpStates();
+            if (!val){
+                if (fstate.manualPriorityActive) delayMgr.cancelManualPriorityDelay(fstate.id);
+                fstate.manualPriorityActive = false; // if the delay was previously cancelled, still need to turn this off
+            } 
             state.emitEquipmentChanges();
             return fstate;
         } catch (err) { return Promise.reject(new Error(`Error setting feature state ${err.message}`)); }
@@ -1460,6 +1476,11 @@ export class NixieFeatureCommands extends FeatureCommands {
                 }
                 let sgrp = state.circuitGroups.getItemById(grp.id);
                 sgrp.isOn = bIsOn;
+                if (sgrp.isOn && typeof sgrp.endTime === 'undefined') sys.board.circuits.setEndTime(grp, sgrp, sgrp.isOn, true);
+                if (!sgrp.isOn && sgrp.manualPriorityActive){
+                    delayMgr.cancelManualPriorityDelays();
+                    sgrp.manualPriorityActive = false; // if the delay was previously cancelled, still need to turn this off
+                } 
             }
             sys.board.valves.syncValveStates();
         }
@@ -1477,7 +1498,13 @@ export class NixieFeatureCommands extends FeatureCommands {
                 }
                 let sgrp = state.lightGroups.getItemById(grp.id);
                 sgrp.isOn = bIsOn;
+                if (sgrp.isOn && typeof sgrp.endTime === 'undefined') sys.board.circuits.setEndTime(grp, sgrp, sgrp.isOn, true);
+                if (!sgrp.isOn && sgrp.manualPriorityActive){
+                    delayMgr.cancelManualPriorityDelay(grp.id);
+                    sgrp.manualPriorityActive = false; // if the delay was previously cancelled, still need to turn this off
+                } 
             }
+            
             sys.board.valves.syncValveStates();
         }
         state.emitEquipmentChanges();

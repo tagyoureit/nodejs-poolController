@@ -161,6 +161,9 @@ export class StateRoute {
         app.get('/state/feature/:id', (req, res) => {
             res.status(200).send(state.features.getItemById(parseInt(req.params.id, 10)).get());
         });
+        app.get('/state/schedule/:id', (req, res) => {
+            res.status(200).send(state.schedules.getItemById(parseInt(req.params.id, 10)).get());
+        });
         app.get('/state/circuitGroup/:id', (req, res) => {
             res.status(200).send(state.circuitGroups.getItemById(parseInt(req.params.id, 10)).get());
         });
@@ -364,6 +367,13 @@ export class StateRoute {
             try {
                 let delay = await sys.board.system.cancelDelay();
                 return res.status(200).send(delay);
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/state/manualOperationPriority', async (req, res, next) => {
+            try {
+                let cstate = await sys.board.system.setManualOperationPriority(parseInt(req.body.id, 10));
+                return res.status(200).send(cstate.get(true));
             }
             catch (err) { next(err); }
         });

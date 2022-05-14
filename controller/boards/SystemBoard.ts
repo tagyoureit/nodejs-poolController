@@ -18,12 +18,12 @@ import * as extend from 'extend';
 import { logger } from '../../logger/Logger';
 import { Message, Outbound } from '../comms/messages/Messages';
 import { Timestamp, utils } from '../Constants';
-import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, ControllerType, CustomName, CustomNameCollection, EggTimer, Equipment, Feature, Filter, General, Heater, ICircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, TempSensorCollection, Valve } from '../Equipment';
+import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, ControllerType, CustomName, CustomNameCollection, EggTimer, Equipment, Feature, Filter, General, Heater, ICircuit, ICircuitGroup, ICircuitGroupCircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, TempSensorCollection, Valve } from '../Equipment';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, BoardProcessError, InvalidOperationError } from '../Errors';
 import { ncp } from "../nixie/Nixie";
 import { BodyTempState, ChemControllerState, ChlorinatorState, CircuitGroupState, FilterState, ICircuitGroupState, ICircuitState, LightGroupState, ScheduleState, state, TemperatureState, ValveState, VirtualCircuitState } from '../State';
 import { RestoreResults } from '../../web/Server';
-import { NixieHeaterBase } from 'controller/nixie/heaters/Heater';
+import { group } from 'console';
 
 
 export class byteValueMap extends Map<number, any> {
@@ -315,7 +315,8 @@ export class byteValueMaps {
   public lightCommands = new byteValueMap([
     [4, { name: 'colorhold', desc: 'Hold', types: ['intellibrite', 'magicstream'], command: 'colorHold', sequence: 13 }],
     [5, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite', 'magicstream'], command: 'colorRecall', sequence: 14 }],
-    [6, { name: 'lightthumper', desc: 'Thumper', types: ['magicstream'], command: 'lightThumper', message: 'Toggling Thumper',
+    [6, {
+      name: 'lightthumper', desc: 'Thumper', types: ['magicstream'], command: 'lightThumper', message: 'Toggling Thumper',
       sequence: [ // Cycle party mode 3 times.
         { isOn: false, timeout: 100 },
         { isOn: true, timeout: 100 },
@@ -337,7 +338,8 @@ export class byteValueMaps {
     [3, { name: 'colorswim', desc: 'Swim', types: ['intellibrite'], command: 'colorSwim', message:'Sequencing Swim Operation' }],
     [4, { name: 'colorhold', desc: 'Hold', types: ['intellibrite', 'magicstream'], command: 'colorHold', message: 'Saving Current Colors', sequence: 13 }],
     [5, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite', 'magicstream'], command: 'colorRecall', message: 'Recalling Saved Colors', sequence: 14 }],
-    [6, { name: 'lightthumper', desc: 'Thumper', types: ['magicstream'], command: 'lightThumper', message: 'Toggling Thumper',
+    [6, {
+      name: 'lightthumper', desc: 'Thumper', types: ['magicstream'], command: 'lightThumper', message: 'Toggling Thumper',
       sequence: [ // Cycle party mode 3 times.
         { isOn: false, timeout: 100 },
         { isOn: true, timeout: 100 },
@@ -815,7 +817,7 @@ export class SystemBoard {
     // turn off chlor
     console.log(`Stopping sys`);
     //sys.board.virtualChlorinatorController.stop();
-    if (sys.controllerType === ControllerType.Virtual) this.turnOffAllCircuits();
+    if (sys.controllerType === ControllerType.Nixie) this.turnOffAllCircuits();
     // sys.board.virtualChemControllers.stop();
     this.killStatusCheck();
     await ncp.closeAsync();
@@ -824,16 +826,20 @@ export class SystemBoard {
   public async turnOffAllCircuits() {
     // turn off all circuits/features
     for (let i = 0; i < state.circuits.length; i++) {
-      state.circuits.getItemByIndex(i).isOn = false;
+      let s = state.circuits.getItemByIndex(i);
+      await sys.board.circuits.setCircuitStateAsync(s.id, false);
     }
     for (let i = 0; i < state.features.length; i++) {
-      state.features.getItemByIndex(i).isOn = false;
+      let s = state.features.getItemByIndex(i);
+      await sys.board.features.setFeatureStateAsync(s.id, false);
     }
     for (let i = 0; i < state.lightGroups.length; i++) {
-      state.lightGroups.getItemByIndex(i).isOn = false;
+      let s = state.lightGroups.getItemByIndex(i);
+      await sys.board.circuits.setCircuitStateAsync(s.id, false);
     }
     for (let i = 0; i < state.temps.bodies.length; i++) {
-      state.temps.bodies.getItemByIndex(i).isOn = false;
+      let s = state.temps.bodies.getItemByIndex(i);
+      await sys.board.circuits.setCircuitStateAsync(s.id, false);
     }
     // sys.board.virtualPumpControllers.setTargetSpeed();
     state.emitEquipmentChanges();
@@ -1059,10 +1065,11 @@ export class SystemCommands extends BoardCommands {
 
       return ctx;
 
-    } catch (err) { logger.error(`Error validating restore file: ${err.message}`); return Promise.reject(err);}
+    } catch (err) { logger.error(`Error validating restore file: ${err.message}`); return Promise.reject(err); }
 
   }
   public cancelDelay(): Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay); }
+  public setManualOperationPriority(id: number): Promise<any> { return Promise.resolve(); }
   public setDateTimeAsync(obj: any): Promise<any> { return Promise.resolve(); }
   public keepManualTime() {
     try {
@@ -2908,7 +2915,7 @@ export class CircuitCommands extends BoardCommands {
   public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
     return sys.board.circuits.setCircuitGroupStateAsync(id, val);
   }
-  public setEndTime(thing: ICircuit, thingState: ICircuitState, isOn: boolean, bForce: boolean= false) {
+  public setEndTime(thing: ICircuit, thingState: ICircuitState, isOn: boolean, bForce: boolean = false) {
     /*
     this is a generic fn for circuits, features, circuitGroups, lightGroups
     to set the end time based on the egg timer.
@@ -2942,25 +2949,29 @@ export class CircuitCommands extends BoardCommands {
           eggTimerEndTime = state.time.clone().addHours(0, thing.eggTimer);
         }
         // egg timers don't come into play if a schedule will control the circuit
-        for (let i = 0; i < sys.schedules.length; i++) {
-          let sched = sys.schedules.getItemByIndex(i);
-          let ssched = state.schedules.getItemById(sched.id);
-          if (sched.isActive && sys.board.schedules.includesCircuit(sched, thing.id)) {
-            let nearestStartTime = sys.board.schedules.getNearestStartTime(sched);
-            let nearestEndTime = sys.board.schedules.getNearestEndTime(sched);
-            // if the schedule doesn't have an end date (eg no days)...
-            if (nearestEndTime.getTime() === 0) continue;
-            if (ssched.isOn) {
-              if (typeof endTime === 'undefined' || nearestEndTime.getTime() < endTime.getTime()) {
-                endTime = nearestEndTime.clone();
-                eggTimerEndTime = undefined;
+        // schedules don't come into play if the circuit is in manualPriority
+        if (!thingState.manualPriorityActive) {
+
+          for (let i = 0; i < sys.schedules.length; i++) {
+            let sched = sys.schedules.getItemByIndex(i);
+            let ssched = state.schedules.getItemById(sched.id);
+            if (sched.isActive && sys.board.schedules.includesCircuit(sched, thing.id)) {
+              let nearestStartTime = sys.board.schedules.getNearestStartTime(sched);
+              let nearestEndTime = sys.board.schedules.getNearestEndTime(sched);
+              // if the schedule doesn't have an end date (eg no days)...
+              if (nearestEndTime.getTime() === 0) continue;
+              if (ssched.isOn) {
+                if (typeof endTime === 'undefined' || nearestEndTime.getTime() < endTime.getTime()) {
+                  endTime = nearestEndTime.clone();
+                  eggTimerEndTime = undefined;
+                }
               }
-            }
-            else {
-              if (typeof eggTimerEndTime !== 'undefined' && eggTimerEndTime.getTime() < nearestStartTime.getTime()) {
-                if (typeof endTime === 'undefined' || eggTimerEndTime.getTime() < endTime.getTime()) endTime = eggTimerEndTime.clone();
+              else {
+                if (typeof eggTimerEndTime !== 'undefined' && eggTimerEndTime.getTime() < nearestStartTime.getTime()) {
+                  if (typeof endTime === 'undefined' || eggTimerEndTime.getTime() < endTime.getTime()) endTime = eggTimerEndTime.clone();
+                }
+                else if (typeof endTime === 'undefined' || nearestEndTime.getTime() < endTime.getTime()) endTime = nearestEndTime.clone();
               }
-              else if (typeof endTime === 'undefined' || nearestEndTime.getTime() < endTime.getTime()) endTime = nearestEndTime.clone();
             }
           }
         }
@@ -3335,7 +3346,7 @@ export class ChlorinatorCommands extends BoardCommands {
         schlor.currentOutput = typeof obj.currentOutput !== 'undefined' ? parseInt(obj.currentOutput, 10) : schlor.currentOutput;
         schlor.lastComm = typeof obj.lastComm !== 'undefined' ? obj.lastComm : schlor.lastComm || Date.now();
         schlor.status = typeof obj.status !== 'undefined' ? sys.board.valueMaps.chlorinatorStatus.encode(obj.status) : sys.board.valueMaps.chlorinatorStatus.encode(schlor.status || 0);
-        if(typeof obj.superChlorRemaining !== 'undefined') schlor.superChlorRemaining = parseInt(obj.superChlorRemaining, 10);
+        if (typeof obj.superChlorRemaining !== 'undefined') schlor.superChlorRemaining = parseInt(obj.superChlorRemaining, 10);
         schlor.targetOutput = typeof obj.targetOutput !== 'undefined' ? parseInt(obj.targetOutput, 10) : schlor.targetOutput;
         schlor.saltLevel = typeof obj.saltLevel !== 'undefined' ? parseInt(obj.saltLevel, 10) : schlor.saltLevel;
       }
@@ -3569,6 +3580,10 @@ export class ScheduleCommands extends BoardCommands {
     if (typeof sched.startDate === 'undefined')
       sched.master = 1;
     await ncp.schedules.setScheduleAsync(sched, data);
+    // update end time in case sched is changed while circuit is on
+    let cstate = state.circuits.getInterfaceById(sched.circuit);
+    sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(sched.circuit), cstate, cstate.isOn, true);
+    cstate.emitEquipmentChange();
     ssched.emitEquipmentChange();
     return sched;
   }
@@ -3597,7 +3612,8 @@ export class ScheduleCommands extends BoardCommands {
         let schedIsOn: boolean;
         let ssched = state.schedules.getItemByIndex(i);
         let scirc = state.circuits.getInterfaceById(ssched.circuit);
-        if (scirc.isOn &&
+        let mOP = sys.board.schedules.manualPriorityActive(ssched);  //sys.board.schedules.manualPriorityActiveByProxy(scirc.id);
+        if (scirc.isOn && !mOP &&
           (ssched.scheduleDays & dayVal) > 0 &&
           ts >= ssched.startTime && ts <= ssched.endTime) schedIsOn = true
         else schedIsOn = false;
@@ -3656,6 +3672,121 @@ export class ScheduleCommands extends BoardCommands {
       if (nearestStartTime.getTime() === 0 || startDateTime.getTime() < nearestStartTime.getTime()) nearestStartTime = startDateTime;
     }
     return nearestStartTime;
+  }
+  public manualPriorityForThisCircuit(circuit: number): boolean {
+    // This fn will test if this circuit/light group has any circuit group circuits that have manual priority active
+    let grp: ICircuitGroup;
+    let cgc: ICircuitGroupCircuit[] = [];
+    if (sys.board.equipmentIds.circuitGroups.isInRange(circuit) || sys.board.equipmentIds.features.isInRange(circuit))
+      grp = sys.circuitGroups.getInterfaceById(circuit);
+    if (state.circuitGroups.getInterfaceById(circuit).manualPriorityActive) return true;
+    if (grp && grp.isActive) cgc = grp.circuits.toArray();
+    for (let i = 0; i < cgc.length; i++) {
+      let c = state.circuits.getInterfaceById(cgc[i].id);
+      if (c.manualPriorityActive) return true;
+    }
+    return false;
+  }
+  public manualPriorityActive(schedule: ScheduleState): boolean {
+    // This method will look at all other schedules.  If any of them have been resumed, 
+    // and manualPriority (global setting) is on, and this schedule would otherwise impact
+    // that circuit, then we declared this schedule as being delayed due to manual override
+    // priority (mOP).
+    // We only need to check this if shouldBeOn = true; if that's false, exit.
+    // Rules:
+    // 1. If the circuit id for this schedule is in manual priority, then true
+    // 2. If the other schedule will turn on a body in a shared body, and it will affect
+    //    this circuit id, return true
+    // 3. If this is a circuit/light group schedule, check to see if any member circuit/lights have mOP active
+    // 4. If this is a circuit/light/feature, is there another group that has this same id with mOP active
+
+    if (schedule.isActive === false) return false;
+    if (schedule.disabled) return false;
+    if (!sys.general.options.manualPriority) return false;
+
+    let currGrp: ICircuitGroup;
+    let currSchedGrpCircs = [];
+    if (sys.board.equipmentIds.circuitGroups.isInRange(schedule.circuit) || sys.board.equipmentIds.features.isInRange(schedule.circuit))
+    currGrp = sys.circuitGroups.getInterfaceById(schedule.circuit);
+    if (currGrp && currGrp.isActive) currSchedGrpCircs = currGrp.circuits.toArray();
+    let circuitGrps: ICircuitGroup[] = sys.circuitGroups.toArray();
+    let lightGrps: ICircuitGroup[] = sys.lightGroups.toArray();
+    let currManualPriorityByProxy = sys.board.schedules.manualPriorityForThisCircuit(schedule.circuit);
+    // check this circuit
+    if (state.circuits.getInterfaceById(schedule.circuit).manualPriorityActive) return true;
+    // check this group, if present
+    if (currManualPriorityByProxy) return true;
+
+    let schedules: ScheduleState[] = state.schedules.get(true);
+    for (let i = 0; i < schedules.length; i++) {
+      let sched = schedules[i];
+      // if the id of another circuit is the same as this, we should delay
+      let schedCState = state.circuits.getInterfaceById(sched.circuit);
+      if (schedule.circuit === schedCState.id && schedCState.manualPriorityActive) return true;
+      // if OCP includes a shared body, and this schedule affects the shared body, 
+      // and this body is still on, we should delay
+      if (sys.equipment.shared && schedCState.dataName === 'circuit') {
+        let otherBody = sys.bodies.find(elem => elem.circuit === sched.circuit);
+        // let otherBodyIsOn = state.circuits.getInterfaceById(sched.circuit).isOn;
+        let thisBody = sys.bodies.find(elem => elem.circuit === schedule.circuit);
+        if (typeof otherBody !== 'undefined' && typeof thisBody !== 'undefined' && schedCState.manualPriorityActive) return true;
+      }
+      // if other circuit/schedule groups have this circ id, and it's mOP, return true
+      if (schedCState.dataName === 'circuitGroup') {
+        for (let i = 0; i < circuitGrps.length; i++) {
+          let grp: ICircuitGroup = circuitGrps[i];
+          let sgrp: ICircuitGroupState = state.circuitGroups.getInterfaceById(grp.id);
+          let circuits = grp.circuits.toArray();
+          if (grp.isActive) {
+            let manualPriorityByProxy = sys.board.schedules.manualPriorityForThisCircuit(grp.id);
+            for (let j = 0; j < circuits.length; j++) {
+              let cgc = grp.circuits.getItemByIndex(j);
+              let scgc = state.circuits.getInterfaceById(cgc.circuit);
+              // if the circuit id's match and mOP is active, we delay
+              if (scgc.id === schedule.circuit && scgc.manualPriorityActive) return true;
+              // check all the other cgc against this cgc
+              // note: circuit/light groups cannot be part of a group themselves
+              for (let k = 0; k < currSchedGrpCircs.length; k++) {
+                let currCircGrpCirc = state.circuits.getInterfaceById(currSchedGrpCircs[k].circuit);
+                // if either circuit in either group has mOP then delay
+                if (currManualPriorityByProxy || manualPriorityByProxy) {
+                  if (currCircGrpCirc.id === schedCState.id) return true;
+                  if (currCircGrpCirc.id === scgc.id) return true;
+                }
+              }
+            }
+          }
+        }
+      }
+      if (schedCState.dataName === 'lightGroup') {
+        for (let i = 0; i < lightGrps.length; i++) {
+          let grp: ICircuitGroup = lightGrps[i];
+          let sgrp: ICircuitGroupState = state.circuitGroups.getInterfaceById(grp.id);
+          let circuits = grp.circuits.toArray();
+          if (grp.isActive) {
+            let manualPriorityByProxy = sys.board.schedules.manualPriorityForThisCircuit(grp.id);
+            for (let j = 0; j < circuits.length; j++) {
+              let cgc = grp.circuits.getItemByIndex(j);
+              let scgc = state.circuits.getInterfaceById(cgc.circuit);
+              // if the circuit id's match and mOP is active, we delay
+              if (scgc.id === schedule.circuit && scgc.manualPriorityActive) return true;
+              // check all the other cgc against this cgc
+              // note: circuit/light groups cannot be part of a group themselves
+              for (let k = 0; k < currSchedGrpCircs.length; k++) {
+                let currCircGrpCirc = state.circuits.getInterfaceById(currSchedGrpCircs[k].circuit);
+                // if either circuit in either group has mOP then delay
+                if (currManualPriorityByProxy || manualPriorityByProxy) {
+                  if (currCircGrpCirc.id === schedCState.id) return true;
+                  if (currCircGrpCirc.id === scgc.id) return true;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+    // if we make it this far, nothing is impacting us
+    return false;
   }
 }
 export class HeaterCommands extends BoardCommands {

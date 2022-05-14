@@ -8,6 +8,7 @@ import { CircuitState, state, ICircuitState, } from "../../State";
 import { setTimeout, clearTimeout } from 'timers';
 import { NixieControlPanel } from '../Nixie';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
+import { delayMgr } from '../../../controller/Lockouts';
 
 export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircuit> {
     public pollingInterval: number = 2000;
@@ -184,17 +185,29 @@ export class NixieCircuit extends NixieEquipment {
                 // Check to see if we should be on by poking the schedules.
             }
             if (utils.isNullOrEmpty(this.circuit.connectionId) || utils.isNullOrEmpty(this.circuit.deviceBinding)) {
-                sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(cstate.id), cstate, val);
-                cstate.isOn = val;
+                if (val && val !== cstate.isOn){
+                    sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(cstate.id), cstate, val);
+                }
+                else if (!val){
+                    if (cstate.manualPriorityActive) delayMgr.cancelManualPriorityDelay(cstate.id);
+                    cstate.manualPriorityActive = false; // if the delay was previously cancelled, still need to turn this off
+                } 
+                cstate.isOn = val; 
                 return new InterfaceServerResponse(200, 'Success');
             }
             if (this._sequencing) return new InterfaceServerResponse(200, 'Success');
             let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, { isOn: val, latch: val ? 10000 : undefined });
             if (res.status.code === 200) {
-                sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(cstate.id), cstate, val);
                 // Set this up so we can process our egg timer.
                 //if (!cstate.isOn && val) { cstate.startTime = this.timeOn = new Timestamp(); }
                 //else if (!val) cstate.startTime = this.timeOn = undefined;
+                if (val && val !== cstate.isOn){
+                    sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(cstate.id), cstate, val);
+                }
+                else if (!val){
+                    delayMgr.cancelManualPriorityDelays();
+                    cstate.manualPriorityActive = false; // if the delay was previously cancelled, still need to turn this off
+                } 
                 cstate.isOn = val;
             }
             return res;

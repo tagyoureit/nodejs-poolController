@@ -505,6 +505,8 @@ export interface ICircuitState {
     isActive?: boolean;
     startDelay?: boolean;
     stopDelay?: boolean;
+    manualPriorityActive?: boolean;
+    dataName?: string;
 }
 
 interface IEqStateCreator<T> { ctor(data: any, name: string, parent?): T; }
@@ -1121,6 +1123,8 @@ export class ScheduleState extends EqState {
     public set coolSetpoint(val: number) { this.setDataVal('coolSetpoint', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
+    public get manualPriorityActive(): boolean { return this.data.manualPriorityActive; }
+    public set manualPriorityActive(val: boolean) { this.setDataVal('manualPriorityActive', val); }
     public getExtended() {
         let sched = this.get(true); // Always operate on a copy.
         //if (typeof this.circuit !== 'undefined')
@@ -1148,6 +1152,7 @@ export interface ICircuitGroupState {
     dataName: string;
     lightingTheme?: number;
     showInFeatures?: boolean;
+    manualPriorityActive?: boolean;
     get(bCopy?: boolean);
     emitEquipmentChange();
 }
@@ -1204,6 +1209,8 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState, IC
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get showInFeatures(): boolean { return typeof this.data.showInFeatures === 'undefined' ? true : this.data.showInFeatures; }
     public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
+    public get manualPriorityActive(): boolean { return this.data.manualPriorityActive; }
+    public set manualPriorityActive(val: boolean) { this.setDataVal('manualPriorityActive', val); }
     public getExtended() {
         let sgrp = this.get(true); // Always operate on a copy.
         if (typeof sgrp.showInFeatures === 'undefined') sgrp.showInFeatures = true;
@@ -1288,6 +1295,8 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    public get manualPriorityActive(): boolean { return this.data.manualPriorityActive; }
+    public set manualPriorityActive(val: boolean) { this.setDataVal('manualPriorityActive', val); }
     public async setThemeAsync(val: number) { return sys.board.circuits.setLightThemeAsync; }
     public getExtended() {
         let sgrp = this.get(true); // Always operate on a copy.
@@ -1605,6 +1614,8 @@ export class FeatureState extends EqState implements ICircuitState {
     public set freezeProtect(val: boolean) { this.setDataVal('freezeProtect', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    public get manualPriorityActive(): boolean { return this.data.manualPriorityActive; }
+    public set manualPriorityActive(val: boolean) { this.setDataVal('manualPriorityActive', val); }
 }
 export class VirtualCircuitState extends EqState implements ICircuitState {
     public dataName: string = 'virtualCircuit';
@@ -1751,6 +1762,8 @@ export class CircuitState extends EqState implements ICircuitState {
     public set lockoutOn(val: boolean) { this.setDataVal('lockoutOn', val); }
     public get lockoutOff(): boolean { return this.data.lockoutOff; }
     public set lockoutOff(val: boolean) { this.setDataVal('lockoutOff', val); }
+    public get manualPriorityActive(): boolean { return this.data.manualPriorityActive; }
+    public set manualPriorityActive(val: boolean) { this.setDataVal('manualPriorityActive', val); }
 }
 export class ValveStateCollection extends EqStateCollection<ValveState> {
     public createItem(data: any): ValveState { return new ValveState(data); }

@@ -53,6 +53,26 @@ import { webApp } from "../web/Server";
 // designated as a pool cleaner circuit if it is on and delays turning it on for 5min after the solar starts.  The assumption
 // here is that pressure reduction that can occur when the solar kicks on can cavitate the pump.
 //
+// Manual Operation Priority Delay: 
+//   From the manual: 
+//   Manual OP Priority: ON: This feature allows for a circuit to be manually switched OFF and switched ON within 
+//   a scheduled program, the circuit will continue to run for a maximum of 12 hours or whatever that circuit Egg 
+//   Timer is set to, after which the scheduled program will resume. This feature will turn off any scheduled 
+//   program to allow manual pump override. The Default setting is OFF.
+//
+//   ## When on
+//   1.  If a schedule should be on and the user turns the schedule off then the schedule expires until such time 
+//   as the time off has expired.  When that occurs the schedule should be reset to run at the designated time.  
+//   If the user resets the schedule by turning the circuit back on again then the schedule will be ignored and 
+//   the circuit will run until the egg timer expires or the circuit/feature is manually turned off.  This setting 
+//   WILL affect other schedules that may impact this circuit.
+// 
+//   ## When off
+//   1. "Normal" = If a schedule should be on and the user turns the schedule off then the schedule expires until 
+//   such time as the time off has expired.  When that occurs the schedule should be reset to run at the designated 
+//   time.  If the user resets the schedule by turning the circuit back on again then the schedule will resume and 
+//   turn off at the specified time.
+//
 // LOCKOUTS (Proposed):
 // Spillway Lockout: This locks out any circuit or feature that is marked with a Spillway circuit function (type) whenever
 // whenever the pool circuit is not engaged.  This should mark the spillway circuit as a delayStart then release it when the
@@ -89,6 +109,37 @@ export class EquipmentDelay implements ILockout {
             endTime: typeof this.endTime !== 'undefined' ? Timestamp.toISOLocal(this.endTime) : undefined,
             duration: typeof this.startTime !== 'undefined' && typeof this.endTime !== 'undefined' ? (this.endTime.getTime() - this.startTime.getTime()) / 1000 : 0
         };
+    }
+}
+export class ManualPriorityDelay extends EquipmentDelay {
+    public constructor(cs: ICircuitState) {
+        super();
+        this.type = 'manualOperationPriorityDelay';
+        this.message = `${cs.name} will override future schedules until expired/cancelled.`;
+        this.circuitState = cs;
+        this.circuitState.manualPriorityActive = true;
+        this.startTime = new Date();
+        this.endTime = cs.endTime.clone().toDate();
+        this._delayTimer = setTimeout(() => {
+            logger.info(`Manual Operation Priority expired for ${this.circuitState.name}`);
+            this.circuitState.manualPriorityActive = false;
+            delayMgr.deleteDelay(this.id);
+        }, this.endTime.getTime() - new Date().getTime());
+        logger.info(`Manual Operation Priority delay in effect until ${this.circuitState.name} - ${cs.endTime.toDate()}`);
+    }
+    public circuitState: ICircuitState;
+    public cancelDelay() {
+        this.circuitState.manualPriorityActive = false;
+        if (typeof this._delayTimer !== 'undefined') clearTimeout(this._delayTimer);
+        logger.info(`Manual Operation Priority cancelled for ${this.circuitState.name}`);
+        this._delayTimer = undefined;
+        delayMgr.deleteDelay(this.id);
+    }
+    public clearDelay() {
+        if (typeof this._delayTimer !== 'undefined') clearTimeout(this._delayTimer);
+        logger.info(`Manual Operation Priority cleared for ${this.circuitState.name}`);
+        this._delayTimer = undefined;
+        delayMgr.deleteDelay(this.id);
     }
 }
 export class PumpValveDelay extends EquipmentDelay {
@@ -299,6 +350,21 @@ export class DelayManager extends Array<EquipmentDelay> {
     public cancelDelay(id: number) {
         let del = this.find(x => x.id === id);
         if (typeof del !== 'undefined') del.cancelDelay();
+    }
+    public setManualPriorityDelay(cs: ICircuitState) {
+        let cds = this.filter(x => x.type === 'manualOperationPriorityDelay');
+        for (let i = 0; i < cds.length; i++) {
+            let delay = cds[i] as ManualPriorityDelay;
+            if (delay.circuitState.id === cs.id) delay.clearDelay();
+        }
+        this.push(new ManualPriorityDelay(cs)); this.setDirty();
+    }
+    public cancelManualPriorityDelays() { this.cancelDelaysByType('manualOperationPriorityDelay'); this.setDirty(); }
+    public cancelManualPriorityDelay(id: number){
+            let delays = this.filter(x => x.type === 'manualOperationPriorityDelay');
+            for (let i = 0; i < delays.length; i++) {
+                if((delays[i] as ManualPriorityDelay).circuitState.id === id) delays[i].cancelDelay();  
+        }
     }
     public setPumpValveDelay(ps: PumpState, delay?: number) {
         let cds = this.filter(x => x.type === 'pumpValveDelay');
