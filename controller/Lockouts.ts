@@ -133,6 +133,7 @@ export class ManualPriorityDelay extends EquipmentDelay {
         if (typeof this._delayTimer !== 'undefined') clearTimeout(this._delayTimer);
         logger.info(`Manual Operation Priority cancelled for ${this.circuitState.name}`);
         this._delayTimer = undefined;
+        this.circuitState.manualPriorityActive = false;
         delayMgr.deleteDelay(this.id);
     }
     public clearDelay() {

@@ -826,20 +826,19 @@ export class SystemBoard {
   public async turnOffAllCircuits() {
     // turn off all circuits/features
     for (let i = 0; i < state.circuits.length; i++) {
-      let s = state.circuits.getItemByIndex(i);
-      await sys.board.circuits.setCircuitStateAsync(s.id, false);
+      let s = state.circuits.getItemByIndex(i)
+      s.isOn = s.manualPriorityActive = false;
     }
     for (let i = 0; i < state.features.length; i++) {
-      let s = state.features.getItemByIndex(i);
-      await sys.board.features.setFeatureStateAsync(s.id, false);
+      let s = state.features.getItemByIndex(i)
+      s.isOn = s.manualPriorityActive = false;
     }
     for (let i = 0; i < state.lightGroups.length; i++) {
-      let s = state.lightGroups.getItemByIndex(i);
-      await sys.board.circuits.setCircuitStateAsync(s.id, false);
+      let s = state.lightGroups.getItemByIndex(i)
+      s.isOn = s.manualPriorityActive = false;
     }
     for (let i = 0; i < state.temps.bodies.length; i++) {
-      let s = state.temps.bodies.getItemByIndex(i);
-      await sys.board.circuits.setCircuitStateAsync(s.id, false);
+      state.temps.bodies.getItemByIndex(i).isOn = false;  
     }
     // sys.board.virtualPumpControllers.setTargetSpeed();
     state.emitEquipmentChanges();
@@ -3682,7 +3681,7 @@ export class ScheduleCommands extends BoardCommands {
     if (state.circuitGroups.getInterfaceById(circuit).manualPriorityActive) return true;
     if (grp && grp.isActive) cgc = grp.circuits.toArray();
     for (let i = 0; i < cgc.length; i++) {
-      let c = state.circuits.getInterfaceById(cgc[i].id);
+      let c = state.circuits.getInterfaceById(cgc[i].circuit);
       if (c.manualPriorityActive) return true;
     }
     return false;
@@ -3702,7 +3701,7 @@ export class ScheduleCommands extends BoardCommands {
 
     if (schedule.isActive === false) return false;
     if (schedule.disabled) return false;
-    if (!sys.general.options.manualPriority) return false;
+    //if (!sys.general.options.manualPriority) return false; //if we override a circuit to be mOP, this will not be true
 
     let currGrp: ICircuitGroup;
     let currSchedGrpCircs = [];
@@ -3743,7 +3742,7 @@ export class ScheduleCommands extends BoardCommands {
               let cgc = grp.circuits.getItemByIndex(j);
               let scgc = state.circuits.getInterfaceById(cgc.circuit);
               // if the circuit id's match and mOP is active, we delay
-              if (scgc.id === schedule.circuit && scgc.manualPriorityActive) return true;
+              if (scgc.id === schedule.circuit && manualPriorityByProxy) return true;
               // check all the other cgc against this cgc
               // note: circuit/light groups cannot be part of a group themselves
               for (let k = 0; k < currSchedGrpCircs.length; k++) {

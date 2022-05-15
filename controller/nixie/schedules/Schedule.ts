@@ -208,8 +208,14 @@ export class NixieSchedule extends NixieEquipment {
                     this.resumed = true;
                 }
                 this.suspended = !cstate.isOn;
-                ssched.isOn = cstate.isOn && !manualPriorityActive;
-                if (this.suspended && !cstate.isOn) ssched.manualPriorityActive = false;
+                if (manualPriorityActive){
+                    ssched.isOn = false;
+                    ssched.manualPriorityActive = true;
+                }
+                else {
+                    ssched.isOn = cstate.isOn;
+                    ssched.manualPriorityActive = false;  
+                }
             }
             // Our schedule has expired it is time to turn it off, but only if !manualPriorityActive.
             else if (!shouldBeOn) {

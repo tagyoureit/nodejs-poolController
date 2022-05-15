@@ -1,5 +1,20 @@
 # Changelog
 
+## 7.7.0
+1. Aqualink-D MQTT Interface
+2. Manual Priority for Schedules
+3. Add multiple RS-485 ports
+4. Support for Hayward Pumps
+5. Display remote chlorinators
+6. Updates for ETi hybrid
+7. Stop temp deltas for Nixie
+8. Batch write influx points
+9. MQTT & Influx updates
+10. Ability to hide bodies in dashPanel
+11. Florida Sunseeker Pooltone lighting
+12. Proper uPNP formatting
+
+
 ## 7.6.1
 1. Many bugfixes: Intellichem, Touch body capacities, Ultratemp heaters, Nixie, more...
 2. Add env variables for Docker setup: POOL_RS485_PORT, POOL_NET_CONNECT, POOL_NET_HOST, POOL_NET_PORT, SOURCE_COMMIT, SOURCE_BRANCH
