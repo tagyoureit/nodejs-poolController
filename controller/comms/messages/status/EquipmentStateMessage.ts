@@ -513,7 +513,9 @@ export class EquipmentStateMessage {
                 state.temps.waterSensor1 = msg.extractPayloadByte(0);
                 state.temps.air = msg.extractPayloadByte(2);
                 let solar: Heater = sys.heaters.getItemById(2);
-                if (solar.isActive) state.temps.solar = msg.extractPayloadByte(8);
+                // RKS: 05-18-22 - This is not correct the solar temp is not stored on this message.  It is always 0
+                // on an intelliTouch system with solar.
+                //if (solar.isActive) state.temps.solar = msg.extractPayloadByte(8);
                 // pool
                 let tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
                 let cbody: Body = sys.bodies.getItemById(1);

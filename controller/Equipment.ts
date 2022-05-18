@@ -164,6 +164,11 @@ export class PoolSystem implements IPoolSystem {
         EqItemCollection.removeNullIds(cfg.remotes);
         EqItemCollection.removeNullIds(cfg.chemControllers);
         EqItemCollection.removeNullIds(cfg.filters);
+        if (typeof cfg.pumps !== 'undefined') {
+            for (let i = 0; i < cfg.pumps.length; i++) {
+                EqItemCollection.removeNullIds(cfg.pumps[i].circuits);
+            }
+        }
         this.data = this.onchange(cfg, function () { sys.dirty = true; });
         this.general = new General(this.data, 'pool');
         this.equipment = new Equipment(this.data, 'equipment');
@@ -527,7 +532,9 @@ class EqItemCollection<T> implements IEqItemCollection {
     public static removeNullIds(data: any) {
         if (typeof data !== 'undefined' && Array.isArray(data) && typeof data.length === 'number') {
             for (let i = data.length - 1; i >= 0; i--) {
-                if (typeof data[i].id !== 'number') data.splice(i, 1);
+                if (typeof data[i].id !== 'number') {
+                    data.splice(i, 1);
+                }
                 else if (typeof data[i].id === 'undefined' || isNaN(data[i].id)) data.splice(i, 1);
             }
         }

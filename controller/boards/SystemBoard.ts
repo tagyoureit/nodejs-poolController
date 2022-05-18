@@ -1136,110 +1136,113 @@ export class SystemCommands extends BoardCommands {
     state.temps.units = sys.general.options.units === 0 ? 1 : 4;
     return sys.general.options;
   }
-  public async setLocationAsync(obj: any): Promise<Location> {
-    sys.general.location.set(obj);
-    return sys.general.location;
-  }
+    public async setLocationAsync(obj: any): Promise<Location> {
+        sys.general.location.set(obj);
+        return sys.general.location;
+    }
   public async setOwnerAsync(obj: any): Promise<Owner> {
     sys.general.owner.set(obj);
     return sys.general.owner;
   }
-  public async setTempsAsync(obj: any): Promise<TemperatureState> {
-    return new Promise<TemperatureState>((resolve, reject) => {
-      for (let prop in obj) {
-        switch (prop) {
-          case 'air':
-          case 'airSensor':
-          case 'airSensor1':
-            {
-              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-              state.temps.air = sys.equipment.tempSensors.getCalibration('air') + temp;
-            }
-            break;
-          case 'waterSensor1':
-            {
-              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-              state.temps.waterSensor1 = sys.equipment.tempSensors.getCalibration('water1') + temp;
-              let body = state.temps.bodies.getItemById(1);
-              if (body.isOn) body.temp = state.temps.waterSensor1;
-              else if (sys.equipment.shared) {
-                body = state.temps.bodies.getItemById(2);
-                if (body.isOn) body.temp = state.temps.waterSensor1;
-              }
-            }
-            break;
-          case 'waterSensor2':
-            {
-              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-              state.temps.waterSensor2 = sys.equipment.tempSensors.getCalibration('water2') + temp;
-              if (!state.equipment.shared) {
-                let body = state.temps.bodies.getItemById(2);
-                if (body.isOn) body.temp = state.temps.waterSensor2;
-              }
-            }
-            break;
-          case 'waterSensor3':
-            {
-              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-              state.temps.waterSensor3 = sys.equipment.tempSensors.getCalibration('water3') + temp;
-              let body = state.temps.bodies.getItemById(3);
-              if (body.isOn) body.temp = state.temps.waterSensor3;
-            }
-            break;
-          case 'waterSensor4':
-            {
+    public async setTempsAsync(obj: any): Promise<TemperatureState> {
+        return new Promise<TemperatureState>((resolve, reject) => {
+            for (let prop in obj) {
+                switch (prop) {
+                    case 'air':
+                    case 'airSensor':
+                    case 'airSensor1':
+                        {
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                            state.temps.air = sys.equipment.tempSensors.getCalibration('air') + temp;
+                        }
+                        break;
+                    case 'waterSensor1':
+                        {
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                            state.temps.waterSensor1 = sys.equipment.tempSensors.getCalibration('water1') + temp;
+                            let body = state.temps.bodies.getItemById(1);
+                            if (body.isOn) body.temp = state.temps.waterSensor1;
+                            else if (!sys.equipment.dual) {
+                                body = state.temps.bodies.find(elem => elem.id === 2);
+                                if (typeof body !== 'undefined') {
+                                    body = state.temps.bodies.getItemById(2);
+                                    if (body.isOn) body.temp = state.temps.waterSensor1;
+                                }
+                            }
+                        }
+                        break;
+                    case 'waterSensor2':
+                        {
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                            state.temps.waterSensor2 = sys.equipment.tempSensors.getCalibration('water2') + temp;
+                            if (state.equipment.dual) {
+                                let body = state.temps.bodies.getItemById(2);
+                                if (body.isOn) body.temp = state.temps.waterSensor2;
+                            }
+                        }
+                        break;
+                    case 'waterSensor3':
+                        {
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                            state.temps.waterSensor3 = sys.equipment.tempSensors.getCalibration('water3') + temp;
+                            let body = state.temps.bodies.getItemById(3);
+                            if (body.isOn) body.temp = state.temps.waterSensor3;
+                        }
+                        break;
+                    case 'waterSensor4':
+                        {
 
-              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-              state.temps.waterSensor4 = sys.equipment.tempSensors.getCalibration('water4') + temp;
-              let body = state.temps.bodies.getItemById(4);
-              if (body.isOn) body.temp = state.temps.waterSensor4;
-            }
-            break;
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                            state.temps.waterSensor4 = sys.equipment.tempSensors.getCalibration('water4') + temp;
+                            let body = state.temps.bodies.getItemById(4);
+                            if (body.isOn) body.temp = state.temps.waterSensor4;
+                        }
+                        break;
 
-          case 'solarSensor1':
-          case 'solar1':
-          case 'solar':
-            {
-              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-              state.temps.solar = sys.equipment.tempSensors.getCalibration('solar1') + temp;
+                    case 'solarSensor1':
+                    case 'solar1':
+                    case 'solar':
+                        {
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                            state.temps.solar = sys.equipment.tempSensors.getCalibration('solar1') + temp;
+                        }
+                        break;
+                    case 'solar2':
+                    case 'solarSensor2':
+                        {
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                            state.temps.solarSensor2 = sys.equipment.tempSensors.getCalibration('solar2') + temp;
+                        }
+                        break;
+                    case 'solar3':
+                    case 'solarSensor3':
+                        {
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                            state.temps.solarSensor3 = sys.equipment.tempSensors.getCalibration('solar3') + temp;
+                        }
+                        break;
+                    case 'solar4':
+                    case 'solarSensor4':
+                        {
+                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                            state.temps.solarSensor4 = sys.equipment.tempSensors.getCalibration('solar4') + temp;
+                        }
+                        break;
+                }
             }
-            break;
-          case 'solar2':
-          case 'solarSensor2':
-            {
-              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-              state.temps.solarSensor2 = sys.equipment.tempSensors.getCalibration('solar2') + temp;
-            }
-            break;
-          case 'solar3':
-          case 'solarSensor3':
-            {
-              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-              state.temps.solarSensor3 = sys.equipment.tempSensors.getCalibration('solar3') + temp;
-            }
-            break;
-          case 'solar4':
-          case 'solarSensor4':
-            {
-              let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-              if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-              state.temps.solarSensor4 = sys.equipment.tempSensors.getCalibration('solar4') + temp;
-            }
-            break;
-        }
-      }
-      sys.board.heaters.syncHeaterStates();
-      resolve(state.temps);
-    });
-  }
+            sys.board.heaters.syncHeaterStates();
+            resolve(state.temps);
+        });
+    }
   public getSensors() {
     let sensors = [{ name: 'Air Sensor', temp: state.temps.air, tempAdj: sys.equipment.tempSensors.getCalibration('air'), binding: 'airTempAdj' }];
     if (sys.equipment.shared) {
