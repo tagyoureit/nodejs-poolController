@@ -2230,8 +2230,7 @@ class TouchPumpCommands extends PumpCommands {
                 for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
                     // RKS: This notion of always returning the max number of circuits was misguided.  It leaves gaps in the circuit definitions and makes the pump
                     // layouts difficult when there are a variety of supported circuits.  For instance with SF pumps you only get 4.
-                    let c = i >= data.circuits.length - 1 ? { speed: type.minSpeed || 0, flow: type.minFlow || 0, circuit: 0 } : data.circuits[i - 1];
-                    //let c = data.circuits[i - 1];
+                    let c = i > data.circuits.length ? { speed: type.minSpeed || 0, flow: type.minFlow || 0, circuit: 0 } : data.circuits[i - 1];
                     let speed = parseInt(c.speed, 10);
                     let flow = parseInt(c.flow, 10);
                     if (isNaN(speed)) speed = type.minSpeed;
