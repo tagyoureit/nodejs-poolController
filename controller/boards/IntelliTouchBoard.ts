@@ -98,7 +98,7 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         eq.shared = mt.shared;
         eq.dual = typeof mt.dual !== 'undefined' ? mt.dual : false;
         eq.single = typeof mt.single !== 'undefined' ? mt.single : false;
-        eq.intakeReturnValves = mt.shared ? true : false;
+        eq.intakeReturnValves = eq.single ? false : true;
         eq.maxChlorinators = md.chlorinators = 1;
         eq.maxChemControllers = md.chemControllers = 1;
         eq.maxCustomNames = 20;
