@@ -49,6 +49,7 @@ export class IntelliComBoard extends EasyTouchBoard {
         eq.maxPumps = md.maxPumps = typeof mt.pumps !== 'undefined' ? mt.pumps : 2;
         eq.shared = mt.shared;
         eq.dual = false;
+        eq.single = true;
         eq.maxChlorinators = md.chlorinators = 1;
         eq.maxChemControllers = md.chemControllers = 1;
         eq.maxCustomNames = 10;

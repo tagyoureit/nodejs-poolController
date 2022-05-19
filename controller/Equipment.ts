@@ -881,11 +881,17 @@ export class ExpansionPanel extends EqItem {
 export class Equipment extends EqItem {
     public dataName = 'equipmentConfig';
     public initData() {
+        if (typeof this.data.single === 'undefined') {
+            if (this.data.dual === true || this.data.shared === true) this.data.single = false;
+            else if (sys.controllerType !== ControllerType.IntelliTouch) this.data.single = true;
+        }
     }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
     public get type(): number { return this.data.type; }
     public set type(val: number) { this.setDataVal('type', val); }
+    public get single(): boolean { return this.data.single; }
+    public set single(val: boolean) { this.setDataVal('single', val); }
     public get shared(): boolean { return this.data.shared; }
     public set shared(val: boolean) { this.setDataVal('shared', val); }
     public get dual(): boolean { return this.data.dual; }

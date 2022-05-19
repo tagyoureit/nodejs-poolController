@@ -128,11 +128,11 @@ export class IntelliCenterBoard extends SystemBoard {
             // with the i8P and i10P than I do with the others as this follows the pattern for the known personality cards.  i10D and the order of the
             // MUX and A/D modules don't seem to fit the pattern.  If we ever see an i10D then this may be bit 3&4 set to 1.  The theory here is that
             // the first 5 bits indicate up to 16 potential personality cards with 0 being i5P.
-            [0, { name: 'i5P', part: '523125Z', desc: 'i5P Personality Card', bodies: 1, valves: 2, circuits: 5, shared: false, dual: false, chlorinators: 1, chemControllers: 1 }],
+            [0, { name: 'i5P', part: '523125Z', desc: 'i5P Personality Card', bodies: 1, valves: 2, circuits: 5, single: true, shared: false, dual: false, chlorinators: 1, chemControllers: 1 }],
             [1, { name: 'i5PS', part: '521936Z', desc: 'i5PS Personality Card', bodies: 2, valves: 4, circuits: 6, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
-            [2, { name: 'i8P', part: '521977Z', desc: 'i8P Personality Card', bodies: 1, valves: 2, circuits: 8, shared: false, dual: false, chlorinators: 1, chemControllers: 1 }], // This is a guess
+            [2, { name: 'i8P', part: '521977Z', desc: 'i8P Personality Card', bodies: 1, valves: 2, circuits: 8, single: true, shared: false, dual: false, chlorinators: 1, chemControllers: 1 }], // This is a guess
             [3, { name: 'i8PS', part: '521968Z', desc: 'i8PS Personality Card', bodies: 2, valves: 4, circuits: 9, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
-            [4, { name: 'i10P', part: '521993Z', desc: 'i10P Personality Card', bodies: 1, valves: 2, circuits: 10, shared: false, dual: false, chlorinators: 1, chemControllers: 1 }], // This is a guess
+            [4, { name: 'i10P', part: '521993Z', desc: 'i10P Personality Card', bodies: 1, valves: 2, circuits: 10, single: true, shared: false, dual: false, chlorinators: 1, chemControllers: 1 }], // This is a guess
             [5, { name: 'i10PS', part: '521873Z', desc: 'i10PS Personality Card', bodies: 2, valves: 4, circuits: 11, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
             [6, { name: 'i10x', part: '522997Z', desc: 'i10x Expansion Module', circuits: 10 }],
             [7, { name: 'i10D', part: '523029Z', desc: 'i10D Personality Card', bodies: 2, valves: 2, circuits: 11, shared: false, dual: true, chlorinators: 1, chemControllers: 2 }], // We have witnessed this in the wild
@@ -345,6 +345,7 @@ export class IntelliCenterBoard extends SystemBoard {
         sys.equipment.maxChemControllers = inv.chemControllers;
         sys.equipment.shared = inv.shared;
         sys.equipment.dual = inv.dual;
+        sys.equipment.single = (inv.shared === false && inv.dual === false);
         sys.equipment.maxPumps = 16;
         sys.equipment.maxLightGroups = 40;
         sys.equipment.maxCircuitGroups = 16;
@@ -359,6 +360,7 @@ export class IntelliCenterBoard extends SystemBoard {
         state.equipment.maxPumps = sys.equipment.maxPumps;
         state.equipment.maxSchedules = sys.equipment.maxSchedules;
         state.equipment.maxValves = sys.equipment.maxValves;
+        state.equipment.single = sys.equipment.single;
         state.equipment.shared = sys.equipment.shared;
         state.equipment.dual = sys.equipment.dual;
         //let pb = sys.equipment.modules.getItemById(0);
@@ -429,6 +431,7 @@ export class IntelliCenterBoard extends SystemBoard {
         if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
         if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
         if (typeof mt.chemControllers !== 'undefined') inv.chemControllers += mt.chemControllers;
+        if (typeof mt.single !== 'undefined') inv.single = mt.single;
         if (typeof mt.shared !== 'undefined') inv.shared = mt.shared;
         if (typeof mt.dual !== 'undefined') inv.dual = mt.dual;
         if (slot1 === 0) modules.removeItemById(1);
@@ -529,6 +532,7 @@ export class IntelliCenterBoard extends SystemBoard {
             if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
             if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
             if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
+            if (typeof mt.single !== 'undefined') inv.single = mt.single;
             if (typeof mt.shared !== 'undefined') inv.shared = mt.shared;
             if (typeof mt.dual !== 'undefined') inv.dual = mt.dual;
             if (typeof mt.chemControllers !== 'undefined') inv.chemControllers += mt.chemControllers;
@@ -824,7 +828,9 @@ class IntelliCenterConfigQueue extends ConfigQueue {
                 setTimeout(() => { sys.board.checkConfiguration(); }, 250);
             }
             state.status = 1;
+            state.equipment.single = sys.equipment.single;
             state.equipment.shared = sys.equipment.shared;
+            state.equipment.dual = sys.equipment.dual;
             state.equipment.model = sys.equipment.model;
             state.equipment.controllerType = sys.controllerType;
             state.equipment.maxBodies = sys.equipment.maxBodies;

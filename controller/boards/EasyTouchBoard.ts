@@ -329,16 +329,16 @@ export class EasyTouchBoard extends SystemBoard {
         ]);
         this.valueMaps.expansionBoards = new byteValueMap([
             [0, { name: 'ET28', part: 'ET2-8', desc: 'EasyTouch2 8', circuits: 8, shared: true }],
-            [1, { name: 'ET28P', part: 'ET2-8P', desc: 'EasyTouch2 8P', circuits: 8, shared: false }],
+            [1, { name: 'ET28P', part: 'ET2-8P', desc: 'EasyTouch2 8P', circuits: 8, single: true, shared: false }],
             [2, { name: 'ET24', part: 'ET2-4', desc: 'EasyTouch2 4', circuits: 4, shared: true }],
-            [3, { name: 'ET24P', part: 'ET2-4P', desc: 'EasyTouch2 4P', circuits: 4, shared: false }],
+            [3, { name: 'ET24P', part: 'ET2-4P', desc: 'EasyTouch2 4P', circuits: 4, single: true, shared: false }],
             [6, { name: 'ETPSL4', part: 'ET-PSL4', desc: 'EasyTouch PSL4', circuits: 4, features: 2, schedules: 4, pumps: 1, shared: true }],
-            [7, { name: 'ETPL4', part: 'ET-PL4', desc: 'EasyTouch PL4', circuits: 4, features: 2, schedules: 4, pumps: 1, shared: false }],
+            [7, { name: 'ETPL4', part: 'ET-PL4', desc: 'EasyTouch PL4', circuits: 4, features: 2, schedules: 4, pumps: 1, single: true, shared: false }],
             // EasyTouch 1 models all start at 128.
             [128, { name: 'ET8', part: 'ET-8', desc: 'EasyTouch 8', circuits: 8, shared: true }],
-            [129, { name: 'ET8P', part: 'ET-8P', desc: 'EasyTouch 8', circuits: 8, shared: false }],
+            [129, { name: 'ET8P', part: 'ET-8P', desc: 'EasyTouch 8', circuits: 8, single: true, shared: false }],
             [130, { name: 'ET4', part: 'ET-4', desc: 'EasyTouch 4', circuits: 4, shared: true }],
-            [129, { name: 'ET4P', part: 'ET-4P', desc: 'EasyTouch 4P', circuits: 4, shared: false }]
+            [129, { name: 'ET4P', part: 'ET-4P', desc: 'EasyTouch 4P', circuits: 4, single: true, shared: false }]
         ]);
     }
     public initHeaterDefaults() {
@@ -408,6 +408,7 @@ export class EasyTouchBoard extends SystemBoard {
         eq.maxValves = md.valves = typeof mt.valves !== 'undefined' ? mt.valves : mt.shared ? 4 : 2;
         eq.maxPumps = md.maxPumps = typeof mt.pumps !== 'undefined' ? mt.pumps : 2;
         eq.shared = mt.shared;
+        eq.single = typeof mt.single !== 'undefined' ? mt.single : false;
         eq.dual = false;
         eq.maxChlorinators = md.chlorinators = 1;
         eq.maxChemControllers = md.chemControllers = 1;
@@ -450,6 +451,7 @@ export class EasyTouchBoard extends SystemBoard {
         state.equipment.maxPumps = sys.equipment.maxPumps;
         state.equipment.maxSchedules = sys.equipment.maxSchedules;
         state.equipment.maxValves = sys.equipment.maxValves;
+        state.equipment.single = sys.equipment.single;
         state.equipment.shared = sys.equipment.shared;
         state.equipment.dual = sys.equipment.dual;
         state.emitControllerChange();
@@ -2592,6 +2594,7 @@ class TouchHeaterCommands extends HeaterCommands {
                     resolve(heater);
                 }
             }
+            conn.queueSendMessage(out);
         });
     }
     public async deleteHeaterAsync(obj: any): Promise<Heater> {

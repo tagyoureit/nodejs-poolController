@@ -641,6 +641,10 @@ class EqStateCollection<T> {
         }
         return rem;
     }
+    public removeItemByIndex(ndx: number) {
+        return this.data.splice(ndx, 1);
+    }
+
     public createItem(data: any): T { return new EqState(data) as unknown as T; }
     public clear() { this.data.length = 0; }
     public get length(): number { return typeof (this.data) !== 'undefined' ? this.data.length : 0; }
@@ -732,6 +736,8 @@ export class EquipmentState extends EqState {
     public set name(val: string) { this.setDataVal('name', val); }
     public get model(): string { return this.data.model; }
     public set model(val: string) { this.setDataVal('model', val); }
+    public get single(): boolean { return this.data.single; }
+    public set single(val: boolean) { this.setDataVal('single', val); }
     public get shared(): boolean { return this.data.shared; }
     public set shared(val: boolean) { this.setDataVal('shared', val); }
     public get dual(): boolean { return this.data.dual; }

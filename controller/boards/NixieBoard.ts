@@ -134,7 +134,7 @@ export class NixieBoard extends SystemBoard {
             return { val: b, days: days };
         };
         this.valueMaps.expansionBoards = new byteValueMap([
-            [0, { name: 'nxp', part: 'NXP', desc: 'Nixie Single Body', bodies: 1, valves: 0, shared: false, dual: false }],
+            [0, { name: 'nxp', part: 'NXP', desc: 'Nixie Single Body', bodies: 1, valves: 0, single: true, shared: false, dual: false }],
             [1, { name: 'nxps', part: 'NXPS', desc: 'Nixie Shared Body', bodies: 2, valves: 2, shared: true, dual: false, chlorinators: 1, chemControllers: 1 }],
             [2, { name: 'nxpd', part: 'NXPD', desc: 'Nixie Dual Body', bodies: 2, valves: 0, shared: false, dual: true, chlorinators: 2, chemControllers: 2 }],
             [255, { name: 'nxnb', part: 'NXNB', desc: 'Nixie No Body', bodies: 0, valves: 0, shared: false, dual: false, chlorinators: 0, chemControllers: 0 }]
@@ -275,8 +275,9 @@ export class NixieBoard extends SystemBoard {
             let type = typeof mod.type !== 'undefined' ? this.valueMaps.expansionBoards.transform(mod.type) : this.valueMaps.expansionBoards.transform(0);
             logger.info(`Initializing Nixie Control Panel for ${type.desc}`);
 
-            sys.equipment.shared = type.shared;
-            sys.equipment.dual = type.dual;
+            state.equipment.shared = sys.equipment.shared = type.shared;
+            state.equipment.dual = sys.equipment.dual = type.dual;
+            state.equipment.single = sys.equipment.single = sys.equipment.shared === false && sys.equipment.dual === false;
             sys.equipment.controllerFirmware = '1.0.0';
             mod.type = type.val;
             mod.part = type.part;
@@ -299,6 +300,7 @@ export class NixieBoard extends SystemBoard {
             state.equipment.model = type.desc;
             state.equipment.maxBodies = sys.equipment.maxBodies = type.bodies;
             let bodyUnits = sys.general.options.units === 0 ? 1 : 2;
+            sys.equipment.single = typeof type.single !== 'undefined' ? type.single : false;
 
             if (typeof state.temps.units === 'undefined' || state.temps.units < 0) state.temps.units = sys.general.options.units;
             if (type.bodies > 0) {
