@@ -349,88 +349,93 @@ export class NixieSolarHeater extends NixieHeaterBase {
     public logData(filename: string, data: any) { this.controlPanel.logData(filename, data); }
 }
 export class NixieHeatpump extends NixieHeaterBase {
-    public configSent: boolean = false;
+    public pollingInterval: number = 10000;
+    //declare heater: Heater;
     constructor(ncp: INixieControlPanel, heater: Heater) {
         super(ncp, heater);
-        // Set the polling interval to 3 seconds.
+        this.heater = heater;
+        if (typeof this.heater.stopTempDelta === 'undefined') this.heater.stopTempDelta = 1;
+        if (typeof this.heater.minCycleTime === 'undefined') this.heater.minCycleTime = 2;
         this.pollEquipmentAsync();
     }
-    public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean, isCooling: boolean) {
+    public get id(): number { return typeof this.heater !== 'undefined' ? this.heater.id : -1; }
+    public getCooldownTime(): number { return 0; } // There is no cooldown delay at this time for a heatpump
+    public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean) {
         try {
-            this.suspendPolling = true;
+            // Initialize the desired state.
             this.isOn = isOn;
-            this.isCooling = isCooling;
-            if (!hstate.startupDelay) {
-                if (isOn && !isCooling) this.lastHeatCycle = new Date();
-                else if (isCooling) this.lastCoolCycle = new Date();
+            this.isCooling = false;
+            let target = hstate.startupDelay === false && isOn;
+            if (target && typeof hstate.endTime !== 'undefined') {
+                // Calculate a short cycle time so that the gas heater does not cycle
+                // too often.  For gas heaters this is 60 seconds.  This gives enough time
+                // for the heater control circuit to make a full cycle.
+                if (new Date().getTime() - hstate.endTime.getTime() < this.heater.minCycleTime * 60000) {
+                    logger.verbose(`${hstate.name} short cycle detected deferring turn on state`);
+                    target = false;
+                }
             }
-            // When this is implemented lets not forget to deal with the startup and any desired cool down delay.  See UltraTemp for implementation.
-        } catch (err) { return logger.error(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
-        finally { this.suspendPolling = false; }
+            // Here we go we need to set the firemans switch state.
+            if (hstate.isOn !== target) {
+                logger.info(`Nixie: Set Heatpump ${hstate.id}-${hstate.name} to ${isOn}`);
+            }
+            if (typeof this._lastState === 'undefined' || target || this._lastState !== target) {
+                if (utils.isNullOrEmpty(this.heater.connectionId) || utils.isNullOrEmpty(this.heater.deviceBinding)) {
+                    this._lastState = hstate.isOn = target;
+                }
+                else {
+                    let res = await NixieEquipment.putDeviceService(this.heater.connectionId, `/state/device/${this.heater.deviceBinding}`,
+                        { isOn: target, latch: target ? 10000 : undefined });
+                    if (res.status.code === 200) this._lastState = hstate.isOn = target;
+                    else logger.error(`Nixie Error setting heatpump state: ${res.status.code} -${res.status.message} ${res.error.message}`);
+                }
+                if (target) this.lastHeatCycle = new Date();
+            }
+        } catch (err) { return logger.error(`Nixie Error setting heatpump state ${hstate.id}-${hstate.name}: ${err.message}`); }
     }
     public async pollEquipmentAsync() {
         let self = this;
         try {
-            this.suspendPolling = true;
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
-            if (this._suspendPolling > 1) return;
-            let sheater = state.heaters.getItemById(this.heater.id, !this.closing);
-            // If the body isn't on then we won't communicate with the chem controller.  There is no need
-            // since most of the time these are attached to the filter relay.
-            if (this.isBodyOn() && !this.closing) {
-                await this.sendState(sheater);
-                //if (!this.closing) await this.requestStatus(sheater);
-            }
+            let success = false;
         }
-        catch (err) { logger.error(`Error polling Heat Pump - ${err}`); }
-        finally {
-            this.suspendPolling = false; if (!this.closing) this._pollTimer = setTimeout(async () => {
-                try { await self.pollEquipmentAsync() } catch (err) { }
-            }, this.pollingInterval || 10000);
-        }
+        catch (err) { logger.error(`Nixie Error polling Heatpump - ${err}`); }
+        finally { this._pollTimer = setTimeout(async () => await self.pollEquipmentAsync(), this.pollingInterval || 10000); }
     }
-    public async sendState(sheater: HeaterState): Promise<boolean> {
+    private async checkHardwareStatusAsync(connectionId: string, deviceBinding: string) {
         try {
-            sheater.type = 2;
-            let success = await new Promise<boolean>((resolve, reject) => {
-                let out = Outbound.create({
-                    portId: this.heater.portId || 0,
-                    protocol: Protocol.Heater,
-                    source: 16,
-                    dest: this.heater.address,
-                    action: 210,
-                    payload: [210],
-                    retries: 3, // We are going to try 4 times.
-                    response: Response.create({ protocol: Protocol.IntelliChem, action: 18 }),
-                    onAbort: () => { },
-                    onComplete: (err) => {
-                        if (err) {
-                            // If the IntelliChem is not responding we need to store that off.  If an 18 does
-                            // come across this will be cleared by the processing of that message.
-                            resolve(false);
-                        }
-                        else { resolve(true); }
-                    }
-                });
-                conn.queueSendMessage(out);
-            });
-            return success;
-        } catch (err) { logger.error(`Communication error with Ultratemp : ${err.message}`); }
+            let dev = await NixieEquipment.getDeviceService(connectionId, `/status/device/${deviceBinding}`);
+            return dev;
+        } catch (err) { logger.error(`Nixie Heatpump Error checkHardwareStatusAsync: ${err.message}`); return { hasFault: true } }
+    }
+    public async validateSetupAsync(heater: Heater, hstate: HeaterState) {
+        try {
+            if (typeof heater.connectionId !== 'undefined' && heater.connectionId !== ''
+                && typeof heater.deviceBinding !== 'undefined' && heater.deviceBinding !== '') {
+                try {
+                    let stat = await this.checkHardwareStatusAsync(heater.connectionId, heater.deviceBinding);
+                    // If we have a status check the return.
+                    hstate.commStatus = stat.hasFault ? 1 : 0;
+                } catch (err) { hstate.commStatus = 1; }
+            }
+            else
+                hstate.commStatus = 0;
+        } catch (err) { logger.error(`Nixie Error checking heatpump Hardware ${this.heater.name}: ${err.message}`); hstate.commStatus = 1; return Promise.reject(err); }
     }
     public async closeAsync() {
         try {
-            this.suspendPolling = true;
-            this.closing = true;
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
-            logger.info(`Closing Heater ${this.heater.name}`);
-
+            let hstate = state.heaters.getItemById(this.heater.id);
+            await this.setHeaterStateAsync(hstate, false);
+            hstate.emitEquipmentChange();
         }
-        catch (err) { logger.error(`Ultratemp closeAsync: ${err.message}`); return Promise.reject(err); }
+        catch (err) { logger.error(`Nixie Heatpump closeAsync: ${err.message}`); return Promise.reject(err); }
     }
+    public logData(filename: string, data: any) { this.controlPanel.logData(filename, data); }
 }
-export class NixieUltratemp extends NixieHeatpump {
+export class NixieUltratemp extends NixieHeaterBase {
     constructor(ncp: INixieControlPanel, heater: Heater) {
         super(ncp, heater);
         // Set the polling interval to 3 seconds.
