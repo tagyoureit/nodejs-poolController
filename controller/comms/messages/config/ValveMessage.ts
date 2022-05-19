@@ -82,7 +82,7 @@ export class ValveMessage {
         for (let ndx = 4, id = 1; id <= sys.equipment.maxValves; ndx++) {
             let valve: Valve = sys.valves.getItemById(id);
             if (id === 3) {
-                if (sys.equipment.shared) {
+                if (sys.equipment.shared && !sys.equipment.single) {
                     valve = sys.valves.getItemById(id, true);
                     valve.circuit = 6; // pool/spa -- fix
                     valve.name = ValveMessage.getName(id, valve.circuit);
@@ -102,7 +102,7 @@ export class ValveMessage {
                 id++;
             }
             else if (id === 4) {
-                if (sys.equipment.shared) {
+                if (sys.equipment.shared && !sys.equipment.single) {
                     valve = sys.valves.getItemById(id, true);
                     valve.circuit = 6; // pool/spa -- fix
                     valve.name = ValveMessage.getName(id, valve.circuit);
@@ -125,7 +125,7 @@ export class ValveMessage {
                 valve = sys.valves.getItemById(id, true);
                 let circ = msg.extractPayloadByte(ndx);
                 valve.circuit = circ > 0 && circ < 255 ? circ : 0;
-                valve.circuit = msg.extractPayloadByte(ndx);
+                //valve.circuit = msg.extractPayloadByte(ndx);
                 //valve.isActive = valve.circuit > 0 && valve.circuit < 255;
                 // RKS: 04-14-21 -- Valves should always be active but shown with no assignment when
                 // there is no circuit.  The circuitry for the valve always exists although I am not sure
@@ -152,6 +152,14 @@ export class ValveMessage {
                 valve.type = 0;
             }
             id++;
+        }
+        // Clean up any valves that are leftovers from previous configs.
+        for (let i = sys.valves.length - 1; i >= 0; i--) {
+            let v = sys.valves.getItemByIndex(i);
+            if (v.master === 0 && v.id > sys.equipment.maxValves) {
+                sys.valves.removeItemByIndex(i);
+                state.valves.removeItemById(v.id);
+            }
         }
         msg.isProcessed = true;
     }
