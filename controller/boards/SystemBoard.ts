@@ -4248,27 +4248,33 @@ export class HeaterCommands extends BoardCommands {
                     }
                     break;
                   case 'heatpump':
-                    if (mode === 'heatpump' || mode === 'heatpumppref') {
-                      if (hstate.isOn) {
-                        // If the heater is already on we will heat to 1 degree past the setpoint.
-                        if (body.temp - 1 < cfgBody.heatSetpoint) {
-                          isOn = true;
-                          body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
-                          isHeating = true;
-                          isCooling = false;
+                        if (mode === 'heatpump' || mode === 'heatpumppref') {
+                            // Heat past the setpoint for the heater but only if the heater is currently on.
+                            if ((body.temp - (hstate.isOn ? heater.stopTempDelta : 0)) < cfgBody.setPoint) {
+                                isOn = true;
+                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                                isHeating = true;
+                            }
+                            //if (hstate.isOn) {
+                            //    // If the heater is already on we will heat to 1 degree past the setpoint.
+                            //    if (body.temp - 1 < cfgBody.heatSetpoint) {
+                            //        isOn = true;
+                            //        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                            //        isHeating = true;
+                            //        isCooling = false;
+                            //    }
+                            //}
+                            //else {
+                            //    // The heater is not currently on lets turn it on if we pass all the criteria.
+                            //    if ((body.temp < cfgBody.heatSetpoint && hstate.endTime.getTime() < new Date().getTime() + (30 * 60 * 1000))
+                            //        || body.temp + heater.differentialTemp < cfgBody.heatSetpoint) {
+                            //        isOn = true;
+                            //        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpcool');
+                            //        isHeating = true;
+                            //        isCooling = false;
+                            //    }
+                            //}
                         }
-                      }
-                      else {
-                        // The heater is not currently on lets turn it on if we pass all the criteria.
-                        if ((body.temp < cfgBody.heatSetpoint && hstate.endTime.getTime() < new Date().getTime() + (30 * 60 * 1000))
-                          || body.temp + heater.differentialTemp < cfgBody.heatSetpoint) {
-                          isOn = true;
-                          body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpcool');
-                          isHeating = true;
-                          isCooling = false;
-                        }
-                      }
-                    }
                     break;
                   default:
                     isOn = utils.makeBool(hstate.isOn);
