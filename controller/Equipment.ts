@@ -885,6 +885,8 @@ export class Equipment extends EqItem {
             if (this.data.dual === true || this.data.shared === true) this.data.single = false;
             else if (sys.controllerType !== ControllerType.IntelliTouch) this.data.single = true;
         }
+        if (typeof this.data.softwareVersion === 'undefined') this.data.softwareVersion = '';
+        if (typeof this.data.bootloaderVersion === 'undefined') this.data.bootloaderVersion = '';
     }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
@@ -1422,9 +1424,9 @@ export class Pump extends EqItem {
     public deletePumpCircuit(pumpCircuitId: number) {
         return sys.board.pumps.deletePumpCircuit(this, pumpCircuitId);
     }
-    public setType(pumpType: number) {
-        sys.board.pumps.setType(this, pumpType);
-    }
+    //public setType(pumpType: number) {
+    //    sys.board.pumps.setType(this, pumpType);
+    //}
     public nextAvailablePumpCircuit(): number {
         let pumpCircuits = this.circuits;
         for (let i = 1; i <= 8; i++) {

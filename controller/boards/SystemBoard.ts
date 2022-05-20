@@ -1879,42 +1879,6 @@ export class PumpCommands extends BoardCommands {
     let spump = state.pumps.getItemById(pump.id);
     spump.emitData('pumpExt', spump.getExtended());
   }
-
-  public setType(pump: Pump, pumpType: number) {
-    // if we are changing pump types, need to clear out circuits
-    // and props that aren't for this pump type
-    let _id = pump.id;
-    if (pump.type !== pumpType || pumpType === 0) {
-      let _p = pump.get(true);
-      // const _isVirtual = typeof _p.isVirtual !== 'undefined' ? _p.isVirtual : false;
-      sys.pumps.removeItemById(_id);
-      pump = sys.pumps.getItemById(_id, true);
-      /* if (_isVirtual) {
-        // pump.isActive = true;
-        // pump.isVirtual = true;
-        pump.master = 1;
-      } */
-      state.pumps.removeItemById(pump.id);
-      pump.type = pumpType;
-      let type = sys.board.valueMaps.pumpTypes.transform(pumpType);
-
-      if (type.name === 'vs' || type.name === 'vsf') {
-        pump.speedStepSize = 10;
-        pump.minSpeed = type.minSpeed;
-        pump.maxSpeed = type.maxSpeed;
-      }
-      if (type.name === 'vf' || type.name === 'vsf') {
-        pump.flowStepSize = 1;
-        pump.minFlow = type.minFlow;
-        pump.maxFlow = type.maxFlow;
-      }
-      let spump = state.pumps.getItemById(pump.id, true);
-      spump.type = pump.type;
-      spump.isActive = pump.isActive;
-      spump.status = 0;
-      spump.emitData('pumpExt', spump.getExtended());
-    }
-  }
   public availableCircuits() {
     let _availCircuits = [];
     for (let i = 0; i < sys.circuits.length; i++) {

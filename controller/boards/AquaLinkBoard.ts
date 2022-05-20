@@ -780,7 +780,7 @@ class AquaLinkPumpCommands extends PumpCommands {
             // changing type?  clear out all props and add as new
             if (ntype !== pump.type) {
                 isAdd = true;
-                super.setType(pump, ntype);
+                //super.setType(pump, ntype);
                 pump = sys.pumps.getItemById(id, false); // refetch pump with new value
             }
         }

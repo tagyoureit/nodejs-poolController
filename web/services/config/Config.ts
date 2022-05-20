@@ -521,6 +521,18 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
+        // RKS: 05-20-22 This is a remnant of the old web ui.  It is not called and the setType method needed to go away.
+        //app.delete('/config/pump/:pumpId', async (req, res, next) => {
+        //    try {
+        //        let pump = sys.pumps.getItemById(parseInt(req.params.pumpId, 10));
+        //        await sys.board.pumps.deletePumpAsync()
+        //        if (pump.type === 0) {
+        //            return res.status(500).send(`Pump ${pump.id} not active`);
+        //        }
+        //        pump.setType(0);
+        //        return res.status(200).send('OK');
+        //    } catch (err) { next(err); }
+        //});
         app.delete('/config/pump', async (req, res, next) => {
             try {
                 let pump = await sys.board.pumps.deletePumpAsync(req.body);
@@ -637,14 +649,6 @@ export class ConfigRoute {
             catch (err) {
                 next(err);
             }
-        });
-        app.delete('/config/pump/:pumpId', (req, res) => {
-            let pump = sys.pumps.getItemById(parseInt(req.params.pumpId, 10));
-            if (pump.type === 0) {
-                return res.status(500).send(`Pump ${pump.id} not active`);
-            }
-            pump.setType(0);
-            return res.status(200).send('OK');
         });
         app.put('/config/dateTime', async (req, res, next) => {
             try {

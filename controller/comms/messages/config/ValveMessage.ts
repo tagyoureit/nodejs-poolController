@@ -85,7 +85,7 @@ export class ValveMessage {
                 if (sys.equipment.shared && !sys.equipment.single) {
                     valve = sys.valves.getItemById(id, true);
                     valve.circuit = 6; // pool/spa -- fix
-                    valve.name = ValveMessage.getName(id, valve.circuit);
+                    valve.name = 'Intake';
                     valve.isIntake = true;
                     valve.isReturn = false;
                     valve.isActive = true;
@@ -99,13 +99,12 @@ export class ValveMessage {
                     sys.valves.removeItemById(id);
                     state.valves.removeItemById(id);
                 }
-                id++;
             }
             else if (id === 4) {
                 if (sys.equipment.shared && !sys.equipment.single) {
                     valve = sys.valves.getItemById(id, true);
                     valve.circuit = 6; // pool/spa -- fix
-                    valve.name = ValveMessage.getName(id, valve.circuit);
+                    valve.name = 'Return';
                     valve.isIntake = false;
                     valve.isReturn = true;
                     valve.isActive = true;
@@ -119,7 +118,6 @@ export class ValveMessage {
                     sys.valves.removeItemById(id);
                     state.valves.removeItemById(id);
                 }
-                id++;
             }
             else {
                 valve = sys.valves.getItemById(id, true);
@@ -148,7 +146,6 @@ export class ValveMessage {
             }
             else {
                 valve.master = 0;
-                // valve.isVirtual = false;
                 valve.type = 0;
             }
             id++;
