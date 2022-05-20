@@ -2338,7 +2338,6 @@ class TouchPumpCommands extends PumpCommands {
                 }
             }
             return new Promise<Pump>((resolve, reject) => {
-                console.log(data);
                 outc.onComplete = (err, msg) => {
                     if (err) reject(err);
                     else {
