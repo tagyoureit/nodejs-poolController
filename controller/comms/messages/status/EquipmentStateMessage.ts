@@ -379,7 +379,7 @@ export class EquipmentStateMessage {
                                         let byte = msg.extractPayloadByte(10);
                                         // Either the primary, secondary, or both is engaged.
                                         if ((byte & 0x14) === 0x14) heatStatus = sys.board.valueMaps.heatStatus.getValue('dual');
-                                        else if ((byte & 0x0c) === 0x0c) heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
+                                        // else if ((byte & 0x0c) === 0x0c) heatStatus = sys.board.valueMaps.heatStatus.getValue('off'); // don't need since we test for heatMode>0
                                         else if (byte & 0x10) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
                                         else if (byte & 0x04) heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
                                     }
