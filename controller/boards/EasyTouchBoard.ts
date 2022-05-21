@@ -1845,7 +1845,6 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         }
         let chlor = sys.chlorinators.getItemById(id);
         if (chlor.master !== 0 && !isAdd) return super.setChlorAsync(obj);
-
         // RKS: I am not even sure this can be done with Touch as the master on the RS485 bus.
         if (typeof chlor.master === 'undefined') chlor.master = 0;
         let name = obj.name || chlor.name || 'IntelliChlor' + id;

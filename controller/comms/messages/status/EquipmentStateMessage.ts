@@ -374,13 +374,14 @@ export class EquipmentStateMessage {
                                     // the primary is a heatpump and the secondary is gas.  In the case of gas + solar or gas + heatpump
                                     // the gas heater is the primary and solar or heatpump is the secondary.   So we need to dance a little bit
                                     // here.  We do this by checking the heater options.
-
-                                    // This can be the only heater solar cannot be installed with this.
-                                    let byte = msg.extractPayloadByte(10);
-                                    // Either the primary, secondary, or both is engaged.
-                                    if ((byte & 0x14) === 0x14) heatStatus = sys.board.valueMaps.heatStatus.getValue('dual');
-                                    else if (byte & 0x10) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                                    else if (byte & 0x04) heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                                    if (tbody.heatMode > 0) { // Turns out that ET sometimes reports the last heat status when off.
+                                        // This can be the only heater solar cannot be installed with this.
+                                        let byte = msg.extractPayloadByte(10);
+                                        // Either the primary, secondary, or both is engaged.
+                                        if ((byte & 0x14) === 0x14) heatStatus = sys.board.valueMaps.heatStatus.getValue('dual');
+                                        else if (byte & 0x10) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                        else if (byte & 0x04) heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                                    }
                                 }
                                 else {
                                     //const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
@@ -414,11 +415,13 @@ export class EquipmentStateMessage {
                             if (tbody.isOn) {
                                 if (tbody.heaterOptions.hybrid > 0) {
                                     // This can be the only heater solar cannot be installed with this.
-                                    let byte = msg.extractPayloadByte(10);
-                                    // Either the primary, secondary, or both is engaged.
-                                    if ((byte & 0x28) === 0x28) heatStatus = sys.board.valueMaps.heatStatus.getValue('dual');
-                                    else if (byte & 0x20) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                                    else if (byte & 0x08) heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                                    if (tbody.heatMode > 0) {
+                                        let byte = msg.extractPayloadByte(10);
+                                        // Either the primary, secondary, or both is engaged.
+                                        if ((byte & 0x28) === 0x28) heatStatus = sys.board.valueMaps.heatStatus.getValue('dual');
+                                        else if (byte & 0x20) heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                        else if (byte & 0x08) heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                                    }
                                 }
                                 else {
                                     //const heaterActive = (msg.extractPayloadByte(10) & 0x0C) === 12;
