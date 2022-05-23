@@ -642,11 +642,11 @@ export class NixieChemController extends NixieChemControllerBase {
             let chem = this.chem;
             schem.orp.enabled = this.chem.orp.enabled;
             schem.ph.enabled = this.chem.ph.enabled;
+            let probeType = chem.orp.probe.type;
             if (this.chem.orp.enabled) {
 
                 let useChlorinator = chem.orp.useChlorinator;
                 let pumpType = chem.orp.pump.type;
-                let probeType = chem.orp.probe.type;
                 let currLevelPercent = schem.orp.tank.level / schem.orp.tank.capacity * 100;
                 if (pumpType !== 0) {
                     if (currLevelPercent <= 0) schem.alarms.orpTank = 64;
@@ -681,13 +681,17 @@ export class NixieChemController extends NixieChemControllerBase {
                 schem.warnings.chlorinatorCommError = 0;
                 schem.alarms.orpTank = 0;
                 schem.warnings.orpDailyLimitReached = 0;
-                schem.alarms.orp = 0;
+                // RSG 5-22-22 below block will allow a user to have an orp probe without enabling orp output
+                if (probeType !== 0 && chem.orp.tolerance.enabled){
+                    schem.alarms.orp = schem.orp.level < chem.orp.tolerance.low ? 16 : schem.orp.level > chem.orp.tolerance.high ? 8 : 0;
+                }
+                else schem.alarms.orp = 0;
                 schem.warnings.pHLockout = 0;
                 schem.orp.freezeProtect = false;
             }
+            probeType = chem.ph.probe.type;
             if (this.chem.ph.enabled) {
                 let pumpType = chem.ph.pump.type;
-                let probeType = chem.ph.probe.type;
                 let currLevelPercent = schem.ph.tank.level / schem.ph.tank.capacity * 100;
                 if (pumpType !== 0) {
                     if (currLevelPercent <= 0) schem.alarms.pHTank = 32;
@@ -714,10 +718,15 @@ export class NixieChemController extends NixieChemControllerBase {
                 else schem.alarms.pH = 0;
                 schem.ph.freezeProtect = (state.freeze && chem.ph.disableOnFreeze && schem.isBodyOn);
             }
+
             else {
                 schem.alarms.pHTank = 0;
                 schem.warnings.pHDailyLimitReached = 0;
-                schem.alarms.pH = 0;
+                // RSG 5-22-22 Below block will allow user to have a pH probe without enabling pH control
+                if (probeType !== 0 && chem.ph.tolerance.enabled) {
+                    schem.alarms.pH = schem.ph.level < chem.ph.tolerance.low ? 4 : schem.ph.level > chem.ph.tolerance.high ? 2 : 0;
+                }
+                else schem.alarms.pH = 0;
                 schem.ph.freezeProtect = false;
             }
             

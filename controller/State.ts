@@ -2518,13 +2518,17 @@ export class ChemicalPhState extends ChemicalState {
         // Calculate how many mL are required to raise to our pH level.
         // 1. Get the total gallons of water that the chem controller is in
         // control of.
+        // 2. RSG 5-22-22 - If the spa is on, calc demand only based on the spa volume.  Otherwise, long periods of spa usage
+        // will result in an overdose if pH is high.
         let totalGallons = 0;
 
         if (chem.body === 0 || chem.body === 32 || sys.equipment.shared) totalGallons += sys.bodies.getItemById(1).capacity;
-        if (chem.body === 1 || chem.body === 32 || sys.equipment.shared) totalGallons += sys.bodies.getItemById(2).capacity;
+        let bodyIsOn = state.temps.bodies.getBodyIsOn(); 
+        if (bodyIsOn.circuit === 1 && sys.circuits.getInterfaceById(bodyIsOn.circuit).type === sys.board.valueMaps.circuitFunctions.getValue('spa') && (chem.body === 1 || chem.body === 32 || sys.equipment.shared)) totalGallons = sys.bodies.getItemById(2).capacity;
+        else  if (chem.body === 1 || chem.body === 32 || sys.equipment.shared) totalGallons += sys.bodies.getItemById(2).capacity;
         if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
         if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
-        logger.verbose(`Chem begin calculating ${this.chemType} demand: ${this.level} setpoint: ${this.setpoint} body: ${totalGallons}`);
+        logger.verbose(`Chem begin calculating ${this.chemType} demand: ${this.level} setpoint: ${this.setpoint} total gallons: ${totalGallons}`);
         let chg = this.setpoint - this.level;
         let delta = chg * totalGallons;
         let temp = (this.level + this.setpoint) / 2;
