@@ -909,8 +909,7 @@ export class PumpState extends EqState {
     private _pumpOnDelayTimer: NodeJS.Timeout;
     private _threshold = 0.05;
     private exceedsThreshold(origVal: number, newVal: number) {
-        return newVal !== origVal;
-        //return Math.abs((newVal - origVal) / origVal) > this._threshold;
+        return Math.abs((newVal - origVal) / origVal) > this._threshold;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
@@ -919,15 +918,18 @@ export class PumpState extends EqState {
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
     public get rpm(): number { return this.data.rpm; }
-    public set rpm(val: number) { this.setDataVal('rpm', val, this.exceedsThreshold(this.data.rpm, val)); }
+    public set rpm(val: number) { this.setDataVal('rpm', val); }
+    //public set rpm(val: number) { this.setDataVal('rpm', val, this.exceedsThreshold(this.data.rpm, val)); }
     public get relay(): number { return this.data.relay; }
     public set relay(val: number) { this.setDataVal('relay', val); }
     public get program(): number { return this.data.program; }
     public set program(val: number) { this.setDataVal('program', val); }
     public get watts(): number { return this.data.watts; }
-    public set watts(val: number) { this.setDataVal('watts', val, this.exceedsThreshold(this.data.watts, val)); }
+    public set watts(val: number) { this.setDataVal('watts', val); }
+    //public set watts(val: number) { this.setDataVal('watts', val, this.exceedsThreshold(this.data.watts, val)); }
     public get flow(): number { return this.data.flow; }
-    public set flow(val: number) { this.setDataVal('flow', val, this.exceedsThreshold(this.data.flow, val)); }
+    public set flow(val: number) { this.setDataVal('flow', val); }
+    //public set flow(val: number) { this.setDataVal('flow', val, this.exceedsThreshold(this.data.flow, val)); }
     public get mode(): number { return this.data.mode; }
     public set mode(val: number) { this.setDataVal('mode', val); }
     public get driveState(): number { return this.data.driveState; }
@@ -2522,13 +2524,23 @@ export class ChemicalPhState extends ChemicalState {
         // 2. RSG 5-22-22 - If the spa is on, calc demand only based on the spa volume.  Otherwise, long periods of spa usage
         // will result in an overdose if pH is high.
         let totalGallons = 0;
+        // The bodyIsOn code was throwing an exception whenver no bodies were on.
+        if (chem.body === 32 && sys.equipment.shared) {
+            // We are shared and when body 2 (spa) is on body 1 (pool) is off.
+            if (state.temps.bodies.getItemById(2).isOn === true) totalGallons = sys.bodies.getItemById(2).capacity;
+            else totalGallons = sys.bodies.getItemById(1).capacity + sys.bodies.getItemById(2).capacity;
+        }
+        else {
+            // These are all single body implementations so we simply match to the body.
+            totalGallons = sys.bodies.getItemById(chem.body + 1).capacity;
+        }
 
-        if (chem.body === 0 || chem.body === 32 || sys.equipment.shared) totalGallons += sys.bodies.getItemById(1).capacity;
-        let bodyIsOn = state.temps.bodies.getBodyIsOn(); 
-        if (bodyIsOn.circuit === 1 && sys.circuits.getInterfaceById(bodyIsOn.circuit).type === sys.board.valueMaps.circuitFunctions.getValue('spa') && (chem.body === 1 || chem.body === 32 || sys.equipment.shared)) totalGallons = sys.bodies.getItemById(2).capacity;
-        else  if (chem.body === 1 || chem.body === 32 || sys.equipment.shared) totalGallons += sys.bodies.getItemById(2).capacity;
-        if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
-        if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
+        //if (chem.body === 0 || chem.body === 32 || sys.equipment.shared) totalGallons += sys.bodies.getItemById(1).capacity;
+        //let bodyIsOn = state.temps.bodies.getBodyIsOn();
+        //if (bodyIsOn.circuit === 1 && sys.circuits.getInterfaceById(bodyIsOn.circuit).type === sys.board.valueMaps.circuitFunctions.getValue('spa') && (chem.body === 1 || chem.body === 32 || sys.equipment.shared)) totalGallons = sys.bodies.getItemById(2).capacity;
+        //else  if (chem.body === 1 || chem.body === 32 || sys.equipment.shared) totalGallons += sys.bodies.getItemById(2).capacity;
+        //if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
+        //if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
         logger.verbose(`Chem begin calculating ${this.chemType} demand: ${this.level} setpoint: ${this.setpoint} total gallons: ${totalGallons}`);
         let chg = this.setpoint - this.level;
         let delta = chg * totalGallons;
