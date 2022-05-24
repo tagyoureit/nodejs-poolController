@@ -909,7 +909,7 @@ export class PumpState extends EqState {
     private _pumpOnDelayTimer: NodeJS.Timeout;
     private _threshold = 0.05;
     private exceedsThreshold(origVal: number, newVal: number) {
-        return true;
+        return newVal !== origVal;
         //return Math.abs((newVal - origVal) / origVal) > this._threshold;
     }
     public get id(): number { return this.data.id; }
