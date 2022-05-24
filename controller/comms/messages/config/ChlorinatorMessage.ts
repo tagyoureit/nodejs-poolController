@@ -28,7 +28,7 @@ export class ChlorinatorMessage {
                 for (let i = 0; i < 4 && i + 30 < msg.payload.length; i++) {
                     let isActive = msg.extractPayloadByte(i + 22) === 1;
                     chlor = sys.chlorinators.getItemById(chlorId);
-                    //if (chlor.master !== 0) continue; // RSG: probably never need this.  See Touch chlor below.
+                    if (chlor.master !== 0) continue; // RSG: probably never need this.  See Touch chlor below.
                     if (isActive) {
                         chlor = sys.chlorinators.getItemById(chlorId, true);
                         let schlor = state.chlorinators.getItemById(chlor.id, true);
