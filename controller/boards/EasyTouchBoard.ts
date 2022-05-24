@@ -2313,6 +2313,7 @@ class TouchPumpCommands extends PumpCommands {
             else if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits === 'undefined') { // This pump type supports circuits and the payload did not contain them.
                 // Copy the data from the circuits array.  That way when we call pump.set to set the data back it will be persisted correctly.
                 data.circuits = extend(true, {}, pump.circuits.get());
+                for (let i = 1; i <= data.circuits.length; i++) data.circuits[i].id = i;
                 for (let i = 1; i <= pump.circuits.length && i <= type.maxCircuits; i++) {
                     let c = pump.circuits.getItemByIndex(i - 1);
                     let speed = c.speed;

@@ -332,7 +332,6 @@ export class PumpMessage {
         // 20   | 3   | Big endian speed for the speed (1000 rpm with byte(29))
         // 21   | 3   | Big eniand speed for the priming speed (1000 rpm with byte(30))
         // All 30 bytes on this message are accounted for except for byte 3 & 4.
-        
         if (typeof pump.model === 'undefined') pump.model = 0;
         for (let circuitId = 1; circuitId <= sys.board.valueMaps.pumpTypes.get(pump.type).maxCircuits; circuitId++) {
             let _circuit = msg.extractPayloadByte(circuitId * 2 + 3); 

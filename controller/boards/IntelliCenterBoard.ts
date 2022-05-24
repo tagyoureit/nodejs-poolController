@@ -2933,6 +2933,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
                     // The endpoint isn't changing the circuits and is just setting the attributes.
                     for (let i = 0; i < 8; i++) {
                         let circ = pump.circuits.getItemByIndex(i, false, { circuit: 255 });
+                        circ.id = i + 1;
                         outc.setPayloadByte(i + 18, circ.circuit);
                     }
                 }
@@ -3022,6 +3023,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
                         }
                         if (typeof data.circuits !== 'undefined' && type.name !== 'undefined') {
                             // Set all the circuits
+                            let id = 1;
                             for (let i = 0; i < 8; i++) {
                                 if (i >= data.circuits.length) pump.circuits.removeItemByIndex(i);
                                 else {
@@ -3031,6 +3033,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
                                     else {
                                         let circ = pump.circuits.getItemByIndex(i, true);
                                         circ.circuit = circuitId;
+                                        circ.id = id++;
                                         if (type.name === 'ds') circ.units = undefined;
                                         else {
                                             // Need to validate this earlier.

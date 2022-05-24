@@ -130,6 +130,7 @@ export class NixieChlorinator extends NixieEquipment {
             chlor.isDosing = isDosing;
             schlor.name = chlor.name = data.name || chlor.name || `Chlorinator ${chlor.id}`;
             schlor.isActive = chlor.isActive = true;
+            chlor.hasChanged = true;
             if (!chlor.superChlor) {
                 this.superChlorStart = 0;
                 this.superChlorinating = false;

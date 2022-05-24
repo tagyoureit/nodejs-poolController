@@ -184,6 +184,7 @@ export class NixiePump extends NixieEquipment {
             if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
                 for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
                     let c = data.circuits[i - 1];
+                    c.id = i;
                     let circuit = parseInt(c.circuit, 10);
                     let cd = this.pump.circuits.find(elem => elem.circuit === circuit);
                     let speed = parseInt(c.speed, 10);
@@ -229,6 +230,7 @@ export class NixiePump extends NixieEquipment {
             spump.type = this.pump.type;
             sys.pumps.sortById();
             state.pumps.sortById();
+            this.pump.hasChanged = true;
             return Promise.resolve(new InterfaceServerResponse(200, 'Ok'));
         }
         catch (err) { logger.error(`Nixie setPumpAsync: ${err.message}`); return Promise.reject(err); }
