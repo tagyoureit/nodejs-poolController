@@ -110,10 +110,11 @@ export class Connection {
                 netPort: 9801,
                 inactivityRetry: 10
             });
-            existing = this.getPortById(cfg);
+            existing = this.getPortByCfg(cfg);
             if (typeof existing !== 'undefined') {
                 existing.reconnects = 0;
                 if (!await existing.openAsync(cfg)) {
+                    if (cfg.netConnect) return Promise.reject(new InvalidOperationError(`Unable to open Socat Connection to ${pdata.netHost}`, 'setPortAsync'));
                     return Promise.reject(new InvalidOperationError(`Unable to open RS485 port ${pdata.rs485Port}`, 'setPortAsync'));
                 }
             }
@@ -154,7 +155,7 @@ export class Connection {
             }
         }
     }
-    public getPortById(cfg: any) {
+    public getPortByCfg(cfg: any) {
         let port = this.findPortById(cfg.portId || 0);
         if (typeof port === 'undefined') {
             port = new RS485Port(cfg);
