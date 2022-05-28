@@ -357,7 +357,8 @@ export class RS485Port {
                     if (typeof resolve !== 'undefined') { resolve(false); }
                     if (this._cfg.inactivityRetry > 0) {
                         logger.error(`Net connect (socat) connection ${this.portId} error: ${err}.  Retry in ${this._cfg.inactivityRetry} seconds`);
-                        setTimeout(async () => { try { await this.openAsync(); } catch (err) { } }, this._cfg.inactivityRetry * 1000);
+                        if(this.connTimer) clearTimeout(this.connTimer);
+                        this.connTimer = setTimeout(async () => { try { await this.openAsync(); } catch (err) { } }, this._cfg.inactivityRetry * 1000);
                     }
                     else logger.error(`Net connect (socat) connection ${this.portId} error: ${err}.  Never retrying -- No retry time set`);
                 });
