@@ -1211,7 +1211,7 @@ export class InfluxInterfaceServer extends ProtoServer {
 }
 export class MqttInterfaceServer extends ProtoServer {
     public bindingsPath: string;
-    public bindings: HttpInterfaceBindings;
+    public bindings: MqttInterfaceBindings;
     private _fileTime: Date = new Date(0);
     private _isLoading: boolean = false;
     public get isConnected() { return this.isRunning && this.bindings.events.length > 0; }
@@ -1227,7 +1227,20 @@ export class MqttInterfaceServer extends ProtoServer {
             try {
                 let bindings = JSON.parse(fs.readFileSync(this.bindingsPath, 'utf8'));
                 let ext = extend(true, {}, typeof cfg.context !== 'undefined' ? cfg.context.options : {}, bindings);
-                this.bindings = Object.assign<MqttInterfaceBindings, any>(new MqttInterfaceBindings(cfg), ext);
+                if (this.bindings && this.bindings.client) {
+                    // RKS: 05-29-22 - This was actually orphaning the subscriptions and event processors.  Instead of simply doing
+                    // an assign we ned to assign the underlying data and clear the old info out.  The reload method takes care of the
+                    // bindings for us.
+                    (async () => {
+                        await this.bindings.reload(ext);
+                    })();
+                }
+                else {
+                    this.bindings = Object.assign<MqttInterfaceBindings, any>(new MqttInterfaceBindings(cfg), ext);
+                    (async () => {
+                        await this.bindings.initAsync();
+                    })();
+                }
                 this.isRunning = true;
                 this._isLoading = false;
                 const stats = fs.statSync(this.bindingsPath);
@@ -1272,7 +1285,8 @@ export class MqttInterfaceServer extends ProtoServer {
     }
     public async stopAsync() {
         try {
-            if (typeof this.bindings !== 'undefined') await this.bindings.stopAsync();
+            fs.unwatchFile(this.bindingsPath);
+            if (this.bindings) await this.bindings.stopAsync();
         } catch (err) { logger.error(`Error shutting down MQTT Server ${this.name}: ${err.message}`); }
     }
 }

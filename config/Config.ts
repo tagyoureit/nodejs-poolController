@@ -135,6 +135,7 @@ class Config {
         this.ensurePath(baseDir + '/logs/');
         this.ensurePath(baseDir + '/data/');
         this.ensurePath(baseDir + '/backups/');
+        this.ensurePath(baseDir + '/web/bindings/custom/')
         // this.ensurePath(baseDir + '/replay/');
         //setTimeout(() => { config.update(); }, 100);
     }

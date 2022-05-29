@@ -22,11 +22,11 @@ import extend = require("extend");
 import { logger } from "../../logger/Logger";
 import { PoolSystem, sys } from "../../controller/Equipment";
 import { State, state } from "../../controller/State";
-import { InterfaceEvent, BaseInterfaceBindings } from "./baseInterface";
+import { InterfaceEvent, BaseInterfaceBindings, InterfaceContext } from "./baseInterface";
 import { sys as sysAlias } from "../../controller/Equipment";
 import { state as stateAlias } from "../../controller/State";
 import { webApp as webAppAlias } from '../Server';
-import { utils } from "../../controller/Constants";
+import { Timestamp, Utils, utils } from "../../controller/Constants";
 import { ServiceParameterError } from '../../controller/Errors';
 
 export class MqttInterfaceBindings extends BaseInterfaceBindings {
@@ -34,62 +34,88 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         super(cfg);
         this.subscribed = false;
     }
-    private client: MqttClient;
+    public client: MqttClient;
     private topics: MqttTopicSubscription[] = [];
     declare events: MqttInterfaceEvent[];
     declare subscriptions: MqttTopicSubscription[];
     private subscribed: boolean; // subscribed to events or not
     private sentInitialMessages = false;
-    private init = () => {
-        let baseOpts = extend(true, { headers: {} }, this.cfg.options, this.context.options);
-        if ((typeof baseOpts.hostname === 'undefined' || !baseOpts.hostname) && (typeof baseOpts.host === 'undefined' || !baseOpts.host || baseOpts.host === '*')) {
-            logger.warn(`Interface: ${this.cfg.name} has not resolved to a valid host.`);
-            return;
-        }
-        const url = `${baseOpts.protocol || 'mqtt://'}${baseOpts.host}:${baseOpts.port || 1883}`;
-        let toks = {};
-        const opts = {
-            clientId: this.tokensReplacer(baseOpts.clientId, undefined, toks, { vars: {} } as any, {}),
-            username: baseOpts.username,
-            password: baseOpts.password,
-            rejectUnauthorized: !baseOpts.selfSignedCertificate,
-            url
-        }
-        this.client = connect(url, opts);
-        this.client.on('connect', () => {
-            try {
-                logger.info(`MQTT connected to ${url}`);
-                this.subscribe();
-            } catch (err) { logger.error(err); }
-        });
-
-        this.client.on('error', (error) => {
-          logger.error(`MQTT error ${error}`)
-        });
+    private init = () => { (async () => { await this.initAsync(); })(); }
+    public async initAsync() {
+        try {
+            if (this.client) await this.stopAsync();
+            logger.info(`Initializing MQTT client ${this.cfg.name}`);
+            let baseOpts = extend(true, { headers: {} }, this.cfg.options, this.context.options);
+            if ((typeof baseOpts.hostname === 'undefined' || !baseOpts.hostname) && (typeof baseOpts.host === 'undefined' || !baseOpts.host || baseOpts.host === '*')) {
+                logger.warn(`Interface: ${this.cfg.name} has not resolved to a valid host.`);
+                return;
+            }
+            const url = `${baseOpts.protocol || 'mqtt://'}${baseOpts.host}:${baseOpts.port || 1883}`;
+            let toks = {};
+            const opts = {
+                clientId: this.tokensReplacer(baseOpts.clientId, undefined, toks, { vars: {} } as any, {}),
+                username: baseOpts.username,
+                password: baseOpts.password,
+                rejectUnauthorized: !baseOpts.selfSignedCertificate,
+                url
+            }
+            this.client = connect(url, opts);
+            this.client.on('connect', () => {
+                try {
+                    logger.info(`MQTT connected to ${url}`);
+                    this.subscribe();
+                } catch (err) { logger.error(err); }
+            });
+            this.client.on('error', (error) => {
+                logger.error(`MQTT error ${error}`)
+            });
+        } catch (err) { logger.error(`Error initializing MQTT client ${this.cfg.name}: ${err}`); }
     }
     public async stopAsync() {
         try {
             if (typeof this.client !== 'undefined') {
-                this.unsubscribe();
-                this.client.end(true, { reasonCode: 0, reasonString: `Shutting down MQTT Client` }, () => {
-                    logger.info(`Successfully shut down MQTT Client`);
+                await this.unsubscribe();
+                await new Promise<boolean>((resolve, reject) => {
+                    this.client.end(true, { reasonCode: 0, reasonString: `Shutting down MQTT Client` }, () => {
+                        resolve(true);
+                        logger.info(`Successfully shut down MQTT Client`);
+                    });
                 });
+                if (this.client) this.client.removeAllListeners();
+                this.client = null;
             }
         } catch (err) { logger.error(`Error stopping MQTT Client: ${err.message}`); }
     }
+    public async reload(data) {
+        try {
+            await this.unsubscribe();
+            this.context = Object.assign<InterfaceContext, any>(new InterfaceContext(), data.context);
+            this.events = Object.assign<MqttInterfaceEvent[], any>([], data.events);
+            this.subscriptions = Object.assign<MqttTopicSubscription[], any>([], data.subscriptions);
+            this.subscribe();
+        } catch (err) { logger.error(`Error reloading MQTT bindings`); }
+    }
     private async unsubscribe() {
         try {
+            this.client.off('message', this.messageHandler);
             while (this.topics.length > 0) {
                 let topic = this.topics.pop();
                 if (typeof topic !== 'undefined') {
-                    this.client.unsubscribe(topic.topicPath, (err, packet) => {
-                        if (err) logger.error(`Error unsubscribing from MQTT topic ${topic}`);
-                        else {
-                            logger.debug(`Unsubscribed from MQTT topic ${topic}`);
-                        }
+                    await new Promise<boolean>((resolve, reject) => {
+                        this.client.unsubscribe(topic.topicPath, (err, packet) => {
+                            if (err) {
+                                logger.error(`Error unsubscribing from MQTT topic ${topic.topicPath}: ${err}`);
+                                resolve(false);
+                            }
+                            else {
+                                logger.debug(`Unsubscribed from MQTT topic ${topic.topicPath}`);
+                                resolve(true);
+                            }
+                        });
                     });
                 }
             }
+            this.subscribed = false;
         } catch (err) { logger.error(`Error unsubcribing to MQTT topic: ${err.message}`); }
     }
     protected subscribe() {
@@ -126,11 +152,11 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         for (let i = 0; i < this.topics.length; i++) {
             let topic = this.topics[i];
             this.client.subscribe(topic.topicPath, (err, granted) => {
-                if (!err) logger.debug(`MQTT subscribed to ${JSON.stringify(granted)}`);
+                if (!err) logger.verbose(`MQTT subscribed to ${JSON.stringify(granted)}`);
                 else logger.error(`MQTT Subscribe: ${err}`);
             });
         }
-        this.client.on('message', async (topic, msg) => { try { await this.messageHandler(topic, msg) } catch (err) { logger.error(`Error processing MQTT request ${err}.`) }; })
+        this.client.on('message', this.messageHandler);
         this.subscribed = true;
     }
     // this will take in the MQTT Formatter options and format each token that is bound
@@ -178,7 +204,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         }
         return toks;
     }
-    private rootTopic = () => {
+    public rootTopic = () => {
         let toks = {};
         let baseOpts = extend(true, { headers: {} }, this.cfg.options, this.context.options);
         let topic = '';
@@ -298,7 +324,10 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             logger.error(err);
         }
     }
-    private messageHandler = async (topic, message) => {
+    // This needed to be refactored so we could extract it from an anonymous function.  We want to be able to unbind
+    // from it
+    private messageHandler = (topic, message) =>  { (async () => { await this.processMessage(topic, message); })(); }
+    private processMessage = async (topic, message) => {
         try {
             let msg = message.toString();
             if (msg[0] === '{') msg = JSON.parse(msg);
@@ -308,7 +337,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                 logger.debug(`Topic not found ${topic}`)
                 // Alright so now lets process our results.
                 if (typeof sub.processor === 'function') {
-                    sub.executeProcessor(msg);
+                    sub.executeProcessor(this, msg);
                     return;
                 }
             }
@@ -520,12 +549,45 @@ class MqttTopicSubscription {
         }
     }
     public get topicPath(): string { return `${this.root}/${this.topic}` };
-    public executeProcessor(value: any) {
-        let ctx = { util:utils }
+    public executeProcessor(bindings: MqttInterfaceBindings, value: any) {
+        let ctx = {
+            util: utils,
+            client: bindings.client,
+            publish: (topic: string, message: any, options?: any) => {
+                try {
+                    let msg: string;
+                    if (typeof message === 'undefined') msg = '';
+                    else if (typeof message === 'string') msg = message;
+                    else if (typeof message === 'boolean') msg = message ? 'true' : 'false';
+                    else if (message instanceof Timestamp) (message as Timestamp).format();
+                    else if (typeof message.getTime === 'function') msg = Timestamp.toISOLocal(message);
+                    else {
+                        msg = Utils.stringifyJSON(message);
+                    }
+                    let baseOpts = extend(true, { headers: {} }, bindings.cfg.options, bindings.context.options);
+                    let pubOpts: IClientPublishOptions = { retain: typeof baseOpts.retain !== 'undefined' ? baseOpts.retain : true, qos: typeof baseOpts.qos !== 'undefined' ? baseOpts.qos : 2 };
+                    if (typeof options !== 'undefined') {
+                        if (typeof options.retain !== 'undefined') pubOpts.retain = options.retain;
+                        if (typeof options.qos !== 'undefined') pubOpts.qos = options.qos;
+                        if (typeof options.headers !== 'undefined') pubOpts.properties = extend(true, {}, baseOpts.properties, options.properties);
+                    }
+                    let top = `${this.root}`;
+                    if (!top.endsWith('/') && !topic.startsWith('/')) top += '/';
+                    top += topic;
+                    logger.silly(`Publishing ${top}-${msg}`);
+                    // Now we should be able to send this to the broker.
+                    bindings.client.publish(top, msg, pubOpts, (err) => {
+                        if (err) {
+                            logger.error(`Error publishing topic ${top}-${msg} : ${err}`);
+                        }
+                    });
+                } catch (err) { logger.error(`Error publishing ${topic} to server ${bindings.cfg.name} from ${this.topic}`); }
+            }
+        };
+        
         this.processor(ctx, this, sys, state, value);
         state.emitEquipmentChanges();
     }
-        
 }
 export interface IMQTTSubscription {
     topic: string,

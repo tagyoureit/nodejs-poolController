@@ -177,6 +177,8 @@ export class Heliotrope {
     public get calculatedTimes(): any { return { sunrise: this.sunrise, sunset: this.sunset, isValid: this.isValid }; }
 }
 export class Timestamp {
+    private static dateTextISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
+    private static dateTextAjax = /^\/Date\((d|-|.*)\)[\/|\\]$/;
     private _dt: Date;
     public emitter: EventEmitter;
     constructor(dt?: Date | string) {
@@ -293,6 +295,8 @@ export class Timestamp {
     }
     public clone() { return new Timestamp(new Date(this._dt)); }
     public static locale() { return Intl.DateTimeFormat().resolvedOptions().locale; }
+    public static parseISO(val: string): RegExpExecArray { return typeof val !== 'undefined' && val ? Timestamp.dateTextISO.exec(val) : null; }
+    public static parseAjax(val: string): RegExpExecArray { return typeof val !== 'undefined' && val ? Timestamp.dateTextAjax.exec(val) : null; }
 }
 export enum ControllerType {
     IntelliCenter = 'intellicenter',
@@ -345,6 +349,32 @@ export class Utils {
         }
         return false;
     }
+    public static jsonReviver = (key, value) => {
+        if (typeof value === 'string') {
+            let d = Timestamp.parseISO(value);
+            // By parsing the date and then creating a new date from that we will get
+            // the date in the proper timezone.
+            if (d) return new Date(Date.parse(value));
+            d = Timestamp.parseAjax(value);
+            if (d) {
+                // Not sure we will be seeing ajax dates but this is
+                // something that we may see from external sources.
+                let a = d[1].split(/[-+,.]/);
+                return new Date(a[0] ? +a[0] : 0 - +a[1]);
+            }
+        }
+        return value;
+    }
+    public static jsonReplacer = (key, value) => {
+        // Add in code to change Timestamp into a string.
+        if (typeof value !== 'undefined' && value) {
+            if (typeof value.format === 'function') return value.format();
+            else if (typeof value.getTime === 'function') return Timestamp.toISOLocal(value);
+        }
+        return value;
+    }
+    public static parseJSON(json: string) { return JSON.parse(json, Utils.jsonReviver); }
+    public static stringifyJSON(obj: any) { return JSON.stringify(obj, Utils.jsonReplacer); }
     public uuid(a?, b?) { for (b = a = ''; a++ < 36; b += a * 51 & 52 ? (a ^ 15 ? 8 ^ Math.random() * (a ^ 20 ? 16 : 4) : 4).toString(16) : '-'); return b }
     public convert = {
         temperature: {
