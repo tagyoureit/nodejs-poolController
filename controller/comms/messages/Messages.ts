@@ -202,20 +202,50 @@ export class Inbound extends Message {
         // prev been detected as chlor packets;
         // valid chlor packets should have 16,2,0 or 16,2,[80-96];
         // this should reduce the number of false chlor packets
-        return (ndx + 3 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2 && (bytes[ndx + 2] === 0 || (bytes[ndx + 2] >= 80 && bytes[ndx + 2] <= 96)))
+        // [16,2,0,12,0]
+        // For any of these 16,2 type headers we need at least 4 bytes to determine the routing.
+        if (bytes.length > ndx + 3) {
+            if (bytes[ndx] === 16 && bytes[ndx + 1] == 2) {
+                let dst = bytes[ndx + 2];
+                if (dst !== 0 && dst < 80 && dst > 96) return false;
+                let act = bytes[ndx + 3];
+                if (dst === 0 && ![1, 18, 3].includes(act)) return false;
+                else if (![0, 17, 20].includes(act)) return false;
+                return true;
+            }
+        }
+        //return (ndx + 3 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2 && (bytes[ndx + 2] === 0 || (bytes[ndx + 2] >= 80 && bytes[ndx + 2] <= 96)))
+        return false;
     }
     private testAquaLinkHeader(bytes: number[], ndx: number): boolean {
-        return (sys.controllerType === 'aqualink' && ndx + 3 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2);
+        if (bytes.length > ndx + 3 && sys.controllerType === 'aqualink') {
+            if (bytes[ndx] === 16 && bytes[ndx + 1] == 2) {
+                return true;
+            }
+        }
+        return false;
     }
     private testHaywardHeader(bytes: number[], ndx: number): boolean {
         //0x10, 0x02, 0x0C, 0x01, 0x00, 0x2D, 0x00, 0x4C, 0x10, 0x03 -- Command to pump
+        //[16,2,12,1,0]
         //0x10, 0x02, 0x0C, 0x01, 0x00, 0x2D, 0x00, 0x4C, 0x10, 0x03 -- Command to Filter Pump
+        //[16,2,12,1,0]
         //0x10, 0x02, 0x0C, 0x01, 0x02, 0x2D, 0x00, 0x4E, 0x10, 0x03 -- Command to AUX2 Pump
+        //[16,2,12,1,2]
         //            src   act   dest             
         //0x10, 0x02, 0x00, 0x0C, 0x00, 0x00, 0x2D, 0x02, 0x36, 0x00, 0x83, 0x10, 0x03 -- Response from pump
-        return (sys.controllerType === 'nixie' && ndx + 4 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2 && (bytes[ndx + 2] === 12 && bytes[ndx + 3] === 12));
+        //[16,2,0,12,0] --> Response
+        //[16,2,0,12,0]
+        if (bytes.length > ndx + 3) {
+            if (sys.controllerType === 'aqualink') return false;
+            if (bytes[ndx] === 16 && bytes[ndx + 1] == 2) {
+                let dst = bytes[ndx + 3];
+                let src = bytes[ndx + 2];
+                if (dst === 12 || src === 12) return true;
+            }
+        }
+        return false;
     }
-
     private testBroadcastHeader(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] === 165; }
     private testUnidentifiedHeader(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] !== 165; }
     private testChlorTerm(bytes: number[], ndx: number): boolean { return ndx + 2 < bytes.length && bytes[ndx + 1] === 16 && bytes[ndx + 2] === 3; }
