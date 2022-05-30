@@ -203,14 +203,15 @@ export class Inbound extends Message {
         // valid chlor packets should have 16,2,0 or 16,2,[80-96];
         // this should reduce the number of false chlor packets
         // [16,2,0,12,0]
-        // For any of these 16,2 type headers we need at least 4 bytes to determine the routing.
-        if (bytes.length > ndx + 3) {
+        // For any of these 16,2 type headers we need at least 5 bytes to determine the routing.
+        if (bytes.length > ndx + 4) {
             if (bytes[ndx] === 16 && bytes[ndx + 1] == 2) {
                 let dst = bytes[ndx + 2];
-                if (dst !== 0 && dst < 80 && dst > 96) return false;
                 let act = bytes[ndx + 3];
-                if (dst === 0 && ![1, 18, 3].includes(act)) return false;
-                else if (![0, 17, 20].includes(act)) return false;
+                // For now the dst byte will always be 0 or 80.
+                if (![0, 16, 80, 81, 82, 83].includes(dst)) return false;
+                else if (dst === 0 && ![1, 18, 3].includes(act)) return false;
+                else if (![0, 17, 19, 20, 21, 22].includes(act)) return false;
                 return true;
             }
         }
@@ -218,7 +219,7 @@ export class Inbound extends Message {
         return false;
     }
     private testAquaLinkHeader(bytes: number[], ndx: number): boolean {
-        if (bytes.length > ndx + 3 && sys.controllerType === 'aqualink') {
+        if (bytes.length > ndx + 4 && sys.controllerType === 'aqualink') {
             if (bytes[ndx] === 16 && bytes[ndx + 1] == 2) {
                 return true;
             }
@@ -236,7 +237,7 @@ export class Inbound extends Message {
         //0x10, 0x02, 0x00, 0x0C, 0x00, 0x00, 0x2D, 0x02, 0x36, 0x00, 0x83, 0x10, 0x03 -- Response from pump
         //[16,2,0,12,0] --> Response
         //[16,2,0,12,0]
-        if (bytes.length > ndx + 3) {
+        if (bytes.length > ndx + 4) {
             if (sys.controllerType === 'aqualink') return false;
             if (bytes[ndx] === 16 && bytes[ndx + 1] == 2) {
                 let dst = bytes[ndx + 3];
@@ -382,11 +383,11 @@ export class Inbound extends Message {
                 }
                 break;
             case Protocol.Hayward:
-                ndx = this.pushBytes(this.header, bytes, ndx, 4);
+                ndx = this.pushBytes(this.header, bytes, ndx, 5);
                 if (this.header.length < 4) {
                     // We actually don't have a complete header yet so just return.
                     // we will pick it up next go around.
-                    logger.debug(`We have an incoming AquaLink message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    logger.debug(`We have an incoming Hayward message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
                     this.preamble = [];
                     this.header = [];
                     return ndxHeader;
