@@ -260,7 +260,8 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                             // a value like @bind=data.name; would be eval'd the same
                             // across all topics
                             this.buildTokensWithFormatter(t.topic, evt, topicToks, e, data[0], topicFormatter);
-                            topic = `${rootTopic}/${this.replaceTokens(t.topic, topicToks)}`;
+                            topic = this.replaceTokens(t.topic, topicToks);
+                            if (t.useRootTopic !== false) topic = `${rootTopic}/${topic}`;
                             // Filter out any topics where there may be undefined in it.  We don't want any of this if that is the case.
                             if (topic.endsWith('/undefined') || topic.indexOf('/undefined/') !== -1 || topic.startsWith('null/') || topic.indexOf('/null') !== -1) return;
                             if (typeof t.processor !== 'undefined') {
@@ -274,9 +275,10 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                                         } catch (err) { logger.error(`Error compiling subscription processor: ${err} -- ${fnBody}`); t.ignoreProcessor = true; }
                                     }
                                     if (typeof t._fnProcessor === 'function') {
-                                        let ctx = { util: utils }
+                                        let ctx = { util: utils, rootTopic: rootTopic, topic: topic }
                                         try {
                                             message = t._fnProcessor(ctx, t, sys, state, data[0]).toString();
+                                            topic = ctx.topic;
                                         } catch (err) { logger.error(`Error publishing MQTT data for topic ${t.topic}: ${err.message}`); message = "err"; }
                                     }
                                 }
@@ -512,6 +514,7 @@ class MqttInterfaceEvent extends InterfaceEvent {
 }
 export class MQTTPublishTopic {
     topic: string;
+    useRootTopic: boolean;
     message: string;
     description: string;
     formatter: any[];
