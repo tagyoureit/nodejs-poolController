@@ -324,32 +324,36 @@ export class Inbound extends Message {
     }
     public readHeader(bytes: number[], ndx: number): number {
         // start over to include the padding bytes.
-        if (this.protocol !== Protocol.Unknown) {
-            logger.warn(`${this.protocol} resulted in an empty message header ${JSON.stringify(this.header)}`);
-        }
+        //if (this.protocol !== Protocol.Unknown) {
+        //    logger.warn(`${this.protocol} resulted in an empty message header ${JSON.stringify(this.header)}`);
+        //}
         let ndxStart = ndx;
-        while (ndx < bytes.length) {
-            if (this.testBroadcastHeader(bytes, ndx)) {
-                this.protocol = Protocol.Broadcast;
-                break;
+        // RKS: 05-30-22 -- OMG we have not been dealing with short headers.  As a result it was restarting
+        // the header process even after it had identified it.
+        if (this.protocol === Protocol.Unknown) {
+            while (ndx < bytes.length) {
+                if (this.testBroadcastHeader(bytes, ndx)) {
+                    this.protocol = Protocol.Broadcast;
+                    break;
+                }
+                if (this.testUnidentifiedHeader(bytes, ndx)) {
+                    this.protocol = Protocol.Unidentified;
+                    break;
+                }
+                if (this.testChlorHeader(bytes, ndx)) {
+                    this.protocol = Protocol.Chlorinator;
+                    break;
+                }
+                if (this.testAquaLinkHeader(bytes, ndx)) {
+                    this.protocol = Protocol.AquaLink;
+                    break;
+                }
+                if (this.testHaywardHeader(bytes, ndx)) {
+                    this.protocol = Protocol.Hayward;
+                    break;
+                }
+                this.padding.push(bytes[ndx++]);
             }
-            if (this.testUnidentifiedHeader(bytes, ndx)) {
-                this.protocol = Protocol.Unidentified;
-                break;
-            }
-            if (this.testChlorHeader(bytes, ndx)) {
-                this.protocol = Protocol.Chlorinator;
-                break;
-            }
-            if (this.testAquaLinkHeader(bytes, ndx)) {
-                this.protocol = Protocol.AquaLink;
-                break;
-            }
-            if (this.testHaywardHeader(bytes, ndx)) {
-                this.protocol = Protocol.Hayward;
-                break;
-            }
-            this.padding.push(bytes[ndx++]);
         }
         // When the code above finds a protocol, ndx will be at the start of that
         // header.  If it is not identified then it will rewind to the initial
