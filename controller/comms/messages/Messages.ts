@@ -202,25 +202,31 @@ export class Inbound extends Message {
         // prev been detected as chlor packets;
         // valid chlor packets should have 16,2,0 or 16,2,[80-96];
         // this should reduce the number of false chlor packets
-        // [16,2,0,12,0]
         // For any of these 16,2 type headers we need at least 5 bytes to determine the routing.
+        //63,15,16,2,29,9,36,0,0,0,0,0,16,0,32,0,0,2,0,75,75,32,241,80,85,24,241,16,16,48,245,69,45,100,186,16,2,80,17,0,115,16,3
         if (bytes.length > ndx + 4) {
-            if (bytes[ndx] === 16 && bytes[ndx + 1] == 2) {
+            if (bytes[ndx] === 16 && bytes[ndx + 1] === 2) {
                 let dst = bytes[ndx + 2];
                 let act = bytes[ndx + 3];
                 // For now the dst byte will always be 0 or 80.
-                if (![0, 16, 80, 81, 82, 83].includes(dst)) return false;
-                else if (dst === 0 && ![1, 18, 3].includes(act)) return false;
-                else if (![0, 17, 19, 20, 21, 22].includes(act)) return false;
+                if (![0, 16, 80, 81, 82, 83].includes(dst)) {
+                    //logger.info(`Sensed chlorinator header but the dst byte is ${dst}`);
+                    return false;
+                }
+                else if (dst === 0 && [1, 18, 3].includes(act))
+                    return true;
+                else if (![0, 17, 19, 20, 21, 22].includes(act)) {
+                    //logger.info(`Sensed out chlorinator header but the dst byte is ${dst} ${act} ${JSON.stringify(bytes)}`);
+                    return false;
+                }
                 return true;
             }
         }
-        //return (ndx + 3 < bytes.length && bytes[ndx] === 16 && bytes[ndx + 1] === 2 && (bytes[ndx + 2] === 0 || (bytes[ndx + 2] >= 80 && bytes[ndx + 2] <= 96)))
         return false;
     }
     private testAquaLinkHeader(bytes: number[], ndx: number): boolean {
         if (bytes.length > ndx + 4 && sys.controllerType === 'aqualink') {
-            if (bytes[ndx] === 16 && bytes[ndx + 1] == 2) {
+            if (bytes[ndx] === 16 && bytes[ndx + 1] === 2) {
                 return true;
             }
         }
@@ -239,7 +245,7 @@ export class Inbound extends Message {
         //[16,2,0,12,0]
         if (bytes.length > ndx + 4) {
             if (sys.controllerType === 'aqualink') return false;
-            if (bytes[ndx] === 16 && bytes[ndx + 1] == 2) {
+            if (bytes[ndx] === 16 && bytes[ndx + 1] === 2) {
                 let dst = bytes[ndx + 3];
                 let src = bytes[ndx + 2];
                 if (dst === 12 || src === 12) return true;
@@ -247,8 +253,23 @@ export class Inbound extends Message {
         }
         return false;
     }
-    private testBroadcastHeader(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] === 165; }
-    private testUnidentifiedHeader(bytes: number[], ndx: number): boolean { return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] !== 165; }
+    private testBroadcastHeader(bytes: number[], ndx: number): boolean {
+        // We are looking for [255,0,255,165]
+        if (bytes.length > ndx + 3) {
+            if (bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] === 165) return true;
+            return false;
+        }
+        //return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] === 165;
+        return false;
+    }
+    private testUnidentifiedHeader(bytes: number[], ndx: number): boolean {
+        if (bytes.length > ndx + 3) {
+            if (bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] !== 165) return true;
+            return false;
+        }
+        //return ndx < bytes.length - 3 && bytes[ndx] === 255 && bytes[ndx + 1] === 0 && bytes[ndx + 2] === 255 && bytes[ndx + 3] !== 165;
+        return false;
+    }
     private testChlorTerm(bytes: number[], ndx: number): boolean { return ndx + 2 < bytes.length && bytes[ndx + 1] === 16 && bytes[ndx + 2] === 3; }
     private testAquaLinkTerm(bytes: number[], ndx: number): boolean { return ndx + 2 < bytes.length && bytes[ndx + 1] === 16 && bytes[ndx + 2] === 3; }
     private testHaywardTerm(bytes: number[], ndx: number): boolean { return ndx + 3 < bytes.length && bytes[ndx + 2] === 16 && bytes[ndx + 3] === 3; }
@@ -286,10 +307,11 @@ export class Inbound extends Message {
         //return this.padding.length + this.preamble.length;
     }
     public readPacket(bytes: number[]): number {
+        //logger.info(`BYTES: ${JSON.stringify(bytes)}`);
         var ndx = this.readHeader(bytes, 0);
         if (this.isValid && this.header.length > 0) ndx = this.readPayload(bytes, ndx);
         if (this.isValid && this.header.length > 0) ndx = this.readChecksum(bytes, ndx);
-        //if (this.isComplete && !this.isValid) return this.rewind(bytes, ndx);
+        if (this.isComplete && !this.isValid) return this.rewind(bytes, ndx);
         return ndx;
     }
     public mergeBytes(bytes) {
@@ -302,8 +324,19 @@ export class Inbound extends Message {
     }
     public readHeader(bytes: number[], ndx: number): number {
         // start over to include the padding bytes.
+        if (this.protocol !== Protocol.Unknown) {
+            logger.warn(`${this.protocol} resulted in an empty message header ${JSON.stringify(this.header)}`);
+        }
         let ndxStart = ndx;
         while (ndx < bytes.length) {
+            if (this.testBroadcastHeader(bytes, ndx)) {
+                this.protocol = Protocol.Broadcast;
+                break;
+            }
+            if (this.testUnidentifiedHeader(bytes, ndx)) {
+                this.protocol = Protocol.Unidentified;
+                break;
+            }
             if (this.testChlorHeader(bytes, ndx)) {
                 this.protocol = Protocol.Chlorinator;
                 break;
@@ -316,16 +349,11 @@ export class Inbound extends Message {
                 this.protocol = Protocol.Hayward;
                 break;
             }
-            if (this.testBroadcastHeader(bytes, ndx)) {
-                this.protocol = Protocol.Broadcast;
-                break;
-            }
-            else if (this.testUnidentifiedHeader(bytes, ndx)) {
-                this.protocol = Protocol.Unidentified;
-                break;
-            }
             this.padding.push(bytes[ndx++]);
         }
+        // When the code above finds a protocol, ndx will be at the start of that
+        // header.  If it is not identified then it will rewind to the initial
+        // start position until we get more bytes.  This is the default case below.
         let ndxHeader = ndx;
         switch (this.protocol) {
             case Protocol.Pump:
@@ -340,11 +368,11 @@ export class Inbound extends Message {
                     // We actually don't have a complete header yet so just return.
                     // we will pick it up next go around.
                     // logger.debug(`We have an incoming message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    //logger.info(`We don't have a complete header ${JSON.stringify(this.header)}`);
                     this.preamble = [];
                     this.header = [];
                     return ndxHeader;
                 }
-
                 if (this.source >= 96 && this.source <= 111) this.protocol = Protocol.Pump;
                 else if (this.dest >= 96 && this.dest <= 111) this.protocol = Protocol.Pump;
                 else if (this.source >= 112 && this.source <= 127) this.protocol = Protocol.Heater;
@@ -354,7 +382,7 @@ export class Inbound extends Message {
                 else if (this.source == 12 || this.dest == 12) this.protocol = Protocol.IntelliValve;
                 if (this.datalen > 75) {
                     //this.isValid = false;
-                    logger.debug(`Broadcast length ${this.datalen} exceeded 75bytes for ${this.protocol} message. Message rewound ${this.header}`);
+                    logger.debug(`Broadcast length ${this.datalen} exceeded 75 bytes for ${this.protocol} message. Message rewound ${this.header}`);
                     this.padding.push(...this.preamble);
                     this.padding.push(...this.header.slice(0, 1));
                     this.preamble = [];
@@ -432,7 +460,11 @@ export class Inbound extends Message {
             case Protocol.IntelliValve:
             case Protocol.Heater:
             case Protocol.Unidentified:
-                if (this.datalen - this.payload.length <= 0) return ndx; // We don't need any more payload.
+                if (this.datalen - this.payload.length <= 0) {
+                    let buff = bytes.slice(ndx - 1);
+                    //logger.info(`We don't need any more payload ${this.datalen - this.payload.length} ${ndx} ${JSON.stringify(buff)};`);
+                    return ndx; // We don't need any more payload.
+                }
                 ndx = this.pushBytes(this.payload, bytes, ndx, this.datalen - this.payload.length);
                 break;
             case Protocol.Chlorinator:
