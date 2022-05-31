@@ -2102,7 +2102,8 @@ export class CircuitCommands extends BoardCommands {
                         if (!remove) {
                             // Determine whether the pool heater is on.
                             for (let j = 0; j < poolStates.length; j++) {
-                                if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'heater') {
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
+                                if (hstatus !== 'off' && hstatus !== 'solar') {
                                     // In this instance we may have a delay underway.
                                     let hstate = state.heaters.find(x => x.bodyId === 1 && x.startupDelay === true && x.type.name !== 'solar');
                                     bState = typeof hstate === 'undefined';
@@ -2118,7 +2119,8 @@ export class CircuitCommands extends BoardCommands {
                         if (!remove) {
                             // Determine whether the spa heater is on.
                             for (let j = 0; j < spaStates.length; j++) {
-                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'heater') {
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
+                                if (hstatus !== 'off' && hstatus !== 'solar') {
                                     // In this instance we may have a delay underway.
                                     let hstate = state.heaters.find(x => x.bodyId === 1 && x.startupDelay === true && x.type.name !== 'solar');
                                     bState = typeof hstate === 'undefined';
@@ -2131,7 +2133,7 @@ export class CircuitCommands extends BoardCommands {
                         break;
                     case 'heater':
                         // If heater is on for any body
-                        // RSG 5-3-22: Heater will now refer to any poolHeater or spaHeater but not solar or other types.  anyHeater now takes that role.
+                        // RSG 5-3-22: Heater will now refer to any poolHeat6er or spaHeater but not solar or other types.  anyHeater now takes that role.
                         remove = true;
                         for (let j = 0; j < poolStates.length; j++) {
                             if (poolStates[j].heaterOptions.solar + poolStates[j].heaterOptions.heatpump > 0) remove = false;
@@ -2143,10 +2145,12 @@ export class CircuitCommands extends BoardCommands {
                         }
                         if (!remove) {
                             for (let j = 0; j < poolStates.length && !bState; j++) {
-                                if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'heater') bState = true;
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
+                                if (hstatus === 'heater' || hstatus === 'hpheat' || hstatus === 'mtheat') bState = true;
                             }
                             for (let j = 0; j < spaStates.length && !bState; j++) {
-                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'heater') bState = true;
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
+                                if (hstatus === 'heater' || hstatus === 'hpheat' || hstatus === 'mtheat') bState = true;
                             }
                         }
                         break;
@@ -2168,11 +2172,15 @@ export class CircuitCommands extends BoardCommands {
                         // If solar is on for any body
                         remove = true;
                         for (let j = 0; j < poolStates.length; j++) {
-                            if (poolStates[j].heaterOptions.solar + poolStates[j].heaterOptions.heatpump > 0) remove = false;
+                            // RKS: 05-30-22 - I have no idea why this would include the heatpump options
+                            //if (poolStates[j].heaterOptions.solar + poolStates[j].heaterOptions.heatpump > 0) remove = false;
+                            if (poolStates[j].heaterOptions.solar) remove = false;
                         }
                         if (remove) {
                             for (let j = 0; j < spaStates.length; j++) {
-                                if (spaStates[j].heaterOptions.solar + spaStates[j].heaterOptions.heatpump > 0) remove = false;
+                                // RKS: 05-30-22 - I have no idea why this would include the heatpump options
+                                //if (spaStates[j].heaterOptions.solar + spaStates[j].heaterOptions.heatpump > 0) remove = false;
+                                if (spaStates[j].heaterOptions.solar) remove = false;
                             }
                         }
                         if (!remove) {

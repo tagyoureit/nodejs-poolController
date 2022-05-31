@@ -34,7 +34,7 @@ export class NixieBoard extends SystemBoard {
         this.equipmentIds.circuits = new EquipmentIdRange(1, function () { return this.start + sys.equipment.maxCircuits - 1; });
         this.equipmentIds.features = new EquipmentIdRange(function () { return 129; }, function () { return this.start + sys.equipment.maxFeatures - 1; });
         this.equipmentIds.circuitGroups = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
-        this.equipmentIds.virtualCircuits = new EquipmentIdRange(function () { return this.start; }, function () { return 254; });
+        this.equipmentIds.virtualCircuits = new EquipmentIdRange(function () { return this.start; }, function () { return 277; });
         this.equipmentIds.features.start = 129;
         this.equipmentIds.circuitGroups.start = 193;
         this.equipmentIds.virtualCircuits.start = 237;
@@ -155,7 +155,8 @@ export class NixieBoard extends SystemBoard {
             [255, { name: 'solar3', desc: 'Solar Body 3' }],
             [256, { name: 'solar4', desc: 'Solar Body 4' }],
             [257, { name: 'poolHeatEnable', desc: 'Pool Heat Enable' }],
-            [258, { name: 'anyHeater', desc: 'Any Heater' }]
+            [258, { name: 'anyHeater', desc: 'Any Heater' }],
+            [259, { name: 'heatpump', desc: 'Heat Pump'}]
         ]);
         this.valueMaps.scheduleTimeTypes.merge([
             [1, { name: 'sunrise', desc: 'Sunrise' }],
