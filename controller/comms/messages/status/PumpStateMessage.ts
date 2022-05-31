@@ -78,6 +78,8 @@ export class PumpStateMessage {
             // This is really goofy as the watts are actually the hex string from the two bytes.
             pstate.watts = parseInt(msg.extractPayloadByte(2).toString(16) + msg.extractPayloadByte(3).toString(16), 10);
             pstate.isActive = true;
+            pstate.command = (pstate.rpm > 0 || pstate.watts > 0) ? 10 : 0;
+            pstate.driveState
             state.emitEquipmentChanges();
         }
     }

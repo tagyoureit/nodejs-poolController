@@ -882,6 +882,16 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
         }
     }
     protected async setPumpRPMAsync() {
+        // Address 1
+        //[][16, 2, 12, 1, 0][41][0, 72, 16, 3] out
+        //[][16, 2, 0, 12, 0][0, 41, 0, 135][0, 206, 16, 3] In
+        // Address 2
+        //[][16, 2, 12, 1, 1][100][0, 132, 16, 3] out
+        //[][16, 2, 0, 12, 1][0, 96, 21, 64][0, 212, 16, 3] in
+        // Note that action 12 is in a different position for the outbound than the inbound.  The source and destination are kind
+        // of a misnomer in that it identifies the equipment address in byte(4) of the header and flips the command address around.
+        // So in essence for equipment item 0-16 (pump addresses) the outbound is really a broadcast on 12 (broadcast) from 1 and the inbound is
+        // broadcast from the equipment item to 0 (anybody).
         if (conn.isPortEnabled(this.pump.portId || 0)) {
             return new Promise<void>((resolve, reject) => {
                 let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
@@ -896,6 +906,10 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
                     response: Response.create({ protocol: Protocol.Hayward, action: 12, source: this.pump.address - 96 }),
                     onComplete: (err) => {
                         if (err) {
+                            let pstate = state.pumps.getItemById(this.pump.id);
+                            pstate.command = 0;
+                            pstate.rpm = 0;
+                            pstate.watts = 0;
                             logger.error(`Error sending setPumpRPM for ${this.pump.name}: ${err.message}`);
                             reject(err);
                         }
@@ -904,6 +918,12 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
                 });
                 conn.queueSendMessage(out);
             });
+        }
+        else {
+            let pstate = state.pumps.getItemById(this.pump.id);
+            pstate.command = 0;
+            pstate.rpm = 0;
+            pstate.watts = 0;
         }
     };
 }
