@@ -157,7 +157,7 @@ export class NixieSchedule extends NixieEquipment {
             let shouldBeOn = this.shouldBeOn(); // This should also set the validity for the schedule if there are errors.
             
             let manualPriorityActive: boolean = shouldBeOn ? sys.board.schedules.manualPriorityActive(ssched) : false;
-            console.log(`Processing schedule ${this.schedule.id} - ${circuit.name} : ShouldBeOn: ${shouldBeOn} ManualPriorityActive: ${manualPriorityActive} Running: ${this.running} Suspended: ${this.suspended} Resumed: ${this.resumed}`);
+            //console.log(`Processing schedule ${this.schedule.id} - ${circuit.name} : ShouldBeOn: ${shouldBeOn} ManualPriorityActive: ${manualPriorityActive} Running: ${this.running} Suspended: ${this.suspended} Resumed: ${this.resumed}`);
 
 
             // COND 1: The schedule should be on and the schedule is not yet on.

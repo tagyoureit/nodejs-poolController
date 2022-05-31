@@ -96,7 +96,7 @@ export class Message {
             else if (this.protocol === Protocol.Hayward) {
                 //            src   act   dest             
                 //0x10, 0x02, 0x00, 0x0C, 0x00, 0x00, 0x2D, 0x02, 0x36, 0x00, 0x83, 0x10, 0x03 -- Response from pump
-                return this.header.length > 4 ? this.header[4] : -1;
+                return this.header.length > 4 ? this.header[2] : -1;
             }
             else return this.header.length > 2 ? this.header[2] : -1;
         }
@@ -119,19 +119,20 @@ export class Message {
             //            src   act   dest             
             //0x10, 0x02, 0x00, 0x0C, 0x00, 0x00, 0x2D, 0x02, 0x36, 0x00, 0x83, 0x10, 0x03 -- Response from pump
             //0x10, 0x02, 0x0C, 0x01, 0x02, 0x2D, 0x00, 0x4E, 0x10, 0x03 -- Command to AUX2 Pump
-            return this.header.length > 2 ? this.header[2] : -1;
+            return this.header.length > 4 ? this.header[4] : -1;
         }
         if (this.header.length > 3) return this.header[3];
         else return -1;
     }
     public get action(): number {
         // The action byte is actually the 4th byte in the header the destination address is the 5th byte.
-        if (this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink) return this.header.length > 3 ? this.header[3] : -1;
+        if (this.protocol === Protocol.Chlorinator ||
+            this.protocol === Protocol.AquaLink) return this.header.length > 3 ? this.header[3] : -1;
         else if (this.protocol === Protocol.Hayward) {
             //            src   act   dest             
             //0x10, 0x02, 0x00, 0x0C, 0x00, 0x00, 0x2D, 0x02, 0x36, 0x00, 0x83, 0x10, 0x03 -- Response from pump
             //0x10, 0x02, 0x0C, 0x01, 0x02, 0x2D, 0x00, 0x4E, 0x10, 0x03 -- Command to AUX2 Pump
-            this.header.length > 3 ? this.header[3] : -1;
+            return this.header.length > 3 ? this.header[3] || this.header[2] : -1;
         }
         if (this.header.length > 4) return this.header[4];
         else return -1;
@@ -747,12 +748,32 @@ class OutboundCommon extends Message {
     }
     public get dest() { return super.dest; }
     public set source(val: number) {
-        if (this.protocol === Protocol.Hayward) this.header[2] = val;
-        else if (this.protocol !== Protocol.Chlorinator) this.header[3] = val;
+        switch (this.protocol) {
+            case Protocol.Chlorinator:
+                break;
+            case Protocol.Hayward:
+                this.header[3] = val;
+                break;
+            default:
+                this.header[4] = val;
+                break;
+        }
+        //if (this.protocol === Protocol.Hayward) this.header[2] = val;
+        //else if (this.protocol !== Protocol.Chlorinator) this.header[3] = val;
     }
     public get source() { return super.source; }
     public set action(val: number) {
-        (this.protocol !== Protocol.Chlorinator && this.protocol !== Protocol.Hayward) ? this.header[4] = val : this.header[3] = val;
+        switch (this.protocol) {
+            case Protocol.Chlorinator:
+                this.header[3] = val;
+                break;
+            case Protocol.Hayward:
+                this.header[2] = val;
+                break;
+            default:
+                this.header[4] = val;
+                break;
+        }
     }
     public get action() { return super.action; }
     public set datalen(val: number) { if (this.protocol !== Protocol.Chlorinator && this.protocol !== Protocol.Hayward) this.header[5] = val; }

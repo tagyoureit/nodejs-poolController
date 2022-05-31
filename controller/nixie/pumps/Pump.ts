@@ -852,6 +852,7 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
     protected async requestPumpStatus() { return Promise.resolve(); };
     protected setPumpFeature(feature?: number) { return Promise.resolve(); }
     protected setPumpToRemoteControl(running: boolean = true) {
+        console.log(`Setting pump to remote control`);
         if (conn.isPortEnabled(this.pump.portId || 0)) {
             // We do nothing on this pump to set it to remote control.  That is unless we are turning it off.
             return new Promise<void>((resolve, reject) => {
@@ -865,7 +866,7 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
                         payload: [0], // when stopAsync is called, pass false to return control to pump panel
                         // payload: spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running') ? [255] : [0],
                         retries: 1,
-                        response: Response.create({ protocol: Protocol.Hayward, action: 12, source: this.pump.address }),
+                        response: Response.create({ protocol: Protocol.Hayward, action: 12, source: this.pump.address - 96}),
                         onComplete: (err) => {
                             if (err) {
                                 logger.error(`Error sending setPumpToRemoteControl for ${this.pump.name}: ${err.message}`);
@@ -887,12 +888,12 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
                 let out = Outbound.create({
                     portId: this.pump.portId || 0,
                     protocol: Protocol.Hayward,
-                    source: 12, // Use the broadcast address
+                    source: 1, // Use the broadcast address
                     dest: this.pump.address - 96,
-                    action: 1,
+                    action: 12,
                     payload: [Math.min(Math.round((this._targetSpeed / pt.maxSpeed) * 100), 100)], // when stopAsync is called, pass false to return control to pump panel
                     retries: 1,
-                    response: Response.create({ protocol: Protocol.Hayward, action: 12, source: this.pump.address }),
+                    response: Response.create({ protocol: Protocol.Hayward, action: 12, source: this.pump.address - 96 }),
                     onComplete: (err) => {
                         if (err) {
                             logger.error(`Error sending setPumpRPM for ${this.pump.name}: ${err.message}`);
