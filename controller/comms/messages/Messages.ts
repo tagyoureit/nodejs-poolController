@@ -755,7 +755,7 @@ class OutboundCommon extends Message {
                 this.header[3] = val;
                 break;
             default:
-                this.header[4] = val;
+                this.header[3] = val;
                 break;
         }
         //if (this.protocol === Protocol.Hayward) this.header[2] = val;
