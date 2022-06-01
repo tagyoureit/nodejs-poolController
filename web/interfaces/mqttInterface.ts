@@ -167,10 +167,10 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         let s = input;
         let regx = /(?<=@bind\=\s*).*?(?=\;)/g;
         let match;
-        let vars = extend(true, {}, this.cfg.vars, this.context.vars, typeof e !== 'undefined' && e.vars);
         let sys = sysAlias;
         let state = stateAlias;
         let webApp = webAppAlias;
+        let vars = this.bindVarTokens(e, eventName, data);
         // Map all the returns to the token list.  We are being very basic
         // here an the object graph is simply based upon the first object occurrence.
         // We simply want to eval against that object reference.

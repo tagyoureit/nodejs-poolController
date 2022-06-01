@@ -155,6 +155,7 @@ export class BaseInterfaceBindings {
             else if (typeof tok.value === 'undefined') s = s.replace(tok.reg, 'null');
             else return tok.value;
         }
+        return s;
     }
     protected tokensReplacer(input: string, eventName: string, toks: any, e: InterfaceEvent, data): any{
         this.buildTokens(input, eventName, toks, e, data);
