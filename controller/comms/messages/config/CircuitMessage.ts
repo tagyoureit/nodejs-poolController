@@ -278,7 +278,7 @@ export class CircuitMessage {
                         break;
                     case 1: // spa
                         body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
-                        sbody = state.temps.bodies.getItemById(1, sys.equipment.maxBodies > 1);
+                        sbody = state.temps.bodies.getItemById(2, sys.equipment.maxBodies > 1);
                         sbody.name = body.name = "Spa";
                         sbody.type = body.type = 1;
                         // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
