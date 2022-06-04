@@ -895,7 +895,8 @@ export class NixieCircuitCommands extends CircuitCommands {
         let thm = sys.board.valueMaps.lightThemes.findItem(theme);
         if (typeof thm !== 'undefined' && typeof thm.sequence !== 'undefined' && circ.master === 1) {
             logger.info(`Setting light theme for ${circ.name} to ${thm.name} [${thm.sequence}]`);
-            await sys.board.circuits.setCircuitStateAsync(id, true);
+            await sys.board.circuits.setCircuitStateAsync(id, false);
+            await utils.sleep(300);
             await ncp.circuits.sendOnOffSequenceAsync(id, thm.sequence);
         }
         cstate.lightingTheme = theme;
