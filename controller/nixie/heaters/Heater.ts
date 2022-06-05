@@ -3,13 +3,13 @@ import { utils, Timestamp } from '../../Constants';
 import { logger } from '../../../logger/Logger';
 
 import { NixieEquipment, NixieChildEquipment, NixieEquipmentCollection, INixieControlPanel } from "../NixieEquipment";
-import { Heater, HeaterCollection, sys } from "../../../controller/Equipment";
+import { Body, Heater, HeaterCollection, sys } from "../../../controller/Equipment";
 import { BodyTempState, HeaterState, state, } from "../../State";
 import { setTimeout, clearTimeout } from 'timers';
 import { NixieControlPanel } from '../Nixie';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
 import { conn } from '../../../controller/comms/Comms';
-import { Outbound, Protocol, Response } from '../../../controller/comms/messages/Messages';
+import { Inbound, Outbound, Protocol, Response } from '../../../controller/comms/messages/Messages';
 import { delayMgr } from '../../Lockouts';
 
 export class NixieHeaterCollection extends NixieEquipmentCollection<NixieHeaterBase> {
@@ -120,6 +120,8 @@ export class NixieHeaterBase extends NixieEquipment {
                 return new NixieMastertemp(ncp, heater);
             case 'solar':
                 return new NixieSolarHeater(ncp, heater);
+            case 'hybrid':
+                return new NixieUltraTempETi(ncp, heater);
             default:
                 return new NixieHeaterBase(ncp, heater);
         }
@@ -653,5 +655,158 @@ export class NixieMastertemp extends NixieGasHeater {
 
         }
         catch (err) { logger.error(`MasterTemp closeAsync: ${err.message}`); return Promise.reject(err); }
+    }
+}
+export class NixieUltraTempETi extends NixieHeaterBase {
+    constructor(ncp: INixieControlPanel, heater: Heater) {
+        super(ncp, heater);
+        // Set the polling interval to 3 seconds.
+        this.pollEquipmentAsync();
+    }
+    public async pollEquipmentAsync() {
+        let self = this;
+        try {
+            this.suspendPolling = true;
+            if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
+            this._pollTimer = null;
+            if (this._suspendPolling > 1) return;
+            let sheater = state.heaters.getItemById(this.heater.id, !this.closing);
+            // If the body isn't on then we won't communicate with the chem controller.  There is no need
+            // since most of the time these are attached to the filter relay.
+            if (!this.closing) {
+                await this.setStatus(sheater);
+            }
+        }
+        catch (err) { logger.error(`Error polling UltraTemp ETi heater - ${err}`); }
+        finally {
+            this.suspendPolling = false; if (!this.closing) this._pollTimer = setTimeout(async () => {
+                try { await self.pollEquipmentAsync() } catch (err) { }
+            }, this.pollingInterval || 10000);
+        }
+    }
+    public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean, isCooling: boolean) {
+        try {
+            // Initialize the desired state.
+            this.isCooling = isCooling;
+            if (hstate.isOn !== isOn) {
+                logger.info(`Nixie: Set Heater ${hstate.id}-${hstate.name} to ${isCooling ? 'cooling' : isOn ? 'heating' : 'off'}`);
+
+            }
+            if (isOn && !hstate.startupDelay) this.lastHeatCycle = new Date();
+            this.isOn = hstate.isOn = isOn;
+        } catch (err) { return logger.error(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
+    }
+    public async releaseHeater(sheater: HeaterState): Promise<boolean> {
+        try {
+            let success = await new Promise<boolean>((resolve, reject) => {
+                let out = Outbound.create({
+                    portId: this.heater.portId || 0,
+                    protocol: Protocol.Heater,
+                    source: 16,
+                    dest: this.heater.address,
+                    action: 112,
+                    payload: [],
+                    retries: 3, // We are going to try 4 times.
+                    response: Response.create({ protocol: Protocol.Heater, action: 113 }),
+                    onAbort: () => { },
+                    onComplete: (err) => {
+                        if (err) {
+                            // If the Ultratemp is not responding we need to store that off but at this point we know none of the codes.  If a 113 does
+                            // come across this will be cleared by the processing of that message.
+                            sheater.commStatus = sys.board.valueMaps.equipmentCommStatus.getValue('commerr');
+                            state.equipment.messages.setMessageByCode(`heater:${sheater.id}:comms`, 'error', `Communication error with ${sheater.name}`);
+                            resolve(false);
+                        }
+                        else { resolve(true); }
+                    }
+                });
+                out.appendPayloadBytes(0, 10);
+                out.setPayloadByte(0, 0);
+                out.setPayloadByte(1, 0);
+                out.setPayloadByte(2, 78);
+                out.setPayloadByte(3, 1);
+                out.setPayloadByte(4, 5);
+                conn.queueSendMessage(out);
+            });
+            return success;
+        } catch (err) { logger.error(`Communication error with Ultratemp : ${err.message}`); }
+    }
+    protected calcHeatModeByte(body: Body): number {
+        let byte = 0;
+        if (this.closing) return 0; // We are closing so just set the heat mode to off.
+        let mode = sys.board.valueMaps.heatModes.transform(body.heatMode || 0);
+        switch (mode.name) {
+            case 'hpump':
+            case 'heatpump':
+                byte = 1;
+                break;
+            case 'heater':
+                byte = 2;
+                break;
+            case 'heatpumpref':
+            case 'heatpumppref':
+            case 'hybrid':
+                byte = 3;
+                break;
+            case 'dual':
+                byte = 4;
+                break;
+        }
+        return byte;
+    }
+    public async setStatus(sheater: HeaterState): Promise<boolean> {
+        try {
+            let success = await new Promise<boolean>((resolve, reject) => {
+                let out = Outbound.create({
+                    portId: this.heater.portId || 0,
+                    protocol: Protocol.Heater,
+                    source: 16,
+                    dest: this.heater.address,
+                    action: 112,
+                    payload: [],
+                    retries: 3, // We are going to try 4 times.
+                    response: Response.create({ protocol: Protocol.Heater, action: 113 }),
+                    onAbort: () => { },
+                    onComplete: (err) => {
+                        if (err) {
+                            // If the Ultratemp ETi is not responding we need to store that off but at this point we know none of the codes.  If a 113 does
+                            // come across this will be cleared by the processing of that message.
+                            sheater.commStatus = sys.board.valueMaps.equipmentCommStatus.getValue('commerr');
+                            state.equipment.messages.setMessageByCode(`heater:${sheater.id}:comms`, 'error', `Communication error with ${sheater.name}`);
+                            resolve(false);
+                        }
+                        else resolve(true);
+                    }
+                });
+                out.appendPayloadBytes(0, 10);
+                out.setPayloadByte(0, this.isOn && !sheater.startupDelay && !this.closing ? 1 : 0);
+                if (sheater.bodyId > 0) {
+                    let body = sys.bodies.getItemById(sheater.bodyId);
+                    out.setPayloadByte(1, this.calcHeatModeByte(body));
+                    out.setPayloadByte(2, body.setPoint);
+                }
+                else out.setPayloadByte(2, utils.convert.temperature.convertUnits(78, 'F', sys.board.valueMaps.tempUnits.getName(state.temps.units) || 'F')); // Just set it to a valid setpoint and call it a day.
+                out.setPayloadByte(3, this.heater.economyTime, 1);
+                out.setPayloadByte(4, this.heater.maxBoostTemp, 5);
+                if (this.isOn) {
+                    if (!this.isCooling) this.lastHeatCycle = new Date();
+                    else this.lastCoolCycle = new Date();
+                }
+                conn.queueSendMessage(out);
+            });
+            return success;
+        } catch (err) { logger.error(`Communication error with Ultratemp ETi : ${err.message}`); }
+    }
+    public async closeAsync() {
+        try {
+            this.suspendPolling = true;
+            this.closing = true;
+            if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
+            this._pollTimer = null;
+            let sheater = state.heaters.getItemById(this.id);
+            await this.releaseHeater(sheater);
+            logger.info(`Closing Heater ${this.heater.name}`);
+        }
+        catch (err) { logger.error(`Ultratemp closeAsync: ${err.message}`); return Promise.reject(err); }
     }
 }

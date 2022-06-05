@@ -1654,6 +1654,7 @@ export class NixieHeaterCommands extends HeaterCommands {
         let gasHeaterInstalled = htypes.gas > 0;
         let ultratempInstalled = htypes.ultratemp > 0;
         let mastertempInstalled = htypes.mastertemp > 0;
+        let hybridInstalled = htypes.hybrid > 0;
         // The heat mode options are
         // 1 = Off
         // 2 = Gas Heater
@@ -1673,8 +1674,22 @@ export class NixieHeaterCommands extends HeaterCommands {
         // 3 = Solar Heater
         // 4 = Solar Preferred
         // 5 = Heat Pump
-
         if (sys.heaters.length > 0) sys.board.valueMaps.heatSources = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
+        sys.board.valueMaps.heatModes = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
+        if (hybridInstalled) {
+            sys.board.valueMaps.heatModes.merge([
+                [9, { name: 'heatpump', desc: 'Heat Pump' }],
+                [2, { name: 'heater', desc: 'Heater' }],
+                [25, { name: 'heatpumppref', desc: 'Hybrid' }],
+                [26, { name: 'dual', desc: 'Dual Heat' }]
+            ]);
+            sys.board.valueMaps.heatSources.merge([
+                [2, { name: 'heater', desc: 'Gas Heat' }],
+                [9, { name: 'heatpump', desc: 'Heat Pump' }],
+                [20, { name: 'heatpumppref', desc: 'Hybrid' }],
+                [21, { name: 'dual', desc: 'Dual Heat' }]
+            ]);
+        }
         if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[2, { name: 'heater', desc: 'Heater' }]]);
         if (mastertempInstalled) sys.board.valueMaps.heatSources.merge([[11, { name: 'mtheater', desc: 'MasterTemp' }]]);
         if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar Only', hasCoolSetpoint: htypes.hasCoolSetpoint }], [4, { name: 'solarpref', desc: 'Solar Preferred', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
@@ -1685,7 +1700,7 @@ export class NixieHeaterCommands extends HeaterCommands {
         else if (ultratempInstalled) sys.board.valueMaps.heatSources.merge([[5, { name: 'ultratemp', desc: 'UltraTemp', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
         sys.board.valueMaps.heatSources.merge([[0, { name: 'nochange', desc: 'No Change' }]]);
 
-        sys.board.valueMaps.heatModes = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
+            
         if (gasHeaterInstalled) sys.board.valueMaps.heatModes.merge([[2, { name: 'heater', desc: 'Heater' }]]);
         if (mastertempInstalled) sys.board.valueMaps.heatModes.merge([[11, { name: 'mtheater', desc: 'MasterTemp' }]]);
         if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled || mastertempInstalled)) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar Only' }], [4, { name: 'solarpref', desc: 'Solar Preferred' }]]);

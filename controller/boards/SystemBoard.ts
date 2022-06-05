@@ -1676,33 +1676,41 @@ export class BodyCommands extends BoardCommands {
     }
     return heatSources;
   }
-  public getHeatModes(bodyId: number) {
-    let heatModes = [];
-    sys.board.heaters.updateHeaterServices();
+    public getHeatModes(bodyId: number) {
+        let heatModes = [];
+        sys.board.heaters.updateHeaterServices();
 
-    // RKS: 09-26-20 This will need to be overloaded in IntelliCenterBoard when the other heater types are identified. (e.g. ultratemp, hybrid, maxetherm, and mastertemp)
-    heatModes.push(this.board.valueMaps.heatModes.transformByName('off')); // In IC fw 1.047 off is no longer 0.
-    let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
-    if (heatTypes.hybrid > 0) heatModes = this.board.valueMaps.heatModes.toArray();
-    if (heatTypes.gas > 0) heatModes.push(this.board.valueMaps.heatModes.transformByName('heater'));
-    if (heatTypes.mastertemp > 0) heatModes.push(this.board.valueMaps.heatModes.transformByName('mtheater'));
-    if (heatTypes.solar > 0) {
-      let hm = this.board.valueMaps.heatModes.transformByName('solar');
-      heatModes.push(hm);
-      if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('solarpref'));
+        // RKS: 09-26-20 This will need to be overloaded in IntelliCenterBoard when the other heater types are identified. (e.g. ultratemp, hybrid, maxetherm, and mastertemp)
+        heatModes.push(this.board.valueMaps.heatModes.transformByName('off')); // In IC fw 1.047 off is no longer 0.
+        let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
+        if (heatTypes.hybrid > 0) {
+            heatModes.push(sys.board.valueMaps.heatModes.transformByName('heatpump'));
+            heatModes.push(sys.board.valueMaps.heatModes.transformByName('heater'));
+            heatModes.push(sys.board.valueMaps.heatModes.transformByName('heatpumppref'));
+            heatModes.push(sys.board.valueMaps.heatModes.transformByName('dual'));
+            //heatModes = this.board.valueMaps.heatModes.toArray();
+        }
+        if (heatTypes.gas > 0) {
+            heatModes.push(this.board.valueMaps.heatModes.transformByName('heater'));
+        }
+        if (heatTypes.mastertemp > 0) heatModes.push(this.board.valueMaps.heatModes.transformByName('mtheater'));
+        if (heatTypes.solar > 0) {
+            let hm = this.board.valueMaps.heatModes.transformByName('solar');
+            heatModes.push(hm);
+            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('solarpref'));
+        }
+        if (heatTypes.heatpump > 0) {
+            let hm = this.board.valueMaps.heatModes.transformByName('heatpump');
+            heatModes.push(hm);
+            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('heatpumppref'));
+        }
+        if (heatTypes.ultratemp > 0) {
+            let hm = this.board.valueMaps.heatModes.transformByName('ultratemp');
+            heatModes.push(hm);
+            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('ultratemppref'));
+        }
+        return heatModes;
     }
-    if (heatTypes.heatpump > 0) {
-      let hm = this.board.valueMaps.heatModes.transformByName('heatpump');
-      heatModes.push(hm);
-      if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('heatpumppref'));
-    }
-    if (heatTypes.ultratemp > 0) {
-      let hm = this.board.valueMaps.heatModes.transformByName('ultratemp');
-      heatModes.push(hm);
-      if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('ultratemppref'));
-    }
-    return heatModes;
-  }
   public getPoolStates(): BodyTempState[] {
     let arrPools = [];
     for (let i = 0; i < state.temps.bodies.length; i++) {
@@ -3764,573 +3772,603 @@ export class ScheduleCommands extends BoardCommands {
   }
 }
 export class HeaterCommands extends BoardCommands {
-  public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
-    try {
-      // First delete the heaters that should be removed.
-      for (let i = 0; i < ctx.heaters.remove.length; i++) {
-        let h = ctx.heaters.remove[i];
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
         try {
-          await sys.board.heaters.deleteHeaterAsync(h);
-          res.addModuleSuccess('heater', `Remove: ${h.id}-${h.name}`);
-        } catch (err) { res.addModuleError('heater', `Remove: ${h.id}-${h.name}: ${err.message}`); }
-      }
-      for (let i = 0; i < ctx.heaters.update.length; i++) {
-        let h = ctx.heaters.update[i];
-        try {
-          await sys.board.heaters.setHeaterAsync(h);
-          res.addModuleSuccess('heater', `Update: ${h.id}-${h.name}`);
-        } catch (err) { res.addModuleError('heater', `Update: ${h.id}-${h.name}: ${err.message}`); }
-      }
-      for (let i = 0; i < ctx.heaters.add.length; i++) {
-        let h = ctx.heaters.add[i];
-        try {
-          // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-          // it won't error out.
-          sys.heaters.getItemById(h.id, true);
-          await sys.board.heaters.setHeaterAsync(h);
-          res.addModuleSuccess('heater', `Add: ${h.id}-${h.name}`);
-        } catch (err) { res.addModuleError('heater', `Add: ${h.id}-${h.name}: ${err.message}`); }
-      }
-      return true;
-    } catch (err) { logger.error(`Error restoring heaters: ${err.message}`); res.addModuleError('system', `Error restoring heaters: ${err.message}`); return false; }
-  }
-  public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
-    try {
-      let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-      // Look at heaters.
-      let cfg = rest.poolConfig;
-      for (let i = 0; i < cfg.heaters.length; i++) {
-        let r = cfg.heaters[i];
-        let c = sys.heaters.find(elem => r.id === elem.id);
-        if (typeof c === 'undefined') ctx.add.push(r);
-        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-      }
-      for (let i = 0; i < sys.heaters.length; i++) {
-        let c = sys.heaters.getItemByIndex(i);
-        let r = cfg.heaters.find(elem => elem.id == c.id);
-        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-      }
-      return ctx;
-    } catch (err) { logger.error(`Error validating heaters for restore: ${err.message}`); }
-  }
-  public getHeatersByCircuitId(circuitId: number): Heater[] {
-    let heaters: Heater[] = [];
-    let bodyId = circuitId === 6 ? 1 : circuitId === 1 ? 2 : 0;
-    if (bodyId > 0) {
-      for (let i = 0; i < sys.heaters.length; i++) {
-        let heater = sys.heaters.getItemByIndex(i);
-        if (!heater.isActive) continue;
-        if (bodyId === heater.body || sys.equipment.shared && heater.body === 32) heaters.push(heater);
-      }
-    }
-    return heaters;
-  }
-  public getInstalledHeaterTypes(body?: number): any {
-    let heaters = sys.heaters.get();
-    let types = sys.board.valueMaps.heaterTypes.toArray();
-    let inst = { total: 0 };
-    for (let i = 0; i < types.length; i++) if (types[i].name !== 'none') inst[types[i].name] = 0;
-    for (let i = 0; i < heaters.length; i++) {
-      let heater = heaters[i];
-      if (typeof body !== 'undefined' && heater.body !== 'undefined') {
-        if ((heater.body !== 32 && body !== heater.body + 1) || (heater.body === 32 && body > 2)) continue;
-      }
-      let type = types.find(elem => elem.val === heater.type);
-      if (typeof type !== 'undefined') {
-        if (inst[type.name] === 'undefined') inst[type.name] = 0;
-        inst[type.name] = inst[type.name] + 1;
-        if (heater.coolingEnabled === true && type.hasCoolSetpoint === true) inst['hasCoolSetpoint'] = true;
-        inst.total++;
-      }
-    }
-    return inst;
-  }
-  public isSolarInstalled(body?: number): boolean {
-    let heaters = sys.heaters.get();
-    let types = sys.board.valueMaps.heaterTypes.toArray();
-    for (let i = 0; i < heaters.length; i++) {
-      let heater = heaters[i];
-      if (typeof body !== 'undefined' && body !== heater.body) continue;
-      let type = types.find(elem => elem.val === heater.type);
-      if (typeof type !== 'undefined') {
-        switch (type.name) {
-          case 'solar':
-            return true;
-        }
-      }
-    }
-  }
-  public isHeatPumpInstalled(body?: number): boolean {
-    let heaters = sys.heaters.get();
-    let types = sys.board.valueMaps.heaterTypes.toArray();
-    for (let i = 0; i < heaters.length; i++) {
-      let heater = heaters[i];
-      if (typeof body !== 'undefined' && body !== heater.body) continue;
-      let type = types.find(elem => elem.val === heater.type);
-      if (typeof type !== 'undefined') {
-        switch (type.name) {
-          case 'heatpump':
-            return true;
-        }
-      }
-    }
-  }
-  public setHeater(heater: Heater, obj?: any) {
-    if (typeof obj !== undefined) {
-      for (var s in obj)
-        heater[s] = obj[s];
-    }
-  }
-  public async setHeaterAsync(obj: any): Promise<Heater> {
-    try {
-      let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
-      if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
-      else if (id < 256 && id > 0) return Promise.reject(new InvalidEquipmentIdError('Virtual Heaters controlled by njspc must have an Id > 256.', obj.id, 'Heater'));
-      let heater: Heater;
-      if (id <= 0) {
-        // We are adding a heater.  In this case all heaters are virtual.
-        let vheaters = sys.heaters.filter(h => h.master === 1);
-        id = vheaters.length + 256;
-      }
-      heater = sys.heaters.getItemById(id, true);
-      if (typeof obj !== undefined) {
-        for (var s in obj) {
-          if (s === 'id') continue;
-          heater[s] = obj[s];
-        }
-      }
-      let hstate = state.heaters.getItemById(id, true);
-      //hstate.isVirtual = heater.isVirtual = true;
-      hstate.name = heater.name;
-      hstate.type = heater.type;
-      heater.master = 1;
-      if (heater.master === 1) await ncp.heaters.setHeaterAsync(heater, obj);
-      await sys.board.heaters.updateHeaterServices();
-      await sys.board.heaters.syncHeaterStates();
-      return heater;
-    } catch (err) { return Promise.reject(new Error(`Error setting heater configuration: ${err}`)); }
-  }
-  public async deleteHeaterAsync(obj: any): Promise<Heater> {
-    try {
-      let id = parseInt(obj.id, 10);
-      if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
-      let heater = sys.heaters.getItemById(id);
-      heater.isActive = false;
-      if (heater.master === 1) await ncp.heaters.deleteHeaterAsync(heater.id);
-      sys.heaters.removeItemById(id);
-      state.heaters.removeItemById(id);
-      sys.board.heaters.updateHeaterServices();
-      sys.board.heaters.syncHeaterStates();
-      return heater;
-    } catch (err) { return Promise.reject(`Error deleting heater: ${err.message}`) }
-  }
-  public updateHeaterServices() {
-    let htypes = sys.board.heaters.getInstalledHeaterTypes();
-    let solarInstalled = htypes.solar > 0;
-    let heatPumpInstalled = htypes.heatpump > 0;
-    let gasHeaterInstalled = htypes.gas > 0;
-
-    if (sys.heaters.length > 0) sys.board.valueMaps.heatSources = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
-    if (gasHeaterInstalled) sys.board.valueMaps.heatSources.set(3, { name: 'heater', desc: 'Heater' });
-    if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-    else if (solarInstalled) sys.board.valueMaps.heatSources.set(5, { name: 'solar', desc: 'Solar' });
-    if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
-    else if (heatPumpInstalled) sys.board.valueMaps.heatSources.set(9, { name: 'heatpump', desc: 'Heat Pump' });
-    sys.board.valueMaps.heatSources.set(32, { name: 'nochange', desc: 'No Change' });
-
-    sys.board.valueMaps.heatModes = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
-    if (gasHeaterInstalled) sys.board.valueMaps.heatModes.set(3, { name: 'heater', desc: 'Heater' });
-    if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-    else if (solarInstalled) sys.board.valueMaps.heatModes.set(5, { name: 'solar', desc: 'Solar' });
-    if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
-    else if (heatPumpInstalled) sys.board.valueMaps.heatModes.set(9, { name: 'heatpump', desc: 'Heat Pump' });
-    // Now set the body data.
-    for (let i = 0; i < sys.bodies.length; i++) {
-      let body = sys.bodies.getItemByIndex(i);
-      let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
-      let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
-      btemp.heaterOptions = opts;
-    }
-    this.setActiveTempSensors();
-  }
-  public initTempSensors() {
-    // Add in the potential sensors and delete the ones that shouldn't exist.
-    let maxPairs = sys.equipment.maxBodies + (sys.equipment.shared ? -1 : 0);
-    sys.equipment.tempSensors.getItemById('air', true, { id: 'air', isActive: true, calibration: 0 }).name = 'Air';
-    sys.equipment.tempSensors.getItemById('water1', true, { id: 'water1', isActive: true, calibration: 0 }).name = maxPairs == 1 ? 'Water' : 'Body 1';
-    sys.equipment.tempSensors.getItemById('solar1', true, { id: 'solar1', isActive: false, calibration: 0 }).name = maxPairs == 1 ? 'Solar' : 'Solar 1';
-    if (maxPairs > 1) {
-      sys.equipment.tempSensors.getItemById('water2', true, { id: 'water2', isActive: false, calibration: 0 }).name = 'Body 2';
-      sys.equipment.tempSensors.getItemById('solar2', true, { id: 'solar2', isActive: false, calibration: 0 }).name = 'Solar 2';
-    }
-    else {
-      sys.equipment.tempSensors.removeItemById('water2');
-      sys.equipment.tempSensors.removeItemById('solar2');
-    }
-    if (maxPairs > 2) {
-      sys.equipment.tempSensors.getItemById('water3', true, { id: 'water3', isActive: false, calibration: 0 }).name = 'Body 3';
-      sys.equipment.tempSensors.getItemById('solar3', true, { id: 'solar3', isActive: false, calibration: 0 }).name = 'Solar 3';
-    }
-    else {
-      sys.equipment.tempSensors.removeItemById('water3');
-      sys.equipment.tempSensors.removeItemById('solar3');
-    }
-    if (maxPairs > 3) {
-      sys.equipment.tempSensors.getItemById('water4', true, { id: 'water4', isActive: false, calibration: 0 }).name = 'Body 4';
-      sys.equipment.tempSensors.getItemById('solar4', true, { id: 'solar4', isActive: false, calibration: 0 }).name = 'Solar 4';
-    }
-    else {
-      sys.equipment.tempSensors.removeItemById('water4');
-      sys.equipment.tempSensors.removeItemById('solar4');
-    }
-
-  }
-  // Sets the active temp sensors based upon the installed equipment.  At this point all
-  // detectable temp sensors should exist.
-  public setActiveTempSensors() {
-    let htypes;
-    // We are iterating backwards through the sensors array on purpose.  We do this just in case we need
-    // to remove a sensor during the iteration.  This way the index values will not be impacted and we can
-    // safely remove from the array we are iterating.
-    for (let i = sys.equipment.tempSensors.length - 1; i >= 0; i--) {
-      let sensor = sys.equipment.tempSensors.getItemByIndex(i);
-      // The names are normalized in this array.
-      switch (sensor.id) {
-        case 'air':
-          sensor.isActive = true;
-          break;
-        case 'water1':
-          sensor.isActive = sys.equipment.maxBodies > 0;
-          break;
-        case 'water2':
-          sensor.isActive = sys.equipment.shared ? sys.equipment.maxBodies > 2 : sys.equipment.maxBodies > 1;
-          break;
-        case 'water3':
-          sensor.isActive = sys.equipment.shared ? sys.equipment.maxBodies > 3 : sys.equipment.maxBodies > 2;
-          break;
-        case 'water4':
-          // It's a little weird but technically you should be able to install 3 expansions and a i10D personality
-          // board.  If this situation ever comes up we will see if it works. Whether it reports is another story
-          // since the 2 message is short a byte for this.
-          sensor.isActive = sys.equipment.shared ? sys.equipment.maxBodies > 4 : sys.equipment.maxBodies > 3;
-          break;
-        // Solar sensors are funny ducks. This is because they are for both heatpumps and solar and the equipment
-        // can be installed on specific bodies.  This will be true for heaters installed in expansion panels for *Touch, dual body systems,
-        // and any IntelliCenter with more than one body.  At some point simply implementing the multi-body functions for touch will make
-        // this all work. This will only be with i10D or expansion panels.
-        case 'solar1':
-          // The first solar sensor is a funny duck in that it should be active for shared systems
-          // if either body has an active solar heater or heatpump.
-          htypes = sys.board.heaters.getInstalledHeaterTypes(1);
-          if ('solar' in htypes || 'heatpump' in htypes) sensor.isActive = true;
-          else if (sys.equipment.shared) {
-            htypes = sys.board.heaters.getInstalledHeaterTypes(2);
-            sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
-          }
-          else sensor.isActive = false;
-          break;
-        case 'solar2':
-          if (sys.equipment.maxBodies > 1 + (sys.equipment.shared ? 1 : 0)) {
-            htypes = sys.board.heaters.getInstalledHeaterTypes(2 + (sys.equipment.shared ? 1 : 0));
-            sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
-          }
-          else sensor.isActive = false;
-          break;
-        case 'solar3':
-          if (sys.equipment.maxBodies > 2 + (sys.equipment.shared ? 1 : 0)) {
-            htypes = sys.board.heaters.getInstalledHeaterTypes(3 + (sys.equipment.shared ? 1 : 0));
-            sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
-          }
-          else sensor.isActive = false;
-          break;
-        case 'solar4':
-          if (sys.equipment.maxBodies > 3 + (sys.equipment.shared ? 1 : 0)) {
-            htypes = sys.board.heaters.getInstalledHeaterTypes(4 + (sys.equipment.shared ? 1 : 0));
-            sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
-          }
-          else sensor.isActive = false;
-          break;
-        default:
-          if (typeof sensor.id === 'undefined') sys.equipment.tempSensors.removeItemByIndex(i);
-          break;
-      }
-    }
-  }
-  // This updates the heater states based upon the installed heaters.  This is true for heaters that are tied to the OCP
-  // and those that are not.
-  public syncHeaterStates() {
-    try {
-      // Go through the installed heaters and bodies to determine whether they should be on.  If there is a
-      // heater that is not controlled by the OCP then we need to determine whether it should be on.
-      let heaters = sys.heaters.toArray();
-      let bodies = state.temps.bodies.toArray();
-      let hon = [];
-      for (let i = 0; i < bodies.length; i++) {
-        let body: BodyTempState = bodies[i];
-        let cfgBody: Body = sys.bodies.getItemById(body.id);
-        let isHeating = false;
-        let isCooling = false;
-        let hstatus = sys.board.valueMaps.heatStatus.getName(body.heatStatus);
-        let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
-        if (body.isOn) {
-          if (typeof body.temp === 'undefined' && heaters.length > 0) logger.warn(`The body temperature for ${body.name} cannot be determined. Heater status for this body cannot be calculated.`);
-          // Now get all the heaters associated with the body in an array.
-          let bodyHeaters: Heater[] = [];
-          for (let j = 0; j < heaters.length; j++) {
-            let heater: Heater = heaters[j];
-            if (heater.isActive === false) continue;
-            if (heater.body === body.id) bodyHeaters.push(heater);
-            else {
-              let b = sys.board.valueMaps.bodies.transform(heater.body);
-              switch (b.name) {
-                case 'body1':
-                case 'pool':
-                  if (body.id === 1) bodyHeaters.push(heater);
-                  break;
-                case 'body2':
-                case 'spa':
-                  if (body.id === 2) bodyHeaters.push(heater);
-                  break;
-                case 'poolspa':
-                  if (body.id === 1 || body.id === 2) bodyHeaters.push(heater);
-                  break;
-                case 'body3':
-                  if (body.id === 3) bodyHeaters.push(heater);
-                  break;
-                case 'body4':
-                  if (body.id === 4) bodyHeaters.push(heater);
-                  break;
-              }
-            }
-          }
-          // Alright we have all the body heaters so sort them in a way that will make our heater preferences work.  Solar, heatpumps, and ultratemp should be in the list first
-          // so that if we have a heater preference set up then we do not have to evaluate the other heater.
-          let heaterTypes = sys.board.valueMaps.heaterTypes;
-          bodyHeaters.sort((a, b) => {
-            if (heaterTypes.transform(a.type).hasPreference) return -1;
-            else if (heaterTypes.transform(b.type).hasPreference) return 1;
-            return 0;
-          });
-
-          // Alright so now we should have a sorted array that has preference type heaters first.
-          for (let j = 0; j < bodyHeaters.length; j++) {
-            let heater: Heater = bodyHeaters[j];
-            let isOn = false;
-            let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
-            let hstate = state.heaters.getItemById(heater.id, true);
-            if (heater.master === 1) {
-              if (hstatus !== 'cooldown') {
-                // We need to do our own calculation as to whether it is on.  This is for Nixie heaters.
-                switch (htype.name) {
-                  case 'solar':
-                    if (mode === 'solar' || mode === 'solarpref') {
-                      // Measure up against start and stop temp deltas for effective solar heating.
-                      if (body.temp < cfgBody.heatSetpoint &&
-                        state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
-                        isOn = true;
-                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
-                        isHeating = true;
-                      }
-                      else if (heater.coolingEnabled && body.temp > cfgBody.coolSetpoint && state.heliotrope.isNight &&
-                        state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
-                        isOn = true;
-                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
-                        isHeating = true;
-                        isCooling = true;
-                      }
-                    }
-                    break;
-                  case 'ultratemp':
-                    // There is a temperature differential setting on UltraTemp.  This is how
-                    // much the water temperature needs to drop below the set temperature, for the heater
-                    // to start up again.  For instance, if the set temperature and the water temperature is 82 and then the
-                    // heater will shut off and not turn on again until the water temperature = setpoint - differentialTemperature.
-                    // This is the default operation on IntelliCenter and it appears to simply not start on the setpoint.  We can do better
-                    // than this by heating 1 degree past the setpoint then applying this rule for 30 minutes.  This allows for a more
-                    // responsive heater.
-                    // 
-                    // For Ultratemp we need to determine whether the differential temp
-                    // is within range.  The other thing that needs to be calculated here is
-                    // whether Ultratemp can effeciently heat the pool.
-                    if (mode === 'ultratemp' || mode === 'ultratemppref') {
-                      if (hstate.isOn) {
-                        // For the preference mode we will try to reach the setpoint for a period of time then
-                        // switch over to the gas heater.  Our algorithm for this is to check the rate of
-                        // change when the heater first kicks on.  If we go for longer than an hour and still
-                        // haven't reached the setpoint then we will switch to gas.
-                        if (mode === 'ultratemppref' &&
-                          typeof hstate.startTime !== 'undefined' &&
-                          hstate.startTime.getTime() < new Date().getTime() - (60 * 60 * 1000))
-                          break;
-                        // If the heater is already on we will heat to 1 degree past the setpoint.
-                        if (body.temp - 1 < cfgBody.heatSetpoint) {
-                          isOn = true;
-                          body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
-                          isHeating = true;
-                          isCooling = false;
-                        }
-                        else if (body.temp + 1 > cfgBody.coolSetpoint && heater.coolingEnabled) {
-                          isOn = true;
-                          body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpcool');
-                          isHeating = false;
-                          isCooling = true;
-                        }
-                      }
-                      else {
-                        let delayStart = typeof hstate.endTime !== 'undefined' ? (hstate.endTime.getTime() + (30 * 60 * 1000)) > new Date().getTime() : false;
-                        // The heater is not currently on lets turn it on if we pass all the criteria.
-                        if ((body.temp < cfgBody.heatSetpoint && !delayStart)
-                          || body.temp + heater.differentialTemp < cfgBody.heatSetpoint) {
-                          isOn = true;
-                          body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
-                          isHeating = true;
-                          isCooling = false;
-                        }
-                        else if (body.temp > cfgBody.coolSetpoint && heater.coolingEnabled) {
-                          if (!delayStart || body.temp - heater.differentialTemp > cfgBody.coolSetpoint) {
-                            isOn = true;
-                            body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpcool');
-                            isHeating = false;
-                            isCooling = true;
-                          }
-                        }
-                      }
-                    }
-                    break;
-                  case 'mastertemp':
-                    // If we make it here, the other heater is not heating the body.
-                    if (mode === 'mtheater' || mode === 'heatpumppref' || mode === 'ultratemppref' || mode === 'solarpref') {
-                      if (body.temp < cfgBody.setPoint) {
-                        isOn = true;
-                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('mtheat');
-                        isHeating = true;
-                      }
-                    }
-                    break;
-                  case 'maxetherm':
-                  case 'gas':
-                    // If we make it here, the other heater is not heating the body.
-                    if (mode === 'heater' || mode === 'solarpref' || mode === 'heatpumppref' || mode === 'ultratemppref') {
-                      // Heat past the setpoint for the heater but only if the heater is currently on.
-                      if ((body.temp - (hstate.isOn ? heater.stopTempDelta : 0)) < cfgBody.setPoint) {
-                        isOn = true;
-                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                        isHeating = true;
-                      }
-                    }
-                    break;
-                  case 'heatpump':
-                        if (mode === 'heatpump' || mode === 'heatpumppref') {
-                            // Heat past the setpoint for the heater but only if the heater is currently on.
-                            if ((body.temp - (hstate.isOn ? heater.stopTempDelta : 0)) < cfgBody.setPoint) {
-                                isOn = true;
-                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
-                                isHeating = true;
-                            }
-                            //if (hstate.isOn) {
-                            //    // If the heater is already on we will heat to 1 degree past the setpoint.
-                            //    if (body.temp - 1 < cfgBody.heatSetpoint) {
-                            //        isOn = true;
-                            //        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
-                            //        isHeating = true;
-                            //        isCooling = false;
-                            //    }
-                            //}
-                            //else {
-                            //    // The heater is not currently on lets turn it on if we pass all the criteria.
-                            //    if ((body.temp < cfgBody.heatSetpoint && hstate.endTime.getTime() < new Date().getTime() + (30 * 60 * 1000))
-                            //        || body.temp + heater.differentialTemp < cfgBody.heatSetpoint) {
-                            //        isOn = true;
-                            //        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpcool');
-                            //        isHeating = true;
-                            //        isCooling = false;
-                            //    }
-                            //}
-                        }
-                    break;
-                  default:
-                    isOn = utils.makeBool(hstate.isOn);
-                    break;
-                }
-                logger.debug(`Heater Type: ${htype.name} Mode:${mode} Temp: ${body.temp} Setpoint: ${cfgBody.setPoint} Status: ${body.heatStatus}`);
-              }
-            }
-            else {
-              let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
-              switch (htype.name) {
-                case 'mastertemp':
-                  if (hstatus === 'mtheat') isHeating = isOn = true;
-                  break;
-                case 'maxetherm':
-                case 'gas':
-                  if (hstatus === 'heater') isHeating = isOn = true;
-                  break;
-                case 'hybrid':
-                  if (hstatus === 'mtheat' || hstatus === 'heater' || hstatus === 'dual') isHeating = isOn = true;
-                  break;
-                case 'ultratemp':
-                case 'heatpump':
-                  if (mode === 'ultratemp' || mode === 'ultratemppref' || mode === 'heatpump' || mode === 'heatpumppref') {
-                    if (hstatus === 'heater') isHeating = isOn = true;
-                    else if (hstatus === 'cooling') isCooling = isOn = true;
-                  }
-                  break;
-                case 'solar':
-                  if (mode === 'solar' || mode === 'solarpref') {
-                    if (hstatus === 'solar') isHeating = isOn = true;
-                    else if (hstatus === 'cooling') isCooling = isOn = true;
-                  }
-                  break;
-              }
-            }
-            if (isOn === true && typeof hon.find(elem => elem === heater.id) === 'undefined') {
-              hon.push(heater.id);
-              if (heater.master === 1 && isOn) (async () => {
+            // First delete the heaters that should be removed.
+            for (let i = 0; i < ctx.heaters.remove.length; i++) {
+                let h = ctx.heaters.remove[i];
                 try {
-                  hstate.bodyId = body.id;
-                  if (sys.board.valueMaps.heatStatus.getName(body.heatStatus) === 'cooldown')
-                    await ncp.heaters.setHeaterStateAsync(hstate, false, false);
-                  else if (isOn) {
-                    hstate.bodyId = body.id;
-                    await ncp.heaters.setHeaterStateAsync(hstate, isOn, isCooling);
-                  }
-                  else if (hstate.isOn !== isOn || hstate.isCooling !== isCooling) {
-                    await ncp.heaters.setHeaterStateAsync(hstate, isOn, isCooling);
-                  }
-                } catch (err) { logger.error(err.message); }
-              })();
-              else {
-                hstate.isOn = isOn;
-                hstate.bodyId = body.id;
-              }
+                    await sys.board.heaters.deleteHeaterAsync(h);
+                    res.addModuleSuccess('heater', `Remove: ${h.id}-${h.name}`);
+                } catch (err) { res.addModuleError('heater', `Remove: ${h.id}-${h.name}: ${err.message}`); }
             }
-            // If there is a heater on for the body we need break out of the loop.  This will make sure for instance a gas heater
-            // isn't started when one of the more economical methods are.
-            if (isOn === true) break;
-          }
+            for (let i = 0; i < ctx.heaters.update.length; i++) {
+                let h = ctx.heaters.update[i];
+                try {
+                    await sys.board.heaters.setHeaterAsync(h);
+                    res.addModuleSuccess('heater', `Update: ${h.id}-${h.name}`);
+                } catch (err) { res.addModuleError('heater', `Update: ${h.id}-${h.name}: ${err.message}`); }
+            }
+            for (let i = 0; i < ctx.heaters.add.length; i++) {
+                let h = ctx.heaters.add[i];
+                try {
+                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                    // it won't error out.
+                    sys.heaters.getItemById(h.id, true);
+                    await sys.board.heaters.setHeaterAsync(h);
+                    res.addModuleSuccess('heater', `Add: ${h.id}-${h.name}`);
+                } catch (err) { res.addModuleError('heater', `Add: ${h.id}-${h.name}: ${err.message}`); }
+            }
+            return true;
+        } catch (err) { logger.error(`Error restoring heaters: ${err.message}`); res.addModuleError('system', `Error restoring heaters: ${err.message}`); return false; }
+    }
+    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+        try {
+            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            // Look at heaters.
+            let cfg = rest.poolConfig;
+            for (let i = 0; i < cfg.heaters.length; i++) {
+                let r = cfg.heaters[i];
+                let c = sys.heaters.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.heaters.length; i++) {
+                let c = sys.heaters.getItemByIndex(i);
+                let r = cfg.heaters.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            return ctx;
+        } catch (err) { logger.error(`Error validating heaters for restore: ${err.message}`); }
+    }
+    public getHeatersByCircuitId(circuitId: number): Heater[] {
+        let heaters: Heater[] = [];
+        let bodyId = circuitId === 6 ? 1 : circuitId === 1 ? 2 : 0;
+        if (bodyId > 0) {
+            for (let i = 0; i < sys.heaters.length; i++) {
+                let heater = sys.heaters.getItemByIndex(i);
+                if (!heater.isActive) continue;
+                if (bodyId === heater.body || sys.equipment.shared && heater.body === 32) heaters.push(heater);
+            }
         }
-        if (sys.controllerType === ControllerType.Nixie && !isHeating && !isCooling && hstatus !== 'cooldown') body.heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
-        //else if (sys.controllerType === ControllerType.Nixie) body.heatStatus = 0;
-      }
-      // Turn off any heaters that should be off.  The code above only turns heaters on.
-      for (let i = 0; i < heaters.length; i++) {
-        let heater: Heater = heaters[i];
-        if (typeof hon.find(elem => elem === heater.id) === 'undefined') {
-          let hstate = state.heaters.getItemById(heater.id, true);
-          if (heater.master === 1) (async () => {
-            try {
-              await ncp.heaters.setHeaterStateAsync(hstate, false, false);
-              hstate.bodyId = 0;
-            } catch (err) { logger.error(err.message); }
-          })();
-          else {
-            hstate.isOn = false;
-            hstate.bodyId = 0;
-          }
+        return heaters;
+    }
+    public getInstalledHeaterTypes(body?: number): any {
+        let heaters = sys.heaters.get();
+        let types = sys.board.valueMaps.heaterTypes.toArray();
+        let inst = { total: 0 };
+        for (let i = 0; i < types.length; i++) if (types[i].name !== 'none') inst[types[i].name] = 0;
+        for (let i = 0; i < heaters.length; i++) {
+            let heater = heaters[i];
+            if (typeof body !== 'undefined' && heater.body !== 'undefined') {
+                if ((heater.body !== 32 && body !== heater.body + 1) || (heater.body === 32 && body > 2)) continue;
+            }
+            let type = types.find(elem => elem.val === heater.type);
+            if (typeof type !== 'undefined') {
+                if (inst[type.name] === 'undefined') inst[type.name] = 0;
+                inst[type.name] = inst[type.name] + 1;
+                if (heater.coolingEnabled === true && type.hasCoolSetpoint === true) inst['hasCoolSetpoint'] = true;
+                inst.total++;
+            }
         }
-      }
-    } catch (err) { logger.error(`Error synchronizing heater states: ${err.message}`); }
-  }
+        return inst;
+    }
+    public isSolarInstalled(body?: number): boolean {
+        let heaters = sys.heaters.get();
+        let types = sys.board.valueMaps.heaterTypes.toArray();
+        for (let i = 0; i < heaters.length; i++) {
+            let heater = heaters[i];
+            if (typeof body !== 'undefined' && body !== heater.body) continue;
+            let type = types.find(elem => elem.val === heater.type);
+            if (typeof type !== 'undefined') {
+                switch (type.name) {
+                    case 'solar':
+                        return true;
+                }
+            }
+        }
+    }
+    public isHeatPumpInstalled(body?: number): boolean {
+        let heaters = sys.heaters.get();
+        let types = sys.board.valueMaps.heaterTypes.toArray();
+        for (let i = 0; i < heaters.length; i++) {
+            let heater = heaters[i];
+            if (typeof body !== 'undefined' && body !== heater.body) continue;
+            let type = types.find(elem => elem.val === heater.type);
+            if (typeof type !== 'undefined') {
+                switch (type.name) {
+                    case 'heatpump':
+                        return true;
+                }
+            }
+        }
+    }
+    public setHeater(heater: Heater, obj?: any) {
+        if (typeof obj !== undefined) {
+            for (var s in obj)
+                heater[s] = obj[s];
+        }
+    }
+    public async setHeaterAsync(obj: any): Promise<Heater> {
+        try {
+            let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
+            else if (id < 256 && id > 0) return Promise.reject(new InvalidEquipmentIdError('Virtual Heaters controlled by njspc must have an Id > 256.', obj.id, 'Heater'));
+            let heater: Heater;
+            if (id <= 0) {
+                // We are adding a heater.  In this case all heaters are virtual.
+                let vheaters = sys.heaters.filter(h => h.master === 1);
+                id = vheaters.length + 256;
+            }
+            heater = sys.heaters.getItemById(id, true);
+            if (typeof obj !== undefined) {
+                for (var s in obj) {
+                    if (s === 'id') continue;
+                    heater[s] = obj[s];
+                }
+            }
+            let hstate = state.heaters.getItemById(id, true);
+            //hstate.isVirtual = heater.isVirtual = true;
+            hstate.name = heater.name;
+            hstate.type = heater.type;
+            heater.master = 1;
+            if (heater.master === 1) await ncp.heaters.setHeaterAsync(heater, obj);
+            await sys.board.heaters.updateHeaterServices();
+            await sys.board.heaters.syncHeaterStates();
+            return heater;
+        } catch (err) { return Promise.reject(new Error(`Error setting heater configuration: ${err}`)); }
+    }
+    public async deleteHeaterAsync(obj: any): Promise<Heater> {
+        try {
+            let id = parseInt(obj.id, 10);
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
+            let heater = sys.heaters.getItemById(id);
+            heater.isActive = false;
+            if (heater.master === 1) await ncp.heaters.deleteHeaterAsync(heater.id);
+            sys.heaters.removeItemById(id);
+            state.heaters.removeItemById(id);
+            sys.board.heaters.updateHeaterServices();
+            sys.board.heaters.syncHeaterStates();
+            return heater;
+        } catch (err) { return Promise.reject(`Error deleting heater: ${err.message}`) }
+    }
+    public updateHeaterServices() {
+        let htypes = sys.board.heaters.getInstalledHeaterTypes();
+        let solarInstalled = htypes.solar > 0;
+        let heatPumpInstalled = htypes.heatpump > 0;
+        let gasHeaterInstalled = htypes.gas > 0;
+
+        if (sys.heaters.length > 0) sys.board.valueMaps.heatSources = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
+        if (gasHeaterInstalled) sys.board.valueMaps.heatSources.set(3, { name: 'heater', desc: 'Heater' });
+        if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
+        else if (solarInstalled) sys.board.valueMaps.heatSources.set(5, { name: 'solar', desc: 'Solar' });
+        if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
+        else if (heatPumpInstalled) sys.board.valueMaps.heatSources.set(9, { name: 'heatpump', desc: 'Heat Pump' });
+        sys.board.valueMaps.heatSources.set(32, { name: 'nochange', desc: 'No Change' });
+
+        sys.board.valueMaps.heatModes = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
+        if (gasHeaterInstalled) sys.board.valueMaps.heatModes.set(3, { name: 'heater', desc: 'Heater' });
+        if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatModes.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
+        else if (solarInstalled) sys.board.valueMaps.heatModes.set(5, { name: 'solar', desc: 'Solar' });
+        if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
+        else if (heatPumpInstalled) sys.board.valueMaps.heatModes.set(9, { name: 'heatpump', desc: 'Heat Pump' });
+        // Now set the body data.
+        for (let i = 0; i < sys.bodies.length; i++) {
+            let body = sys.bodies.getItemByIndex(i);
+            let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
+            let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
+            btemp.heaterOptions = opts;
+        }
+        this.setActiveTempSensors();
+    }
+    public initTempSensors() {
+        // Add in the potential sensors and delete the ones that shouldn't exist.
+        let maxPairs = sys.equipment.maxBodies + (sys.equipment.shared ? -1 : 0);
+        sys.equipment.tempSensors.getItemById('air', true, { id: 'air', isActive: true, calibration: 0 }).name = 'Air';
+        sys.equipment.tempSensors.getItemById('water1', true, { id: 'water1', isActive: true, calibration: 0 }).name = maxPairs == 1 ? 'Water' : 'Body 1';
+        sys.equipment.tempSensors.getItemById('solar1', true, { id: 'solar1', isActive: false, calibration: 0 }).name = maxPairs == 1 ? 'Solar' : 'Solar 1';
+        if (maxPairs > 1) {
+            sys.equipment.tempSensors.getItemById('water2', true, { id: 'water2', isActive: false, calibration: 0 }).name = 'Body 2';
+            sys.equipment.tempSensors.getItemById('solar2', true, { id: 'solar2', isActive: false, calibration: 0 }).name = 'Solar 2';
+        }
+        else {
+            sys.equipment.tempSensors.removeItemById('water2');
+            sys.equipment.tempSensors.removeItemById('solar2');
+        }
+        if (maxPairs > 2) {
+            sys.equipment.tempSensors.getItemById('water3', true, { id: 'water3', isActive: false, calibration: 0 }).name = 'Body 3';
+            sys.equipment.tempSensors.getItemById('solar3', true, { id: 'solar3', isActive: false, calibration: 0 }).name = 'Solar 3';
+        }
+        else {
+            sys.equipment.tempSensors.removeItemById('water3');
+            sys.equipment.tempSensors.removeItemById('solar3');
+        }
+        if (maxPairs > 3) {
+            sys.equipment.tempSensors.getItemById('water4', true, { id: 'water4', isActive: false, calibration: 0 }).name = 'Body 4';
+            sys.equipment.tempSensors.getItemById('solar4', true, { id: 'solar4', isActive: false, calibration: 0 }).name = 'Solar 4';
+        }
+        else {
+            sys.equipment.tempSensors.removeItemById('water4');
+            sys.equipment.tempSensors.removeItemById('solar4');
+        }
+
+    }
+    // Sets the active temp sensors based upon the installed equipment.  At this point all
+    // detectable temp sensors should exist.
+    public setActiveTempSensors() {
+        let htypes;
+        // We are iterating backwards through the sensors array on purpose.  We do this just in case we need
+        // to remove a sensor during the iteration.  This way the index values will not be impacted and we can
+        // safely remove from the array we are iterating.
+        for (let i = sys.equipment.tempSensors.length - 1; i >= 0; i--) {
+            let sensor = sys.equipment.tempSensors.getItemByIndex(i);
+            // The names are normalized in this array.
+            switch (sensor.id) {
+                case 'air':
+                    sensor.isActive = true;
+                    break;
+                case 'water1':
+                    sensor.isActive = sys.equipment.maxBodies > 0;
+                    break;
+                case 'water2':
+                    sensor.isActive = sys.equipment.shared ? sys.equipment.maxBodies > 2 : sys.equipment.maxBodies > 1;
+                    break;
+                case 'water3':
+                    sensor.isActive = sys.equipment.shared ? sys.equipment.maxBodies > 3 : sys.equipment.maxBodies > 2;
+                    break;
+                case 'water4':
+                    // It's a little weird but technically you should be able to install 3 expansions and a i10D personality
+                    // board.  If this situation ever comes up we will see if it works. Whether it reports is another story
+                    // since the 2 message is short a byte for this.
+                    sensor.isActive = sys.equipment.shared ? sys.equipment.maxBodies > 4 : sys.equipment.maxBodies > 3;
+                    break;
+                // Solar sensors are funny ducks. This is because they are for both heatpumps and solar and the equipment
+                // can be installed on specific bodies.  This will be true for heaters installed in expansion panels for *Touch, dual body systems,
+                // and any IntelliCenter with more than one body.  At some point simply implementing the multi-body functions for touch will make
+                // this all work. This will only be with i10D or expansion panels.
+                case 'solar1':
+                    // The first solar sensor is a funny duck in that it should be active for shared systems
+                    // if either body has an active solar heater or heatpump.
+                    htypes = sys.board.heaters.getInstalledHeaterTypes(1);
+                    if ('solar' in htypes || 'heatpump' in htypes) sensor.isActive = true;
+                    else if (sys.equipment.shared) {
+                        htypes = sys.board.heaters.getInstalledHeaterTypes(2);
+                        sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
+                    }
+                    else sensor.isActive = false;
+                    break;
+                case 'solar2':
+                    if (sys.equipment.maxBodies > 1 + (sys.equipment.shared ? 1 : 0)) {
+                        htypes = sys.board.heaters.getInstalledHeaterTypes(2 + (sys.equipment.shared ? 1 : 0));
+                        sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
+                    }
+                    else sensor.isActive = false;
+                    break;
+                case 'solar3':
+                    if (sys.equipment.maxBodies > 2 + (sys.equipment.shared ? 1 : 0)) {
+                        htypes = sys.board.heaters.getInstalledHeaterTypes(3 + (sys.equipment.shared ? 1 : 0));
+                        sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
+                    }
+                    else sensor.isActive = false;
+                    break;
+                case 'solar4':
+                    if (sys.equipment.maxBodies > 3 + (sys.equipment.shared ? 1 : 0)) {
+                        htypes = sys.board.heaters.getInstalledHeaterTypes(4 + (sys.equipment.shared ? 1 : 0));
+                        sensor.isActive = ('solar' in htypes || 'heatpump' in htypes);
+                    }
+                    else sensor.isActive = false;
+                    break;
+                default:
+                    if (typeof sensor.id === 'undefined') sys.equipment.tempSensors.removeItemByIndex(i);
+                    break;
+            }
+        }
+    }
+    // This updates the heater states based upon the installed heaters.  This is true for heaters that are tied to the OCP
+    // and those that are not.
+    public syncHeaterStates() {
+        try {
+            // Go through the installed heaters and bodies to determine whether they should be on.  If there is a
+            // heater that is not controlled by the OCP then we need to determine whether it should be on.
+            let heaters = sys.heaters.toArray();
+            let bodies = state.temps.bodies.toArray();
+            let hon = [];
+            for (let i = 0; i < bodies.length; i++) {
+                let body: BodyTempState = bodies[i];
+                let cfgBody: Body = sys.bodies.getItemById(body.id);
+                let isHeating = false;
+                let isCooling = false;
+                let hstatus = sys.board.valueMaps.heatStatus.getName(body.heatStatus);
+                let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
+                if (body.isOn) {
+                    if (typeof body.temp === 'undefined' && heaters.length > 0) logger.warn(`The body temperature for ${body.name} cannot be determined. Heater status for this body cannot be calculated.`);
+                    // Now get all the heaters associated with the body in an array.
+                    let bodyHeaters: Heater[] = [];
+                    for (let j = 0; j < heaters.length; j++) {
+                        let heater: Heater = heaters[j];
+                        if (heater.isActive === false) continue;
+                        if (heater.body === body.id) bodyHeaters.push(heater);
+                        else {
+                            let b = sys.board.valueMaps.bodies.transform(heater.body);
+                            switch (b.name) {
+                                case 'body1':
+                                case 'pool':
+                                    if (body.id === 1) bodyHeaters.push(heater);
+                                    break;
+                                case 'body2':
+                                case 'spa':
+                                    if (body.id === 2) bodyHeaters.push(heater);
+                                    break;
+                                case 'poolspa':
+                                    if (body.id === 1 || body.id === 2) bodyHeaters.push(heater);
+                                    break;
+                                case 'body3':
+                                    if (body.id === 3) bodyHeaters.push(heater);
+                                    break;
+                                case 'body4':
+                                    if (body.id === 4) bodyHeaters.push(heater);
+                                    break;
+                            }
+                        }
+                    }
+                    // Alright we have all the body heaters so sort them in a way that will make our heater preferences work.  Solar, heatpumps, and ultratemp should be in the list first
+                    // so that if we have a heater preference set up then we do not have to evaluate the other heater.
+                    let heaterTypes = sys.board.valueMaps.heaterTypes;
+                    bodyHeaters.sort((a, b) => {
+                        if (heaterTypes.transform(a.type).hasPreference) return -1;
+                        else if (heaterTypes.transform(b.type).hasPreference) return 1;
+                        return 0;
+                    });
+
+                    // Alright so now we should have a sorted array that has preference type heaters first.
+                    for (let j = 0; j < bodyHeaters.length; j++) {
+                        let heater: Heater = bodyHeaters[j];
+                        let isOn = false;
+                        let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
+                        let hstate = state.heaters.getItemById(heater.id, true);
+                        if (heater.master === 1) {
+                            if (hstatus !== 'cooldown') {
+                                // We need to do our own calculation as to whether it is on.  This is for Nixie heaters.
+                                switch (htype.name) {
+                                    case 'solar':
+                                        if (mode === 'solar' || mode === 'solarpref') {
+                                            // Measure up against start and stop temp deltas for effective solar heating.
+                                            if (body.temp < cfgBody.heatSetpoint &&
+                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                                                isOn = true;
+                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
+                                                isHeating = true;
+                                            }
+                                            else if (heater.coolingEnabled && body.temp > cfgBody.coolSetpoint && state.heliotrope.isNight &&
+                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                                                isOn = true;
+                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
+                                                isHeating = true;
+                                                isCooling = true;
+                                            }
+                                        }
+                                        break;
+                                    case 'ultratemp':
+                                        // There is a temperature differential setting on UltraTemp.  This is how
+                                        // much the water temperature needs to drop below the set temperature, for the heater
+                                        // to start up again.  For instance, if the set temperature and the water temperature is 82 and then the
+                                        // heater will shut off and not turn on again until the water temperature = setpoint - differentialTemperature.
+                                        // This is the default operation on IntelliCenter and it appears to simply not start on the setpoint.  We can do better
+                                        // than this by heating 1 degree past the setpoint then applying this rule for 30 minutes.  This allows for a more
+                                        // responsive heater.
+                                        // 
+                                        // For Ultratemp we need to determine whether the differential temp
+                                        // is within range.  The other thing that needs to be calculated here is
+                                        // whether Ultratemp can effeciently heat the pool.
+                                        if (mode === 'ultratemp' || mode === 'ultratemppref') {
+                                            if (hstate.isOn) {
+                                                // For the preference mode we will try to reach the setpoint for a period of time then
+                                                // switch over to the gas heater.  Our algorithm for this is to check the rate of
+                                                // change when the heater first kicks on.  If we go for longer than an hour and still
+                                                // haven't reached the setpoint then we will switch to gas.
+                                                if (mode === 'ultratemppref' &&
+                                                    typeof hstate.startTime !== 'undefined' &&
+                                                    hstate.startTime.getTime() < new Date().getTime() - (60 * 60 * 1000))
+                                                    break;
+                                                // If the heater is already on we will heat to 1 degree past the setpoint.
+                                                if (body.temp - 1 < cfgBody.heatSetpoint) {
+                                                    isOn = true;
+                                                    body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                                                    isHeating = true;
+                                                    isCooling = false;
+                                                }
+                                                else if (body.temp + 1 > cfgBody.coolSetpoint && heater.coolingEnabled) {
+                                                    isOn = true;
+                                                    body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpcool');
+                                                    isHeating = false;
+                                                    isCooling = true;
+                                                }
+                                            }
+                                            else {
+                                                let delayStart = typeof hstate.endTime !== 'undefined' ? (hstate.endTime.getTime() + (30 * 60 * 1000)) > new Date().getTime() : false;
+                                                // The heater is not currently on lets turn it on if we pass all the criteria.
+                                                if ((body.temp < cfgBody.heatSetpoint && !delayStart)
+                                                    || body.temp + heater.differentialTemp < cfgBody.heatSetpoint) {
+                                                    isOn = true;
+                                                    body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                                                    isHeating = true;
+                                                    isCooling = false;
+                                                }
+                                                else if (body.temp > cfgBody.coolSetpoint && heater.coolingEnabled) {
+                                                    if (!delayStart || body.temp - heater.differentialTemp > cfgBody.coolSetpoint) {
+                                                        isOn = true;
+                                                        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpcool');
+                                                        isHeating = false;
+                                                        isCooling = true;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        break;
+                                    case 'hybrid':
+                                        if (mode !== 'off') {
+                                            //console.log(`Mode: ${mode} Setpoint: ${cfgBody.setPoint}`);
+                                            isHeating = isOn = true;
+                                            isCooling = false;
+                                            if (hstate.isOn) {
+                                                // If the heater is already on we will heat to 1 degree past the setpoint.
+                                                if (body.temp - 1 < cfgBody.heatSetpoint) {
+                                                    isOn = true;
+                                                    // Heat Status will be set by the returns from the heater.
+                                                    //body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                                    isHeating = true;
+                                                    isCooling = false;
+                                                }
+                                            }
+                                            else {
+                                                let delayStart = typeof hstate.endTime !== 'undefined' ? (hstate.endTime.getTime() + (30 * 60 * 1000)) > new Date().getTime() : false;
+                                                // The heater is not currently on lets turn it on if we pass all the criteria.
+                                                if ((body.temp < cfgBody.heatSetpoint && !delayStart)
+                                                    || body.temp + heater.differentialTemp < cfgBody.heatSetpoint) {
+                                                    isOn = true;
+                                                    // Heat Status will be set by the returns from the heater.
+                                                    //body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                                    isHeating = true;
+                                                    isCooling = false;
+                                                }
+                                            }
+                                        }
+                                        break;
+
+                                    case 'mastertemp':
+                                        // If we make it here, the other heater is not heating the body.
+                                        if (mode === 'mtheater' || mode === 'heatpumppref' || mode === 'ultratemppref' || mode === 'solarpref') {
+                                            if (body.temp < cfgBody.setPoint) {
+                                                isOn = true;
+                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('mtheat');
+                                                isHeating = true;
+                                            }
+                                        }
+                                        break;
+                                    case 'maxetherm':
+                                    case 'gas':
+                                        // If we make it here, the other heater is not heating the body.
+                                        if (mode === 'heater' || mode === 'solarpref' || mode === 'heatpumppref' || mode === 'ultratemppref') {
+                                            // Heat past the setpoint for the heater but only if the heater is currently on.
+                                            if ((body.temp - (hstate.isOn ? heater.stopTempDelta : 0)) < cfgBody.setPoint) {
+                                                isOn = true;
+                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                                                isHeating = true;
+                                            }
+                                        }
+                                        break;
+                                    case 'heatpump':
+                                        if (mode === 'heatpump' || mode === 'heatpumppref') {
+                                            // Heat past the setpoint for the heater but only if the heater is currently on.
+                                            if ((body.temp - (hstate.isOn ? heater.stopTempDelta : 0)) < cfgBody.setPoint) {
+                                                isOn = true;
+                                                body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                                                isHeating = true;
+                                            }
+                                            //if (hstate.isOn) {
+                                            //    // If the heater is already on we will heat to 1 degree past the setpoint.
+                                            //    if (body.temp - 1 < cfgBody.heatSetpoint) {
+                                            //        isOn = true;
+                                            //        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                                            //        isHeating = true;
+                                            //        isCooling = false;
+                                            //    }
+                                            //}
+                                            //else {
+                                            //    // The heater is not currently on lets turn it on if we pass all the criteria.
+                                            //    if ((body.temp < cfgBody.heatSetpoint && hstate.endTime.getTime() < new Date().getTime() + (30 * 60 * 1000))
+                                            //        || body.temp + heater.differentialTemp < cfgBody.heatSetpoint) {
+                                            //        isOn = true;
+                                            //        body.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpcool');
+                                            //        isHeating = true;
+                                            //        isCooling = false;
+                                            //    }
+                                            //}
+                                        }
+                                        break;
+                                    default:
+                                        isOn = utils.makeBool(hstate.isOn);
+                                        break;
+                                }
+                                logger.debug(`Heater Type: ${htype.name} Mode:${mode} Temp: ${body.temp} Setpoint: ${cfgBody.setPoint} Status: ${body.heatStatus}`);
+                            }
+                        }
+                        else {
+                            let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
+                            switch (htype.name) {
+                                case 'mastertemp':
+                                    if (hstatus === 'mtheat') isHeating = isOn = true;
+                                    break;
+                                case 'maxetherm':
+                                case 'gas':
+                                    if (hstatus === 'heater') isHeating = isOn = true;
+                                    break;
+                                case 'hybrid':
+                                    if (hstatus === 'mtheat' || hstatus === 'heater' || hstatus === 'dual') isHeating = isOn = true;
+                                    break;
+                                case 'ultratemp':
+                                case 'heatpump':
+                                    if (mode === 'ultratemp' || mode === 'ultratemppref' || mode === 'heatpump' || mode === 'heatpumppref') {
+                                        if (hstatus === 'heater') isHeating = isOn = true;
+                                        else if (hstatus === 'cooling') isCooling = isOn = true;
+                                    }
+                                    break;
+                                case 'solar':
+                                    if (mode === 'solar' || mode === 'solarpref') {
+                                        if (hstatus === 'solar') isHeating = isOn = true;
+                                        else if (hstatus === 'cooling') isCooling = isOn = true;
+                                    }
+                                    break;
+                            }
+                        }
+                        if (isOn === true && typeof hon.find(elem => elem === heater.id) === 'undefined') {
+                            hon.push(heater.id);
+                            if (heater.master === 1 && isOn) (async () => {
+                                try {
+                                    hstate.bodyId = body.id;
+                                    if (sys.board.valueMaps.heatStatus.getName(body.heatStatus) === 'cooldown')
+                                        await ncp.heaters.setHeaterStateAsync(hstate, false, false);
+                                    else if (isOn) {
+                                        hstate.bodyId = body.id;
+                                        await ncp.heaters.setHeaterStateAsync(hstate, isOn, isCooling);
+                                    }
+                                    else if (hstate.isOn !== isOn || hstate.isCooling !== isCooling) {
+                                        await ncp.heaters.setHeaterStateAsync(hstate, isOn, isCooling);
+                                    }
+                                } catch (err) { logger.error(err.message); }
+                            })();
+                            else {
+                                hstate.isOn = isOn;
+                                hstate.bodyId = body.id;
+                            }
+                        }
+                        // If there is a heater on for the body we need break out of the loop.  This will make sure for instance a gas heater
+                        // isn't started when one of the more economical methods are.
+                        if (isOn === true) break;
+                    }
+                }
+                if (sys.controllerType === ControllerType.Nixie && !isHeating && !isCooling && hstatus !== 'cooldown') body.heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
+                //else if (sys.controllerType === ControllerType.Nixie) body.heatStatus = 0;
+            }
+            // Turn off any heaters that should be off.  The code above only turns heaters on.
+            for (let i = 0; i < heaters.length; i++) {
+                let heater: Heater = heaters[i];
+                if (typeof hon.find(elem => elem === heater.id) === 'undefined') {
+                    let hstate = state.heaters.getItemById(heater.id, true);
+                    if (heater.master === 1) (async () => {
+                        try {
+                            await ncp.heaters.setHeaterStateAsync(hstate, false, false);
+                            hstate.bodyId = 0;
+                        } catch (err) { logger.error(err.message); }
+                    })();
+                    else {
+                        hstate.isOn = false;
+                        hstate.bodyId = 0;
+                    }
+                }
+            }
+        } catch (err) { logger.error(`Error synchronizing heater states: ${err.message}`); }
+    }
 }
 export class ValveCommands extends BoardCommands {
   public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
