@@ -60,8 +60,23 @@ export class HeaterStateMessage {
         if (heater.master > 0) {
             let sbody = sheater.bodyId > 0 ? state.temps.bodies.getItemById(sheater.bodyId) : undefined;
             if (typeof sbody !== 'undefined') {
-                if (msg.extractPayloadByte(1) !== 0) sbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
-                else sbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
+                switch (msg.extractPayloadByte(1)) {
+                    case 1:
+                        sbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('hpheat');
+                        break;
+                    case 2:
+                        sbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
+                        break;
+                    case 3:
+                        sbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('hybrid');
+                        break;
+                    case 4:
+                        sbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('dual');
+                        break;
+                    default:
+                        sbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
+                        break;
+                }
             }
         }
         sheater.commStatus = 0;

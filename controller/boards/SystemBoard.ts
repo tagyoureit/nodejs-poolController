@@ -458,13 +458,15 @@ export class byteValueMaps {
     [21, { name: 'solarpref', desc: 'Solar Preferred' }],
     [32, { name: 'nochange', desc: 'No Change' }]
   ]);
-  public heatStatus: byteValueMap = new byteValueMap([
-    [0, { name: 'off', desc: 'Off' }],
-    [1, { name: 'heater', desc: 'Heater' }],
-    [2, { name: 'solar', desc: 'Solar' }],
-    [3, { name: 'cooling', desc: 'Cooling' }],
-    [128, { name: 'cooldown', desc: 'Cooldown' }]
-  ]);
+    public heatStatus: byteValueMap = new byteValueMap([
+        [0, { name: 'off', desc: 'Off' }],
+        [1, { name: 'heater', desc: 'Heater' }],
+        [2, { name: 'solar', desc: 'Solar' }],
+        [3, { name: 'cooling', desc: 'Cooling' }],
+        [4, { name: 'hpheat', desc: 'Heatpump' }],
+        [5, { name: 'dual', desc: 'Dual' }],
+        [128, { name: 'cooldown', desc: 'Cooldown' }]
+    ]);
   public pumpStatus: byteValueMap = new byteValueMap([
     [0, { name: 'off', desc: 'Off' }], // When the pump is disconnected or has no power then we simply report off as the status.  This is not the recommended wiring
     // for a VS/VF pump as is should be powered at all times.  When it is, the status will always report a value > 0.
