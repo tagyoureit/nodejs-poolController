@@ -68,7 +68,7 @@ export class HeaterStateMessage {
                         sbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('heater');
                         break;
                     case 3:
-                        sbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('hybrid');
+                        sbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('dual');
                         break;
                     case 4:
                         sbody.heatStatus = sys.board.valueMaps.heatStatus.getValue('dual');
