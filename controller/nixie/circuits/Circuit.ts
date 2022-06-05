@@ -132,18 +132,24 @@ export class NixieCircuit extends NixieEquipment {
         }
         catch (err) { logger.error(`Nixie setCircuitAsync: ${err.message}`); return Promise.reject(err); }
     }
-    public async sendOnOffSequenceAsync(count: number | { isOn: boolean, timeout: number }[], timeout?:number): Promise<InterfaceServerResponse> {
+    public async sendOnOffSequenceAsync(count: number | { isOn: boolean, timeout: number }[], timeout?: number): Promise<InterfaceServerResponse> {
         try {
             this._sequencing = true;
             let arr = [];
+            let cstate = state.circuits.getItemById(this.circuit.id);
             if (typeof count === 'number') {
+                if (cstate.isOn) arr.push({ isOn: false, timeout: 1000 });
                 let t = typeof timeout === 'undefined' ? 100 : timeout;
-                arr.push({ isOn: false, timeout: t }); // This may not be needed but we always need to start from off.
+                //arr.push({ isOn: false, timeout: t }); // This may not be needed but we always need to start from off.
                 //[{ isOn: true, timeout: 1000 }, { isOn: false, timeout: 1000 }]
                 for (let i = 0; i < count; i++) {
-                    arr.push({ isOn: true, timeout: t });
-                    if (i < count - 1) arr.push({ isOn: false, timeout: t });
+                    if (i < count - 1) {
+                        arr.push({ isOn: true, timeout: t });
+                        arr.push({ isOn: false, timeout: t });
+                    }
+                    else arr.push({ isOn: true, timeout: 1000 });
                 }
+                console.log(arr);
             }
             else arr = count;
             // The documentation for IntelliBrite is incorrect.  The sequence below will give us Party mode.
@@ -161,6 +167,11 @@ export class NixieCircuit extends NixieEquipment {
             // On
 
             let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, arr, 60000);
+            // Even though we ended with on we need to make sure that the relay stays on now that we are done.
+            if (!res.error) {
+                this._sequencing = false;
+                await this.setCircuitStateAsync(cstate, true, false);
+            }
             return res;
         } catch (err) { logger.error(`Nixie: Error sending circuit sequence ${this.id}: ${count}`); }
         finally { this._sequencing = false; }
