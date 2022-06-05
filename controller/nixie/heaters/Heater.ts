@@ -471,7 +471,7 @@ export class NixieUltratemp extends NixieHeaterBase {
                 
             }
             if (isOn && !hstate.startupDelay) this.lastHeatCycle = new Date();
-            hstate.isOn = isOn;
+            this.isOn = hstate.isOn = isOn;
         } catch (err) { return logger.error(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
     }
     public async releaseHeater(sheater: HeaterState): Promise<boolean> {
@@ -540,6 +540,7 @@ export class NixieUltratemp extends NixieHeaterBase {
                         if (!this.isCooling) this.lastHeatCycle = new Date();
                         else this.lastCoolCycle = new Date();
                     }
+                    //console.log(`Setting the heater byte ${this.isOn} ${sheater.isOn} to ${this.isOn ? (this.isCooling ? 2 : 1) : 0}`);
                     out.setPayloadByte(1, this.isOn ? (this.isCooling ? 2 : 1) : 0, 0);
                 }
                 conn.queueSendMessage(out);
