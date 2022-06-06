@@ -7,34 +7,16 @@
           "transform": ".toLowerCase()"
         },
         {
-          "regexkey": "\\s",
-          "replace": "",
-          "description": "Remove whitespace"
-        },
-        {
-          "regexkey": "\\/",
-          "replace": "",
-          "description": "Remove /"
-        },
-        {
-          "regexkey": "\\+",
-          "replace": "",
-          "description": "Remove +"
-        },
-        {
-          "regexkey": "\\$",
-          "replace": "",
-          "description": "Remove $"
-        },
-        {
-          "regexkey": "\\#",
-          "replace": "",
-          "description": "Remove #"
+          "regexkey": "[\\s+\\/\\+\\$\\#]",
+          "replace": "-",
+          "description": "Remove [whitespace,/,+,$,#]"
         }
       ],
       "rootTopic-DIRECTIONS": "You can override the root topic by renaming _rootTopic to rootTopic",
       "_rootTopic": "@bind=(state.equipment.alias).replace(' ','-').replace('/','').toLowerCase();",
-      "clientId": "@bind='aqualinkd_njsPC_'+ Math.random().toString(16).substr(2, 8);"
+      "clientId": "@bind=`aqualinkd_njsPC_${webApp.mac().replace(/:/g, '_'}-${webApp.httpPort()}`;"
+    },
+    "vars": {
     }
   },
   "subscriptions": [
@@ -136,7 +118,7 @@
       "topic": "Temperature/Pool",
       "description": "The current temperature emitted by the controller for the pool.  However, we only want to set this when the pool circuit is on.",
       "processor": [
-        "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), 'F', sys.board.valueMaps.tempUnits.getName(state.temps.units));",
+        "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), ctx.vars.tempUnits, sys.board.valueMaps.tempUnits.getName(state.temps.units));",
         "state.temps.bodies.getItemById(1).temp = temp;",
         "if(state.circuits.getItemById(6).isOn) sys.board.system.setTempsAsync({ waterSensor1: temp });"
       ]
@@ -145,7 +127,7 @@
       "topic": "Temperature/Spa",
       "description": "The current temperature emitted by the controller for the spa.  However, we only want to set this when the spa circuit is on.",
       "processor": [
-        "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), 'F', sys.board.valueMaps.tempUnits.getName(state.temps.units));",
+        "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), ctx.vars.tempUnits, sys.board.valueMaps.tempUnits.getName(state.temps.units));",
         "state.temps.bodies.getItemById(2).temp = temp;",
         "if(state.circuits.getItemById(1).isOn) sys.board.system.setTempsAsync({ waterSensor1: temp });"
       ]
@@ -154,7 +136,7 @@
       "topic": "Temperature/Air",
       "description": "The current temperature emitted by the controller for air temperature.",
       "processor": [
-        "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), 'F', sys.board.valueMaps.tempUnits.getName(state.temps.units));",
+        "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), ctx.vars.tempUnits, sys.board.valueMaps.tempUnits.getName(state.temps.units));",
         "sys.board.system.setTempsAsync({ air: temp });"
       ]
     },
@@ -162,7 +144,7 @@
       "topic": "Temperature/Solar",
       "description": "The current temperature emitted by the controller for solar.",
       "processor": [
-        "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), 'F', sys.board.valueMaps.tempUnits.getName(state.temps.units));",
+        "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), ctx.vars.tempUnits, sys.board.valueMaps.tempUnits.getName(state.temps.units));",
         "sys.board.system.setTempsAsync({ solarSensor1: temp });"
       ]
     },
@@ -320,7 +302,7 @@
       "topic": "Pool_Heater/setpoint",
       "description": "The setpoint for the pool body",
       "processor": [
-        "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), 'F', sys.board.valueMaps.tempUnits.getName(state.temps.units));",
+        "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), ctx.vars.tempUnits, sys.board.valueMaps.tempUnits.getName(state.temps.units));",
         "let body = sys.bodies.getItemById(1); sys.board.bodies.setHeatSetpointAsync(body, parseInt(temp, 10));"
       ]
     },
@@ -328,7 +310,7 @@
       "topic": "Spa_Heater/setpoint",
       "description": "The setpoint for the spa body",
       "processor": [
-        "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), 'F', sys.board.valueMaps.tempUnits.getName(state.temps.units));",
+        "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), ctx.vars.tempUnits, sys.board.valueMaps.tempUnits.getName(state.temps.units));",
         "let body = sys.bodies.getItemById(2); sys.board.bodies.setHeatSetpointAsync(body, parseInt(temp, 10));"
       ]
     },
@@ -352,8 +334,8 @@
       "topic": "Freeze_Protect/setpoint",
       "description": "The current freeze protection setpoint",
       "processor": [
-        "let temp = ctx.util.temperature.convertUnits(parseFloat(value), 'F', sys.board.valueMaps.tempUnits.getName(state.temps.units));",
-        "sys.general.options.freezeThreshold = parseInt(temp, 10);"
+        "let temp = ctx.util.temperature.convertUnits(parseFloat(value), ctx.vars.tempUnits, sys.board.valueMaps.tempUnits.getName(state.temps.units));",
+        "sys.general.options.freezeThreshold = parseInt(Math.round(temp), 10);"
       ]
     },
     {
@@ -457,7 +439,7 @@
           "filter": "@bind=data.id; === 1;",
           "processor": [
             "let units = sys.board.valueMaps.tempUnits.getName(state.temps.units);",
-            "return ctx.util.convert.temperature.convertUnits(data.setPoint, units, 'F');"
+            "return ctx.util.roundNumber(ctx.util.convert.temperature.convertUnits(data.setPoint, units, ctx.vars.tempUnits), ctx.vars.tempPrecision);"
           ]
         },
         {
@@ -467,7 +449,7 @@
           "filter": "@bind=data.id; === 2;",
           "processor": [
             "let units = sys.board.valueMaps.tempUnits.getName(state.temps.units);",
-            "return ctx.util.convert.temperature.convertUnits(data.setPoint, units, 'F');"
+            "return ctx.util.roundNumber(ctx.util.convert.temperature.convertUnits(data.setPoint, units, ctx.vars.tempUnits), ctx.vars.tempPrecision);"
           ]
         },
         {

@@ -57,7 +57,7 @@ export class BaseInterfaceBindings {
     public cfg;
     public events: InterfaceEvent[];
     public bindEvent(evt: string, ...data: any) { };
-    protected bindVarTokens(e: InterfaceEvent, evt: string, ...data: any) {
+    public bindVarTokens(e: IInterfaceEvent, evt: string, ...data: any) {
         let v = {};
         let toks = {};
         let vars = extend(true, {}, this.cfg.vars, this.context.vars, typeof e !== 'undefined' && e.vars ? e.vars : {});
@@ -76,7 +76,7 @@ export class BaseInterfaceBindings {
         //console.log(v);
         return v;
     }
-    protected matchTokens(input: string, eventName: string, toks: any, e: InterfaceEvent, data, vars): any {
+    protected matchTokens(input: string, eventName: string, toks: any, e: IInterfaceEvent, data, vars): any {
         toks = toks || [];
         let s = input;
         let regx = /(?<=@bind\=\s*).*?(?=\;)/g;
@@ -102,7 +102,7 @@ export class BaseInterfaceBindings {
         return toks;
 
     }
-    protected buildTokens(input: string, eventName: string, toks: any, e: InterfaceEvent, data): any {
+    protected buildTokens(input: string, eventName: string, toks: any, e: IInterfaceEvent, data): any {
         toks = toks || [];
         let s = input;
         let regx = /(?<=@bind\=\s*).*?(?=\;)/g;
@@ -163,8 +163,15 @@ export class BaseInterfaceBindings {
     }
     public async stopAsync() { }
 }
-
-export class InterfaceEvent {
+export interface IInterfaceEvent {
+    enabled: boolean;
+    filter?: string;
+    options?: any;
+    body?: any;
+    vars?: any;
+    processor?: string[]
+}
+export class InterfaceEvent implements IInterfaceEvent {
     public name: string;
     public enabled: boolean = true;
     public filter: string;

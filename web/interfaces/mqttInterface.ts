@@ -22,7 +22,7 @@ import extend = require("extend");
 import { logger } from "../../logger/Logger";
 import { PoolSystem, sys } from "../../controller/Equipment";
 import { State, state } from "../../controller/State";
-import { InterfaceEvent, BaseInterfaceBindings, InterfaceContext } from "./baseInterface";
+import { InterfaceEvent, BaseInterfaceBindings, InterfaceContext, IInterfaceEvent } from "./baseInterface";
 import { sys as sysAlias } from "../../controller/Equipment";
 import { state as stateAlias } from "../../controller/State";
 import { webApp as webAppAlias } from '../Server';
@@ -264,30 +264,6 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                             if (t.useRootTopic !== false) topic = `${rootTopic}/${topic}`;
                             // Filter out any topics where there may be undefined in it.  We don't want any of this if that is the case.
                             if (topic.endsWith('/undefined') || topic.indexOf('/undefined/') !== -1 || topic.startsWith('null/') || topic.indexOf('/null') !== -1) return;
-                            if (typeof t.processor !== 'undefined') {
-                                if (t.ignoreProcessor) message = "err";
-                                else {
-                                    if (typeof t._fnProcessor !== 'function') {
-                                        let fnBody = Array.isArray(t.processor) ? t.processor.join('\n') : t.processor;
-                                        try {
-                                            // Try to compile it.
-                                            t._fnProcessor = new Function('ctx', 'pub', 'sys', 'state', 'data', fnBody) as (ctx: any, pub: MQTTPublishTopic, sys: PoolSystem, state: State, data: any) => any;
-                                        } catch (err) { logger.error(`Error compiling subscription processor: ${err} -- ${fnBody}`); t.ignoreProcessor = true; }
-                                    }
-                                    if (typeof t._fnProcessor === 'function') {
-                                        let ctx = { util: utils, rootTopic: rootTopic, topic: topic }
-                                        try {
-                                            message = t._fnProcessor(ctx, t, sys, state, data[0]).toString();
-                                            topic = ctx.topic;
-                                        } catch (err) { logger.error(`Error publishing MQTT data for topic ${t.topic}: ${err.message}`); message = "err"; }
-                                    }
-                                }
-                            }
-                            else {
-                                this.buildTokens(t.message, evt, topicToks, e, data[0]);
-                                message = this.tokensReplacer(t.message, evt, topicToks, e, data[0]);
-                            }
-
                             let publishOptions: IClientPublishOptions = { retain: typeof baseOpts.retain !== 'undefined' ? baseOpts.retain : true, qos: typeof baseOpts.qos !== 'undefined' ? baseOpts.qos : 2 };
                             let changesOnly = typeof baseOpts.changesOnly !== 'undefined' ? baseOpts.changesOnly : true;
                             if (typeof e.options !== 'undefined') {
@@ -300,6 +276,32 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                                 if (typeof t.options.qos !== 'undefined') publishOptions.qos = t.options.qos;
                                 if (typeof t.options.changeOnly !== 'undefined') changesOnly = t.options.changesOnly;
                             }
+
+                            if (typeof t.processor !== 'undefined') {
+                                if (t.ignoreProcessor) message = "err";
+                                else {
+                                    if (typeof t._fnProcessor !== 'function') {
+                                        let fnBody = Array.isArray(t.processor) ? t.processor.join('\n') : t.processor;
+                                        try {
+                                            // Try to compile it.
+                                            t._fnProcessor = new Function('ctx', 'pub', 'sys', 'state', 'data', fnBody) as (ctx: any, pub: MQTTPublishTopic, sys: PoolSystem, state: State, data: any) => any;
+                                        } catch (err) { logger.error(`Error compiling subscription processor: ${err} -- ${fnBody}`); t.ignoreProcessor = true; }
+                                    }
+                                    if (typeof t._fnProcessor === 'function') {
+                                        let vars = this.bindVarTokens(e, evt, data);
+                                        let ctx = { util: utils, rootTopic: rootTopic, topic: topic, opts: opts, vars: vars }
+                                        try {
+                                            message = t._fnProcessor(ctx, t, sys, state, data[0]).toString();
+                                            topic = ctx.topic;
+                                        } catch (err) { logger.error(`Error publishing MQTT data for topic ${t.topic}: ${err.message}`); message = "err"; }
+                                    }
+                                }
+                            }
+                            else {
+                                this.buildTokens(t.message, evt, topicToks, e, data[0]);
+                                message = this.tokensReplacer(t.message, evt, topicToks, e, data[0]);
+                            }
+
                             if (changesOnly) {
                                 if (typeof t.lastSent === 'undefined') t.lastSent = [];
                                 let lm = t.lastSent.find(elem => elem.topic === topic);
@@ -338,7 +340,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             if (typeof sub !== 'undefined') {
                 logger.debug(`Topic not found ${topic}`)
                 // Alright so now lets process our results.
-                if (typeof sub.processor === 'function') {
+                if (typeof sub.fnProcessor === 'function') {
                     sub.executeProcessor(this, msg);
                     return;
                 }
@@ -536,26 +538,32 @@ class MQTTMessage {
 class MqttSubscriptions {
     public subscriptions: IMQTTSubscription[]
 }
-class MqttTopicSubscription {
+class MqttTopicSubscription implements IInterfaceEvent {
     root: string;
     topic: string;
     enabled: boolean;
-    processor: (ctx: any, sub: MqttTopicSubscription, sys: PoolSystem, state: State, value: any) => void;
+    fnProcessor: (ctx: any, sub: MqttTopicSubscription, sys: PoolSystem, state: State, value: any) => void;
+    options: any = {};
     constructor(root: string, sub: any) {
         this.root = sub.root || root;
         this.topic = sub.topic;
         if (typeof sub.processor !== 'undefined') {
             let fnBody = Array.isArray(sub.processor) ? sub.processor.join('\n') : sub.processor;
             try {
-                this.processor = new Function('ctx', 'sub', 'sys', 'state', 'value', fnBody) as (ctx: any, sub: MqttTopicSubscription, sys: PoolSystem, state: State, value: any) => void;
+                this.fnProcessor = new Function('ctx', 'sub', 'sys', 'state', 'value', fnBody) as (ctx: any, sub: MqttTopicSubscription, sys: PoolSystem, state: State, value: any) => void;
             } catch (err) { logger.error(`Error compiling subscription processor: ${err} -- ${fnBody}`); }
         }
     }
     public get topicPath(): string { return `${this.root}/${this.topic}` };
     public executeProcessor(bindings: MqttInterfaceBindings, value: any) {
+        let baseOpts = extend(true, { headers: {} }, bindings.cfg.options, bindings.context.options);
+        let opts = extend(true, baseOpts, this.options);
+        let vars = bindings.bindVarTokens(this, this.topic, value);
+
         let ctx = {
             util: utils,
             client: bindings.client,
+            vars: vars || {},
             publish: (topic: string, message: any, options?: any) => {
                 try {
                     let msg: string;
@@ -588,7 +596,7 @@ class MqttTopicSubscription {
             }
         };
         
-        this.processor(ctx, this, sys, state, value);
+        this.fnProcessor(ctx, this, sys, state, value);
         state.emitEquipmentChanges();
     }
 }

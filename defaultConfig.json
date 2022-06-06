@@ -176,6 +176,10 @@
           "retain": true,
           "qos": 0,
           "changesOnly": true
+        },
+        "vars": {
+          "tempPrecision": 2,
+          "tempUnits": "@bind=sys.board.valueMaps.tempUnits.getName(state.temps.units);"
         }
 
       },
