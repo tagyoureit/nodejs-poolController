@@ -17,6 +17,8 @@
       "clientId": "@bind=`aqualinkd_njsPC_${webApp.mac().replace(/:/g, '_'}-${webApp.httpPort()}`;"
     },
     "vars": {
+      "tempPrecision": 2,
+      "tempUnits": "@bind=sys.board.valueMaps.tempUnits.getName(state.temps.units);"
     }
   },
   "subscriptions": [

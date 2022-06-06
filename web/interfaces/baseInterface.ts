@@ -60,7 +60,7 @@ export class BaseInterfaceBindings {
     public bindVarTokens(e: IInterfaceEvent, evt: string, ...data: any) {
         let v = {};
         let toks = {};
-        let vars = extend(true, {}, this.cfg.vars, this.context.vars, typeof e !== 'undefined' && e.vars ? e.vars : {});
+        let vars = extend(true, {}, this.context.vars, typeof e !== 'undefined' && e.vars ? e.vars : {}, this.cfg.vars || {});
         for (var s in vars) {
             let ovalue = vars[s];
             if (typeof ovalue === 'string') {

@@ -494,7 +494,7 @@ export class NixiePumpRS485 extends NixiePump {
                     else if (this._targetSpeed >= pt.minSpeed && this._targetSpeed <= pt.maxSpeed) await this.setPumpRPMAsync();
                 }
             } catch (err) { };
-            try { if (!this.closing && pt.name !== 'vsf') await this.setPumpFeature(6); } catch (err) { };
+            try { if (!this.closing && pt.name !== 'vsf' && pt.name !== 'vs') await this.setPumpFeature(6); } catch (err) { };
             try { if(!this.closing) await utils.sleep(1000); } catch (err) { };
             try { if (!this.closing) await this.requestPumpStatus(); } catch (err) { };
             try { if (!this.closing) await this.setPumpToRemoteControl(); } catch (err) { };
@@ -596,7 +596,7 @@ export class NixiePumpRS485 extends NixiePump {
                     response: true,
                     onComplete: (err, msg: Outbound) => {
                         if (err) {
-                            logger.error(`Error sending setPumpManual for ${this.pump.name}: ${err.message}`);
+                            logger.error(`Error sending setPumpFeature for ${this.pump.name}: ${err.message}`);
                             reject(err);
                         }
                         else resolve();
