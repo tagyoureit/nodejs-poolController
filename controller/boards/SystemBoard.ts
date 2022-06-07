@@ -330,7 +330,15 @@ export class byteValueMaps {
         { isOn: true, timeout: 100 },
         { isOn: false, timeout: 100 }
       ]
-    }]
+      }],
+      [7, {
+          name: 'colorsync', desc: 'Sync', types: ['colorlogic'], command: 'colorSync', message: 'Syncronizing Lights', endingTheme: 'voodoolounge',
+          sequence: [
+              { isOn: true, timeout: 1000 },
+              { isOn: false, timeout: 12000 },
+              { isOn: true }
+          ]
+      }]
   ]);
   public lightGroupCommands = new byteValueMap([
     [1, { name: 'colorsync', desc: 'Sync', types: ['intellibrite'], command: 'colorSync', message:'Synchronizing' }],
@@ -2455,32 +2463,39 @@ export class CircuitCommands extends BoardCommands {
     }
     catch (err) { return Promise.reject(`Error runLightGroupCommandAsync ${err.message}`); }
   }
-  public async runLightCommandAsync(obj: any): Promise<ICircuitState> {
-    // Do all our validation.
-    try {
-      let id = parseInt(obj.id, 10);
-      let cmd = typeof obj.command !== 'undefined' ? sys.board.valueMaps.lightCommands.findItem(obj.command) : { val: 0, name: 'undefined' };
-      if (cmd.val === 0) return Promise.reject(new InvalidOperationError(`Light command ${cmd.name} does not exist`, 'runLightCommandAsync'));
-      if (isNaN(id)) return Promise.reject(new InvalidOperationError(`Light ${id} does not exist`, 'runLightCommandAsync'));
-      let circ = sys.circuits.getItemById(id);
-      if (!circ.isActive) return Promise.reject(new InvalidOperationError(`Light circuit #${id} is not active`, 'runLightCommandAsync'));
-      let type = sys.board.valueMaps.circuitFunctions.transform(circ.type);
-      if (!type.isLight) return Promise.reject(new InvalidOperationError(`Circuit #${id} is not a light`, 'runLightCommandAsync'));
-      let nop = sys.board.valueMaps.circuitActions.getValue(cmd.name);
-      let slight = state.circuits.getItemById(circ.id);
-      slight.action = nop;
-      console.log(nop);
-      slight.emitEquipmentChange();
-      await ncp.circuits.sendOnOffSequenceAsync(circ.id, cmd.sequence);
-      await utils.sleep(7000);
-      await sys.board.circuits.setCircuitStateAsync(circ.id, false);
-      await sys.board.circuits.setCircuitStateAsync(circ.id, true);
-      slight.action = 0;
-      slight.emitEquipmentChange();
-      return slight;
+    public async runLightCommandAsync(obj: any): Promise<ICircuitState> {
+        // Do all our validation.
+        try {
+            let id = parseInt(obj.id, 10);
+            let cmd = typeof obj.command !== 'undefined' ? sys.board.valueMaps.lightCommands.findItem(obj.command) : { val: 0, name: 'undefined' };
+            if (cmd.val === 0) return Promise.reject(new InvalidOperationError(`Light command ${cmd.name} does not exist`, 'runLightCommandAsync'));
+            if (isNaN(id)) return Promise.reject(new InvalidOperationError(`Light ${id} does not exist`, 'runLightCommandAsync'));
+            let circ = sys.circuits.getItemById(id);
+            if (!circ.isActive) return Promise.reject(new InvalidOperationError(`Light circuit #${id} is not active`, 'runLightCommandAsync'));
+            let type = sys.board.valueMaps.circuitFunctions.transform(circ.type);
+            if (!type.isLight) return Promise.reject(new InvalidOperationError(`Circuit #${id} is not a light`, 'runLightCommandAsync'));
+            let nop = sys.board.valueMaps.circuitActions.getValue(cmd.name);
+            let slight = state.circuits.getItemById(circ.id);
+            slight.action = nop;
+            console.log(nop);
+            slight.emitEquipmentChange();
+            await ncp.circuits.sendOnOffSequenceAsync(circ.id, cmd.sequence);
+            if (cmd.sequence.length > 0) {
+                await sys.board.circuits.setCircuitStateAsync(circ.id, cmd.sequence[cmd.sequence.length - 1].isOn);
+            }
+            if (typeof cmd.endingTheme !== 'undefined') {
+                let thm = sys.board.valueMaps.lightThemes.findItem(cmd.endingTheme);
+                if (typeof thm !== 'undefined') slight.lightingTheme = circ.lightingTheme = thm.val;
+            }
+            //await utils.sleep(7000);
+            //await sys.board.circuits.setCircuitStateAsync(circ.id, false);
+            //await sys.board.circuits.setCircuitStateAsync(circ.id, true);
+            slight.action = 0;
+            slight.emitEquipmentChange();
+            return slight;
+        }
+        catch (err) { return Promise.reject(`Error runLightCommandAsync ${err.message}`); }
     }
-    catch (err) { return Promise.reject(`Error runLightCommandAsync ${err.message}`); }
-  }
   public async setLightThemeAsync(id: number, theme: number): Promise<ICircuitState> {
     let cstate = state.circuits.getItemById(id);
     let circ = sys.circuits.getItemById(id);

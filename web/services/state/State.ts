@@ -233,6 +233,13 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
+        app.put('/state/light/:id/colorSync', async (req, res, next) => {
+            try {
+                let slight = await sys.board.circuits.runLightCommandAsync({ id: parseInt(req.params.id, 10), command: 'colorsync' });
+                return res.status(200).send(slight.get(true));
+            }
+            catch (err) { next(err); }
+        });
         app.put('/state/light/:id/colorHold', async (req, res, next) => {
             try {
                 let slight = await sys.board.circuits.runLightCommandAsync({ id: parseInt(req.params.id, 10), command: 'colorhold' });
