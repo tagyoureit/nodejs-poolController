@@ -2030,13 +2030,14 @@ export class ChlorinatorState extends EqState {
             else if (this.body === 1 && body.id === 2)
                 capacity = Math.max(body.capacity, capacity);
         }
-        if (capacity > 0 && this.saltLevel < saltTarget - 400) {
+        if (capacity > 0 && this.saltLevel < saltTarget) {
             // Salt requirements calculation.
             // Target - SaltLevel = NeededSalt = 3400 - 2900 = 500ppm
             // So to raise 120ppm you need to add 1lb per 1000 gal.
             // (NeededSalt/120ppm) * (MaxBody/1000) = (500/120) * (33000/1000) = 137.5lbs of salt required to hit target.
             let dec = Math.pow(10, 2);
             saltRequired = Math.round((((saltTarget - this.saltLevel) / 120) * (capacity / 1000)) * dec) / dec;
+            if (this.saltRequired < 20) saltRequired = 0;
         }
         this.setDataVal('saltRequired', saltRequired);
         return saltRequired;
