@@ -1951,7 +1951,7 @@ export class ChlorinatorState extends EqState {
     public set saltLevel(val: number) {
         if (this.saltLevel !== val) {
             this.setDataVal('saltLevel', val);
-            this.setDataVal('saltRequired', this.calcSaltRequired());
+            this.calcSaltRequired();
         }
     }
     public get superChlor(): boolean { return this.data.superChlor; }
@@ -2038,6 +2038,7 @@ export class ChlorinatorState extends EqState {
             let dec = Math.pow(10, 2);
             saltRequired = Math.round((((saltTarget - this.saltLevel) / 120) * (capacity / 1000)) * dec) / dec;
         }
+        this.setDataVal('saltRequired', saltRequired);
         return saltRequired;
     }
     public getExtended(): any {
