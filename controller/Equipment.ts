@@ -1513,6 +1513,7 @@ export class Chlorinator extends EqItem {
         if (typeof this.data.ignoreSaltReading === 'undefined') this.data.ignoreSaltReading = false;
         if (typeof this.data.isVirtual !== 'undefined') delete this.data.isVirtual;
         if (typeof this.data.portId === 'undefined') this.data.portId = 0;
+        if (typeof this.data.saltTarget === 'undefined') this.data.saltTarget = 3400;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
@@ -1528,6 +1529,14 @@ export class Chlorinator extends EqItem {
     public set spaSetpoint(val: number) { this.setDataVal('spaSetpoint', val); }
     public get superChlorHours(): number { return this.data.superChlorHours; }
     public set superChlorHours(val: number) { this.setDataVal('superChlorHours', val); }
+    public get saltTarget(): number { return this.data.saltTarget; }
+    public set saltTarget(val: number) {
+        if (this.data.saltTarget !== val) {
+            this.setDataVal('saltTarget', val);
+            let cstate = state.chlorinators.getItemById(this.id, true);
+            cstate.calcSaltRequired(this.saltTarget);
+        }
+    }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get address(): number { return this.data.address; }

@@ -1849,7 +1849,7 @@ export class CoverState extends EqState {
     public set isClosed(val: boolean) { this.setDataVal('isClosed', val); }
 }
 export class ChlorinatorStateCollection extends EqStateCollection<ChlorinatorState> {
-    public superChlor: { id:number, lastDispatch: number, reference: number }[] = [];
+    public superChlor: { id: number, lastDispatch: number, reference: number }[] = [];
     public getSuperChlor(id: number): { id: number, lastDispatch: number, reference: number } {
         let sc = this.superChlor.find(elem => id === elem.id);
         if (typeof sc === 'undefined') {
@@ -1944,32 +1944,15 @@ export class ChlorinatorState extends EqState {
     public set spaSetpoint(val: number) { this.setDataVal('spaSetpoint', val); }
     public get superChlorHours(): number { return this.data.superChlorHours; }
     public set superChlorHours(val: number) { this.setDataVal('superChlorHours', val); }
+    public get saltTarget(): number { return this.data.saltTarget; }
+    public set saltTarget(val: number) { this.setDataVal('saltTarget', val); }
     public get saltRequired(): number { return this.data.saltRequired; }
     public get saltLevel(): number { return this.data.saltLevel; }
     public set saltLevel(val: number) {
-        this.setDataVal('saltLevel', val);
-        //this.data.saltLevel = val;
-        // Calculate the salt required.
-        let capacity = 0;
-        for (let i = 0; i < sys.bodies.length; i++) {
-            let body = sys.bodies.getItemById(i + 1);
-            if (this.body === 32)
-                capacity = Math.max(body.capacity, capacity);
-            else if (this.body === 0 && body.id === 1)
-                capacity = Math.max(body.capacity, capacity);
-            else if (this.body === 1 && body.id === 2)
-                capacity = Math.max(body.capacity, capacity);
+        if (this.saltLevel !== val) {
+            this.setDataVal('saltLevel', val);
+            this.setDataVal('saltRequired', this.calcSaltRequired());
         }
-        if (capacity > 0 && this.saltLevel < 3100) {
-            // Salt requirements calculation.
-            // Target - SaltLevel = NeededSalt = 3400 - 2900 = 500ppm
-            // So to raise 120ppm you need to add 1lb per 1000 gal.
-            // (NeededSalt/120ppm) * (MaxBody/1000) = (500/120) * (33000/1000) = 137.5lbs of salt required to hit target.
-            let dec = Math.pow(10, 2);
-            this.data.saltRequired = Math.round((((3400 - this.saltLevel) / 120) * (capacity / 1000)) * dec) / dec;
-        }
-        else
-            this.data.saltRequired = 0;
     }
     public get superChlor(): boolean { return this.data.superChlor; }
     public set superChlor(val: boolean) {
@@ -2032,9 +2015,35 @@ export class ChlorinatorState extends EqState {
         this.setDataVal('superChlor', remaining > 0);
         chlor.superChlor = remaining > 0;
     }
+    public calcSaltRequired(saltTarget?: number) : number {
+        if (typeof saltTarget === 'undefined') saltTarget = sys.chlorinators.getItemById(this.id, false).saltTarget;
+        let saltRequired = 0;
+        //this.data.saltLevel = val;
+        // Calculate the salt required.
+        let capacity = 0;
+        for (let i = 0; i < sys.bodies.length; i++) {
+            let body = sys.bodies.getItemById(i + 1);
+            if (this.body === 32)
+                capacity = Math.max(body.capacity, capacity);
+            else if (this.body === 0 && body.id === 1)
+                capacity = Math.max(body.capacity, capacity);
+            else if (this.body === 1 && body.id === 2)
+                capacity = Math.max(body.capacity, capacity);
+        }
+        if (capacity > 0 && this.saltLevel < saltTarget - 400) {
+            // Salt requirements calculation.
+            // Target - SaltLevel = NeededSalt = 3400 - 2900 = 500ppm
+            // So to raise 120ppm you need to add 1lb per 1000 gal.
+            // (NeededSalt/120ppm) * (MaxBody/1000) = (500/120) * (33000/1000) = 137.5lbs of salt required to hit target.
+            let dec = Math.pow(10, 2);
+            saltRequired = Math.round((((saltTarget - this.saltLevel) / 120) * (capacity / 1000)) * dec) / dec;
+        }
+        return saltRequired;
+    }
     public getExtended(): any {
         let schlor = this.get(true);
         let chlor = sys.chlorinators.getItemById(this.id, false);
+        schlor.saltTarget = chlor.saltTarget;
         schlor.lockSetpoints = chlor.disabled || chlor.isDosing;
         return schlor;
     }

@@ -1855,6 +1855,8 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         let disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled;
         let poolSetpoint = typeof obj.poolSetpoint !== 'undefined' ? parseInt(obj.poolSetpoint, 10) : chlor.poolSetpoint;
         let spaSetpoint = typeof obj.spaSetpoint !== 'undefined' ? parseInt(obj.spaSetpoint, 10) : chlor.spaSetpoint;
+        let saltTarget = typeof obj.saltTarget === 'number' ? parseInt(obj.saltTarget, 10) : chlor.saltTarget;
+
         let model = typeof obj.model !== 'undefined' ? sys.board.valueMaps.chlorinatorModel.encode(obj.model) : chlor.model || 0;
         let chlorType = typeof obj.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(obj.type) : chlor.type || 0;
         let portId = typeof obj.portId !== 'undefined' ? parseInt(obj.portId, 10) : chlor.portId;
@@ -1933,7 +1935,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             schlor.type = chlor.type = chlorType;
             chlor.isDosing = isDosing;
             chlor.portId = portId;
-
+            chlor.saltTarget = saltTarget;
             let request217Packet = new Promise<void>((resolve, reject) => {
                 let out = Outbound.create({
                     dest: 16,

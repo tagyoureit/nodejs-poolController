@@ -107,6 +107,8 @@ export class NixieChlorinator extends NixieEquipment {
             let disabled = typeof data.disabled !== 'undefined' ? utils.makeBool(data.disabled) : chlor.disabled;
             let isDosing = typeof data.isDosing !== 'undefined' ? utils.makeBool(data.isDosing) : chlor.isDosing;
             let model = typeof data.model !== 'undefined' ? sys.board.valueMaps.chlorinatorModel.encode(data.model) : chlor.model || 0;
+            let saltTarget = typeof data.saltTarget === 'number' ? parseInt(data.saltTarget, 10) : chlor.saltTarget;
+
             let portId = typeof data.portId !== 'undefined' ? parseInt(data.portId, 10) : chlor.portId;
             if (portId === 0 && sys.controllerType !== ControllerType.Nixie) return Promise.reject(new InvalidEquipmentDataError(`You may not install a chlorinator on an ${sys.controllerType} system that is assigned to the Primary Port that is under Nixe control`, 'Chlorinator', portId));
             if (portId !== chlor.portId && sys.chlorinators.count(elem => elem.id !== this.chlor.id && elem.portId === portId && elem.master !== 2) > 0) return Promise.reject(new InvalidEquipmentDataError(`Another chlorinator is installed on port #${portId}.  Only one chlorinator can be installed per port.`, 'Chlorinator', portId));
@@ -127,6 +129,7 @@ export class NixieChlorinator extends NixieEquipment {
             schlor.body = chlor.body = body.val;
             chlor.portId = portId;
             chlor.disabled = disabled;
+            chlor.saltTarget = saltTarget;
             chlor.isDosing = isDosing;
             schlor.name = chlor.name = data.name || chlor.name || `Chlorinator ${chlor.id}`;
             schlor.isActive = chlor.isActive = true;

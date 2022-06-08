@@ -688,6 +688,7 @@ class AquaLinkChlorinatorCommands extends ChlorinatorCommands {
         let model = typeof obj.model !== 'undefined' ? obj.model : chlor.model;
         let portId = typeof obj.portId !== 'undefined' ? parseInt(obj.portId, 10) : chlor.portId;
         if (portId !== chlor.portId && sys.chlorinators.count(elem => elem.id !== chlor.id && elem.portId === portId && elem.master !== 2) > 0) return Promise.reject(new InvalidEquipmentDataError(`Another chlorinator is installed on port #${portId}.  Only one chlorinator can be installed per port.`, 'Chlorinator', portId));
+        let saltTarget = typeof obj.saltTarget === 'number' ? parseInt(obj.saltTarget, 10) : chlor.saltTarget;
 
         let chlorType = typeof obj.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(obj.type) : chlor.type || 0;
         if (isAdd) {
@@ -719,6 +720,7 @@ class AquaLinkChlorinatorCommands extends ChlorinatorCommands {
         try {
             let schlor = state.chlorinators.getItemById(id, true);
             chlor.disabled = disabled;
+            chlor.saltTarget = saltTarget;
             schlor.isActive = chlor.isActive = true;
             schlor.superChlor = chlor.superChlor = superChlorinate;
             schlor.poolSetpoint = chlor.poolSetpoint = poolSetpoint;
