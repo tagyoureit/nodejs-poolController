@@ -332,7 +332,7 @@ export class byteValueMaps {
       ]
       }],
       [7, {
-          name: 'colorsync', desc: 'Sync', types: ['colorlogic'], command: 'colorSync', message: 'Syncronizing Lights', endingTheme: 'voodoolounge',
+          name: 'colorsync', desc: 'Sync', types: ['colorlogic'], command: 'colorSync', message: 'Synchronizing Lights', endingTheme: 'voodoolounge',
           sequence: [
               { isOn: true, timeout: 1000 },
               { isOn: false, timeout: 12000 },
@@ -2356,7 +2356,7 @@ export class CircuitCommands extends BoardCommands {
                     }
                 }
             }
-        } catch (err) { logger.error(`Error syncronizing virtual circuits`); }
+        } catch (err) { logger.error(`Error synchronizing virtual circuits`); }
     }
   public async setCircuitStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<ICircuitState> {
     sys.board.suspendStatus(true);
