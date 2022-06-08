@@ -445,6 +445,11 @@
           "description": "Send salt level."
         },
         {
+          "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;/saltRequired",
+          "message": "@bind=data.saltRequired;",
+          "description": "Send the calculated salt requirement."
+        },
+        {
           "topic": "state/chlorinators/@bind=data.id;/type",
           "message": "@bind=data.type;",
           "description": "Send type."
