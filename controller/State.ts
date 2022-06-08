@@ -2042,6 +2042,7 @@ export class ChlorinatorState extends EqState {
         this.setDataVal('saltRequired', saltRequired);
         return saltRequired;
     }
+    public getEmitData() { return this.getExtended(); }
     public getExtended(): any {
         let schlor = this.get(true);
         let chlor = sys.chlorinators.getItemById(this.id, false);
