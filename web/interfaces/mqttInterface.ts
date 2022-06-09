@@ -356,12 +356,12 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                         if (typeof id !== 'undefined' && isNaN(id)) {
                             logger.error(`Inbound MQTT ${topics} has an invalid id (${id}) in the message (${msg}).`)
                         };
-                        let isOn = utils.makeBool(msg.isOn);
+                        let isOn = typeof msg.isOn !== 'undefined' ? utils.makeBool(msg.isOn) : typeof msg.state !== 'undefined' ? utils.makeBool(msg.state) : undefined;
                         switch (topics[topics.length - 2].toLowerCase()) {
                             case 'circuits':
                             case 'circuit': {
                                 try {
-                                    if (msg.isOn !== 'undefined') await sys.board.circuits.setCircuitStateAsync(id, isOn);
+                                    if(typeof isOn !== 'undefined') await sys.board.circuits.setCircuitStateAsync(id, isOn);
                                 }
                                 catch (err) { logger.error(err); }
                                 break;
@@ -369,7 +369,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                             case 'features':
                             case 'feature': {
                                 try {
-                                    if (msg.isOn !== 'undefined') await sys.board.features.setFeatureStateAsync(id, isOn);
+                                    if (typeof isOn !== 'undefined') await sys.board.features.setFeatureStateAsync(id, isOn);
                                 }
                                 catch (err) { logger.error(err); }
                                 break;
@@ -377,7 +377,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                             case 'lightgroups':
                             case 'lightgroup': {
                                 try {
-                                    await sys.board.circuits.setLightGroupStateAsync(id, isOn);
+                                    if (typeof isOn !== 'undefined') await sys.board.circuits.setLightGroupStateAsync(id, isOn);
                                 }
                                 catch (err) { logger.error(err); }
                                 break;
@@ -385,7 +385,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                             case 'circuitgroups':
                             case 'circuitgroup': {
                                 try {
-                                    await sys.board.circuits.setCircuitGroupStateAsync(id, isOn);
+                                    if (typeof isOn !== 'undefined') await sys.board.circuits.setCircuitGroupStateAsync(id, isOn);
                                 }
                                 catch (err) { logger.error(err); }
                                 break;

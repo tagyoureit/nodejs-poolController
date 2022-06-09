@@ -338,7 +338,8 @@ export class byteValueMaps {
               { isOn: false, timeout: 12000 },
               { isOn: true }
           ]
-      }]
+      }],
+      [100, { name: 'settheme', types: ['all'], desc: 'Set Theme', message: 'Sequencing Theme' }]
   ]);
   public lightGroupCommands = new byteValueMap([
     [1, { name: 'colorsync', desc: 'Sync', types: ['intellibrite'], command: 'colorSync', message:'Synchronizing' }],
@@ -372,7 +373,8 @@ export class byteValueMaps {
     [4, { name: 'lighttheme', desc: 'Sequencing Theme/Color Operation' }],
     [5, { name: 'colorhold', desc: 'Saving Current Color' }],
     [6, { name: 'colorrecall', desc: 'Recalling Saved Color' }],
-    [7, { name: 'lightthumper', desc: 'Setting Light Thumper' }]
+    [7, { name: 'lightthumper', desc: 'Setting Light Thumper' }],
+    [100, { name: 'settheme', desc: 'Setting Light Theme' }]
   ]);
   public lightColors: byteValueMap = new byteValueMap([
     [0, { name: 'white', desc: 'White' }],
@@ -2440,23 +2442,6 @@ export class CircuitCommands extends BoardCommands {
         await sys.board.circuits.setCircuitStateAsync(arrCircs[i].id, true);
         //proms.push(ncp.circuits.sendOnOffSequenceAsync(arrCircs[i].id, cmd.sequence));
       }
-
-      //if (proms.length > 0) {
-      //    //await Promise.all(proms);
-      //    // Let it simmer for 6 seconds then turn it off and back on.
-      //    proms.length = 0;
-      //    for (let i = 0; i < arrCircs.length; i++) {
-      //        proms.push(sys.board.circuits.setCircuitStateAsync(arrCircs[i].id, false));
-      //    }
-      //    await Promise.all(proms);
-      //    // Let it be off for 3 seconds then turn it back on.
-      //    await utils.sleep(10000);
-      //    proms.length = 0;
-      //    for (let i = 0; i < arrCircs.length; i++) {
-      //        proms.push(sys.board.circuits.setCircuitStateAsync(arrCircs[i].id, true));
-      //    }
-      //    await Promise.all(proms);
-      //}
       sgrp.action = 0;
       sgrp.emitEquipmentChange();
       return state.lightGroups.getItemById(id);
@@ -2506,7 +2491,7 @@ export class CircuitCommands extends BoardCommands {
     try {
       if (typeof thm !== 'undefined' && typeof thm.sequence !== 'undefined' && circ.master === 1) {
         await sys.board.circuits.setCircuitStateAsync(id, true);
-        await ncp.circuits.sendOnOffSequenceAsync(id, thm.sequence);
+        await ncp.circuits.setLightThemeAsync(id, thm);
       }
       cstate.lightingTheme = theme;
       return cstate;
