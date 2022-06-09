@@ -69,6 +69,31 @@ export class UtilitiesRoute {
                             options: { protocol: 'http://', host: '', port: 80 }
                         }
                         break;
+                    case 'influx':
+                    case 'influxdb':
+                        opts = {
+                            options: {
+                                version: 1,
+                                protocol: 'http',
+                                database: 'pool',
+                                port: 8601,
+                                retentionPolicy: 'autogen'
+                            }
+                        }
+                        break;
+                    case 'influxdb2':
+                        opts = {
+                            options: {
+                                version: 2,
+                                protocol: 'http',
+                                port: 9999,
+                                database: 'pool',
+                                bucket: '57ec4eed2d90a50b',
+                                token: '...LuyM84JJx93Qvc7tfaXPbI_mFFjRBjaA==',
+                                org: 'njsPC-org'
+                            }
+                        }
+                        break;
                     case 'mqtt':
                         opts = {
                             options: {
@@ -141,7 +166,8 @@ export class UtilitiesRoute {
                         { name: 'http', desc: 'Http', hasBindings: true },
                         { name: 'rem', desc: 'Relay Equipment Manager', hasBindings: false },
                         { name: 'mqtt', desc: 'MQTT', hasBindings: true },
-                        { name: 'influx', desc: 'InfluxDB', hasBindings: true }
+                        { name: 'influx', desc: 'InfluxDB', hasBindings: true },
+                        { name: 'influxdb2', desc: 'InfluxDB2', hasBindings: true}
                     ],
                     protocols: [
                         { val: 0, name: 'http://', desc: 'http://' },

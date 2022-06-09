@@ -116,6 +116,7 @@ export class WebServer {
                         this._servers.push(int);
                         break;
                     case 'influx':
+                    case 'influxdb2':
                         int = new InfluxInterfaceServer(c.name, type);
                         int.init(c);
                         this._servers.push(int);
