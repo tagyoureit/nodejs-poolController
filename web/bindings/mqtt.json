@@ -484,6 +484,10 @@
           "message": "@bind=data.orp.doseVolume;",
           "enabled": true
         },
+        { 
+          "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orpVolumeDosed",
+          "message": "{\"orpVolumeDosed\":@bind=data.orp.volumeDosed;}"
+        },
         {
           "topic": "state/chemControllers/@bind=data.id;/@bind=data.name;/orp/saltLevel",
           "message": "@bind=data.orp.saltLevel;",
