@@ -172,8 +172,6 @@ export class NixieCircuit extends NixieEquipment {
             ptheme = sys.board.valueMaps.lightThemes.findItem('voodoolounge');
         }
         else if (!cstate.isOn) {
-            //let diff = ;
-            //logger.info(`Sequencing starting with off ${cstate.endTime.getTime()} ${new Date().getTime()} ${diff}`);
             if (typeof this.timeOff === 'undefined' || new Date().getTime() - this.timeOff.getTime() > 15000) {
                 // We have been off for more than 15 seconds so we need to turn it on then wait for 15 seconds while the safety light processes.
                 arr.push({ isOn: true, timeout: 15000 }); // Crazy pants
@@ -290,7 +288,6 @@ export class NixieCircuit extends NixieEquipment {
                             if (!this._sequencing) {
                                 // We need a little bit of special time for ColorLogic circuits.  
                                 let timeDiff = typeof this.timeOff === 'undefined' ? 30000 : new Date().getTime() - this.timeOff.getTime();
-                                console.log(timeDiff);
                                 if (timeDiff > 15000) {
                                     // There is this wacko thing that the lights will come on white for 15 seconds
                                     // so we need to make sure they don't try to advance the theme setting during this period.  We will simply set this to a holding pattern for
