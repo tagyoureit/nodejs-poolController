@@ -174,7 +174,7 @@ export class NixieCircuit extends NixieEquipment {
         else if (!cstate.isOn) {
             if (typeof this.timeOff === 'undefined' || new Date().getTime() - this.timeOff.getTime() > 15000) {
                 // We have been off for more than 15 seconds so we need to turn it on then wait for 15 seconds while the safety light processes.
-                arr.push({ isOn: true, timeout: 15000 }); // Crazy pants
+                arr.push({ isOn: true, timeout: 16000 }); // Crazy pants
             }
             else arr.push({ isOn: true, timeout: 1000 }); // Start with on
         }
