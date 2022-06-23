@@ -333,6 +333,10 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
     private messageHandler = (topic, message) =>  { (async () => { await this.processMessage(topic, message); })(); }
     private processMessage = async (topic, message) => {
         try {
+            if (!state.isInitialized){
+                logger.info(`MQTT: **TOPIC IGNORED, SYSTEM NOT READY** Inbound ${topic}: ${message.toString()}`);
+                return;
+            }
             let msg = message.toString();
             if (msg[0] === '{') msg = JSON.parse(msg);
 
