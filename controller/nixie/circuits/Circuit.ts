@@ -173,8 +173,8 @@ export class NixieCircuit extends NixieEquipment {
         }
         else if (!cstate.isOn) {
             if (typeof this.timeOff === 'undefined' || new Date().getTime() - this.timeOff.getTime() > 15000) {
-                // We have been off for more than 15 seconds so we need to turn it on then wait for 15 seconds while the safety light processes.
-                arr.push({ isOn: true, timeout: 16000 }); // Crazy pants
+                // We have been off for more than 15 seconds so we need to turn it on then wait for 17 seconds while the safety light processes.
+                arr.push({ isOn: true, timeout: 17000 }); // Crazy pants
             }
             else arr.push({ isOn: true, timeout: 1000 }); // Start with on
         }
@@ -189,6 +189,9 @@ export class NixieCircuit extends NixieEquipment {
         let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, arr, 60000);
         // Even though we ended with on we need to make sure that the relay stays on now that we are done.
         if (!res.error) {
+            cstate.lightingTheme = ptheme.val;
+            cstate.isOn = true; // At this point the relay will be off but we want the process
+                                // to assume that the relay state is not actually changing.
             this._sequencing = false;
             await this.setCircuitStateAsync(cstate, true, false);
         }
@@ -288,6 +291,7 @@ export class NixieCircuit extends NixieEquipment {
                             if (!this._sequencing) {
                                 // We need a little bit of special time for ColorLogic circuits.  
                                 let timeDiff = typeof this.timeOff === 'undefined' ? 30000 : new Date().getTime() - this.timeOff.getTime();
+                                //logger.info(`Resetting ColorLogic themes ${cstate.isOn}:${val} ${cstate.lightingTheme}... ${timeDiff}`);
                                 if (timeDiff > 15000) {
                                     // There is this wacko thing that the lights will come on white for 15 seconds
                                     // so we need to make sure they don't try to advance the theme setting during this period.  We will simply set this to a holding pattern for
@@ -296,7 +300,7 @@ export class NixieCircuit extends NixieEquipment {
                                     let theme = cstate.lightingTheme;
                                     cstate.lightingTheme = sys.board.valueMaps.lightThemes.getValue('cloudwhite');
                                     cstate.startDelay = true;
-                                    setTimeout(() => { cstate.startDelay = false; cstate.action = 0; cstate.lightingTheme = theme; cstate.emitEquipmentChange(); }, 15000);
+                                    setTimeout(() => { cstate.startDelay = false; cstate.action = 0; cstate.lightingTheme = theme; cstate.emitEquipmentChange(); }, 17000);
                                 }
                                 else if (timeDiff <= 10000) {
                                     // If the user turns the light back on within 10 seconds.  Surprise!  You are forced into the next theme.
