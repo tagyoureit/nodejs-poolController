@@ -1,18 +1,13 @@
-FROM node:lts-alpine AS build
-RUN apk add --no-cache make gcc g++ python3 linux-headers udev tzdata
+FROM node:18 AS build-env
 WORKDIR /app
 COPY package*.json ./
-COPY defaultConfig.json config.json
-RUN npm ci
-COPY . .
+COPY tsconfig*.json ./
+RUN npm ci 
+COPY . ./
 RUN npm run build
-RUN npm ci --omit=dev
 
-FROM node:lts-alpine as prod
-RUN apk add git
-RUN mkdir /app && chown node:node /app
+FROM gcr.io/distroless/nodejs:18
 WORKDIR /app
-COPY --chown=node:node --from=build /app .
-USER node
-ENV NODE_ENV=production
-ENTRYPOINT ["node", "dist/app.js"]
+COPY --from=build-env /app ./
+USER 1000
+CMD ["dist/app.js"]
