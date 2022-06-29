@@ -24,9 +24,10 @@ import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState, ChemControllerState, TemperatureState, VirtualCircuitState, CircuitState, ICircuitState, ICircuitGroupState, LightGroupState, ValveState, FilterState, BodyTempState, FeatureState } from '../State';
 import { sys, Equipment, Options, Owner, Location, CircuitCollection, TempSensorCollection, General, PoolSystem, Body, Pump, CircuitGroupCircuit, CircuitGroup, ChemController, Circuit, Feature, Valve, ICircuit, Heater, LightGroup, LightGroupCircuit, ControllerType, Filter } from '../Equipment';
 import { Protocol, Outbound, Message, Response } from '../comms/messages/Messages';
-import { BoardProcessError, EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError, ParameterOutOfRangeError } from '../Errors';
+import { BoardProcessError, EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError, ParameterOutOfRangeError, ServiceParameterError } from '../Errors';
 import { conn } from '../comms/Comms';
 import { delayMgr } from '../Lockouts';
+import { webApp } from "../../web/Server";
 export class NixieBoard extends SystemBoard {
     constructor (system: PoolSystem){
         super(system);
@@ -42,7 +43,12 @@ export class NixieBoard extends SystemBoard {
             [1, { val: 1, name: 'ncp', desc: 'Nixie Control Panel' }],
             [2, { val: 2, name: 'ext', desc: 'External Control Panel'}]
         ]);
-
+        this.valueMaps.panelModes = new byteValueMap([
+            [0, { name: 'auto', desc: 'Auto' }],
+            [1, { name: 'service', desc: 'Service' }],
+            [128, { name: 'timeout', desc: 'Timeout' }],
+            [255, { name: 'error', desc: 'System Error' }]
+        ]);
         this.valueMaps.featureFunctions = new byteValueMap([
             [0, { name: 'generic', desc: 'Generic' }],
             [1, { name: 'spillway', desc: 'Spillway' }],
@@ -397,6 +403,7 @@ export class NixieBoard extends SystemBoard {
             state.cleanupState();
             logger.info(`${sys.equipment.model} control board initialized`);
             state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
+            state.mode = sys.board.valueMaps.panelModes.encode('auto');
             // At this point we should have the start of a board so lets check to see if we are ready or if we are stuck initializing.
             setTimeout(() => self.processStatusAsync(), 5000);
         } catch (err) { state.status = 255; logger.error(`Error Initializing Nixie Control Panel ${err.message}`); }
@@ -502,6 +509,7 @@ export class NixieFilterCommands extends FilterCommands {
     }
 }
 export class NixieSystemCommands extends SystemCommands {
+    protected _modeTimer: NodeJS.Timeout;
     public cancelDelay(): Promise<any> {
         delayMgr.cancelPumpValveDelays();
         delayMgr.cancelHeaterCooldownDelays();
@@ -532,11 +540,61 @@ export class NixieSystemCommands extends SystemCommands {
 
         } catch (err) { return logger.error(`Error setting Nixie Model: ${err.message}`); }
     }
+    public async setPanelModeAsync(data: any): Promise<any> {
+        let mode = sys.board.valueMaps.panelModes.findItem(data.mode);
+        let timeout = parseInt(data.timeout, 10);
+        if (typeof mode === 'undefined') return Promise.reject(new ServiceParameterError(`Invalid mode value cannot set mode`, 'setPanelModeAsync', 'mode', data.mode));
+        switch (mode.name) {
+            case 'timeout':
+                if (isNaN(timeout) || timeout <= 0) return Promise.reject(new ServiceParameterError(`Invalid timeout value cannot set mode`, 'setPanelModeAsync', 'timeout', data.timeout));
+                await this.initServiceMode(mode, timeout);
+                break;
+            case 'service':
+                await this.initServiceMode(mode);
+                break;
+            case 'auto':
+                // Ok we are switching back to auto.
+                // 1. Kill the timeout timer if it exists.
+                // 2. Set the mode to auto.
+                if (this._modeTimer) clearTimeout(this._modeTimer);
+                this._modeTimer = null;
+                state.mode = 0;
+                webApp.emitToClients('panelMode', { mode: mode, remaining: 0 });
+                break;
+        }
+    }
+    private checkServiceTimeout(mode: any, start: number, timeout: number, interval?: number) {
+        if (this._modeTimer) clearTimeout(this._modeTimer);
+        this._modeTimer = null;
+        // The timeout is in seconds so we will need to deal with that.
+        let elapsed = (new Date().getTime() - start) / 1000;
+        let remaining = timeout - elapsed;
+        logger.info(`Timeout: ${timeout} Elapsed: ${elapsed}`);
+        if (remaining > 0) {
+            webApp.emitToClients('panelMode', { mode: mode, remaining: remaining, elapsed: elapsed, timeout: timeout });
+            this._modeTimer = setTimeout(() => { this.checkServiceTimeout(mode, start, timeout, interval || 1000); }, interval || 1000);
+        }
+        else {
+            webApp.emitToClients('panelMode', { mode: sys.board.valueMaps.panelModes.transform(0), remaining: 0 });
+            state.mode = 0;
+        }
+    }
+    public async initServiceMode(mode, timeout?: number) {
+        if (this._modeTimer) clearTimeout(this._modeTimer);
+        state.mode = mode.val;
+        // Shut everything down.
+        await ncp.setServiceModeAsync();
+        if (timeout > 0) {
+            let start = new Date().getTime();
+            this.checkServiceTimeout(mode, start, timeout, 1000);
+        }
+    }
 }
 export class NixieCircuitCommands extends CircuitCommands {
     // This is our poll loop for circuit relay states.
     public async syncCircuitRelayStates() {
         try {
+            if (state.mode !== 0) return;
             for (let i = 0; i < sys.circuits.length; i++) {
                 // Run through all the controlled circuits to see whether they should be triggered or not.
                 let circ = sys.circuits.getItemByIndex(i);
@@ -561,6 +619,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             let circuit: ICircuit = sys.circuits.getInterfaceById(id, false, { isActive: false });
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit or Feature id ${id} not valid`, id, 'Circuit'));
             let circ = state.circuits.getInterfaceById(id, circuit.isActive !== false);
+            if (state.mode !== 0) return circ;
             if (circ.stopDelay) {
                 // Send this off so that the relays are properly set.  In the end we cannot change right now.  If this
                 // happens to be a body circuit then the relay state will be skipped anyway.
@@ -892,6 +951,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             return Promise.resolve(state.lightGroups.getItemById(id));
         }
         let cstate = state.circuits.getItemById(id);
+        if (state.mode !== 0) return cstate;
         let circ = sys.circuits.getItemById(id);
         let thm = sys.board.valueMaps.lightThemes.findItem(theme);
         if (typeof thm !== 'undefined' && typeof thm.sequence !== 'undefined' && circ.master === 1) {
@@ -1234,6 +1294,7 @@ export class NixieCircuitCommands extends CircuitCommands {
     //}
     public async sequenceLightGroupAsync(id: number, operation: string): Promise<LightGroupState> {
         let sgroup = state.lightGroups.getItemById(id);
+        if (state.mode !== 0) return sgroup;
         let grp = sys.lightGroups.getItemById(id);
         let nop = sys.board.valueMaps.circuitActions.getValue(operation);
         try {
@@ -1271,6 +1332,7 @@ export class NixieCircuitCommands extends CircuitCommands {
         let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
         if (grp.dataName !== 'circuitGroupConfig') return await sys.board.circuits.setLightGroupStateAsync(id, val);
         let gstate = state.circuitGroups.getItemById(grp.id, grp.isActive !== false);
+        if (state.mode !== 0) return gstate;
         let circuits = grp.circuits.toArray();
         sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(gstate.id), gstate, val);
         gstate.isOn = val;
@@ -1296,6 +1358,7 @@ export class NixieCircuitCommands extends CircuitCommands {
         let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
         if (grp.dataName === 'circuitGroupConfig') return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
         let gstate = state.lightGroups.getItemById(grp.id, grp.isActive !== false);
+        if (state.mode !== 0) return gstate;
         let circuits = grp.circuits.toArray();
         sys.board.circuits.setEndTime(grp, gstate, val);
         gstate.isOn = val;
@@ -1365,6 +1428,7 @@ export class NixieFeatureCommands extends FeatureCommands {
             let feature = sys.features.getItemById(id);
             let fstate = state.features.getItemById(feature.id, feature.isActive !== false);
             feature.master = 1;
+            if (state.mode !== 0) return fstate;
             let ftype = sys.board.valueMaps.featureFunctions.getName(feature.type);
             if(val && !fstate.isOn) sys.board.circuits.setEndTime(feature, fstate, val);
             switch (ftype) {

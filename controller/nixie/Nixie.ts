@@ -64,7 +64,13 @@ export class NixieControlPanel implements INixieControlPanel {
     heaters: NixieHeaterCollection = new NixieHeaterCollection(this);
     pumps: NixiePumpCollection = new NixiePumpCollection(this);
     schedules: NixieScheduleCollection = new NixieScheduleCollection(this);
-
+    public async setServiceModeAsync() {
+        await this.circuits.setServiceModeAsync();
+        await this.heaters.setServiceModeAsync();
+        await this.chlorinators.setServiceModeAsync();
+        await this.chemControllers.setServiceModeAsync();
+        await this.pumps.setServiceModeAsync();
+    }
     public async initAsync(equipment: PoolSystem) {
         try {
 

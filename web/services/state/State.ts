@@ -433,8 +433,24 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
-
-
+        app.put('/state/panelMode', async (req, res, next) => {
+            try {
+                await sys.board.system.setPanelModeAsync(req.body);
+                return res.status(200).send(state.controllerState);
+            } catch (err) { next(err); }
+        });
+        app.put('/state/toggleServiceMode', async (req, res, next) => {
+            try {
+                let data = extend({}, req.body);
+                if (state.mode === 0) {
+                    if (typeof data.timeout !== 'undefined' && !isNaN(data.timeout)) data.mode = 'timeout';
+                    else data.mode = 'service';
+                    await sys.board.system.setPanelModeAsync(req.body);
+                }
+                else sys.board.system.setPanelModeAsync({ mode: 'auto' });
+                return res.status(200).send(state.controllerState);
+            } catch (err) { next(err); }
+        });
         app.get('/state/emitAll', (req, res) => {
             res.status(200).send(state.emitAllEquipmentChanges());
         });

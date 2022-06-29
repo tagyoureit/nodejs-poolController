@@ -85,7 +85,16 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
             }
         } catch (err) { } // Don't bail if we have an errror.
     }
-
+    public async setServiceModeAsync() {
+        try {
+            for (let i = this.length - 1; i >= 0; i--) {
+                try {
+                    let p = this[i] as NixiePump;
+                    await p.setServiceModeAsync();
+                } catch (err) { logger.error(`Error setting service mode for Nixie Pump ${err}`); }
+            }
+        } catch (err) { } // Don't bail if we have an errror.
+    }
     public async initPumpAsync(pump: Pump): Promise<NixiePump> {
         try {
             let c: NixiePump = this.find(elem => elem.id === pump.id) as NixiePump;
@@ -148,7 +157,10 @@ export class NixiePump extends NixieEquipment {
     public get suspendPolling(): boolean { return this._suspendPolling > 0; }
     public set suspendPolling(val: boolean) { this._suspendPolling = Math.max(0, this._suspendPolling + (val ? 1 : -1)); }
     public closing = false;
-
+    public async setServiceModeAsync() {
+        let pstate = state.pumps.getItemById(this.pump.id);
+        await this.setPumpStateAsync(pstate);
+    }
     /*
     _targetSpeed will hold values as follows:
     vs/vsf/vf: rpm/gpm;
@@ -315,6 +327,11 @@ export class NixiePumpSS extends NixiePump {
         if (isNaN(_newSpeed)) _newSpeed = 0;
         this._targetSpeed = _newSpeed;
     }
+    public async setServiceModeAsync() {
+        let pstate = state.pumps.getItemById(this.pump.id);
+        pstate.targetSpeed = this._targetSpeed = 0;
+        await this.setPumpStateAsync(pstate);
+    }
     public async setPumpStateAsync(pstate: PumpState) {
         let relays: PumpRelay[] = this.pump.relays.get();
         let relayState = 0;
@@ -480,24 +497,31 @@ export class NixiePumpHWRLY extends NixiePumpDS {
 
 }
 export class NixiePumpRS485 extends NixiePump {
+    public async setServiceModeAsync() {
+        this._targetSpeed = 0;
+        await this.setDriveStateAsync(false);
+        await this.setPumpToRemoteControl(false);
+    }
     public async setPumpStateAsync(pstate: PumpState) {
         // Don't poll while we are seting the state.
         this.suspendPolling = true;
         try {
             let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
-            // Since these process are async the closing flag can be set
-            // between calls.  We need to check it in between each call.
-            try { if (!this.closing) await this.setDriveStateAsync(); } catch (err) {}
-            try {
-                if (!this.closing) {
-                    if (this._targetSpeed >= pt.minFlow && this._targetSpeed <= pt.maxFlow) await this.setPumpGPMAsync();
-                    else if (this._targetSpeed >= pt.minSpeed && this._targetSpeed <= pt.maxSpeed) await this.setPumpRPMAsync();
-                }
-            } catch (err) { };
-            try { if (!this.closing && pt.name !== 'vsf' && pt.name !== 'vs') await this.setPumpFeature(6); } catch (err) { };
-            try { if(!this.closing) await utils.sleep(1000); } catch (err) { };
-            try { if (!this.closing) await this.requestPumpStatus(); } catch (err) { };
-            try { if (!this.closing) await this.setPumpToRemoteControl(); } catch (err) { };
+            if (state.mode === 0) {
+                // Since these process are async the closing flag can be set
+                // between calls.  We need to check it in between each call.
+                try { if (!this.closing) await this.setDriveStateAsync(); } catch (err) { }
+                try {
+                    if (!this.closing) {
+                        if (this._targetSpeed >= pt.minFlow && this._targetSpeed <= pt.maxFlow) await this.setPumpGPMAsync();
+                        else if (this._targetSpeed >= pt.minSpeed && this._targetSpeed <= pt.maxSpeed) await this.setPumpRPMAsync();
+                    }
+                } catch (err) { };
+                try { if (!this.closing && pt.name !== 'vsf' && pt.name !== 'vs') await this.setPumpFeature(6); } catch (err) { };
+                try { if (!this.closing) await utils.sleep(1000); } catch (err) { };
+                try { if (!this.closing) await this.requestPumpStatus(); } catch (err) { };
+                try { if (!this.closing) await this.setPumpToRemoteControl(); } catch (err) { };
+            }
             return new InterfaceServerResponse(200, 'Success');
         }
         catch (err) {
@@ -833,6 +857,11 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
         if (this._targetSpeed !== 0) Math.min(Math.max(this.pump.minSpeed, this._targetSpeed), this.pump.maxSpeed);
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed} RPM.`);
     }
+    public async setServiceModeAsync() {
+        this._targetSpeed = 0;
+        await this.setPumpRPMAsync();
+    }
+
     public async setPumpStateAsync(pstate: PumpState) {
         // Don't poll while we are seting the state.
         this.suspendPolling = true;

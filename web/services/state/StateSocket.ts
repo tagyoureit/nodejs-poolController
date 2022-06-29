@@ -212,7 +212,40 @@ export class StateSocket {
             }
             catch (err) { logger.error(err); }
         });
-
+        sock.on('/panelMode', async (data: any) => {
+            try {
+                data = JSON.parse(data);
+                let obj = {};
+                if (typeof data.isOn !== 'undefined' && !utils.makeBool(data.isOn)) return; // This is just in case it is sent by REM for a toggle button.
+                if (typeof data.timeout !== 'undefined' && !isNaN(data.timeout) && data.timeout) {
+                    switch (data.timeUnits.toLowerCase()) {
+                        case 'min':
+                        case 'mins':
+                        case 'm':
+                        case 'minute':
+                        case 'minutes':
+                            data.timeout = data.timeout * 60;
+                            break;
+                        case 'hr':
+                        case 'hrs':
+                        case 'h':
+                        case 'hour':
+                            data.timeout = data.timeout * 3600;
+                            break;
+                    }
+                }
+                if (typeof data.mode === 'undefined' || data.mode === 'toggle') {
+                    if (state.mode === 0) {
+                        if (typeof data.timeout !== 'undefined' && !isNaN(data.timeout) && data.timeout)
+                            data.mode = 'timeout';
+                        else data.mode = 'service';
+                        await sys.board.system.setPanelModeAsync(data);
+                    }
+                    else sys.board.system.setPanelModeAsync({ mode: 'auto' });
+                }
+                else await sys.board.system.setPanelModeAsync(data);
+            } catch (err) { logger.error(err); }
+        });
         /*
         app.get('/state/chemController/:id', (req, res) => {
             res.status(200).send(state.chemControllers.getItemById(parseInt(req.params.id, 10)).getExtended());

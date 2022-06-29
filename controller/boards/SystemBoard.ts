@@ -1009,153 +1009,153 @@ export class BoardCommands {
   constructor(parent: SystemBoard) { this.board = parent; }
 }
 export class SystemCommands extends BoardCommands {
-  public async restore(rest: { poolConfig: any, poolState: any }): Promise<RestoreResults> {
-    let res = new RestoreResults();
-    try {
-      let ctx = await sys.board.system.validateRestore(rest);
-      // Restore the general stuff.
-      if (ctx.general.update.length > 0) await sys.board.system.setGeneralAsync(ctx.general.update[0]);
-      for (let i = 0; i < ctx.customNames.update.length; i++) {
-        let cn = ctx.customNames.update[i];
+    public async restore(rest: { poolConfig: any, poolState: any }): Promise<RestoreResults> {
+        let res = new RestoreResults();
         try {
-          await sys.board.system.setCustomNameAsync(cn);
-          res.addModuleSuccess('customName', `Update: ${cn.id}-${cn.name}`);
-        } catch (err) { res.addModuleError('customName', `Update: ${cn.id}-${cn.name}: ${err.message}`); }
-      }
-      for (let i = 0; i < ctx.customNames.add.length; i++) {
-        let cn = ctx.customNames.add[i];
+            let ctx = await sys.board.system.validateRestore(rest);
+            // Restore the general stuff.
+            if (ctx.general.update.length > 0) await sys.board.system.setGeneralAsync(ctx.general.update[0]);
+            for (let i = 0; i < ctx.customNames.update.length; i++) {
+                let cn = ctx.customNames.update[i];
+                try {
+                    await sys.board.system.setCustomNameAsync(cn);
+                    res.addModuleSuccess('customName', `Update: ${cn.id}-${cn.name}`);
+                } catch (err) { res.addModuleError('customName', `Update: ${cn.id}-${cn.name}: ${err.message}`); }
+            }
+            for (let i = 0; i < ctx.customNames.add.length; i++) {
+                let cn = ctx.customNames.add[i];
+                try {
+                    await sys.board.system.setCustomNameAsync(cn);
+                    res.addModuleSuccess('customName', `Add: ${cn.id}-${cn.name}`);
+                } catch (err) { res.addModuleError('customName', `Add: ${cn.id}-${cn.name}: ${err.message}`); }
+            }
+            await sys.board.bodies.restore(rest, ctx, res);
+            await sys.board.filters.restore(rest, ctx, res);
+            await sys.board.circuits.restore(rest, ctx, res);
+            await sys.board.heaters.restore(rest, ctx, res);
+            await sys.board.features.restore(rest, ctx, res);
+            await sys.board.pumps.restore(rest, ctx, res);
+            await sys.board.valves.restore(rest, ctx, res);
+            await sys.board.chlorinator.restore(rest, ctx, res);
+            await sys.board.chemControllers.restore(rest, ctx, res);
+            await sys.board.schedules.restore(rest, ctx, res);
+            return res;
+            //await sys.board.covers.restore(rest, ctx);
+        } catch (err) { logger.error(`Error restoring njsPC server: ${err.message}`); res.addModuleError('system', err.message); return Promise.reject(err); }
+    }
+    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<any> {
         try {
-          await sys.board.system.setCustomNameAsync(cn);
-          res.addModuleSuccess('customName', `Add: ${cn.id}-${cn.name}`);
-        } catch (err) { res.addModuleError('customName', `Add: ${cn.id}-${cn.name}: ${err.message}`); }
-      }
-      await sys.board.bodies.restore(rest, ctx, res);
-      await sys.board.filters.restore(rest, ctx, res);
-      await sys.board.circuits.restore(rest, ctx, res);
-      await sys.board.heaters.restore(rest, ctx, res);
-      await sys.board.features.restore(rest, ctx, res);
-      await sys.board.pumps.restore(rest, ctx, res);
-      await sys.board.valves.restore(rest, ctx, res);
-      await sys.board.chlorinator.restore(rest, ctx, res);
-      await sys.board.chemControllers.restore(rest, ctx, res);
-      await sys.board.schedules.restore(rest, ctx, res);
-      return res;
-      //await sys.board.covers.restore(rest, ctx);
-    } catch (err) { logger.error(`Error restoring njsPC server: ${err.message}`); res.addModuleError('system', err.message); return Promise.reject(err);}
-  }
-  public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<any> {
-    try {
-      let ctx: any = { board: { errors: [], warnings: [] } };
+            let ctx: any = { board: { errors: [], warnings: [] } };
 
-      // Step 1 - Verify that the boards are the same.  For instance you do not want to restore an IntelliTouch to an IntelliCenter.
-      let cfg = rest.poolConfig;
-      if (sys.controllerType === cfg.controllerType) {
-        ctx.customNames = { errors: [], warnings: [], add: [], update: [], remove: [] };
-        let customNames = sys.customNames.get();
-        for (let i = 0; i < rest.poolConfig.customNames.length; i++) {
-          let cn = customNames.find(elem => elem.id === rest.poolConfig.customNames[i].id);
-          if (typeof cn === 'undefined') ctx.customNames.add.push(rest.poolConfig.customNames[i]);
-          else if (JSON.stringify(rest.poolConfig.customNames[i]) !== JSON.stringify(cn)) ctx.customNames.update.push(cn);
+            // Step 1 - Verify that the boards are the same.  For instance you do not want to restore an IntelliTouch to an IntelliCenter.
+            let cfg = rest.poolConfig;
+            if (sys.controllerType === cfg.controllerType) {
+                ctx.customNames = { errors: [], warnings: [], add: [], update: [], remove: [] };
+                let customNames = sys.customNames.get();
+                for (let i = 0; i < rest.poolConfig.customNames.length; i++) {
+                    let cn = customNames.find(elem => elem.id === rest.poolConfig.customNames[i].id);
+                    if (typeof cn === 'undefined') ctx.customNames.add.push(rest.poolConfig.customNames[i]);
+                    else if (JSON.stringify(rest.poolConfig.customNames[i]) !== JSON.stringify(cn)) ctx.customNames.update.push(cn);
+                }
+                ctx.general = { errors: [], warnings: [], add: [], update: [], remove: [] };
+                if (JSON.stringify(sys.general.get()) !== JSON.stringify(cfg.pool)) ctx.general.update.push(cfg.pool);
+                ctx.bodies = await sys.board.bodies.validateRestore(rest);
+                ctx.pumps = await sys.board.pumps.validateRestore(rest);
+                await sys.board.circuits.validateRestore(rest, ctx);
+                ctx.features = await sys.board.features.validateRestore(rest);
+                ctx.chlorinators = await sys.board.chlorinator.validateRestore(rest);
+                ctx.heaters = await sys.board.heaters.validateRestore(rest);
+                ctx.valves = await sys.board.valves.validateRestore(rest);
+
+                //ctx.covers = await sys.board.covers.validateRestore(rest);
+                ctx.chemControllers = await sys.board.chemControllers.validateRestore(rest);
+                ctx.filters = await sys.board.filters.validateRestore(rest);
+                ctx.schedules = await sys.board.schedules.validateRestore(rest);
+            }
+            else ctx.board.errors.push(`Panel Types do not match cannot restore backup from ${sys.controllerType} to ${rest.poolConfig.controllerType}`);
+
+            return ctx;
+
+        } catch (err) { logger.error(`Error validating restore file: ${err.message}`); return Promise.reject(err); }
+
+    }
+    public cancelDelay(): Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay); }
+    public setManualOperationPriority(id: number): Promise<any> { return Promise.resolve(); }
+    public setDateTimeAsync(obj: any): Promise<any> { return Promise.resolve(); }
+    public keepManualTime() {
+        try {
+            // every minute, updated the time from the system clock in server mode
+            // but only for Virtual.  Likely 'manual' on *Center means OCP time
+            if (sys.general.options.clockSource !== 'server') return;
+            state.time.setTimeFromSystemClock();
+            sys.board.system.setTZ();
+        } catch (err) { logger.error(`Error setting manual time: ${err.message}`); }
+    }
+    public setTZ() {
+        let tzOffsetObj = state.time.calcTZOffset();
+        if (sys.general.options.clockSource === 'server' || typeof sys.general.location.timeZone === 'undefined') {
+            let tzs = sys.board.valueMaps.timeZones.toArray();
+            sys.general.location.timeZone = tzs.find(tz => tz.utcOffset === tzOffsetObj.tzOffset).val;
         }
-        ctx.general = { errors: [], warnings: [], add: [], update: [], remove: [] };
-        if (JSON.stringify(sys.general.get()) !== JSON.stringify(cfg.pool)) ctx.general.update.push(cfg.pool);
-        ctx.bodies = await sys.board.bodies.validateRestore(rest);
-        ctx.pumps = await sys.board.pumps.validateRestore(rest);
-        await sys.board.circuits.validateRestore(rest, ctx);
-        ctx.features = await sys.board.features.validateRestore(rest);
-        ctx.chlorinators = await sys.board.chlorinator.validateRestore(rest);
-        ctx.heaters = await sys.board.heaters.validateRestore(rest);
-        ctx.valves = await sys.board.valves.validateRestore(rest);
-
-        //ctx.covers = await sys.board.covers.validateRestore(rest);
-        ctx.chemControllers = await sys.board.chemControllers.validateRestore(rest);
-        ctx.filters = await sys.board.filters.validateRestore(rest);
-        ctx.schedules = await sys.board.schedules.validateRestore(rest);
-      }
-      else ctx.board.errors.push(`Panel Types do not match cannot restore backup from ${sys.controllerType} to ${rest.poolConfig.controllerType}`);
-
-      return ctx;
-
-    } catch (err) { logger.error(`Error validating restore file: ${err.message}`); return Promise.reject(err); }
-
-  }
-  public cancelDelay(): Promise<any> { state.delay = sys.board.valueMaps.delay.getValue('nodelay'); return Promise.resolve(state.data.delay); }
-  public setManualOperationPriority(id: number): Promise<any> { return Promise.resolve(); }
-  public setDateTimeAsync(obj: any): Promise<any> { return Promise.resolve(); }
-  public keepManualTime() {
-    try {
-      // every minute, updated the time from the system clock in server mode
-      // but only for Virtual.  Likely 'manual' on *Center means OCP time
-      if (sys.general.options.clockSource !== 'server') return;
-      state.time.setTimeFromSystemClock();
-      sys.board.system.setTZ();
-    } catch (err) { logger.error(`Error setting manual time: ${err.message}`); }
-  }
-  public setTZ() {
-    let tzOffsetObj = state.time.calcTZOffset();
-    if (sys.general.options.clockSource === 'server' || typeof sys.general.location.timeZone === 'undefined') {
-      let tzs = sys.board.valueMaps.timeZones.toArray();
-      sys.general.location.timeZone = tzs.find(tz => tz.utcOffset === tzOffsetObj.tzOffset).val;
+        if (sys.general.options.clockSource === 'server' || typeof sys.general.options.adjustDST === 'undefined') {
+            sys.general.options.adjustDST = tzOffsetObj.adjustDST;
+        }
     }
-    if (sys.general.options.clockSource === 'server' || typeof sys.general.options.adjustDST === 'undefined') {
-      sys.general.options.adjustDST = tzOffsetObj.adjustDST;
+    public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
+    public async setGeneralAsync(obj: any): Promise<General> {
+        if (typeof obj.alias === 'string') sys.general.alias = obj.alias;
+        if (typeof obj.options !== 'undefined') await sys.board.system.setOptionsAsync(obj.options);
+        if (typeof obj.location !== 'undefined') await sys.board.system.setLocationAsync(obj.location);
+        if (typeof obj.owner !== 'undefined') await sys.board.system.setOwnerAsync(obj.owner);
+        return sys.general;
     }
-  }
-  public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
-  public async setGeneralAsync(obj: any): Promise<General> {
-    if (typeof obj.alias === 'string') sys.general.alias = obj.alias;
-    if (typeof obj.options !== 'undefined') await sys.board.system.setOptionsAsync(obj.options);
-    if (typeof obj.location !== 'undefined') await sys.board.system.setLocationAsync(obj.location);
-    if (typeof obj.owner !== 'undefined') await sys.board.system.setOwnerAsync(obj.owner);
-    return sys.general;
-  }
-  public async setTempSensorsAsync(obj: any): Promise<TempSensorCollection> {
-    if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.equipment.tempSensors.getCalibration('water1')) {
-      sys.equipment.tempSensors.setCalibration('water1', parseFloat(obj.waterTempAdj1));
+    public async setTempSensorsAsync(obj: any): Promise<TempSensorCollection> {
+        if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.equipment.tempSensors.getCalibration('water1')) {
+            sys.equipment.tempSensors.setCalibration('water1', parseFloat(obj.waterTempAdj1));
+        }
+        if (typeof obj.waterTempAdj2 != 'undefined' && obj.waterTempAdj2 !== sys.equipment.tempSensors.getCalibration('water2')) {
+            sys.equipment.tempSensors.setCalibration('water2', parseFloat(obj.waterTempAdj2));
+        }
+        if (typeof obj.waterTempAdj3 != 'undefined' && obj.waterTempAdj3 !== sys.equipment.tempSensors.getCalibration('water3')) {
+            sys.equipment.tempSensors.setCalibration('water3', parseFloat(obj.waterTempAdj3));
+        }
+        if (typeof obj.waterTempAdj4 != 'undefined' && obj.waterTempAdj4 !== sys.equipment.tempSensors.getCalibration('water4')) {
+            sys.equipment.tempSensors.setCalibration('water4', parseFloat(obj.waterTempAdj4));
+        }
+        if (typeof obj.solarTempAdj1 != 'undefined' && obj.solarTempAdj1 !== sys.equipment.tempSensors.getCalibration('solar1')) {
+            sys.equipment.tempSensors.setCalibration('solar1', parseFloat(obj.solarTempAdj1));
+        }
+        if (typeof obj.solarTempAdj2 != 'undefined' && obj.solarTempAdj2 !== sys.equipment.tempSensors.getCalibration('solar2')) {
+            sys.equipment.tempSensors.setCalibration('solar2', parseFloat(obj.solarTempAdj2));
+        }
+        if (typeof obj.solarTempAdj3 != 'undefined' && obj.solarTempAdj3 !== sys.equipment.tempSensors.getCalibration('solar3')) {
+            sys.equipment.tempSensors.setCalibration('solar3', parseFloat(obj.solarTempAdj3));
+        }
+        if (typeof obj.solarTempAdj4 != 'undefined' && obj.solarTempAdj4 !== sys.equipment.tempSensors.getCalibration('solar4')) {
+            sys.equipment.tempSensors.setCalibration('solar4', parseFloat(obj.solarTempAdj4));
+        }
+        if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.equipment.tempSensors.getCalibration('air')) {
+            sys.equipment.tempSensors.setCalibration('air', parseFloat(obj.airTempAdj));
+        }
+        return sys.equipment.tempSensors;
     }
-    if (typeof obj.waterTempAdj2 != 'undefined' && obj.waterTempAdj2 !== sys.equipment.tempSensors.getCalibration('water2')) {
-      sys.equipment.tempSensors.setCalibration('water2', parseFloat(obj.waterTempAdj2));
+    public async setOptionsAsync(obj: any): Promise<Options> {
+        if (obj.clockSource === 'server') sys.board.system.setTZ();
+        sys.board.system.setTempSensorsAsync(obj);
+        sys.general.options.set(obj);
+        let bodyUnits = sys.general.options.units === 0 ? 1 : 2;
+        for (let i = 0; i < sys.bodies.length; i++) sys.bodies.getItemByIndex(i).capacityUnits = bodyUnits;
+        state.temps.units = sys.general.options.units === 0 ? 1 : 4;
+        return sys.general.options;
     }
-    if (typeof obj.waterTempAdj3 != 'undefined' && obj.waterTempAdj3 !== sys.equipment.tempSensors.getCalibration('water3')) {
-      sys.equipment.tempSensors.setCalibration('water3', parseFloat(obj.waterTempAdj3));
-    }
-    if (typeof obj.waterTempAdj4 != 'undefined' && obj.waterTempAdj4 !== sys.equipment.tempSensors.getCalibration('water4')) {
-      sys.equipment.tempSensors.setCalibration('water4', parseFloat(obj.waterTempAdj4));
-    }
-    if (typeof obj.solarTempAdj1 != 'undefined' && obj.solarTempAdj1 !== sys.equipment.tempSensors.getCalibration('solar1')) {
-      sys.equipment.tempSensors.setCalibration('solar1', parseFloat(obj.solarTempAdj1));
-    }
-    if (typeof obj.solarTempAdj2 != 'undefined' && obj.solarTempAdj2 !== sys.equipment.tempSensors.getCalibration('solar2')) {
-      sys.equipment.tempSensors.setCalibration('solar2', parseFloat(obj.solarTempAdj2));
-    }
-    if (typeof obj.solarTempAdj3 != 'undefined' && obj.solarTempAdj3 !== sys.equipment.tempSensors.getCalibration('solar3')) {
-      sys.equipment.tempSensors.setCalibration('solar3', parseFloat(obj.solarTempAdj3));
-    }
-    if (typeof obj.solarTempAdj4 != 'undefined' && obj.solarTempAdj4 !== sys.equipment.tempSensors.getCalibration('solar4')) {
-      sys.equipment.tempSensors.setCalibration('solar4', parseFloat(obj.solarTempAdj4));
-    }
-    if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.equipment.tempSensors.getCalibration('air')) {
-      sys.equipment.tempSensors.setCalibration('air', parseFloat(obj.airTempAdj));
-    }
-    return sys.equipment.tempSensors;
-  }
-  public async setOptionsAsync(obj: any): Promise<Options> {
-    if (obj.clockSource === 'server') sys.board.system.setTZ();
-    sys.board.system.setTempSensorsAsync(obj);
-    sys.general.options.set(obj);
-    let bodyUnits = sys.general.options.units === 0 ? 1 : 2;
-    for (let i = 0; i < sys.bodies.length; i++) sys.bodies.getItemByIndex(i).capacityUnits = bodyUnits;
-    state.temps.units = sys.general.options.units === 0 ? 1 : 4;
-    return sys.general.options;
-  }
     public async setLocationAsync(obj: any): Promise<Location> {
         sys.general.location.set(obj);
         return sys.general.location;
     }
-  public async setOwnerAsync(obj: any): Promise<Owner> {
-    sys.general.owner.set(obj);
-    return sys.general.owner;
-  }
+    public async setOwnerAsync(obj: any): Promise<Owner> {
+        sys.general.owner.set(obj);
+        return sys.general.owner;
+    }
     public async setTempsAsync(obj: any): Promise<TemperatureState> {
         return new Promise<TemperatureState>((resolve, reject) => {
             for (let prop in obj) {
@@ -1320,39 +1320,40 @@ export class SystemCommands extends BoardCommands {
         }
         return sensors;
     }
-  public async setCustomNamesAsync(names: any[]): Promise<CustomNameCollection> {
-    if (!Array.isArray(names)) return Promise.reject(new InvalidEquipmentDataError(`Data is not an array`, 'customNames', names))
-    let arr = [];
-    for (let i = 0; i < names.length; i++) { arr.push(sys.board.system.setCustomNameAsync(names[i])); }
-    return new Promise<CustomNameCollection>(async (resolve, reject) => {
-      try {
-        await Promise.all(arr).catch(err => reject(err));
-        // sys.board.system.syncCustomNamesValueMap(); Each custom name promise is already syncing the bytevalue array
+    public async setCustomNamesAsync(names: any[]): Promise<CustomNameCollection> {
+        if (!Array.isArray(names)) return Promise.reject(new InvalidEquipmentDataError(`Data is not an array`, 'customNames', names))
+        let arr = [];
+        for (let i = 0; i < names.length; i++) { arr.push(sys.board.system.setCustomNameAsync(names[i])); }
+        return new Promise<CustomNameCollection>(async (resolve, reject) => {
+            try {
+                await Promise.all(arr).catch(err => reject(err));
+                // sys.board.system.syncCustomNamesValueMap(); Each custom name promise is already syncing the bytevalue array
 
-        resolve(sys.customNames);
-      }
-      catch (err) { reject(err); }
-    });
-  }
-  public async setCustomNameAsync(data: any): Promise<CustomName> {
-    return new Promise<CustomName>((resolve, reject) => {
-      let id = parseInt(data.id, 10);
-      if (isNaN(id)) return reject(new InvalidEquipmentIdError('Invalid Custom Name Id', data.id, 'customName'));
-      if (id > sys.equipment.maxCustomNames) return reject(new InvalidEquipmentIdError('Custom Name Id out of range', data.id, 'customName'));
-      let cname = sys.customNames.getItemById(id, true);
-      cname.name = data.name;
-      sys.board.system.syncCustomNamesValueMap();
-      return resolve(cname);
-    });
-  }
-  public syncCustomNamesValueMap() {
-    sys.customNames.sortById();
-    sys.board.valueMaps.customNames = new byteValueMap(
-      sys.customNames.get().map((el, idx) => {
-        return [idx + 200, { name: el.name, desc: el.name }];
-      })
-    );
-  }
+                resolve(sys.customNames);
+            }
+            catch (err) { reject(err); }
+        });
+    }
+    public async setCustomNameAsync(data: any): Promise<CustomName> {
+        return new Promise<CustomName>((resolve, reject) => {
+            let id = parseInt(data.id, 10);
+            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Invalid Custom Name Id', data.id, 'customName'));
+            if (id > sys.equipment.maxCustomNames) return reject(new InvalidEquipmentIdError('Custom Name Id out of range', data.id, 'customName'));
+            let cname = sys.customNames.getItemById(id, true);
+            cname.name = data.name;
+            sys.board.system.syncCustomNamesValueMap();
+            return resolve(cname);
+        });
+    }
+    public syncCustomNamesValueMap() {
+        sys.customNames.sortById();
+        sys.board.valueMaps.customNames = new byteValueMap(
+            sys.customNames.get().map((el, idx) => {
+                return [idx + 200, { name: el.name, desc: el.name }];
+            })
+        );
+    }
+    public async setPanelModeAsync(data: any): Promise<any> { return { mode: state.mode }; }
 }
 export class BodyCommands extends BoardCommands {
   public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {

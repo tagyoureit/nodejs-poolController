@@ -10,8 +10,6 @@ import { ChemControllerState, ChemicalChlorState, ChemicalDoseState, ChemicalORP
 import { ncp } from '../Nixie';
 import { INixieControlPanel, NixieChildEquipment, NixieEquipment, NixieEquipmentCollection } from "../NixieEquipment";
 import { NixieChlorinator } from './Chlorinator';
-
-
 export class NixieChemControllerCollection extends NixieEquipmentCollection<NixieChemControllerBase> {
     public async manualDoseAsync(id: number, data: any) {
         try {
@@ -100,6 +98,17 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
 
         } catch (err) { } // Don't bail if we have an error
     }
+    public async setServiceModeAsync() {
+        try {
+            for (let i = this.length - 1; i >= 0; i--) {
+                try {
+                    let cc = this[i] as NixieChemControllerBase;
+                    await cc.setServiceModeAsync();
+                } catch (err) { logger.error(`Error setting Chem Controller to service mode ${err}`); return Promise.reject(err); }
+            }
+        } catch (err) { } // Don't bail if we have an error
+    }
+
     public async deleteChlorAsync(chlor: NixieChlorinator) {
         // if we delete the chlor, make sure it is removed from all REM Chem Controllers
         try {
@@ -159,6 +168,7 @@ export class NixieChemControllerBase extends NixieEquipment {
     }
     public chem: ChemController;
     public syncRemoteREMFeeds(servers) { }
+    public async setServiceModeAsync() {}
     public static create(ncp: INixieControlPanel, chem: ChemController): NixieChemControllerBase {
         let type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
         switch (type.name) {
@@ -209,6 +219,7 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
         catch (err) { logger.error(`Error polling IntelliChem Controller - ${err}`); return Promise.reject(err); }
         finally { this.suspendPolling = false; if (!this.closing) this._pollTimer = setTimeout(() => { self.pollEquipmentAsync(); }, this.pollingInterval || 10000); }
     }
+    public async setServiceModeAsync() {}
     public async setControllerAsync(data: any) {
         try {
             this.suspendPolling = true;
@@ -419,6 +430,11 @@ export class NixieChemController extends NixieChemControllerBase {
             }
         }
     }
+    public async setServiceModeAsync() {
+        let schem = state.chemControllers.getItemById(this.chem.id);
+        if(this.chem.ph.enabled) await this.ph.cancelDosing(schem.ph, 'service mode');
+        if(this.chem.orp.enabled) await this.orp.cancelDosing(schem.orp, 'service mode');
+    }
     public async manualDoseAsync(data: any) {
         try {
             this.suspendPolling = true;
@@ -608,8 +624,10 @@ export class NixieChemController extends NixieChemControllerBase {
                     // Check each piece of equipment to make sure it is doing its thing.
                     schem.calculateSaturationIndex();
                     this.processAlarms(schem);
-                    if (this.chem.ph.enabled) await this.ph.checkDosing(this.chem, schem.ph);
-                    if (this.chem.orp.enabled) await this.orp.checkDosing(this.chem, schem.orp);
+                    if (state.mode === 0) {
+                        if (this.chem.ph.enabled) await this.ph.checkDosing(this.chem, schem.ph);
+                        if (this.chem.orp.enabled) await this.orp.checkDosing(this.chem, schem.orp);
+                    }
                 }
                 else
                     logger.warn('REM Server not Connected');

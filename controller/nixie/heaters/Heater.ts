@@ -86,6 +86,14 @@ export class NixieHeaterCollection extends NixieEquipmentCollection<NixieHeaterB
             return c;
         } catch (err) { logger.error(`initHeaterAsync: ${err.message}`); return Promise.reject(err); }
     }
+    public async setServiceModeAsync() {
+        try {
+            for (let i = this.length - 1; i >= 0; i--) {
+                let heater = this[i] as NixieHeaterBase;
+                await heater.setServiceModeAsync();
+            }
+        } catch (err) { return Promise.reject(`Nixie Control Panel setServiceMode ${err.message}`); }
+    }
 }
 export class NixieHeaterBase extends NixieEquipment {
     protected _suspendPolling: number = 0;
@@ -146,7 +154,11 @@ export class NixieHeaterBase extends NixieEquipment {
         }
         catch (err) { logger.error(`Nixie setHeaterAsync: ${err.message}`); return Promise.reject(err); }
     }
-    public async closeAsync() {}
+    public async closeAsync() { }
+    public async setServiceModeAsync() {
+        let hstate = state.heaters.getItemById(this.heater.id);
+        await this.setHeaterStateAsync(hstate, false, false);
+    }
 }
 export class NixieGasHeater extends NixieHeaterBase {
     public pollingInterval: number = 10000;
@@ -443,6 +455,12 @@ export class NixieUltratemp extends NixieHeaterBase {
         // Set the polling interval to 3 seconds.
         this.pollEquipmentAsync();
     }
+    public async setServiceModeAsync() {
+        let hstate = state.heaters.getItemById(this.heater.id);
+        await this.setHeaterStateAsync(hstate, false, false);
+        await this.releaseHeater(hstate);
+    }
+
     public async pollEquipmentAsync() {
         let self = this;
         try {
@@ -645,6 +663,10 @@ export class NixieMastertemp extends NixieGasHeater {
             return success;
         } catch (err) { logger.error(`Communication error with MasterTemp : ${err.message}`); }
     }
+    public async setServiceModeAsync() {
+        let hstate = state.heaters.getItemById(this.heater.id);
+        await this.setHeaterStateAsync(hstate, false);
+    }
     public async closeAsync() {
         try {
             this.suspendPolling = true;
@@ -753,6 +775,11 @@ export class NixieUltraTempETi extends NixieHeaterBase {
                 break;
         }
         return byte;
+    }
+    public async setServiceModeAsync() {
+        let hstate = state.heaters.getItemById(this.heater.id);
+        await this.setHeaterStateAsync(hstate, false, false);
+        await this.releaseHeater(hstate);
     }
     public async setStatus(sheater: HeaterState): Promise<boolean> {
         try {

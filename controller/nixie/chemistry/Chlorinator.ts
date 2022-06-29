@@ -45,6 +45,14 @@ export class NixieChlorinatorCollection extends NixieEquipmentCollection<NixieCh
         }
         catch (err) { logger.error(`setChlorinatorAsync: ${err.message}`); return Promise.reject(err); }
     }
+    public async setServiceModeAsync() {
+        try {
+            for (let i = this.length - 1; i >= 0; i--) {
+                let c = this[i] as NixieChlorinator;
+                await c.setServiceModeAsync();
+            }
+        } catch (err) { logger.error(`Nixie Chlorinator Error setServiceModeAsync: ${err.message}`)}
+    }
     public async initAsync(chlorinators: ChlorinatorCollection) {
         try {
             for (let i = 0; i < chlorinators.length; i++) {
@@ -91,6 +99,13 @@ export class NixieChlorinator extends NixieEquipment {
     public get superChlorRemaining(): number {
         if (typeof this.superChlorStart === 'undefined' || this.superChlorStart === 0 || !this.chlor.superChlor) return 0;
         return Math.max(Math.floor(((this.chlor.superChlorHours * 3600 * 1000) - (new Date().getTime() - this.superChlorStart)) / 1000), 0);
+    }
+    public async setServiceModeAsync() {
+        let cstate = state.chlorinators.getItemById(this.chlor.id);
+        cstate.targetOutput = 0;
+        cstate.superChlor = this.chlor.superChlor = false;
+        await this.setSuperChlor(cstate);
+        await this.sendOutputMessage(cstate);
     }
     public async setChlorinatorAsync(data: any) {
         try {
@@ -197,11 +212,13 @@ export class NixieChlorinator extends NixieEquipment {
                 logger.debug(`Begin sending chlorinator messages ${this.chlor.name}`);
                 try {
                     this.suspendPolling = true;
-                    if (!this.closing) await this.takeControl();
-                    if (!this.closing) await utils.sleep(300);
-                    if (!this.closing) await this.setOutput();
-                    if (!this.closing) await utils.sleep(300);
-                    if (!this.closing) await this.getModel();
+                    if (state.mode === 0) {
+                        if (!this.closing) await this.takeControl();
+                        if (!this.closing) await utils.sleep(300);
+                        if (!this.closing) await this.setOutput();
+                        if (!this.closing) await utils.sleep(300);
+                        if (!this.closing) await this.getModel();
+                    }
                 } catch (err) {
                     // We only display an error here if the body is on.  The chlorinator should be powered down when it is not.
                     if (this.isBodyOn()) logger.error(`Chlorinator ${this.chlor.name} comms failure: ${err.message}`);
@@ -291,6 +308,8 @@ export class NixieChlorinator extends NixieEquipment {
             // Tell the chlorinator that we are to use the current output.
             //[16, 2, 80, 17][0][115, 16, 3]
             cstate.targetOutput = cstate.superChlor ? 100 : setpoint;
+            let success = await this.sendOutputMessage(cstate);
+            /*
             let success = await new Promise<boolean>((resolve, reject) => {
                 if (conn.isPortEnabled(this.chlor.portId || 0)) {
                     let out = Outbound.create({
@@ -326,10 +345,50 @@ export class NixieChlorinator extends NixieEquipment {
                     resolve(true);
                 }
             });
+            */
             cstate.emitEquipmentChange();
+
             return success;
         } catch (err) { logger.error(`Communication error with Chlorinator ${this.chlor.name} : ${err.message}`); return Promise.reject(err);}
 
+    }
+    public async sendOutputMessage(cstate: ChlorinatorState) : Promise<boolean> {
+        let success = await new Promise<boolean>((resolve, reject) => {
+            if (conn.isPortEnabled(this.chlor.portId || 0)) {
+                let out = Outbound.create({
+                    portId: this.chlor.portId || 0,
+                    protocol: Protocol.Chlorinator,
+                    //dest: this.chlor.id,
+                    dest: 1,
+                    action: 17,
+                    payload: [cstate.targetOutput],
+                    retries: 7, // IntelliCenter tries 8 times to make this happen.
+                    response: Response.create({ protocol: Protocol.Chlorinator, action: 18 }),
+                    onAbort: () => { },
+                    onComplete: (err) => {
+                        if (err) {
+                            cstate.currentOutput = 0;
+                            cstate.status = 128;
+                            resolve(false);
+                        }
+                        else {
+                            cstate.currentOutput = cstate.targetOutput;
+                            this.setSuperChlor(cstate);
+                            resolve(true);
+                        }
+                    }
+                });
+                // #338
+                if (cstate.targetOutput === 16) { out.appendPayloadByte(0); }
+                conn.queueSendMessage(out);
+            }
+            else {
+                cstate.currentOutput = cstate.targetOutput;
+                this.setSuperChlor(cstate);
+                resolve(true);
+            }
+        });
+        return success;
     }
     public async getModel() {
         try {
