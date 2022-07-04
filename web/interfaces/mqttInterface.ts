@@ -215,6 +215,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
     public bindEvent(evt: string, ...data: any) {
         try {
             if (!this.sentInitialMessages && evt === 'controller' && data[0].status.val === 1) {
+                // Emitting all the equipment messages
                 state.emitAllEquipmentChanges();
                 this.sentInitialMessages = true;
             }
@@ -342,7 +343,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
 
             let sub: MqttTopicSubscription = this.topics.find(elem => topic === elem.topicPath);
             if (typeof sub !== 'undefined') {
-                logger.debug(`Topic not found ${topic}`)
+                logger.debug(`MQTT: Inbound ${topic} ${message.toString()}`);
                 // Alright so now lets process our results.
                 if (typeof sub.fnProcessor === 'function') {
                     sub.executeProcessor(this, msg);
@@ -350,7 +351,6 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                 }
             }
             const topics = topic.split('/');
-            logger.debug(`MQTT: Inbound ${topic}: ${message.toString()}`);
             if (topic.startsWith(this.rootTopic() + '/') && typeof msg === 'object') {
                 // RKS: Not sure why there is no processing of state vs config here.  Right now the topics are unique
                 // between them so it doesn't matter but it will become an issue.

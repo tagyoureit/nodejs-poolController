@@ -25,87 +25,137 @@
     {
       "topic": "Aux_1",
       "description": "State of the Aux_1 circuit on AqualinkD",
-      "processor": [ "sys.board.circuits.setCircuitStateAsync(2, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.circuits.setCircuitStateAsync(2, parseInt(value, 10) === 1);"
+
+      ]
     },
     {
       "topic": "Aux_2",
       "description": "State of the Aux_2 circuit on AqualinkD",
-      "processor": [ "sys.board.circuits.setCircuitStateAsync(3, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.circuits.setCircuitStateAsync(3, val === 1);"
+      ]
     },
     {
       "topic": "Aux_3",
       "description": "State of the Aux_3 circuit on AqualinkD",
-      "processor": [ "sys.board.circuits.setCircuitStateAsync(4, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.circuits.setCircuitStateAsync(4, val === 1);"
+      ]
     },
     {
       "topic": "Aux_4",
       "description": "State of the Aux_4 circuit on AqualinkD",
-      "processor": [ "sys.board.circuits.setCircuitStateAsync(5, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.circuits.setCircuitStateAsync(5, val === 1);"
+      ]
     },
     {
       "topic": "Aux_5",
       "description": "State of the Aux_5 circuit on AqualinkD",
-      "processor": [ "sys.board.circuits.setCircuitStateAsync(7, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.circuits.setCircuitStateAsync(7, val === 1);"
+      ]
     },
     {
       "topic": "Aux_6",
       "description": "State of the Aux_1 circuit on AqualinkD",
-      "processor": [ "sys.board.circuits.setCircuitStateAsync(8, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.circuits.setCircuitStateAsync(8, val === 1);"
+      ]
     },
     {
       "topic": "Aux_7",
       "description": "State of the Aux_7 circuit on AqualinkD",
-      "processor": [ "sys.board.circuits.setCircuitStateAsync(9, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.circuits.setCircuitStateAsync(9, val === 1);"
+      ]
     },
     {
       "topic": "Aux_8",
       "description": "State of the Aux_8 circuit on AqualinkD",
-      "processor": [ "sys.board.circuits.setCircuitStateAsync(10, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.circuits.setCircuitStateAsync(10, val === 1);"
+      ]
     },
     {
       "topic": "Aux_B1",
       "description": "State of the Aux_B1 feature on AqualinkD",
-      "processor": [ "sys.board.features.setFeatureStateAsync(129, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.features.setFeatureStateAsync(129, val === 1);"
+      ]
     },
     {
       "topic": "Aux_B2",
       "description": "State of the Aux_B2 feature on AqualinkD",
-      "processor": [ "sys.board.features.setFeatureStateAsync(130, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.features.setFeatureStateAsync(130, val === 1);"
+      ]
     },
     {
       "topic": "Aux_B3",
       "description": "State of the Aux_B3 feature on AqualinkD",
-      "processor": [ "sys.board.features.setFeatureStateAsync(131, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.features.setFeatureStateAsync(131, val === 1);"
+      ]
     },
     {
       "topic": "Aux_B4",
       "description": "State of the Aux_B4 feature on AqualinkD",
-      "processor": [ "sys.board.features.setFeatureStateAsync(132, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.features.setFeatureStateAsync(132, val === 1);"
+      ]
     },
     {
       "topic": "Aux_B5",
       "description": "State of the Aux_B5 feature on AqualinkD",
-      "processor": [ "sys.board.features.setFeatureStateAsync(133, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.features.setFeatureStateAsync(133, val === 1);"
+      ]
     },
     {
       "topic": "Aux_B6",
       "description": "State of the Aux_B6 feature on AqualinkD",
-      "processor": [ "sys.board.features.setFeatureStateAsync(134, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.features.setFeatureStateAsync(134, val === 1);"
+      ]
     },
     {
       "topic": "Aux_B7",
       "description": "State of the Aux_B7 feature on AqualinkD",
-      "processor": [ "sys.board.features.setFeatureStateAsync(135, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.features.setFeatureStateAsync(135, val === 1);"
+      ]
     },
     {
       "topic": "Aux_B8",
       "description": "State of the Aux_B8 feature on AqualinkD",
-      "processor": [ "sys.board.features.setFeatureStateAsync(136, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "let val = parseInt(value, 10);",
+        "if(!isNaN(val)) sys.board.features.setFeatureStateAsync(136, val === 1);"
+      ]
     },
     {
       "topic": "Filter_Pump",
       "description": "State of the Filter_Pump on AqualinkD",
       "processor": [
+        "if(isNaN(parseInt(value, 10))) return;",
         "if(state.circuits.getItemById(1).isOn === false) ",
         "   sys.board.circuits.setCircuitStateAsync(6, parseInt(value, 10) === 1);",
         "else sys.board.circuits.setCircuitStateAsync(1, parseInt(value, 10) === 1);"
@@ -114,12 +164,16 @@
     {
       "topic": "Spa_Mode",
       "description": "The body mode for the controller.  If 1 then we are in spa mode otherwise we are in pool mode.",
-      "processor": [ "sys.board.circuits.setCircuitStateAsync(1, parseInt(value, 10) === 1);" ]
+      "processor": [
+        "if(isNaN(parseInt(value, 10))) return;",
+        "sys.board.circuits.setCircuitStateAsync(1, parseInt(value, 10) === 1);"
+      ]
     },
     {
       "topic": "Temperature/Pool",
       "description": "The current temperature emitted by the controller for the pool.  However, we only want to set this when the pool circuit is on.",
       "processor": [
+        "if(isNaN(parseFloat(value))) return;",
         "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), ctx.vars.tempUnits, sys.board.valueMaps.tempUnits.getName(state.temps.units));",
         "state.temps.bodies.getItemById(1).temp = temp;",
         "if(state.circuits.getItemById(6).isOn) sys.board.system.setTempsAsync({ waterSensor1: temp });"
@@ -129,6 +183,7 @@
       "topic": "Temperature/Spa",
       "description": "The current temperature emitted by the controller for the spa.  However, we only want to set this when the spa circuit is on.",
       "processor": [
+        "if(isNaN(parseFloat(value))) return;",
         "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), ctx.vars.tempUnits, sys.board.valueMaps.tempUnits.getName(state.temps.units));",
         "state.temps.bodies.getItemById(2).temp = temp;",
         "if(state.circuits.getItemById(1).isOn) sys.board.system.setTempsAsync({ waterSensor1: temp });"
@@ -138,6 +193,7 @@
       "topic": "Temperature/Air",
       "description": "The current temperature emitted by the controller for air temperature.",
       "processor": [
+        "if(isNaN(parseFloat(value))) return;",
         "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), ctx.vars.tempUnits, sys.board.valueMaps.tempUnits.getName(state.temps.units));",
         "sys.board.system.setTempsAsync({ air: temp });"
       ]
@@ -146,6 +202,7 @@
       "topic": "Temperature/Solar",
       "description": "The current temperature emitted by the controller for solar.",
       "processor": [
+        "if(isNaN(parseFloat(value))) return;",
         "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), ctx.vars.tempUnits, sys.board.valueMaps.tempUnits.getName(state.temps.units));",
         "sys.board.system.setTempsAsync({ solarSensor1: temp });"
       ]
@@ -293,17 +350,24 @@
     {
       "topic": "Pool_Heater/enabled",
       "description": "The current heat mode for the pool heater",
-      "processor": [ "sys.bodies.getItemById(1).heatMode = state.temps.bodies.getItemById(1).heatMode = parseInt(value, 10) === 1 ? 2 : 1;" ]
+      "processor": [
+        "if(isNaN(parseInt(value, 10))) return;",
+        "sys.bodies.getItemById(1).heatMode = state.temps.bodies.getItemById(1).heatMode = parseInt(value, 10) === 1 ? 2 : 1;"
+      ]
     },
     {
       "topic": "Spa_Heater/enabled",
       "description": "The current heat mode for the spa heater",
-      "processor": [ "sys.bodies.getItemById(2).heatMode = state.temps.bodies.getItemById(2).heatMode = parseInt(value, 10) === 1 ? 2 : 1;" ]
+      "processor": [
+        "if(isNaN(parseInt(value, 10))) return;",
+        "sys.bodies.getItemById(2).heatMode = state.temps.bodies.getItemById(2).heatMode = parseInt(value, 10) === 1 ? 2 : 1;"
+      ]
     },
     {
       "topic": "Pool_Heater/setpoint",
       "description": "The setpoint for the pool body",
       "processor": [
+        "if(isNaN(parseFloat(value))) return;",
         "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), ctx.vars.tempUnits, sys.board.valueMaps.tempUnits.getName(state.temps.units));",
         "let body = sys.bodies.getItemById(1); sys.board.bodies.setHeatSetpointAsync(body, parseInt(temp, 10));"
       ]
@@ -312,6 +376,7 @@
       "topic": "Spa_Heater/setpoint",
       "description": "The setpoint for the spa body",
       "processor": [
+        "if(isNaN(parseFloat(value))) return;",
         "let temp = ctx.util.convert.temperature.convertUnits(parseFloat(value), ctx.vars.tempUnits, sys.board.valueMaps.tempUnits.getName(state.temps.units));",
         "let body = sys.bodies.getItemById(2); sys.board.bodies.setHeatSetpointAsync(body, parseInt(temp, 10));"
       ]
@@ -438,7 +503,7 @@
           "topic": "Pool_Heater/setpoint/set",
           "message": "@bind=data.setPoint;",
           "description": "Set the heat setpoint for the pool",
-          "filter": "@bind=data.id; === 1;",
+          "filter": "@bind=data.id === 1;",
           "processor": [
             "let units = sys.board.valueMaps.tempUnits.getName(state.temps.units);",
             "return ctx.util.roundNumber(ctx.util.convert.temperature.convertUnits(data.setPoint, units, ctx.vars.tempUnits), ctx.vars.tempPrecision);"
@@ -448,7 +513,7 @@
           "topic": "Spa_Heater/setpoint/set",
           "message": "@bind=data.setPoint;",
           "description": "Set the heat setpoint for the spa",
-          "filter": "@bind=data.id; === 2;",
+          "filter": "@bind=data.id === 2;",
           "processor": [
             "let units = sys.board.valueMaps.tempUnits.getName(state.temps.units);",
             "return ctx.util.roundNumber(ctx.util.convert.temperature.convertUnits(data.setPoint, units, ctx.vars.tempUnits), ctx.vars.tempPrecision);"
@@ -456,15 +521,21 @@
         },
         {
           "topic": "Pool_Heater/set",
-          "message": "@bind=data.heatMode.val === 2 ? 1 : 0;",
+          "message": "@bind=data.heatMode.val; === 2 ? 1 : 0",
           "description": "Bind the state",
-          "filter": "@bind=data.id === 1;"
+          "filter": "@bind=data.id === 1;",
+          "processor": [
+            "return typeof data.heatMode !== 'undefined' && data.heatMode.val === 2 ? 1 : 0;"
+          ]
         },
         {
           "topic": "Spa_Heater/set",
-          "message": "@bind=data.heatMode.val === 2 ? 1 : 0;",
+          "message": "@bind=data.heatMode.val; === 2 ? 1 : 0",
           "description": "Bind the state",
-          "filter": "@bind=data.id === 2;"
+          "filter": "@bind=data.id === 2;",
+          "processor": [
+            "return typeof data.heatMode !== 'undefined' && data.heatMode.val === 2 ? 1 : 0;"
+          ]
         }
 
       ]
