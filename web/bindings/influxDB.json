@@ -39,6 +39,16 @@
               "type": "int"
             },
             {
+              "name": "airTempF",
+              "value": "@bind=data.air;",
+              "type": "float"
+            },
+            {
+              "name": "solarTempF",
+              "value": "@bind=data.solar;",
+              "type": "float"
+            },
+            {
               "name": "waterSensor1",
               "value": "@bind=data.waterSensor1;",
               "type": "float"
@@ -87,6 +97,11 @@
               "name": "@bind=data.name;",
               "value": "@bind=data.temp;",
               "type": "int"
+            },
+            {
+              "name": "@bind=data.name+'F';",
+              "value": "@bind=data.temp;",
+              "type": "float"
             },
             {
               "name": "@bind=data.name+'.setPoint';",
