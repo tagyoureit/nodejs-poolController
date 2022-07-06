@@ -587,7 +587,11 @@ export class NixieSystemCommands extends SystemCommands {
         if (timeout > 0) {
             let start = new Date().getTime();
             this.checkServiceTimeout(mode, start, timeout, 1000);
+            webApp.emitToClients('panelMode', { mode: mode, remaining: timeout, elapsed: 0, timeout: timeout });
         }
+        else
+            webApp.emitToClients('panelMode', { mode: mode });
+
     }
 }
 export class NixieCircuitCommands extends CircuitCommands {
