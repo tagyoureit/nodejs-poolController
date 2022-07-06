@@ -274,6 +274,18 @@ export class NixieCircuit extends NixieEquipment {
     }
     public async setCircuitStateAsync(cstate: ICircuitState, val: boolean, scheduled: boolean = false): Promise<InterfaceServerResponse> {
         try {
+            // Lets do some special processing here for service mode
+            if (state.mode !== 0 && val) {
+                // Always set the state to off if we are in service mode for bodies.  Other circuits
+                // may actually be turned on but only if they are not one of the body circuits.
+                switch (sys.board.valueMaps.circuitFunctions.getName(this.circuit.type)) {
+                    case 'pool':
+                    case 'spa':
+                    case 'chemrelay':
+                        val = false;
+                        break;
+                }
+            }
             if (val !== cstate.isOn) {
                 logger.info(`NCP: Setting Circuit ${cstate.name} to ${val}`);
                 if (cstate.isOn && val) {

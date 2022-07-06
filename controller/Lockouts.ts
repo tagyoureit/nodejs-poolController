@@ -198,6 +198,13 @@ export class HeaterStartupDelay extends EquipmentDelay {
         this._delayTimer = undefined;
         delayMgr.deleteDelay(this.id);
     }
+    public clearDelay() {
+        this.heaterState.startupDelay = false;
+        if (typeof this._delayTimer !== 'undefined') clearTimeout(this._delayTimer);
+        logger.info(`Heater Startup delay cancelled for ${this.heaterState.name}`);
+        this._delayTimer = undefined;
+        delayMgr.deleteDelay(this.id);
+    }
 }
 export class HeaterCooldownDelay extends EquipmentDelay {
     public constructor(bsoff: BodyTempState, bson?: BodyTempState, delay?: number) {
@@ -268,7 +275,24 @@ export class HeaterCooldownDelay extends EquipmentDelay {
         delayMgr.deleteDelay(this.id);
         state.emitEquipmentChanges();
     }
-
+    public clearDelay() {
+        let cstateOff = state.circuits.getItemById(this.bodyStateOff.circuit);
+        cstateOff.stopDelay = false;
+        (async () => {
+            await sys.board.circuits.setCircuitStateAsync(cstateOff.id, false);
+            if (typeof this.bodyStateOn !== 'undefined') {
+                this.bodyStateOn.startDelay = state.circuits.getItemById(this.bodyStateOn.circuit).startDelay = false;
+                await sys.board.circuits.setCircuitStateAsync(this.bodyStateOn.circuit, true);
+            }
+        })();
+        this.bodyStateOff.stopDelay = this.bodyStateOff.heaterCooldownDelay = false;
+        this.bodyStateOff.heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
+        if (typeof this._delayTimer !== 'undefined') clearTimeout(this._delayTimer);
+        logger.info(`Heater Cooldown delay cleared for ${this.bodyStateOff.name}`);
+        this._delayTimer = undefined;
+        delayMgr.deleteDelay(this.id);
+        state.emitEquipmentChanges();
+    }
 }
 interface ICleanerDelay {
     cleanerState: ICircuitState,
@@ -351,6 +375,12 @@ export class DelayManager extends Array<EquipmentDelay> {
     public cancelDelay(id: number) {
         let del = this.find(x => x.id === id);
         if (typeof del !== 'undefined') del.cancelDelay();
+    }
+    public clearAllDelays() {
+        for (let i = this.length - 1; i >= 0; i--) {
+            let del = this[i];
+            del.clearDelay();
+        }
     }
     public setManualPriorityDelay(cs: ICircuitState) {
         let cds = this.filter(x => x.type === 'manualOperationPriorityDelay');

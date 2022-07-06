@@ -581,6 +581,14 @@ export class NixieSystemCommands extends SystemCommands {
     }
     public async initServiceMode(mode, timeout?: number) {
         if (this._modeTimer) clearTimeout(this._modeTimer);
+        for (let i = 0; i < sys.circuits.length; i++) {
+            let circ = sys.circuits.getItemByIndex(i);
+            if (circ.master === 1) {
+                let cstate = state.circuits.getItemById(circ.id);
+                if (cstate.isOn) await sys.board.circuits.setCircuitStateAsync(circ.id, false, true);
+            }
+        }
+        delayMgr.clearAllDelays();
         state.mode = mode.val;
         // Shut everything down.
         await ncp.setServiceModeAsync();
@@ -589,8 +597,9 @@ export class NixieSystemCommands extends SystemCommands {
             this.checkServiceTimeout(mode, start, timeout, 1000);
             webApp.emitToClients('panelMode', { mode: mode, remaining: timeout, elapsed: 0, timeout: timeout });
         }
-        else
+        else {
             webApp.emitToClients('panelMode', { mode: mode });
+        }
 
     }
 }
@@ -848,7 +857,6 @@ export class NixieCircuitCommands extends CircuitCommands {
                 if (sys.equipment.shared && bstate.id === 2) await this.turnOffDrainCircuits(ignoreDelays);
                 logger.verbose(`Turning off a body circuit ${circuit.name}`);
                 if (cstate.isOn) {
-                   
                     // Check to see if we have any heater cooldown delays that need to take place.
                     let heaters = sys.board.heaters.getHeatersByCircuitId(circuit.id);
                     let cooldownTime = 0;
@@ -865,6 +873,9 @@ export class NixieCircuitCommands extends CircuitCommands {
                         await ncp.circuits.setCircuitStateAsync(cstate, val);
                         bstate.isOn = val;
                     }
+                }
+                else {
+                    bstate.isOn = val;
                 }
             }
             return cstate;

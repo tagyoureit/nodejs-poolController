@@ -890,14 +890,14 @@ export class SystemBoard {
     this._statusTimer = undefined;
     this._statusCheckRef = 0;
   }
-  public suspendStatus(bSuspend: boolean) {
-    // The way status suspension works is by using a reference value that is incremented and decremented
-    // the status check is only performed when the reference value is 0.  So suspending the status check 3 times and un-suspending
-    // it 2 times will still result in the status check being suspended.  This method also ensures the reference never falls below 0.
-    if (bSuspend) this._statusCheckRef++;
-    else this._statusCheckRef = Math.max(0, this._statusCheckRef - 1);
-    logger.verbose(`Suspending status check: ${bSuspend} -- ${this._statusCheckRef}`);
-  }
+    public suspendStatus(bSuspend: boolean) {
+        // The way status suspension works is by using a reference value that is incremented and decremented
+        // the status check is only performed when the reference value is 0.  So suspending the status check 3 times and un-suspending
+        // it 2 times will still result in the status check being suspended.  This method also ensures the reference never falls below 0.
+        if (bSuspend) this._statusCheckRef++;
+        else this._statusCheckRef = Math.max(0, this._statusCheckRef - 1);
+        if (this._statusCheckRef > 1) logger.verbose(`Suspending status check: ${bSuspend} -- ${this._statusCheckRef}`);
+    }
   /// This method processes the status message periodically.  The role of this method is to verify the circuit, valve, and heater
   /// relays.  This method does not control RS485 operations such as pumps and chlorinators.  These are done through the respective
   /// equipment polling functions.
@@ -921,17 +921,17 @@ export class SystemBoard {
       if (this.statusInterval > 0) this._statusTimer = setTimeout(async () => await self.processStatusAsync(), this.statusInterval);
     }
   }
-  public async syncEquipmentItems() {
-    try {
-      await sys.board.circuits.syncCircuitRelayStates();
-      await sys.board.features.syncGroupStates();
-      await sys.board.circuits.syncVirtualCircuitStates();
-      await sys.board.valves.syncValveStates();
-      await sys.board.filters.syncFilterStates();
-      await sys.board.heaters.syncHeaterStates();
+    public async syncEquipmentItems() {
+        try {
+            await sys.board.circuits.syncCircuitRelayStates();
+            await sys.board.features.syncGroupStates();
+            await sys.board.circuits.syncVirtualCircuitStates();
+            await sys.board.valves.syncValveStates();
+            await sys.board.filters.syncFilterStates();
+            await sys.board.heaters.syncHeaterStates();
+        }
+        catch (err) { logger.error(`Error synchronizing equipment items: ${err.message}`); }
     }
-    catch (err) { logger.error(`Error synchronizing equipment items: ${err.message}`); }
-  }
   public async setControllerType(obj): Promise<Equipment> {
     try {
       if (obj.controllerType !== sys.controllerType)
@@ -4071,6 +4071,7 @@ export class HeaterCommands extends BoardCommands {
     // and those that are not.
     public syncHeaterStates() {
         try {
+            
             // Go through the installed heaters and bodies to determine whether they should be on.  If there is a
             // heater that is not controlled by the OCP then we need to determine whether it should be on.
             let heaters = sys.heaters.toArray();
