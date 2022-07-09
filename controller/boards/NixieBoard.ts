@@ -1549,10 +1549,11 @@ export class NixieFeatureCommands extends FeatureCommands {
                 for (let j = 0; j < circuits.length && bIsOn === true; j++) {
                     let circuit: CircuitGroupCircuit = grp.circuits.getItemByIndex(j);
                     let cstate = state.circuits.getInterfaceById(circuit.circuit);
+                    // RSG: desiredState for Nixie is 1=on, 2=off, 3=ignore
                     if (circuit.desiredState === 1) { // The circuit should be on.
                         if (!utils.makeBool(cstate.isOn)) bIsOn = false;
                     }
-                    else if (circuit.desiredState === 0) { // The circuit should be off.
+                    else if (circuit.desiredState === 2) { // The circuit should be off.
                         if (utils.makeBool(cstate.isOn)) bIsOn = false;
                     }
                 }
