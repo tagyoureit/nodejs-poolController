@@ -1350,6 +1350,16 @@ export class Pump extends EqItem {
     public initData() {
         if (typeof this.data.isVirtual !== 'undefined') delete this.data.isVirtual;
         if (typeof this.data.portId === 'undefined') this.data.portId = 0;
+        if (typeof this.data.body === 'number' && this.data.model === 2 && this.data.master === 1){
+            // convert SS from body types to circuit arrays
+            if (this.data.body === 255 || this.data.body === 0 && !this.data.circuits.find(el => el.circuit === 6)) {
+                this.data.circuits.push({"circuit": 6, "relay": 1, "units": 0, "id": this.data.circuits.length + 1, "master": 1})
+            }
+            if (this.data.body === 255 || this.data.body === 101 && !this.data.circuits.find(el => el.circuit === 1)) {
+                this.data.circuits.push({"circuit": 1, "relay": 1, "units": 0, "id": this.data.circuits.length + 1, "master": 1})
+            }
+            this.data.body = undefined;
+        }
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
