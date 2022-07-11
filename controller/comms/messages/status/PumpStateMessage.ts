@@ -68,7 +68,7 @@ export class PumpStateMessage {
         //[0x10, 0x02, 0x00, 0x0C, 0x00][0x00, 0x2D, 0x02, 0x36][0x00, 0x83, 0x10, 0x03] -- Response from pump
         let ptype = sys.board.valueMaps.pumpTypes.transformByName('hwvs');
         let address = msg.source + 96;
-        console.log({ src: msg.source, dest: msg.dest, action: msg.action, address: address });
+        //console.log({ src: msg.source, dest: msg.dest, action: msg.action, address: address });
 
         let pump = sys.pumps.find(elem => elem.address === address && elem.type === 6);
         if (typeof pump !== 'undefined') {
