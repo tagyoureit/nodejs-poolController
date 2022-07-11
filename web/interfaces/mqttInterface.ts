@@ -66,6 +66,12 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                     this.subscribe();
                 } catch (err) { logger.error(err); }
             });
+            this.client.on('reconnect', () => {
+                try {
+                    logger.info(`Re-connecting to MQTT broker ${this.cfg.name}`);
+                } catch (err) { logger.error(err); }
+
+            });
             this.client.on('error', (error) => {
                 logger.error(`MQTT error ${error}`)
             });
@@ -119,7 +125,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         } catch (err) { logger.error(`Error unsubcribing to MQTT topic: ${err.message}`); }
     }
     protected subscribe() {
-        if (this.topics.length > 0) this.unsubscribe();
+        if (this.topics.length > 0) (async () => { await this.unsubscribe(); })();
         let root = this.rootTopic();
         if (typeof this.subscriptions !== 'undefined') {
             for (let i = 0; i < this.subscriptions.length; i++) {
