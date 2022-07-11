@@ -181,7 +181,6 @@
           "tempPrecision": 2,
           "tempUnits": "@bind=sys.board.valueMaps.tempUnits.getName(state.temps.units);"
         }
-
       },
       "mqttAlt": {
         "name": "MQTTAlt",
@@ -199,6 +198,28 @@
           "retain": true,
           "qos": 0,
           "changesOnly": true
+        }
+      },
+      "homeAssistant": {
+        "name": "Home Assistant",
+        "type": "mqtt",
+        "enabled": false,
+        "fileName": "homeassistant.json",
+        "globals": {},
+        "options": {
+          "protocol": "mqtt://",
+          "host": "192.168.0.1",
+          "port": 1883,
+          "username": "",
+          "password": "",
+          "selfSignedCertificate": false,
+          "retain": true,
+          "qos": 0,
+          "changesOnly": true
+        },
+        "vars": {
+          "hassTopic": "homeassistant",
+          "mqttTopic": "@bind=(state.equipment.model).replace(' ','-').replace('/','').toLowerCase();Alt"
         }
       },
       "rem": {
