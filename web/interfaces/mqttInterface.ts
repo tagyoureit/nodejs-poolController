@@ -60,10 +60,10 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                 url
             }
             this.client = connect(url, opts);
-            this.client.on('connect', () => {
+            this.client.on('connect', async () => {
                 try {
                     logger.info(`MQTT connected to ${url}`);
-                    this.subscribe();
+                    await this.subscribe();
                 } catch (err) { logger.error(err); }
             });
             this.client.on('reconnect', () => {
@@ -98,7 +98,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             this.context = Object.assign<InterfaceContext, any>(new InterfaceContext(), data.context);
             this.events = Object.assign<MqttInterfaceEvent[], any>([], data.events);
             this.subscriptions = Object.assign<MqttTopicSubscription[], any>([], data.subscriptions);
-            this.subscribe();
+            await this.subscribe();
         } catch (err) { logger.error(`Error reloading MQTT bindings`); }
     }
     private async unsubscribe() {
@@ -124,8 +124,8 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             this.subscribed = false;
         } catch (err) { logger.error(`Error unsubcribing to MQTT topic: ${err.message}`); }
     }
-    protected subscribe() {
-        if (this.topics.length > 0) (async () => { await this.unsubscribe(); })();
+    protected async subscribe() {
+        if (this.topics.length > 0) await this.unsubscribe();
         let root = this.rootTopic();
         if (typeof this.subscriptions !== 'undefined') {
             for (let i = 0; i < this.subscriptions.length; i++) {
@@ -133,7 +133,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                 if(sub.enabled !== false) this.topics.push(new MqttTopicSubscription(root, sub));
             }
         }
-        else {
+        else if (typeof root !== 'undefined') {
             let arrTopics = [
                 `state/+/setState`,
                 `state/+/setstate`,
