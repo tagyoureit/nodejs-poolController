@@ -193,7 +193,7 @@
             "return JSON.stringify({ name: data.name,",
             "unique_id: `poolController-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}`,",
             "state_topic: `${ctx.vars.mqttTopic}/state/circuitGroups/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}`,",
-            "command_topic: `${ctx.vars.mqttTopic}/state/circuitgroups/setState`,",
+            "command_topic: `${ctx.vars.mqttTopic}/state/circuitGroups/setState`,",
             "payload_on: `{\"id\": ${data.id}, \"isOn\": true}`,",
             "payload_off: `{\"id\": ${data.id}, \"isOn\": false}`,",
             "state_on: `on`,",
