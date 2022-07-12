@@ -15,7 +15,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as extend from 'extend';
-import { EventEmitter } from 'events';
+import { EventEmitter, on } from 'events';
 import { ncp } from "../nixie/Nixie";
 import { NixieHeaterBase } from "../nixie/heaters/Heater";
 import { utils, Heliotrope, Timestamp } from '../Constants';
@@ -28,6 +28,7 @@ import { BoardProcessError, EquipmentNotFoundError, InvalidEquipmentDataError, I
 import { conn } from '../comms/Comms';
 import { delayMgr } from '../Lockouts';
 import { webApp } from "../../web/Server";
+import { off } from 'process';
 export class NixieBoard extends SystemBoard {
     constructor (system: PoolSystem){
         super(system);
@@ -100,9 +101,11 @@ export class NixieBoard extends SystemBoard {
             [7, { name: 'sun', desc: 'Sunday', dow: 0, bitval: 64 }]
         ]);
         this.valueMaps.groupCircuitStates = new byteValueMap([
-            [1, { name: 'on', desc: 'On' }],
-            [2, { name: 'off', desc: 'Off' }],
-            [3, { name: 'ignore', desc: 'Ignore' }]
+            [1, { name: 'on', desc: 'On/Off' }],
+            [2, { name: 'off', desc: 'Off/On' }],
+            [3, { name: 'ignore', desc: 'Ignore' }],
+            [4, { name: 'on+ignore', desc: 'On/Ignore' }],
+            [5, { name: 'off+ignore', desc: 'Off/Ignore' }]
         ]);
         this.valueMaps.chlorinatorModel = new byteValueMap([
             [0, { name: 'unknown', desc: 'unknown', capacity: 0, chlorinePerDay: 0, chlorinePerSec: 0 }],
@@ -1353,13 +1356,23 @@ export class NixieCircuitCommands extends CircuitCommands {
         gstate.isOn = val;
         let arr = [];
         for (let i = 0; i < circuits.length; i++) {
-            let circuit = circuits[i];
+            let circuit:CircuitGroupCircuit = circuits[i];
             // The desiredState will be as follows.
             // 1 = on, 2 = off, 3 = ignore.
             let cval = true;
             if (circuit.desiredState === 1) cval = val ? true : false;
             else if (circuit.desiredState === 2) cval = val ? false : true;
-            else continue;
+            else if (circuit.desiredState === 3) continue;
+            else if (circuit.desiredState === 4){
+                // on/ignore
+                if (val) cval = true;
+                else continue;
+            }
+            else if (circuit.desiredState === 5){
+                // off/ignore
+                if (val) cval = false;
+                else continue; 
+            }
             await sys.board.circuits.setCircuitStateAsync(circuit.circuit, cval);
             //arr.push(sys.board.circuits.setCircuitStateAsync(circuit.circuit, cval));
         }
@@ -1550,10 +1563,13 @@ export class NixieFeatureCommands extends FeatureCommands {
                     let circuit: CircuitGroupCircuit = grp.circuits.getItemByIndex(j);
                     let cstate = state.circuits.getInterfaceById(circuit.circuit);
                     // RSG: desiredState for Nixie is 1=on, 2=off, 3=ignore
-                    if (circuit.desiredState === 1) { // The circuit should be on.
+                    if (circuit.desiredState === 1 || circuit.desiredState === 4) { 
+                        // The circuit should be on if the value is 1.
+                        // If we are on 'ignore' we should still only treat the circuit as 
+                        // desiredstate = 1.
                         if (!utils.makeBool(cstate.isOn)) bIsOn = false;
                     }
-                    else if (circuit.desiredState === 2) { // The circuit should be off.
+                    else if (circuit.desiredState === 2 || circuit.desiredState === 5) { // The circuit should be off.
                         if (utils.makeBool(cstate.isOn)) bIsOn = false;
                     }
                 }

@@ -38,21 +38,6 @@
       "clientId": "@bind=`hass_njsPC_${webApp.mac().replace(/:/g, '_'}-${webApp.httpPort()}`;"
     }
   },
-  "subscriptions": [
-    {
-      "topic": "getSensorConfig",
-      "description": "Tells njsPC to return the configuration for all the configured sensors",
-      "processor": [
-        "console.log(`Sensor Configuration Requested`);",
-        "if(value) {",
-          "for(let i = 0; i < sys.equipment.tempSensors.length; i++) {",
-            "let sensor = sys.equipment.tempSensors.getItemByIndex(i);",
-              "ctx.publish(`config/sensor/${sensor.name}`, { name: sensor.name, stateTopic: '{{ value_json.temp }}', device_class: 'temperature' });",
-          "}",
-        "}"
-      ]
-    }
-  ],
   "events": [
     {
       "name": "circuit",
@@ -245,7 +230,7 @@
             "device: device_id,",
             "device_class: 'temperature',",
             "state_topic: `${ctx.vars.mqttTopic}/state/temps/air`,",
-            "unit_of_measurement: `Â°${state.temps.data.units.name}`,",
+            "unit_of_measurement: `°${state.temps.data.units.name}`,",
             "value_template: '{{value_json.temp}}'});"
           ]
         }
