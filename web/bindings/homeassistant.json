@@ -179,6 +179,34 @@
       ]
     },
     {
+      "name": "circuitGroup",
+      "description": "Populate the circuitGroup topics",
+      "topics": [
+        {
+          "topic": "@bind=vars.hassTopic;/switch/@bind=vars.mqttTopic;/@bind=vars.mqttTopic;-@bind=data.id;-@bind=data.name;/config",
+          "useRootTopic": false,
+          "processor": [
+            "let device_id = {",
+            " name : 'Pool Controller - njsPC',",
+            " ids: [`${ctx.vars.mqttTopic}`],",
+            " suggested_area : 'Pool'};",
+            "return JSON.stringify({ name: data.name,",
+            "unique_id: `poolController-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}`,",
+            "state_topic: `${ctx.vars.mqttTopic}/state/circuitGroups/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}`,",
+            "command_topic: `${ctx.vars.mqttTopic}/state/circuitgroups/setState`,",
+            "payload_on: `{\"id\": ${data.id}, \"isOn\": true}`,",
+            "payload_off: `{\"id\": ${data.id}, \"isOn\": false}`,",
+            "state_on: `on`,",
+            "state_off: `off`,",
+            "device: device_id,",
+            "device_class: 'switch',",
+            "value_template:'{{value_json.isOn}}'});"
+          ],
+          "filter": "@bind=data.showInFeatures; === true"
+        }
+      ]
+    },
+    {
       "name": "body",
       "description": "Populate the pool body/heater topics",
       "topics": [
