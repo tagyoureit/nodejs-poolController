@@ -218,8 +218,9 @@
           "changesOnly": true
         },
         "vars": {
+          "_note": "hassTopic is the topic that HASS reads for configuration and should not be changed.  mqttTopic should match the topic in the MQTT binding (do not use MQTTAlt for HASS).",
           "hassTopic": "homeassistant",
-          "mqttTopic": "@bind=(state.equipment.model).replace(' ','-').replace('/','').toLowerCase();Alt"
+          "mqttTopic": "@bind=(state.equipment.model).replace(' ','-').replace('/','').toLowerCase();"
         }
       },
       "rem": {
