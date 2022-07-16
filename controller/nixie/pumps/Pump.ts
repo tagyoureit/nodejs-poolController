@@ -319,10 +319,12 @@ export class NixiePumpSS extends NixiePump {
         // Turn on ss pumps.
         let _newSpeed = 0;
         if (!pState.pumpOnDelay) {
-            // let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
-            // if (pt.hasBody) _newSpeed = this.isBodyOn(this.pump.body) ? 1 : 0;
-            //console.log(`BODY: ${sys.board.bodies.isBodyOn(this.pump.body)} CODE: ${this.pump.body}`);
-            if (!pState.pumpOnDelay) {
+            let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
+            if (pt.maxCircuits === 0 || pt.hasBody) {
+                _newSpeed = this.isBodyOn(this.pump.body) ? 1 : 0;
+                //console.log(`BODY: ${sys.board.bodies.isBodyOn(this.pump.body)} CODE: ${this.pump.body}`);
+            }
+            else if (!pState.pumpOnDelay) {
                 let pumpCircuits: PumpCircuit[] = this.pump.circuits.get();
                 if (!pState.pumpOnDelay) {
                     for (let i = 0; i < pumpCircuits.length; i++) {

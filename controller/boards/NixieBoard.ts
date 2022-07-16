@@ -751,6 +751,8 @@ export class NixieCircuitCommands extends CircuitCommands {
             let cstate = state.circuits.getItemById(id);
             let circuit = sys.circuits.getItemById(id);
             let bstate = state.temps.bodies.getBodyByCircuitId(id);
+            if (cstate.isOn === val) return; // If body is already in desired state, don't do anything.
+            // https://github.com/tagyoureit/nodejs-poolController/issues/361#issuecomment-1186087763
             if (val) {
                 // We are turning on a body circuit.
                 logger.verbose(`Turning on a body circuit ${bstate.name}`);
@@ -956,7 +958,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             logger.verbose(`Turning ${val ? 'on' : 'off'} a drain circuit ${cstate.name}`);
             await ncp.circuits.setCircuitStateAsync(cstate, val);
             return cstate;
-        } catch (err) { logger.error(`Nixie: Error setSpillwayCircuitStateAsync ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setBodyCircuitStateAsync ${err.message}`, 'setBodyCircuitStateAsync')); }
+        } catch (err) { logger.error(`Nixie: Error setDrainCircuitStateAsync ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setDrainCircuitStateAsync ${err.message}`, 'setDrainCircuitStateAsync')); }
     }
     
     public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
@@ -1536,11 +1538,11 @@ export class NixieFeatureCommands extends FeatureCommands {
                         if (!ignoreDelays && sys.general.options.pumpDelay && sys.general.options.valveDelayTime > 0) sys.board.pumps.setPumpValveDelays([id, 1, 6]);
                     }
                 }
-                logger.verbose(`Turning ${val ? 'on' : 'off'} a spa drain circuit ${cstate.name}`);
+                logger.verbose(`Turning ${val ? 'on' : 'off'} a spa drain feature ${cstate.name}`);
                 cstate.isOn = val;
             }
             return cstate;
-        } catch (err) { logger.error(`Nixie: Error setSpillwayCircuitStateAsync ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setBodyCircuitStateAsync ${err.message}`, 'setBodyCircuitStateAsync')); }
+        } catch (err) { logger.error(`Nixie: Error setDrainFeatureStateAsync ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setDrainFeatureStateAsync ${err.message}`, 'setDrainFeatureStateAsync')); }
     }
 
     public async toggleFeatureStateAsync(id: number): Promise<ICircuitState> {
@@ -1620,23 +1622,28 @@ export class NixiePumpCommands extends PumpCommands {
                 let pstate = state.pumps.getItemById(pump.id);
                 let pt = sys.board.valueMaps.pumpTypes.get(pump.type);
 
-                //    [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true, maxRelays: 1 }],
+                //    Old - [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true, maxRelays: 1 }],
+                //     New 07/22 - [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 8, hasAddress: false, hasBody: false, maxRelays: 1, relays: [{ id: 1, name: 'Pump On/Off' }]}],
                 //    [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 8, hasAddress: false, hasBody: false, maxRelays: 2 }],
                 //    [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
                 //    [4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
                 //    [5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
                 //    [100, { name: 'sf', desc: 'SuperFlo VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1 }]
                 switch (pt.name) {
-                    case 'ss':
-                        // If a single speed pump is designated it will be the filter pump but we need to map any settings
-                        // to bodies.
-                        console.log(`Body: ${pump.body} Pump: ${pump.name} Pool: ${circuitIds.includes(6)} `);
-                        if ((pump.body === 255 && (circuitIds.includes(6) || circuitIds.includes(1))) ||
+                    case 'ss':{
+                        // rsg - ss now has circuit assignments.  will check but still leave existing code
+                        if (pt.maxCircuits === 0 || typeof pump.body !== 'undefined'){
+                            // If a single speed pump is designated it will be the filter pump but we need to map any settings
+                            // to bodies.
+                            console.log(`Body: ${pump.body} Pump: ${pump.name} Pool: ${circuitIds.includes(6)} `);
+                            if ((pump.body === 255 && (circuitIds.includes(6) || circuitIds.includes(1))) ||
                             (pump.body === 0 && circuitIds.includes(6)) ||
                             (pump.body === 101 && circuitIds.includes(1))) {
-                            delayMgr.setPumpValveDelay(pstate);
+                                delayMgr.setPumpValveDelay(pstate);
+                            }
+                            break;
                         }
-                        break;
+                    }
                     default:
                         if (pt.maxCircuits > 0) {
                             for (let j = 0; j < pump.circuits.length; j++) {
