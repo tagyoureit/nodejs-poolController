@@ -23,6 +23,7 @@ import { ControllerType } from '../Constants';
 import { PoolSystem } from '../Equipment';
 import { NixieBoard } from './NixieBoard';
 import { AquaLinkBoard } from './AquaLinkBoard';
+import { SunTouchBoard } from "./SunTouchBoard";
 
 
 export class BoardFactory {
@@ -42,6 +43,8 @@ export class BoardFactory {
                 return new NixieBoard(system);
             case ControllerType.AquaLink:
                 return new AquaLinkBoard(system);
+            case ControllerType.SunTouch:
+                return new SunTouchBoard(system);
         }
         return new SystemBoard(system);
     }

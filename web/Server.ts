@@ -37,6 +37,7 @@ import { logger } from "../logger/Logger";
 import { HttpInterfaceBindings } from './interfaces/httpInterface';
 import { InfluxInterfaceBindings } from './interfaces/influxInterface';
 import { MqttInterfaceBindings } from './interfaces/mqttInterface';
+import { RuleInterfaceBindings } from "./interfaces/ruleInterface";
 import { ConfigRoute } from "./services/config/Config";
 import { ConfigSocket } from "./services/config/ConfigSocket";
 import { StateRoute } from "./services/state/State";
@@ -112,6 +113,11 @@ export class WebServer {
                     case 'rest':
                     case 'http':
                         int = new HttpInterfaceServer(c.name, type);
+                        int.init(c);
+                        this._servers.push(int);
+                        break;
+                    case 'rule':
+                        int = new RuleInterfaceServer(c.name, type);
                         int.init(c);
                         this._servers.push(int);
                         break;
@@ -1150,6 +1156,87 @@ export class HttpInterfaceServer extends ProtoServer {
         catch (err) { }
     }
 }
+export class RuleInterfaceServer extends ProtoServer {
+    public bindingsPath: string;
+    public bindings: RuleInterfaceBindings;
+    private _fileTime: Date = new Date(0);
+    private _isLoading: boolean = false;
+    public async init(cfg) {
+        this.uuid = cfg.uuid;
+        if (cfg.enabled) {
+            if (cfg.fileName && this.initBindings(cfg)) this.isRunning = true;
+        }
+    }
+    public loadBindings(cfg): boolean {
+        this._isLoading = true;
+        if (fs.existsSync(this.bindingsPath)) {
+            try {
+                let bindings = JSON.parse(fs.readFileSync(this.bindingsPath, 'utf8'));
+                let ext = extend(true, {}, typeof cfg.context !== 'undefined' ? cfg.context.options : {}, bindings);
+                this.bindings = Object.assign<RuleInterfaceBindings, any>(new RuleInterfaceBindings(cfg), ext);
+                this.isRunning = true;
+                this._isLoading = false;
+                const stats = fs.statSync(this.bindingsPath);
+                this._fileTime = stats.mtime;
+                return true;
+            }
+            catch (err) {
+                logger.error(`Error reading interface bindings file: ${this.bindingsPath}. ${err}`);
+                this.isRunning = false;
+                this._isLoading = false;
+            }
+        }
+        return false;
+    }
+    public initBindings(cfg): boolean {
+        let self = this;
+        try {
+            this.bindingsPath = path.posix.join(process.cwd(), "/web/bindings") + '/' + cfg.fileName;
+            let fileTime = new Date(0).valueOf();
+            fs.watch(this.bindingsPath, (event, fileName) => {
+                if (fileName && event === 'change') {
+                    if (self._isLoading) return; // Need a debounce here.  We will use a semaphore to cause it not to load more than once.
+                    const stats = fs.statSync(self.bindingsPath);
+                    if (stats.mtime.valueOf() === self._fileTime.valueOf()) return;
+                    self.loadBindings(cfg);
+                    logger.info(`Reloading ${cfg.name || ''} interface config: ${fileName}`);
+                }
+            });
+            this.loadBindings(cfg);
+            if (this.bindings.context.mdnsDiscovery) {
+                let srv = webApp.mdnsServer;
+                let qry = typeof this.bindings.context.mdnsDiscovery === 'string' ? { name: this.bindings.context.mdnsDiscovery, type: 'A' } : this.bindings.context.mdnsDiscovery;
+                if (typeof srv !== 'undefined') {
+                    srv.queryMdns(qry);
+                    srv.mdnsEmitter.on('mdnsResponse', (response) => {
+                        let url: URL;
+                        url = new URL(response);
+                        this.bindings.context.options.host = url.host;
+                        this.bindings.context.options.port = url.port || 80;
+                    });
+                }
+            }
+            return true;
+        }
+        catch (err) {
+            logger.error(`Error initializing interface bindings: ${err}`);
+        }
+        return false;
+    }
+    public emitToClients(evt: string, ...data: any) {
+        if (this.isRunning) {
+            // Take the bindings and map them to the appropriate http GET, PUT, DELETE, and POST.
+            this.bindings.bindEvent(evt, ...data);
+        }
+    }
+    public async stopAsync() {
+        try {
+            logger.info(`${this.name} Interface Server Shut down`);
+        }
+        catch (err) { }
+    }
+}
+
 export class InfluxInterfaceServer extends ProtoServer {
     public bindingsPath: string;
     public bindings: InfluxInterfaceBindings;

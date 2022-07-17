@@ -54,6 +54,9 @@ export class UtilitiesRoute {
                 let faces = config.getSection('web.interfaces');
                 let opts: any = {};
                 switch (req.body.type) {
+                    case 'rule':
+                        opts = {};
+                        break;
                     case 'rem':
                         opts = {
                             options: { protocol: 'http://', host: '', port: 8080, headers: { "content-type": "application/json" } },
@@ -162,6 +165,7 @@ export class UtilitiesRoute {
                 let opts = {
                     interfaces: config.getSection('web.interfaces'),
                     types: [
+                        { name: 'rule', desc: 'Rule', hasBindings: true, hasUrl: false },
                         { name: 'rest', desc: 'Rest', hasBindings: true },
                         { name: 'http', desc: 'Http', hasBindings: true },
                         { name: 'rem', desc: 'Relay Equipment Manager', hasBindings: false },

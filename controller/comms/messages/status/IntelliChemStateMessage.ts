@@ -26,7 +26,9 @@ export class IntelliChemStateMessage {
         let address = (msg.dest >= 144 && msg.dest <= 158) ? msg.dest : msg.source;
         if (address < 144 || address > 158) return;
         let controller = sys.chemControllers.getItemByAddress(address);
-        if (!controller.isActive) {
+        // RKS: 07-13-22 Lets just assume that SunTouch doesn't report its IntelliChem at this point.  The action 40 return
+        // does not contain the IntelliChem bit when it is returned for this controller.
+        if (!controller.isActive && sys.controllerType !== ControllerType.SunTouch) {
             msg.isProcessed = true;
             return;
         }
@@ -297,7 +299,7 @@ export class IntelliChemStateMessage {
             schem.ph.appendDose(schem.ph.doseVolume - phPrev.vol, (schem.ph.timeDosed - phPrev.time) * 1000);
         }
         else {
-            console.log(`DOSING STATUS === ${schem.ph.dosingStatus}`);
+            //console.log(`DOSING STATUS === ${schem.ph.dosingStatus}`);
             // Make sure we don't have a current dose going.
             schem.ph.currentDose = undefined;
         }

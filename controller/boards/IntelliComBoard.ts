@@ -29,6 +29,10 @@ export class IntelliComBoard extends EasyTouchBoard {
         ]);
     }
     public initExpansionModules(byte1: number, byte2: number) {
+        switch (byte1) {
+            case 40: // This is a SunTouch
+                break;
+        }
         console.log(`Pentair IntelliCom System Detected!`);
 
         sys.equipment.model = 'Suntouch/Intellicom';

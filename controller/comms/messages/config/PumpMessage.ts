@@ -25,6 +25,7 @@ export class PumpMessage {
             case ControllerType.IntelliCenter:
                 PumpMessage.processIntelliCenterPump(msg);
                 break;
+            case ControllerType.SunTouch:
             case ControllerType.IntelliCom:
             case ControllerType.EasyTouch:
             case ControllerType.IntelliTouch:

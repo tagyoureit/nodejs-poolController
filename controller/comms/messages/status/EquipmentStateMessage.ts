@@ -16,6 +16,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { IntelliCenterBoard } from 'controller/boards/IntelliCenterBoard';
 import { EasyTouchBoard } from 'controller/boards/EasyTouchBoard';
+import { IntelliTouchBoard } from 'controller/boards/IntelliTouchBoard';
+import { SunTouchBoard } from "controller/boards/SunTouchBoard";
 
 import { logger } from '../../../../logger/Logger';
 import { ControllerType } from '../../../Constants';
@@ -59,23 +61,29 @@ export class EquipmentStateMessage {
             case 3:
             case 4:
             case 5:
+                logger.info(`Found IntelliTouch Controller`);
                 sys.controllerType = ControllerType.IntelliTouch;
                 model1 = msg.extractPayloadByte(28);
                 model2 = msg.extractPayloadByte(9);
+                (sys.board as IntelliTouchBoard).initExpansionModules(model1, model2);
                 break;
             case 11:
-                sys.controllerType = ControllerType.IntelliCom;
+                logger.info(`Found SunTouch Controller`);
+                sys.controllerType = ControllerType.SunTouch;
+                (sys.board as SunTouchBoard).initExpansionModules(model1, model2);
                 break;
             case 13:
             case 14:
+                logger.info(`Found EasyTouch Controller`);
                 sys.controllerType = ControllerType.EasyTouch;
+                (sys.board as EasyTouchBoard).initExpansionModules(model1, model2);
                 break;
             default:
                 logger.error(`Unknown Touch Controller ${msg.extractPayloadByte(28)}:${msg.extractPayloadByte(27)}`);
                 break;
         }
-        let board = sys.board as EasyTouchBoard;
-        board.initExpansionModules(model1, model2);
+        //let board = sys.board as EasyTouchBoard;
+        //board.initExpansionModules(model1, model2);
     }
     private static initController(msg: Inbound) {
         state.status = 1;
@@ -92,7 +100,6 @@ export class EquipmentStateMessage {
         }
         else {
             EquipmentStateMessage.initTouch(msg);
-            logger.info(`Found Controller Board ${state.equipment.model}`);
             sys.board.needsConfigChanges = true;
             setTimeout(function () { sys.checkConfiguration(); }, 300);
         }
@@ -458,6 +465,7 @@ export class EquipmentStateMessage {
                                 break;
                             }
                         case ControllerType.EasyTouch:
+                        case ControllerType.SunTouch:
                         case ControllerType.IntelliCom:
                         case ControllerType.IntelliTouch:
                             {
