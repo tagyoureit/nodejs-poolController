@@ -151,6 +151,7 @@ export class EquipmentMessage {
             case ControllerType.IntelliCom:
             case ControllerType.EasyTouch:
             case ControllerType.IntelliTouch:
+            case ControllerType.SunTouch:
                 switch (msg.action) {
                     case 252:
                         EquipmentMessage.processSoftwareVersion(msg);

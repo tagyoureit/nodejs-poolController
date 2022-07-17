@@ -103,6 +103,7 @@ export class ConfigMessage {
                 }
                 break;
             case ControllerType.EasyTouch:
+            case ControllerType.SunTouch:
             case ControllerType.IntelliCom:
             case ControllerType.IntelliTouch:
                 // switch (msg.action) { }

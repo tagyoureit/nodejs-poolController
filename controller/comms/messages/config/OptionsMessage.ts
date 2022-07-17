@@ -25,6 +25,7 @@ export class OptionsMessage {
                 OptionsMessage.processIntelliCenter(msg);
                 break;
             case ControllerType.IntelliCom:
+            case ControllerType.SunTouch:
             case ControllerType.EasyTouch:
             case ControllerType.IntelliTouch:
                 OptionsMessage.processIntelliTouch(msg);
@@ -157,9 +158,11 @@ export class OptionsMessage {
                     
                 }
                 else {
-                    let chem = sys.chemControllers.getItemByAddress(144);
-                    state.chemControllers.removeItemById(chem.id);
-                    sys.chemControllers.removeItemById(chem.id);
+                    if (sys.controllerType !== ControllerType.SunTouch) {
+                        let chem = sys.chemControllers.getItemByAddress(144);
+                        state.chemControllers.removeItemById(chem.id);
+                        sys.chemControllers.removeItemById(chem.id);
+                    }
                 }
                 msg.isProcessed = true;
                 break;

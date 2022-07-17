@@ -56,9 +56,10 @@ export class ValveMessage {
             case ControllerType.IntelliCom:
             case ControllerType.EasyTouch:
             case ControllerType.IntelliTouch:
+            case ControllerType.SunTouch:
                 switch (msg.action) {
                     case 29:
-                        ValveMessage.process_ValveAssignment_IT(msg);
+                        sys.controllerType === ControllerType.SunTouch ? ValveMessage.process_ValveAssignment_ST(msg) : ValveMessage.process_ValveAssignment_IT(msg);
                         break;
                     case 35:
                         ValveMessage.process_ValveOptions_IT(msg);
@@ -72,6 +73,26 @@ export class ValveMessage {
         //                      ^^^ 128 = Pump off during valve operation
         sys.general.options.pumpDelay = msg.extractPayloadByte(0) >> 7 === 1;
         msg.isProcessed = true;
+    }
+    private static process_ValveAssignment_ST(msg: Inbound) {
+        // SunTouch example
+        //[165,1,15,16,29,24][2,0,0,0,20,255,255,1,2,3,4,1,72,0,0,0,3,0,0,63,4,0,0,0][3,167]
+        let vA = sys.valves.getItemById(1, true);
+        let vB = sys.valves.getItemById(2, true);
+        let vC = sys.valves.getItemById(3, true);
+        if (sys.equipment.shared) {
+            vA.name = 'Intake';
+            vB.circuit = vA.circuit = sys.board.valueMaps.virtualCircuits.encode('poolspa');
+            vB.name = 'Return';
+        }
+        else {
+            vA.name = 'Valve A';
+            vB.name = 'Valve B';
+            vA.circuit = msg.extractPayloadByte(1);
+            vB.circuit = msg.extractPayloadByte(2);
+        }
+        vC.circuit = msg.extractPayloadByte(4);
+        vC.name = 'Valve C'
     }
     private static process_ValveAssignment_IT(msg: Inbound) {
         // sample packet

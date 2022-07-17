@@ -63,6 +63,7 @@ export class HeaterMessage {
                 break;
             case ControllerType.IntelliTouch:
             case ControllerType.EasyTouch:
+            case ControllerType.SunTouch:
                 HeaterMessage.processIntelliTouch(msg);
                 break;
         }
