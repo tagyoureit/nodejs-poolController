@@ -29,7 +29,8 @@ export class RuleInterfaceBindings extends BaseInterfaceBindings {
         if (typeof evt.fnProcessor === 'undefined') {
             let fnBody = Array.isArray(evt.processor) ? evt.processor.join('\n') : evt.processor;
             if (typeof fnBody !== 'undefined' && fnBody !== '') {
-                let AsyncFunction = Object.getPrototypeOf(async => () => { }).constructor;
+                //let AsyncFunction = Object.getPrototypeOf(async => () => { }).constructor;
+                let AsyncFunction = Object.getPrototypeOf(async function () { }).constructor;
                 try {
                     evt.fnProcessor = new AsyncFunction('rule', 'options', 'vars', 'logger', 'webApp', 'sys', 'state', 'data', fnBody) as (rule: RuleInterfaceEvent, vars: any, sys: PoolSystem, state: State, data: any) => void;
                 } catch (err) { logger.error(`Error compiling rule event processor: ${err} -- ${fnBody}`); }
