@@ -14,10 +14,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { HttpInterfaceServer } from "../../web/Server";
-import * as http2 from "http2";
-import * as http from "http";
-import * as https from "https";
+import { webApp } from "../../web/Server";
 import extend=require("extend");
 import { logger } from "../../logger/Logger";
 import { PoolSystem, sys } from "../../controller/Equipment";
@@ -25,10 +22,27 @@ import { State, state } from "../../controller/State";
 import { InterfaceContext, InterfaceEvent, BaseInterfaceBindings } from "./baseInterface";
 
 export class RuleInterfaceBindings extends BaseInterfaceBindings {
-    constructor(cfg) {
-        super(cfg);
+    constructor(cfg) { super(cfg);}
+    declare events: RuleInterfaceEvent[];
+    public bindProcessor(evt: RuleInterfaceEvent) {
+        if (evt.processorBound) return;
+        if (typeof evt.fnProcessor === 'undefined') {
+            let fnBody = Array.isArray(evt.processor) ? evt.processor.join('\n') : evt.processor;
+            if (typeof fnBody !== 'undefined' && fnBody !== '') {
+                let AsyncFunction = Object.getPrototypeOf(async => () => { }).constructor;
+                try {
+                    evt.fnProcessor = new AsyncFunction('rule', 'options', 'vars', 'logger', 'webApp', 'sys', 'state', 'data', fnBody) as (rule: RuleInterfaceEvent, vars: any, sys: PoolSystem, state: State, data: any) => void;
+                } catch (err) { logger.error(`Error compiling rule event processor: ${err} -- ${fnBody}`); }
+            }
+        }
+        evt.processorBound = true;
     }
-    declare sockets: RuleInterfaceSocketEvent[];
+    public executeProcessor(eventName: string, evt: RuleInterfaceEvent, ...data: any) {
+        this.bindProcessor(evt);
+        let vars = this.bindVarTokens(evt, eventName, data);
+        let opts = extend(true, this.cfg.options, this.context.options, evt.options);
+        if (typeof evt.fnProcessor !== undefined) evt.fnProcessor(evt, opts, vars, logger, webApp, sys, state, data);
+    }
     public bindEvent(evt: string, ...data: any) {
         // Find the binding by first looking for the specific event name.  
         // If that doesn't exist then look for the "*" (all events).
@@ -39,104 +53,30 @@ export class RuleInterfaceBindings extends BaseInterfaceBindings {
                 let e = this.events.find(elem => elem.name === '*');
                 evts = e ? [e] : [];
             }
-
-            let baseOpts = extend(true, { headers: {} }, this.cfg.options, this.context.options);
-            if ((typeof baseOpts.hostname === 'undefined' || !baseOpts.hostname) && (typeof baseOpts.host === 'undefined' || !baseOpts.host || baseOpts.host === '*')) {
-                logger.warn(`Interface: ${ this.cfg.name } has not resolved to a valid host.`);
-                return;
-            }
             if (evts.length > 0) {
                 let toks = {};
                 for (let i = 0; i < evts.length; i++) {
                     let e = evts[i];
                     if (typeof e.enabled !== 'undefined' && !e.enabled) continue;
-                    let opts = extend(true, baseOpts, e.options);
                     // Figure out whether we need to check the filter.
                     if (typeof e.filter !== 'undefined') {
                         this.buildTokens(e.filter, evt, toks, e, data[0]);
                         if (eval(this.replaceTokens(e.filter, toks)) === false) continue;
                     }
-
-                    // If we are still waiting on mdns then blow this off.
-                    if ((typeof opts.hostname === 'undefined' || !opts.hostname) && (typeof opts.host === 'undefined' || !opts.host || opts.host === '*')) {
-                        logger.warn(`Interface: ${ this.cfg.name } Event: ${ e.name } has not resolved to a valid host.`);
-                        continue;
-                    }
-
-                    // Put together the data object.
-                    let sbody = '';
-                    switch (this.cfg.contentType) {
-                        //case 'application/json':
-                        //case 'json':
-                        default:
-                            sbody = typeof e.body !== 'undefined' ? JSON.stringify(e.body) : '';
-                            break;
-                        // We may need an XML output and can add transforms for that
-                        // later.  There isn't a native xslt processor in node and most
-                        // of them that I looked at seemed pretty amatuer hour or overbearing
-                        // as they used SAX. => Need down and clean not down and dirty... we aren't building 
-                        // a web client at this point.
-                    }
-                    this.buildTokens(sbody, evt, toks, e, data[0]);
-                    sbody = this.replaceTokens(sbody, toks);
-                    for (let prop in opts) {
-                        if (prop === 'headers') {
-                            for (let header in opts.headers) {
-                                this.buildTokens(opts.headers[header], evt, toks, e, data[0]);
-                                opts.headers[header] = this.replaceTokens(opts.headers[header], toks);
-                            }
-                        }
-                        else if (typeof opts[prop] === 'string') {
-                            this.buildTokens(opts[prop], evt, toks, e, data[0]);
-                            opts[prop] = this.replaceTokens(opts[prop] || '', toks);
-                        }
-                    }
-                    if (typeof opts.path !== 'undefined') opts.path = encodeURI(opts.path); // Encode the data just in case we have spaces.
-                    // opts.headers["CONTENT-LENGTH"] = Buffer.byteLength(sbody || '');
-                    logger.debug(`Sending [${evt}] request to ${this.cfg.name}: ${JSON.stringify(opts)}`);
-                    let req: http.ClientRequest;
-                    // We should now have all the tokens.  Put together the request.
-                    if (typeof sbody !== 'undefined') {
-                        if (sbody.charAt(0) === '"' && sbody.charAt(sbody.length - 1) === '"') sbody = sbody.substr(1, sbody.length - 2);
-                        opts.headers["CONTENT-LENGTH"] = Buffer.byteLength(sbody || '');
-                    }
-                    if (opts.port === 443 || (opts.protocol || '').startsWith('https')) {
-                        opts.protocol = 'https:';
-                        req = https.request(opts, (response: http.IncomingMessage) => {
-                            //console.log(response);
-                        });
-                    }
-                    else {
-                        opts.protocol = 'http:';
-                        req = http.request(opts, (response: http.IncomingMessage) => {
-                            //console.log(response.statusCode);
-                        });
-                    }
-                    req.on('error', (err, req, res) => { logger.error(err); });
-                    if (typeof sbody !== 'undefined') {
-                        req.write(sbody);
-                    }
-                    req.end();
+                    // Look for the processor.
+                    this.executeProcessor(evt, e, ...data);
                 }
             }
         }
     }
 }
-class RuleInterfaceSocketEvent {
+class RuleInterfaceEvent extends InterfaceEvent {
     event: string;
     description: string;
-    processor: (sock: RuleInterfaceSocketEvent, sys: PoolSystem, state: State, value: any) => void;
-    constructor(sock: any) {
-        this.event = sock.event;
-        if (typeof sock.processor !== 'undefined') {
-            let fnBody = Array.isArray(sock.processor) ? sock.processor.join('\n') : sock.processor;
-            try {
-                this.processor = new Function('sock', 'sys', 'state', 'value', fnBody) as (sock: RuleInterfaceSocketEvent, sys: PoolSystem, state: State, value: any) => void;
-            } catch (err) { logger.error(`Error compiling socket event processor: ${err} -- ${fnBody}`); }
-        }
-    }
+    fnProcessor: (rule: RuleInterfaceEvent, options:any, vars: any, logger: any, webApp: any, sys: PoolSystem, state: State, data: any) => void;
+    processorBound: boolean = false;
 }
-export interface IRuleInterfaceSocketEvent {
+export interface IRuleInterfaceEvent {
     event: string,
     description: string,
     processor?: string
