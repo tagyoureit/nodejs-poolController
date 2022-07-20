@@ -1263,13 +1263,26 @@ export class Circuit extends EqItem implements ICircuit {
         }
         else return [];
     }
-
     public static getIdName(id: number) {
-        // todo: adjust for intellitouch
-        let defName = "Aux" + (id + 1).toString();
-        if (id === 0) defName = "Spa";
-        else if (id === 5) defName = "Pool";
-        else if (id < 5) defName = "Aux" + id.toString();
+        let defName;
+        // RKS: 07-19-22 I think this is some sort of artifact.  The system should not be creating this data as a default because
+        // the board itself should be coming up with these names.
+        switch (sys.controllerType) {
+            case ControllerType.SunTouch:
+                break;
+            default:
+                if (sys.board.equipmentIds.circuitGroups.isInRange(id))
+                    defName = `Group ${id - sys.board.equipmentIds.circuitGroups.start + 1}`;
+                else if (sys.board.equipmentIds.features.isInRange(id))
+                    defName = `Feature ${id - sys.board.equipmentIds.features.start + 1}`;
+                else if (sys.board.equipmentIds.circuits.isInRange(id)) {
+                    if (id <= 1) defName = 'Spa';
+                    else if (id === 6) defName = 'Pool';
+                    else if (id < 6) defName = `Aux ${id - 1}`;
+                    else defName = `Aux ${id - 2}`;
+                }
+                break;
+        }
         return defName;
     }
 }

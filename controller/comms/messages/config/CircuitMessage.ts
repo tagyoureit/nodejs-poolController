@@ -24,7 +24,7 @@ export class CircuitMessage {
     public static processTouch(msg: Inbound): void {
         switch (msg.action) {
             case 11: // IntelliTouch Circuits
-                CircuitMessage.processCircuitAttributes(msg);
+                sys.controllerType === ControllerType.SunTouch ? CircuitMessage.processSunTouchCircuit(msg) : CircuitMessage.processCircuitAttributes(msg);
                 break;
             case 39: // IntelliTouch Light Groups
             case 167:
@@ -231,7 +231,49 @@ export class CircuitMessage {
         }
         msg.isProcessed = true;
     }
-
+    // SunTouch
+    private static processSunTouchCircuit(msg: Inbound) {
+        let id = msg.extractPayloadByte(0);
+        // We need to remap the SunTouch circuits because the features start with 5.
+        // SunTouch bit mapping for circuits and features
+        // Bit  Mask Circuit/Feature id msg
+        // 1 = 0x01  Spa             1  1
+        // 2 = 0x02  Aux 1           2  2
+        // 3 = 0x04  Aux 2           3  3
+        // 4 = 0x08  Aux 3           4  4
+        // 5 = 0x10  Feature 1       7  5 
+        // 6 = 0x20  Pool            6  6
+        // 7 = 0x40  Feature 2       8  7
+        // 8 = 0x80  Feature 3       9  8
+        // 9 = 0x01  Feature 4       10 9
+        if ([5, 7, 8, 9].includes(id)) {
+            id = id === 5 ? 7 : id + 1;
+            let feat = sys.features.getItemById(id, true);
+            let fstate = state.features.getItemById(id, true);
+            fstate.isActive = feat.isActive = true;
+            feat.master = 0;
+            fstate.nameId = feat.nameId = msg.extractPayloadByte(2);
+            fstate.type = feat.type = msg.extractPayloadByte(1) & 63;
+            feat.freeze = (msg.extractPayloadByte(1) & 64) > 0;
+            feat.showInFeatures = fstate.showInFeatures = typeof feat.showInFeatures === 'undefined' ? true : feat.showInFeatures;
+            if (typeof feat.eggTimer === 'undefined' || feat.eggTimer === 0) feat.eggTimer = 720;
+            if (typeof feat.dontStop === 'undefined') feat.dontStop = feat.eggTimer === 1620;
+            if (typeof feat.name === 'undefined') feat.name = fstate.name = sys.board.valueMaps.circuitNames.transform(feat.nameId).desc;
+        }
+        else if ([1, 2, 3, 4, 6].includes(id)) {
+            let circ = sys.circuits.getItemById(id, true);
+            let cstate = state.circuits.getItemById(id, true);
+            cstate.isActive = circ.isActive = true;
+            circ.master = 0;
+            cstate.nameId = circ.nameId = msg.extractPayloadByte(2);
+            cstate.type = circ.type = msg.extractPayloadByte(1) & 63;
+            circ.freeze = (msg.extractPayloadByte(1) & 64) > 0;
+            circ.showInFeatures = cstate.showInFeatures = typeof circ.showInFeatures === 'undefined' ? true : circ.showInFeatures;
+            if (typeof circ.eggTimer === 'undefined' || circ.eggTimer === 0) circ.eggTimer = 720;
+            if (typeof circ.dontStop === 'undefined') circ.dontStop = circ.eggTimer === 1620;
+            if (typeof circ.name === 'undefined') circ.name = cstate.name = sys.board.valueMaps.circuitNames.transform(circ.nameId).desc;
+        }
+    }
     // Intellitouch
     private static processCircuitAttributes(msg: Inbound) {
         // Sample packet
@@ -273,14 +315,14 @@ export class CircuitMessage {
                     case 6: // pool
                         body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
                         sbody = state.temps.bodies.getItemById(1, sys.equipment.maxBodies > 0);
-                        sbody.name = body.name = "Pool";
+                        if (typeof body.name === 'undefined') sbody.name = body.name = "Pool";
                         sbody.type = body.type = 0; // RKS: The body types were backwards here but correct everywhere else e.g. PumpMessage.
                         circuit.type === 2 ? body.isActive = true : body.isActive = false;
                         break;
                     case 1: // spa
                         body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
                         sbody = state.temps.bodies.getItemById(2, sys.equipment.maxBodies > 1);
-                        sbody.name = body.name = "Spa";
+                        if(typeof body.name === 'undefined') sbody.name = body.name = "Spa";
                         sbody.type = body.type = 1;
                         // process bodies - there might be a better place to do this but without other comparison packets from pools with expansion packs it is hard to determine
                         // also, if we get this far spa should always be active.  not sure if would ever not be active if we are here.

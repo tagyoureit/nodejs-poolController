@@ -464,8 +464,19 @@ export class EquipmentStateMessage {
                                 sys.board.heaters.syncHeaterStates();
                                 break;
                             }
-                        case ControllerType.EasyTouch:
                         case ControllerType.SunTouch:
+                            EquipmentStateMessage.processSunTouchCircuits(msg);
+                            sys.board.circuits.syncCircuitRelayStates();
+                            sys.board.features.syncGroupStates();
+                            sys.board.circuits.syncVirtualCircuitStates();
+                            sys.board.valves.syncValveStates();
+                            sys.board.filters.syncFilterStates();
+                            state.emitControllerChange();
+                            state.emitEquipmentChanges();
+                            sys.board.heaters.syncHeaterStates();
+                            sys.board.schedules.syncScheduleStates();
+                            break;
+                        case ControllerType.EasyTouch:
                         case ControllerType.IntelliCom:
                         case ControllerType.IntelliTouch:
                             {
@@ -659,6 +670,39 @@ export class EquipmentStateMessage {
         }
         msg.isProcessed = true;
     }
+    private static processSunTouchCircuits(msg: Inbound) {
+        // SunTouch has really twisted bit mapping for its
+        // circuit states.  Features are intertwined within the
+        // features.
+        let byte = msg.extractPayloadByte(2);
+        for (let i = 0; i < 8; i++) {
+            let id = i === 4 ? 7 : i > 5 ? i + 2 : i + 1;
+            let circ = sys.circuits.getInterfaceById(id, false, { isActive: false });
+            if (circ.isActive) {
+                let isOn = ((1 << i) & byte) > 0;
+                let cstate = state.circuits.getInterfaceById(id, circ.isActive);
+                if (isOn !== cstate.isOn) {
+                    sys.board.circuits.setEndTime(circ, cstate, isOn);
+                    cstate.isOn = isOn;
+                }
+            }
+        }
+        byte = msg.extractPayloadByte(3);
+        {
+            let circ = sys.circuits.getInterfaceById(10, false, { isActive: false });
+            if (circ.isActive) {
+                let isOn = (byte & 1) > 0;
+                let cstate = state.circuits.getInterfaceById(circ.id, circ.isActive);
+                if (isOn !== cstate.isOn) {
+                    sys.board.circuits.setEndTime(circ, cstate, isOn);
+                    cstate.isOn = isOn;
+                }
+            }
+        }
+        state.emitEquipmentChanges();
+        msg.isProcessed = true;
+    }
+
     private static processTouchCircuits(msg: Inbound) {
         let circuitId = 1;
         let maxCircuitId = sys.board.equipmentIds.features.end;

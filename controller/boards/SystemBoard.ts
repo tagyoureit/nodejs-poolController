@@ -2585,58 +2585,59 @@ export class CircuitCommands extends BoardCommands {
     return cf;
   }
   public getCircuitNames() { return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()]; }
-  public async setCircuitAsync(data: any): Promise<ICircuit> {
-    try {
-      let id = parseInt(data.id, 10);
-      if (id <= 0 || typeof data.id === 'undefined') {
-        // We are adding a new circuit.  If we are operating as a nixie controller then we need to start this
-        // circuit outside the range of circuits that can be defined on the panel.  For any of the non-OCP controllers
-        // these are added within the range of the circuits starting with 1.  For all others these are added with an id > 255.
-        switch (state.equipment.controllerType) {
-          case 'intellicenter':
-          case 'intellitouch':
-          case 'easytouch':
-            id = sys.circuits.getNextEquipmentId(new EquipmentIdRange(255, 300));
-            break;
-          default:
-            id = sys.circuits.getNextEquipmentId(sys.board.equipmentIds.circuits, [1, 6]);
-            break;
-        }
-      }
-      if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit'));
-      //if (!sys.board.equipmentIds.circuits.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit id is out of range: ${id}`, data.id, 'Circuit'));;
-      if (typeof data.id !== 'undefined') {
-        let circuit = sys.circuits.getItemById(id, true);
-        let scircuit = state.circuits.getItemById(id, true);
-        scircuit.isActive = circuit.isActive = true;
-        circuit.master = 1;
-        scircuit.isOn = false;
-        if (data.name) circuit.name = scircuit.name = data.name;
-        else if (!circuit.name && !data.name) circuit.name = scircuit.name = `circuit${data.id}`;
-        if (typeof data.type !== 'undefined' || typeof circuit.type === 'undefined') {
-          circuit.type = scircuit.type = parseInt(data.type, 10) || 0;
-        }
-        if (id === 6) circuit.type = sys.board.valueMaps.circuitFunctions.getValue('pool');
-        if (id === 1 && sys.equipment.shared) circuit.type = sys.board.valueMaps.circuitFunctions.getValue('spa');
-        if (typeof data.freeze !== 'undefined' || typeof circuit.freeze === 'undefined') circuit.freeze = utils.makeBool(data.freeze) || false;
-        if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures) || true;
-        if (typeof data.dontStop !== 'undefined' && utils.makeBool(data.dontStop) === true) data.eggTimer = 1440;
-        if (typeof data.eggTimer !== 'undefined' || typeof circuit.eggTimer === 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10) || 0;
-        if (typeof data.connectionId !== 'undefined') circuit.connectionId = data.connectionId;
-        if (typeof data.deviceBinding !== 'undefined') circuit.deviceBinding = data.deviceBinding;
-        if (typeof data.showInFeatures !== 'undefined') scircuit.showInFeatures = circuit.showInFeatures = utils.makeBool(data.showInFeatures);
-        circuit.dontStop = circuit.eggTimer === 1440;
+    public async setCircuitAsync(data: any): Promise<ICircuit> {
+        try {
+            let id = parseInt(data.id, 10);
+            if (id <= 0 || typeof data.id === 'undefined') {
+                // We are adding a new circuit.  If we are operating as a nixie controller then we need to start this
+                // circuit outside the range of circuits that can be defined on the panel.  For any of the non-OCP controllers
+                // these are added within the range of the circuits starting with 1.  For all others these are added with an id > 255.
+                switch (state.equipment.controllerType) {
+                    case 'intellicenter':
+                    case 'intellitouch':
+                    case 'easytouch':
+                    case 'suntouch':
+                        id = sys.circuits.getNextEquipmentId(new EquipmentIdRange(255, 300));
+                        break;
+                    default:
+                        id = sys.circuits.getNextEquipmentId(sys.board.equipmentIds.circuits, [1, 6]);
+                        break;
+                }
+            }
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.id}`, data.id, 'Circuit'));
+            //if (!sys.board.equipmentIds.circuits.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit id is out of range: ${id}`, data.id, 'Circuit'));;
+            if (typeof data.id !== 'undefined') {
+                let circuit = sys.circuits.getItemById(id, true);
+                let scircuit = state.circuits.getItemById(id, true);
+                scircuit.isActive = circuit.isActive = true;
+                circuit.master = 1;
+                scircuit.isOn = false;
+                if (data.name) circuit.name = scircuit.name = data.name;
+                else if (!circuit.name && !data.name) circuit.name = scircuit.name = `circuit${data.id}`;
+                if (typeof data.type !== 'undefined' || typeof circuit.type === 'undefined') {
+                    circuit.type = scircuit.type = parseInt(data.type, 10) || 0;
+                }
+                if (id === 6) circuit.type = sys.board.valueMaps.circuitFunctions.getValue('pool');
+                if (id === 1 && sys.equipment.shared) circuit.type = sys.board.valueMaps.circuitFunctions.getValue('spa');
+                if (typeof data.freeze !== 'undefined' || typeof circuit.freeze === 'undefined') circuit.freeze = utils.makeBool(data.freeze) || false;
+                if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures) || true;
+                if (typeof data.dontStop !== 'undefined' && utils.makeBool(data.dontStop) === true) data.eggTimer = 1440;
+                if (typeof data.eggTimer !== 'undefined' || typeof circuit.eggTimer === 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10) || 0;
+                if (typeof data.connectionId !== 'undefined') circuit.connectionId = data.connectionId;
+                if (typeof data.deviceBinding !== 'undefined') circuit.deviceBinding = data.deviceBinding;
+                if (typeof data.showInFeatures !== 'undefined') scircuit.showInFeatures = circuit.showInFeatures = utils.makeBool(data.showInFeatures);
+                circuit.dontStop = circuit.eggTimer === 1440;
 
-        sys.emitEquipmentChange();
-        state.emitEquipmentChanges();
-        if (circuit.master === 1) await ncp.circuits.setCircuitAsync(circuit, data);
-        return Promise.resolve(circuit);
-      }
-      else
-        return Promise.reject(new Error('Circuit id has not been defined'));
+                sys.emitEquipmentChange();
+                state.emitEquipmentChanges();
+                if (circuit.master === 1) await ncp.circuits.setCircuitAsync(circuit, data);
+                return Promise.resolve(circuit);
+            }
+            else
+                return Promise.reject(new Error('Circuit id has not been defined'));
+        }
+        catch (err) { logger.error(`setCircuitAsync error with ${data}. ${err}`); return Promise.reject(err); }
     }
-    catch (err) { logger.error(`setCircuitAsync error with ${data}. ${err}`); return Promise.reject(err); }
-  }
   public async setCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
     let group: CircuitGroup = null;
     let sgroup: CircuitGroupState = null;
