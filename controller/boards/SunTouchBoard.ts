@@ -16,26 +16,30 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as extend from 'extend';
 import { EventEmitter } from 'events';
-import { EasyTouchBoard, TouchConfigQueue, GetTouchConfigCategories } from './EasyTouchBoard';
+import { EasyTouchBoard, TouchConfigQueue, GetTouchConfigCategories, TouchCircuitCommands } from './EasyTouchBoard';
 import { sys, PoolSystem, Circuit } from '../Equipment';
 import { byteValueMap, EquipmentIdRange } from './SystemBoard';
-import { state } from '../State';
+import { state, ICircuitState } from '../State';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
-
+import { Outbound } from "../comms/messages/Messages";
+import { InvalidEquipmentIdError } from "../Errors";
 
 export class SunTouchBoard extends EasyTouchBoard {
     constructor(system: PoolSystem) {
         super(system); // graph chain to EasyTouchBoard constructor.
         this.valueMaps.expansionBoards = new byteValueMap([
-            [0, { name: 'suntouch', part: '', desc: 'SunTouch Pool/Spa controller', bodies: 2, valves: 4, circuits: 5, single: false, shared: true, dual: false, features: 4, chlorinators: 1, chemControllers: 1  }]
+            [41, { name: 'shared', part: '520820', desc: 'Pool and Spa controller', bodies: 2, valves: 4, circuits: 5, single: false, shared: true, dual: false, features: 4, chlorinators: 1, chemControllers: 1  }],
+            [40, { name: 'stsingle', part: '520819', desc: 'Pool or Spa controller', bodies: 2, valves: 4, circuits: 5, single: true, shared: true, dual: false, features: 4, chlorinators: 1, chemControllers: 1 }]
         ]);
         this._statusInterval = -1;
-        this.equipmentIds.circuits = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuits - 1; });
-        this.equipmentIds.features = new EquipmentIdRange(() => { return 7; }, () => { return this.equipmentIds.features.start + sys.equipment.maxFeatures + 1; });
+        this.equipmentIds.circuits = new EquipmentIdRange(1, 6);
+        this.equipmentIds.features = new EquipmentIdRange(7, 10);
         this.equipmentIds.virtualCircuits = new EquipmentIdRange(128, 136);
         this.equipmentIds.circuitGroups = new EquipmentIdRange(192, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
-        this.equipmentIds.circuits.start = sys.equipment.shared || sys.equipment.dual ? 1 : 2;
+        this.equipmentIds.circuits.start = 1;
+        this.equipmentIds.circuits.isInRange = (id: number) => { return [1, 2, 3, 4, 6].includes(id); };
+        this.equipmentIds.features.isInRange = (id: number) => { return [7, 8, 9, 10].includes(id); };
         if (typeof sys.configVersion.equipment === 'undefined') { sys.configVersion.equipment = 0; }
         this.valueMaps.heatSources = new byteValueMap([
             [0, { name: 'off', desc: 'Off' }],
@@ -74,106 +78,40 @@ export class SunTouchBoard extends EasyTouchBoard {
             [132, { name: 'freeze', desc: 'Freeze', assignableToPumpCircuit: true }],
         ]);
         this.valueMaps.circuitNames = new byteValueMap([
-            [0, { name: 'feature4', desc: 'FEATURE 4' }],
-            [1, { name: 'aerator', desc: 'Aerator' }],
-            [2, { name: 'airblower', desc: 'Air Blower' }],
-            [3, { name: 'auxextra', desc: 'AUX EXTRA' }],
-            [4, { name: 'aux1', desc: 'AUX 1' }],
-            [5, { name: 'aux2', desc: 'AUX 2' }],
-            [6, { name: 'aux3', desc: 'AUX 3' }],
-            [7, { name: 'feature1', desc: 'FEATURE 1' }],
-            [8, { name: 'feature2', desc: 'FEATURE 2' }],
-            [9, { name: 'feature3', desc: 'FEATURE 3' }],
-            [13, { name: 'backwash', desc: 'Backwash' }],
-            [14, { name: 'backlight', desc: 'Back Light' }],
-            [15, { name: 'bbqlight', desc: 'BBQ Light' }],
-            [16, { name: 'beachlight', desc: 'Beach Light' }],
-            [17, { name: 'boosterpump', desc: 'Booster Pump' }],
-            [18, { name: 'buglight', desc: 'Bug Light' }],
-            [19, { name: 'cabanalts', desc: 'Cabana Lights' }],
-            [20, { name: 'chem.feeder', desc: 'Chemical Feeder' }],
-            [21, { name: 'chlorinator', desc: 'Chlorinator' }],
-            [22, { name: 'cleaner', desc: 'Cleaner' }],
-            [23, { name: 'colorwheel', desc: 'Color Wheel' }],
-            [24, { name: 'decklight', desc: 'Deck Light' }],
-            [25, { name: 'drainline', desc: 'Drain Line' }],
-            [26, { name: 'drivelight', desc: 'Drive Light' }],
-            [27, { name: 'edgepump', desc: 'Edge Pump' }],
-            [28, { name: 'entrylight', desc: 'Entry Light' }],
-            [29, { name: 'fan', desc: 'Fan' }],
-            [30, { name: 'fiberoptic', desc: 'Fiber Optic' }],
-            [31, { name: 'fiberworks', desc: 'Fiber Works' }],
-            [32, { name: 'fillline', desc: 'Fill Line' }],
-            [33, { name: 'floorclnr', desc: 'Floor CLeaner' }],
-            [34, { name: 'fogger', desc: 'Fogger' }],
-            [35, { name: 'fountain', desc: 'Fountain' }],
-            [36, { name: 'fountain1', desc: 'Fountain 1' }],
-            [37, { name: 'fountain2', desc: 'Fountain 2' }],
-            [38, { name: 'fountain3', desc: 'Fountain 3' }],
-            [39, { name: 'fountains', desc: 'Fountains' }],
-            [40, { name: 'frontlight', desc: 'Front Light' }],
-            [41, { name: 'gardenlts', desc: 'Garden Lights' }],
-            [42, { name: 'gazebolts', desc: 'Gazebo Lights' }],
-            [43, { name: 'highspeed', desc: 'High Speed' }],
-            [44, { name: 'hi-temp', desc: 'Hi-Temp' }],
-            [45, { name: 'houselight', desc: 'House Light' }],
-            [46, { name: 'jets', desc: 'Jets' }],
-            [47, { name: 'lights', desc: 'Lights' }],
-            [48, { name: 'lowspeed', desc: 'Low Speed' }],
-            [49, { name: 'lo-temp', desc: 'Lo-Temp' }],
-            [50, { name: 'malibults', desc: 'Malibu Lights' }],
-            [51, { name: 'mist', desc: 'Mist' }],
-            [52, { name: 'music', desc: 'Music' }],
-            [53, { name: 'notused', desc: 'Not Used' }],
-            [54, { name: 'ozonator', desc: 'Ozonator' }],
-            [55, { name: 'pathlightn', desc: 'Path Lights' }],
-            [56, { name: 'patiolts', desc: 'Patio Lights' }],
-            [57, { name: 'perimeterl', desc: 'Permiter Light' }],
-            [58, { name: 'pg2000', desc: 'PG2000' }],
-            [59, { name: 'pondlight', desc: 'Pond Light' }],
-            [60, { name: 'poolpump', desc: 'Pool Pump' }],
+            [3, { name: 'aux1', desc: 'AUX 1' }],
+            [4, { name: 'aux2', desc: 'AUX 2' }],
+            [5, { name: 'aux3', desc: 'AUX 3' }],
+            [6, { name: 'feature1', desc: 'FEATURE 1' }],
+            [7, { name: 'feature2', desc: 'FEATURE 2' }],
+            [8, { name: 'feature3', desc: 'FEATURE 3' }],
+            [9, { name: 'feature4', desc: 'FEATURE 4' }],
             [61, { name: 'pool', desc: 'Pool' }],
-            [62, { name: 'poolhigh', desc: 'Pool High' }],
-            [63, { name: 'poollight', desc: 'Pool Light' }],
-            [64, { name: 'poollow', desc: 'Pool Low' }],
-            [65, { name: 'sam', desc: 'SAM' }],
-            [66, { name: 'poolsam1', desc: 'Pool SAM 1' }],
-            [67, { name: 'poolsam2', desc: 'Pool SAM 2' }],
-            [68, { name: 'poolsam3', desc: 'Pool SAM 3' }],
-            [69, { name: 'securitylt', desc: 'Security Light' }],
-            [70, { name: 'slide', desc: 'Slide' }],
-            [71, { name: 'solar', desc: 'Solar' }],
-            [72, { name: 'spa', desc: 'Spa' }],
-            [73, { name: 'spahigh', desc: 'Spa High' }],
-            [74, { name: 'spalight', desc: 'Spa Light' }],
-            [75, { name: 'spalow', desc: 'Spa Low' }],
-            [76, { name: 'spasal', desc: 'Spa SAL' }],
-            [77, { name: 'spasam', desc: 'Spa SAM' }],
-            [78, { name: 'spawtrfll', desc: 'Spa Waterfall' }],
-            [79, { name: 'spillway', desc: 'Spillway' }],
-            [80, { name: 'sprinklers', desc: 'Sprinklers' }],
-            [81, { name: 'stream', desc: 'Stream' }],
-            [82, { name: 'statuelt', desc: 'Statue Light' }],
-            [83, { name: 'swimjets', desc: 'Swim Jets' }],
-            [84, { name: 'wtrfeature', desc: 'Water Feature' }],
-            [85, { name: 'wtrfeatlt', desc: 'Water Feature Light' }],
-            [86, { name: 'waterfall', desc: 'Waterfall' }],
-            [87, { name: 'waterfall1', desc: 'Waterfall 1' }],
-            [88, { name: 'waterfall2', desc: 'Waterfall 2' }],
-            [89, { name: 'waterfall3', desc: 'Waterfall 3' }],
-            [90, { name: 'whirlpool', desc: 'Whirlpool' }],
-            [91, { name: 'wtrflght', desc: 'Waterfall Light' }],
-            [92, { name: 'yardlight', desc: 'Yard Light' }],
-            [93, { name: 'auxextra', desc: 'AUX EXTRA' }]
+            [72, { name: 'spa', desc: 'Spa' }]
         ]);
+        this._configQueue = new SunTouchConfigQueue();
     }
     public initExpansionModules(byte1: number, byte2: number) {
         console.log(`Pentair SunTouch System Detected!`);
         sys.equipment.model = 'Suntouch';
 
         // Initialize the installed personality board.
-        let mt = this.valueMaps.expansionBoards.transform(0);
+        let mt = this.valueMaps.expansionBoards.transform(byte1);  // Only have one example of SunTouch and it is a single body system (40).
         let mod = sys.equipment.modules.getItemById(0, true);
+        if (mod.name !== mt.name) {
+            logger.info(`Clearing SunTouch configuration...`);
+            sys.bodies.removeItemById(1);
+            sys.bodies.removeItemById(2);
+            sys.bodies.removeItemById(3);
+            sys.bodies.removeItemById(4);
+            sys.circuits.clear(0);
+            sys.circuits.removeItemById(1);
+            sys.circuits.removeItemById(6);
+            sys.features.clear(0);
+            state.circuits.clear();
+            state.temps.clear();
+            sys.filters.clear(0);
+            state.filters.clear();
+        }
         mod.name = mt.name;
         mod.desc = mt.desc;
         mod.type = byte1;
@@ -185,16 +123,40 @@ export class SunTouchBoard extends EasyTouchBoard {
         eq.maxFeatures = md.features = typeof mt.features !== 'undefined' ? mt.features : 0
         eq.maxValves = md.valves = typeof mt.valves !== 'undefined' ? mt.valves : 2;
         eq.maxPumps = md.maxPumps = typeof mt.pumps !== 'undefined' ? mt.pumps : 2;
-        eq.shared = mt.shared;
-        eq.dual = false;
-        eq.single = true;
+        eq.shared = mt.shared || false;
+        eq.dual = mt.dual || false;
+        eq.single = mt.single || false;
         eq.maxChlorinators = md.chlorinators = 1;
         eq.maxChemControllers = md.chemControllers = 1;
         eq.maxCustomNames = 0;
         eq.maxSchedules = 6;
+        if (sys.equipment.single) {
+            sys.board.valueMaps.circuitNames.merge([[61, { name: 'pool', desc: 'LO-Temp' }], [72, { name: 'spa', desc: 'HI-Temp' }]]);
+            sys.board.valueMaps.circuitFunctions.merge([[1, { name: 'pool', desc: 'LO-Temp' }], [2, { name: 'spa', desc: 'HI-Temp' }]]);
+            sys.board.valueMaps.virtualCircuits.merge([[130, { name: 'poolHeater', desc: 'LO-Temp Heater' }], [131, { name: 'spaHeater', desc: 'HI-Temp Heater' }]]);
+            sys.board.valueMaps.bodyTypes.merge([[0, { name: 'pool', desc: 'LO-Temp' }], [1, { name: 'spa', desc: 'HI-Temp' }]]);
+
+        }
+        else {
+            sys.board.valueMaps.circuitNames.merge([[61, { name: 'pool', desc: 'Pool' }], [72, { name: 'spa', desc: 'Spa' }]]);
+            sys.board.valueMaps.circuitFunctions.merge([[1, { name: 'pool', desc: 'Pool' }], [2, { name: 'spa', desc: 'Pool' }]]);
+            sys.board.valueMaps.virtualCircuits.merge([[130, { name: 'poolHeater', desc: 'Pool Heater' }], [131, { name: 'spaHeater', desc: 'Spa Heater' }]]);
+            sys.board.valueMaps.bodyTypes.merge([[0, { name: 'pool', desc: 'Pool' }], [1, { name: 'spa', desc: 'Spa' }]]);
+        }
         // Calculate out the invalid ids.
         sys.board.equipmentIds.invalidIds.set([]);
-        sys.board.equipmentIds.invalidIds.merge([2, 12, 13, 14, 15, 16, 17, 18, 19, 20]);
+        // SunTouch bit mapping for circuits and features
+        // Bit  Mask Circuit/Feature id
+        // 1 = 0x01  Spa             1
+        // 2 = 0x02  Aux 1           2
+        // 3 = 0x04  Aux 2           3
+        // 4 = 0x08  Aux 3           4
+        // 5 = 0x10  Feature 1       7
+        // 6 = 0x20  Pool            6
+        // 7 = 0x40  Feature 2       8
+        // 8 = 0x80  Feature 3       9
+        // 9 = 0x01  Feature 4       10
+        sys.board.equipmentIds.invalidIds.merge([5]);
         state.equipment.model = sys.equipment.model = 'SunTouch';
         sys.equipment.setEquipmentIds();
         this.initBodyDefaults();
@@ -210,10 +172,15 @@ export class SunTouchBoard extends EasyTouchBoard {
             tbody.circuit = cbody.circuit = i === 1 ? 1 : 6;
             tbody.type = cbody.type = i - 1;  // This will set the first body to pool/Lo-Temp and the second body to spa/Hi-Temp.
             if (typeof cbody.name === 'undefined') {
-                let bt = sys.board.valueMaps.bodyTypes.transform(cbody.type);
-                tbody.name = cbody.name = bt.desc;
+                if (sys.equipment.single) {
+                    tbody.name = cbody.name = i === 1 ? 'LO' : 'HI';
+                }
+                else {
+                    let bt = sys.board.valueMaps.bodyTypes.transform(cbody.type);
+                    tbody.name = cbody.name = bt.desc;
+                }
             }
-            let c = sys.circuits.getItemById(tbody.circuit, true);
+            let c = sys.circuits.getItemById(tbody.circuit, true, { isActive: false });
             c.master = 0;
             let cstate = state.circuits.getItemById(c.id, true);
             cstate.type = c.type = tbody.circuit === 6 ? sys.board.valueMaps.circuitFunctions.encode('pool') : sys.board.valueMaps.circuitFunctions.encode('spa');
@@ -222,13 +189,12 @@ export class SunTouchBoard extends EasyTouchBoard {
             // Check to see if the body circuit exists.  We are going to create these so that they start
             // out with the proper type.
             if (!c.isActive) {
-                console.log(`THE BULLSHIT SUNTOUCH CONTROLLER DOES NOT HAVE A CIRCUIT ${c.id}`);
                 cstate.showInFeatures = c.showInFeatures = false;
                 c.isActive = cstate.isActive = true;
+                console.log(name);
                 cstate.name = c.name = name.desc;
             }
         }
-        if (sys.equipment.maxBodies === 1) sys.board.equipmentIds.invalidIds.merge([1])
         sys.bodies.removeItemById(3);
         sys.bodies.removeItemById(4);
         state.temps.bodies.removeItemById(3);
@@ -237,7 +203,11 @@ export class SunTouchBoard extends EasyTouchBoard {
         sys.general.options.clockMode = sys.general.options.clockMode || 12;
         sys.general.options.clockSource = sys.general.options.clockSource || 'manual';
         // We are going to intialize the pool circuits
+        let filter = sys.filters.getItemById(1, true);
+        if (typeof filter.name === 'undefined') filter.name = 'Filter';
     }
+    public circuits: SunTouchCircuitCommands = new SunTouchCircuitCommands(this);
+
 }
 class SunTouchConfigQueue extends TouchConfigQueue {
     public queueChanges() {
@@ -250,8 +220,7 @@ class SunTouchConfigQueue extends TouchConfigQueue {
             this.queueItems(GetTouchConfigCategories.heatTemperature, [0]);
             this.queueItems(GetTouchConfigCategories.solarHeatPump, [0]);
             //this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1);  SunTouch does not appear to support custom names.
-            this.queueRange(GetTouchConfigCategories.circuits, 1, sys.equipment.maxCircuits); // circuits
-            this.queueRange(GetTouchConfigCategories.circuits, 41, 41 + sys.equipment.maxFeatures); // features
+            this.queueRange(GetTouchConfigCategories.circuits, 1, sys.board.equipmentIds.features.end); // circuits & Features
             this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
             this.queueItems(GetTouchConfigCategories.delays, [0]);
             this.queueItems(GetTouchConfigCategories.settings, [0]);
@@ -273,6 +242,49 @@ class SunTouchConfigQueue extends TouchConfigQueue {
             setTimeout(() => { self.processNext(); }, 50);
         } else state.status = 1;
         state.emitControllerChange();
+    }
+
+}
+class SunTouchCircuitCommands extends TouchCircuitCommands {
+    public async setCircuitStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<ICircuitState> {
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit or Feature id not valid', id, 'Circuit'));
+        let c = sys.circuits.getInterfaceById(id);
+        if (c.master !== 0) return await super.setCircuitStateAsync(id, val);
+        if (id === 192 || c.type === 3) return await sys.board.circuits.setLightGroupThemeAsync(id - 191, val ? 1 : 0);
+        if (id >= 192) return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
+
+        // for some dumb reason, if the spa is on and the pool circuit is desired to be on,
+        // it will ignore the packet.
+        // We can override that by emulating a click to turn off the spa instead of turning
+        // on the pool
+        if (sys.equipment.maxBodies > 1 && id === 6 && val && state.circuits.getItemById(1).isOn) {
+            id = 1;
+            val = false;
+        }
+        let mappedId = id;
+        if (id === 7) mappedId = 5;
+        else if (id > 6) mappedId = id - 1;
+        return new Promise<ICircuitState>((resolve, reject) => {
+            let cstate = state.circuits.getInterfaceById(id);
+            let out = Outbound.create({
+                action: 134,
+                payload: [mappedId, val ? 1 : 0],
+                retries: 3,
+                response: true,
+                scope: `circuitState${id}`,
+                onComplete: (err, msg) => {
+                    if (err) reject(err);
+                    else {
+                        sys.board.circuits.setEndTime(c, cstate, val);
+                        cstate.isOn = val;
+                        state.emitEquipmentChanges();
+                        resolve(cstate);
+                    }
+                }
+            });
+            conn.queueSendMessage(out);
+        });
+
     }
 
 }

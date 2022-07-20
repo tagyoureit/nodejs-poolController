@@ -80,7 +80,7 @@ export class ValveMessage {
         let vA = sys.valves.getItemById(1, true);
         let vB = sys.valves.getItemById(2, true);
         let vC = sys.valves.getItemById(3, true);
-        if (sys.equipment.shared) {
+        if (sys.equipment.shared && !sys.equipment.single) {
             vA.name = 'Intake';
             vB.circuit = vA.circuit = sys.board.valueMaps.virtualCircuits.encode('poolspa');
             vB.name = 'Return';
