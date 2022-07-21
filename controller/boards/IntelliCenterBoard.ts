@@ -1496,7 +1496,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                         circuit.eggTimer = eggTimer;
                         circuit.dontStop = data.dontStop;
                         circuit.freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze);
-                        circuit.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures);
+                        scircuit.showInFeatures = circuit.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures);
                         if (type === 9) scircuit.level = circuit.level = theme;
                         else {
                             let t = sys.board.valueMaps.circuitFunctions.transform(type);
@@ -1575,7 +1575,8 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                             group.dontStop = obj.dontStop;
                             sgroup.type = group.type = 2;
                             sgroup.isActive = group.isActive = true;
-                            if (typeof obj.showInFeatures !== 'undefined') sgroup.showInFeatures = group.showInFeatures = utils.makeBool(obj.showInFeatures);
+                            if (typeof obj.showInFeatures !== 'undefined') group.showInFeatures = utils.makeBool(obj.showInFeatures);
+                            sgroup.showInFeatures = group.showInFeatures;
                             if (typeof obj.circuits !== 'undefined') {
                                 for (let i = 0; i < obj.circuits.length; i++) {
                                     let c = group.circuits.getItemByIndex(i, true);

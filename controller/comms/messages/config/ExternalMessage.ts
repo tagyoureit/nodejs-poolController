@@ -208,6 +208,7 @@ export class ExternalMessage {
                             sgroup = state.circuitGroups.getItemById(groupId, true);
                             sgroup.type = group.type = type;
                             if (typeof group.showInFeatures === 'undefined') group.showInFeatures = sgroup.showInFeatures = true;
+                            sgroup.showInFeatures = group.showInFeatures;
                             sys.lightGroups.removeItemById(groupId);
                             state.lightGroups.removeItemById(groupId);
                             sgroup.isActive = group.isActive = true;
