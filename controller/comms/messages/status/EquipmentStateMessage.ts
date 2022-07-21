@@ -91,7 +91,8 @@ export class EquipmentStateMessage {
         const model2 = msg.extractPayloadByte(28);
         // RKS: 06-15-20 -- While this works for now the way we are detecting seems a bit dubious.  First, the 2 status message
         // contains two model bytes.  Right now the ones witness in the wild include 23 = fw1.023, 40 = fw1.040, 47 = fw1.047.
-        if (model2 === 0 && (model1 === 23 || model1 >= 40)) {
+        if ((model2 === 0 && (model1 === 23 || model1 >= 40)) ||
+            (model2 === 2 && model1 == 0)) {
             state.equipment.controllerType = 'intellicenter';
             sys.board.modulesAcquired = false;
             sys.controllerType = ControllerType.IntelliCenter;
