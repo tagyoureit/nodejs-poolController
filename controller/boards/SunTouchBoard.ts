@@ -258,7 +258,7 @@ class SunTouchConfigQueue extends TouchConfigQueue {
             if (sys.chlorinators.getItemById(1).isActive)
                 this.queueItems(GetTouchConfigCategories.intellichlor, [0]);
 
-            let test = [198, 199, 201, 204, 205, 206, 207, 212, 213, 215, 217, 231, 233, 234, 235, 236, 237, 238, 239];
+            let test = [198, 199, 201, 204, 205, 206, 207, 212, 213, 215, 217, 231, 233, 234, 235, 236, 237, 238, 239, 253];
             for (let i = 0; i < test.length; i++) {
                 let cat = test[i];
                 this.queueRange(cat, 0, 2);
