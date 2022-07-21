@@ -654,7 +654,16 @@ export class Inbound extends Message {
                         PumpMessage.process(this);
                         break;
                     case 30:
-                        if (sys.controllerType !== ControllerType.Unknown) OptionsMessage.process(this);
+                        switch (sys.controllerType) {
+                            case ControllerType.Unknown:
+                                break;
+                            case ControllerType.SunTouch:
+                                ScheduleMessage.processSunTouch(this);
+                                break;
+                            default:
+                                OptionsMessage.process(this);
+                                break;
+                        }
                         break;
                     case 22:
                     case 32:
