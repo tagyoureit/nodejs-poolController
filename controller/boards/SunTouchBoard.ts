@@ -230,7 +230,8 @@ class SunTouchConfigQueue extends TouchConfigQueue {
             //this.queueItems(GetTouchConfigCategories.spaSideRemote, [0]);  SunTouch does not support spaCommand remotes.
             this.queueItems(GetTouchConfigCategories.valves, [0]);
             //this.queueItems(GetTouchConfigCategories.lightGroupPositions);  SunTouch does not support IntelliBrite
-            this.queueItems(GetTouchConfigCategories.highSpeedCircuits, [0]);
+            //this.queueItems(GetTouchConfigCategories.highSpeedCircuits, [0]);
+            this.queueRange(222, 0, 7); // Let's try to get more schdedules.
             //this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);  SunTouch does not keep a speed configuration for VS pumps
             this.queueRange(219, 1, sys.equipment.maxPumps);  // This is an attempt to see if the pump configuration exists on another message for SunTouch
             this.queueItems(19, [0]);  // Let's see if we can get SunTouch to tell us about its configuration for IntelliChem.
