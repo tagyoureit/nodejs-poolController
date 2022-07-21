@@ -110,6 +110,8 @@ export class ScheduleMessage {
             let schedId = i + 1;
             let pos = (i * 6) + 4;
             let cid = msg.extractPayloadByte(pos);
+            if (cid === 5) cid = 7;
+            else if (cid > 6) cid = cid + 1;
             let start = (msg.extractPayloadByte(pos + 2) * 256) + msg.extractPayloadByte(pos + 3);
             let end = (msg.extractPayloadByte(pos + 4) * 256) + msg.extractPayloadByte(pos + 5);
             let circ = cid > 0 && start < end ? sys.circuits.getInterfaceById(cid, false) : undefined;
