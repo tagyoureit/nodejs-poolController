@@ -176,7 +176,8 @@ export class CircuitMessage {
         let maxCircuitId = sys.board.equipmentIds.circuits.end;
         for (let i = circuitId + 1; i < msg.payload.length && circuitId <= maxCircuitId; i++) {
             let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
-            circuit.showInFeatures = msg.extractPayloadByte(i) > 0;
+            let cstate = state.circuits.getItemById(circuit.id, true);
+            cstate.showInFeatures = circuit.showInFeatures = msg.extractPayloadByte(i) > 0;
         }
         msg.isProcessed = true;
     }

@@ -206,6 +206,7 @@ export class SunTouchBoard extends EasyTouchBoard {
         // We are going to intialize the pool circuits
         let filter = sys.filters.getItemById(1, true);
         if (typeof filter.name === 'undefined') filter.name = 'Filter';
+        state.filters.getItemById(1, true).name = filter.name;
     }
     public circuits: SunTouchCircuitCommands = new SunTouchCircuitCommands(this);
 

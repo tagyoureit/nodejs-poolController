@@ -3098,32 +3098,33 @@ export class FeatureCommands extends BoardCommands {
     } catch (err) { logger.error(`Error validating features for restore: ${err.message}`); }
   }
 
-  public async setFeatureAsync(obj: any): Promise<Feature> {
-    let id = parseInt(obj.id, 10);
-    if (id <= 0 || isNaN(id)) {
-      id = sys.features.getNextEquipmentId(sys.board.equipmentIds.features);
+    public async setFeatureAsync(obj: any): Promise<Feature> {
+        let id = parseInt(obj.id, 10);
+        if (id <= 0 || isNaN(id)) {
+            id = sys.features.getNextEquipmentId(sys.board.equipmentIds.features);
+        }
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
+        if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Feature id out of range: ${id}: ${sys.board.equipmentIds.features.start} to ${sys.board.equipmentIds.features.end}`, obj.id, 'Feature'));
+        let feature = sys.features.getItemById(id, true);
+        let sfeature = state.features.getItemById(id, true);
+        feature.isActive = true;
+        sfeature.isOn = false;
+        if (obj.nameId) {
+            feature.nameId = sfeature.nameId = obj.nameId;
+            feature.name = sfeature.name = sys.board.valueMaps.circuitNames.get(obj.nameId);
+        }
+        else if (obj.name) feature.name = sfeature.name = obj.name;
+        else if (!feature.name && !obj.name) feature.name = sfeature.name = `feature${obj.id}`;
+        if (typeof obj.type !== 'undefined') feature.type = sfeature.type = parseInt(obj.type, 10);
+        else if (!feature.type && typeof obj.type !== 'undefined') feature.type = sfeature.type = 0;
+        if (typeof obj.freeze !== 'undefined') feature.freeze = utils.makeBool(obj.freeze);
+        if (typeof obj.showInFeatures !== 'undefined') feature.showInFeatures = sfeature.showInFeatures = utils.makeBool(obj.showInFeatures);
+        sfeature.showInFeatures = feature.showInFeatures;
+        if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
+        if (typeof obj.eggTimer !== 'undefined') feature.eggTimer = parseInt(obj.eggTimer, 10);
+        feature.dontStop = feature.eggTimer === 1440;
+        return new Promise<Feature>((resolve, reject) => { resolve(feature); });
     }
-    if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
-    if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Feature id out of range: ${id}: ${sys.board.equipmentIds.features.start} to ${sys.board.equipmentIds.features.end}`, obj.id, 'Feature'));
-    let feature = sys.features.getItemById(id, true);
-    let sfeature = state.features.getItemById(id, true);
-    feature.isActive = true;
-    sfeature.isOn = false;
-    if (obj.nameId) {
-      feature.nameId = sfeature.nameId = obj.nameId;
-      feature.name = sfeature.name = sys.board.valueMaps.circuitNames.get(obj.nameId);
-    }
-    else if (obj.name) feature.name = sfeature.name = obj.name;
-    else if (!feature.name && !obj.name) feature.name = sfeature.name = `feature${obj.id}`;
-    if (typeof obj.type !== 'undefined') feature.type = sfeature.type = parseInt(obj.type, 10);
-    else if (!feature.type && typeof obj.type !== 'undefined') feature.type = sfeature.type = 0;
-    if (typeof obj.freeze !== 'undefined') feature.freeze = utils.makeBool(obj.freeze);
-    if (typeof obj.showInFeatures !== 'undefined') feature.showInFeatures = sfeature.showInFeatures = utils.makeBool(obj.showInFeatures);
-    if (typeof obj.dontStop !== 'undefined' && utils.makeBool(obj.dontStop) === true) obj.eggTimer = 1440;
-    if (typeof obj.eggTimer !== 'undefined') feature.eggTimer = parseInt(obj.eggTimer, 10);
-    feature.dontStop = feature.eggTimer === 1440;
-    return new Promise<Feature>((resolve, reject) => { resolve(feature); });
-  }
   public async deleteFeatureAsync(obj: any): Promise<Feature> {
     let id = parseInt(obj.id, 10);
     if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${obj.id}`, obj.id, 'Feature'));
