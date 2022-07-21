@@ -133,14 +133,14 @@ export class SunTouchBoard extends EasyTouchBoard {
         eq.maxSchedules = 6;
         if (sys.equipment.single) {
             sys.board.valueMaps.circuitNames.merge([[61, { name: 'pool', desc: 'LO-Temp' }], [72, { name: 'spa', desc: 'HI-Temp' }]]);
-            sys.board.valueMaps.circuitFunctions.merge([[1, { name: 'pool', desc: 'LO-Temp' }], [2, { name: 'spa', desc: 'HI-Temp' }]]);
+            sys.board.valueMaps.circuitFunctions.merge([[1, { name: 'pool', desc: 'LO-Temp', hasHeatSource: true }], [2, { name: 'spa', desc: 'HI-Temp', hasHeatSource: true }]]);
             sys.board.valueMaps.virtualCircuits.merge([[130, { name: 'poolHeater', desc: 'LO-Temp Heater' }], [131, { name: 'spaHeater', desc: 'HI-Temp Heater' }]]);
             sys.board.valueMaps.bodyTypes.merge([[0, { name: 'pool', desc: 'LO-Temp' }], [1, { name: 'spa', desc: 'HI-Temp' }]]);
 
         }
         else {
             sys.board.valueMaps.circuitNames.merge([[61, { name: 'pool', desc: 'Pool' }], [72, { name: 'spa', desc: 'Spa' }]]);
-            sys.board.valueMaps.circuitFunctions.merge([[1, { name: 'pool', desc: 'Pool' }], [2, { name: 'spa', desc: 'Pool' }]]);
+            sys.board.valueMaps.circuitFunctions.merge([[1, { name: 'pool', desc: 'Pool', hasHeatsource: true }], [2, { name: 'spa', desc: 'Pool', hasHeatSource: true }]]);
             sys.board.valueMaps.virtualCircuits.merge([[130, { name: 'poolHeater', desc: 'Pool Heater' }], [131, { name: 'spaHeater', desc: 'Spa Heater' }]]);
             sys.board.valueMaps.bodyTypes.merge([[0, { name: 'pool', desc: 'Pool' }], [1, { name: 'spa', desc: 'Spa' }]]);
         }
@@ -217,27 +217,53 @@ class SunTouchConfigQueue extends TouchConfigQueue {
             logger.info(`Skipping configuration request from OCP because MockPort enabled.`);
         } else {
             logger.info(`Requesting ${sys.controllerType} configuration`);
-            this.queueItems(GetTouchConfigCategories.dateTime, [0]);
-            this.queueItems(GetTouchConfigCategories.heatTemperature, [0]);
-            this.queueItems(GetTouchConfigCategories.solarHeatPump, [0]);
-            //this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1);  SunTouch does not appear to support custom names.
-            this.queueRange(GetTouchConfigCategories.circuits, 1, sys.board.equipmentIds.features.end); // circuits & Features
-            this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
-            this.queueItems(GetTouchConfigCategories.delays, [0]);
-            this.queueItems(GetTouchConfigCategories.settings, [0]);
-            this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes, [0]); 
-            // this.queueItems(GetTouchConfigCategories.is4is10, [0]); SunTouch does not support is4 or is10 remotes
-            //this.queueItems(GetTouchConfigCategories.spaSideRemote, [0]);  SunTouch does not support spaCommand remotes.
-            this.queueItems(GetTouchConfigCategories.valves, [0]);
-            //this.queueItems(GetTouchConfigCategories.lightGroupPositions);  SunTouch does not support IntelliBrite
-            //this.queueItems(GetTouchConfigCategories.highSpeedCircuits, [0]);
-            this.queueRange(222, 0, 7); // Let's try to get more schdedules.
-            //this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);  SunTouch does not keep a speed configuration for VS pumps
-            this.queueRange(219, 1, sys.equipment.maxPumps);  // This is an attempt to see if the pump configuration exists on another message for SunTouch
-            this.queueItems(19, [0]);  // Let's see if we can get SunTouch to tell us about its configuration for IntelliChem.
+
+
+            this.queueItems(GetTouchConfigCategories.dateTime, [0]); //197
+            // 198 = ???
+            // 199 = ???
+            this.queueItems(GetTouchConfigCategories.heatTemperature, [0]); // 200
+            // 201 = ???
+            //this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1); 202 SunTouch does not appear to support custom names.  No responses
+            // 203 = Circuits/Function -- later
+            // 204 = ???
+            // 205 = ???
+            // 206 = ???
+            // 207 = ???
+            this.queueItems(GetTouchConfigCategories.solarHeatPump, [0]); // 208
+            this.queueRange(GetTouchConfigCategories.circuits, 1, sys.board.equipmentIds.features.end); // 203 circuits & Features
+            //this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules); // 209 This return is worthless in SunTouch
+            // 210 = This is reserved for IntelliChem requests
+            // 211 = This is reserved for IntelliChem request
+            this.queueItems(GetTouchConfigCategories.delays, [0]); // 227
+            this.queueItems(GetTouchConfigCategories.settings, [0]); // 232
+            this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes, [0]); // 225 QuickTouch
+            //this.queueItems(GetTouchConfigCategories.is4is10, [0]); SunTouch does not support is4 or is10 remotes. No responses
+            //this.queueItems(GetTouchConfigCategories.spaSideRemote, [0]); 214  SunTouch does not support spaCommand remotes. No responses
+            this.queueItems(GetTouchConfigCategories.valves, [0]); // 221
+            //this.queueItems(GetTouchConfigCategories.lightGroupPositions); // 231  SunTouch does not support IntelliBrite.  No responses
+            //this.queueItems(GetTouchConfigCategories.highSpeedCircuits, [0]);  222 SunTouch reports high speed circuits elsewhere.  222 contains the first 2 schedules.
+
+            // Check for these positions to see if we can get it to spit out all the schedules.
+            this.queueItems(222, [0]); // First 2 schedules.  No responses for ids up to 7.
+            this.queueItems(223, [0, 1]);
+            this.queueItems(224, [1, 2]); // There were no responses for [0]
+
+
+            //this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps); 216  SunTouch does not keep a speed configuration for VS pumps. No responses
+            //this.queueRange(219, 1, sys.equipment.maxPumps);  // This is an attempt to see if the pump configuration exists on another message for SunTouch.  No responses
+            this.queueItems(211, [0]);
+            this.queueItems(19, [0]);  // If we send this request it will respond with a valid 147.  The correct request however should be 211.
             //this.queueRange(GetTouchConfigCategories.circuitGroups, 0, sys.equipment.maxFeatures - 1);  SunTouch does not support macros
             if (sys.chlorinators.getItemById(1).isActive)
                 this.queueItems(GetTouchConfigCategories.intellichlor, [0]);
+
+            let test = [198, 199, 201, 204, 205, 206, 207, 212, 213, 215, 217, 231, 233, 234, 235, 236, 237, 238, 239];
+            for (let i = 0; i < test.length; i++) {
+                let cat = test[i];
+                this.queueRange(cat, 0, 2);
+            }
+
         }
         if (this.remainingItems > 0) {
             var self = this;

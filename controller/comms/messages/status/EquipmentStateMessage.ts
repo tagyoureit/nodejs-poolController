@@ -91,6 +91,14 @@ export class EquipmentStateMessage {
         const model2 = msg.extractPayloadByte(28);
         // RKS: 06-15-20 -- While this works for now the way we are detecting seems a bit dubious.  First, the 2 status message
         // contains two model bytes.  Right now the ones witness in the wild include 23 = fw1.023, 40 = fw1.040, 47 = fw1.047.
+        // RKS: 07-21-22 -- Pentair is about to release fw1.232.  Unfortunately, the byte mapping for this has changed such that
+        // the bytes [27,28] are [0,2] respectively.  This looks like it might be in conflict with IntelliTouch but it is not.  Below
+        // are the combinations of 27,28 we have seen for IntelliTouch
+        // [1,0] = i5+3
+        // [0,1] = i7+3
+        // [1,3] = i5+3s
+        // [1,4] = i9+3s
+        // [1,5] = i10+3d
         if ((model2 === 0 && (model1 === 23 || model1 >= 40)) ||
             (model2 === 2 && model1 == 0)) {
             state.equipment.controllerType = 'intellicenter';

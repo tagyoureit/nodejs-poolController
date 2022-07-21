@@ -100,8 +100,45 @@ export class ScheduleMessage {
                     break;
 
             }
-        else if (sys.controllerType !== ControllerType.Unknown)
+        else if (sys.controllerType !== ControllerType.Unknown && sys.controllerType !== ControllerType.SunTouch)
             ScheduleMessage.processScheduleDetails(msg);
+    }
+    public static processSunTouch(msg: Inbound): void {
+        //[255, 0, 255][165, 1, 15, 16, 30, 16][0, 0, 0, 0, 2, 0, 1, 224, 1, 239, 6, 1, 1, 224, 3, 132][4, 53]
+        // Bytes 0-3 contain no data.
+        for (let i = 0; i < 2; i++) {
+            let schedId = i + 1;
+            let pos = (i * 6) + 4;
+            let cid = msg.extractPayloadByte(pos);
+            let start = (msg.extractPayloadByte(pos + 2) * 256) + msg.extractPayloadByte(pos + 3);
+            let end = (msg.extractPayloadByte(pos + 4) * 256) + msg.extractPayloadByte(pos + 5);
+            let circ = cid > 0 && start < end ? sys.circuits.getInterfaceById(cid, false) : undefined;
+            if (typeof circ !== 'undefined' && circ.isActive) {
+                let sched = sys.schedules.getItemById(schedId, true);
+                let ssched = state.schedules.getItemById(schedId, true);
+                sched.master = 0;
+                ssched.circuit = sched.circuit = circ.id;
+                ssched.scheduleDays = sched.scheduleDays = 127;  // SunTouch does not allow you to set the days.
+                ssched.startTime = sched.startTime = start;
+                ssched.endTime = sched.endTime = end;
+                ssched.startTimeType = sched.startTimeType = 0;
+                ssched.endTimeType = sched.endTimeType = 0;
+                ssched.isActive = sched.isActive = true;
+                ssched.scheduleType = sched.scheduleType = sys.board.valueMaps.scheduleTypes.getValue('repeat');
+                if (sys.circuits.getItemById(circ.id).hasHeatSource && typeof sched.heatSource === 'undefined') ssched.heatSource = sched.heatSource = sys.board.valueMaps.heatSources.getValue('nochange');
+                if (typeof sched.heatSetpoint === 'undefined') sched.heatSetpoint = 78;
+                ssched.emitEquipmentChange();
+            }
+            else {
+                let ssched = state.schedules.find(elem => elem.id === schedId);
+                if (typeof ssched !== 'undefined') {
+                    ssched.isActive = false;
+                    ssched.emitEquipmentChange();
+                    state.schedules.removeItemById(schedId);
+                }
+                sys.schedules.removeItemById(schedId);
+            }
+        }
     }
     public static processScheduleDetails(msg: Inbound) {
         // Sample packet
