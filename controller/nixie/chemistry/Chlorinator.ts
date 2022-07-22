@@ -362,7 +362,7 @@ export class NixieChlorinator extends NixieEquipment {
                     dest: 1,
                     action: 17,
                     payload: [cstate.targetOutput],
-                    retries: 7, // IntelliCenter tries 8 times to make this happen.
+                    retries: 3, // IntelliCenter tries 8 times to make this happen.
                     response: Response.create({ protocol: Protocol.Chlorinator, action: 18 }),
                     onAbort: () => { },
                     onComplete: (err) => {

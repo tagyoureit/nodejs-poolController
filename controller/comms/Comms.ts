@@ -28,7 +28,7 @@ import { sys } from "../Equipment";
 import { webApp } from "../../web/Server";
 const extend = require("extend");
 export class Connection {
-    constructor() {}
+    constructor() { }
     public rs485Ports: RS485Port[] = [];
     public get mockPort(): boolean {
         let port = this.findPortById(0);
@@ -36,7 +36,7 @@ export class Connection {
     }
     public isPortEnabled(portId: number) {
         let port: RS485Port = this.findPortById(portId);
-        return typeof port === 'undefined' ? false : port.enabled;
+        return typeof port === 'undefined' ? false : port.enabled && port.isOpen && !port.closing;
     }
     public async deleteAuxPort(data: any): Promise<any> {
         try {
@@ -97,6 +97,7 @@ export class Connection {
             let existing = this.findPortById(portId);
             if (typeof existing !== 'undefined') {
                 if (!await existing.closeAsync()) {
+                    existing.closing = false;  // if closing fails, reset flag so user can try again
                     return Promise.reject(new InvalidOperationError(`Unable to close the current RS485 port`, 'setPortAsync'));
                 }
             }
@@ -151,7 +152,7 @@ export class Connection {
             if (port.portId === portId) {
                 await port.closeAsync();
                 // Don't remove the primary port.  You cannot delete this one.
-                if(portId !== 0) this.rs485Ports.splice(i, 1);
+                if (portId !== 0) this.rs485Ports.splice(i, 1);
             }
         }
     }
@@ -247,7 +248,7 @@ export class Counter {
 export class RS485Port {
     constructor(cfg: any) {
         this._cfg = cfg;
-        
+
         this.emitter = new EventEmitter();
         this._inBuffer = [];
         this._outBuffer = [];
@@ -255,11 +256,11 @@ export class RS485Port {
         this.emitter.on('messagewrite', (msg) => { this.pushOut(msg); });
     }
     public isRTS: boolean = true;
-    public reconnects:number = 0;
+    public reconnects: number = 0;
     public emitter: EventEmitter;
     public get portId() { return typeof this._cfg !== 'undefined' && typeof this._cfg.portId !== 'undefined' ? this._cfg.portId : 0; }
     public isOpen: boolean = false;
-    private _closing: boolean = false;
+    public closing: boolean = false;
     private _cfg: any;
     private _port: any;
     public mockPort: boolean = false;
@@ -269,6 +270,7 @@ export class RS485Port {
     public get enabled(): boolean { return typeof this._cfg !== 'undefined' && this._cfg.enabled; }
     public counter: Counter = new Counter();
     private procTimer: NodeJS.Timeout;
+    public writeTimer: NodeJS.Timeout
     private _processing: boolean = false;
     private _inBytes: number[] = [];
     private _inBuffer: number[] = [];
@@ -303,6 +305,7 @@ export class RS485Port {
                     if (data.length > 0 && !this.isPaused) this.pushIn(data);
                 });
                 this.emitPortStats();
+                this.processPackets(); // if any new packets have been added to queue, process them.
             });
             nc.once('close', (p) => {
                 this.isOpen = false;
@@ -310,7 +313,7 @@ export class RS485Port {
                 this._port = undefined;
                 this.clearOutboundBuffer();
                 this.emitPortStats();
-                if (!this._closing) {
+                if (!this.closing) {
                     // If we are closing manually this event should have been cleared already and should never be called.  If this is fired out
                     // of sequence then we will check the closing flag to ensure we are not forcibly closing the socket.
                     if (typeof this.connTimer !== 'undefined' && this.connTimer) {
@@ -349,15 +352,18 @@ export class RS485Port {
             return await new Promise<boolean>((resolve, _) => {
                 // We only connect an error once as we will destroy this connection on error then recreate a new socket on failure.
                 nc.once('error', (err) => {
+                    logger.error(`Net connect (socat) error: ${err.message}`);
                     //logger.error(`Net connect (socat) Connection: ${err}. ${this._cfg.inactivityRetry > 0 ? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; inactivityRetry set to ${this._cfg.inactivityRetry}`}`);
                     //this.resetConnTimer();
                     this.isOpen = false;
                     this.emitPortStats();
+                    this.processPackets(); // if any new packets have been added to queue, process them.
+
                     // if the promise has already been fulfilled, but the error happens later, we don't want to call the promise again.
                     if (typeof resolve !== 'undefined') { resolve(false); }
                     if (this._cfg.inactivityRetry > 0) {
                         logger.error(`Net connect (socat) connection ${this.portId} error: ${err}.  Retry in ${this._cfg.inactivityRetry} seconds`);
-                        if(this.connTimer) clearTimeout(this.connTimer);
+                        if (this.connTimer) clearTimeout(this.connTimer);
                         this.connTimer = setTimeout(async () => { try { await this.openAsync(); } catch (err) { } }, this._cfg.inactivityRetry * 1000);
                     }
                     else logger.error(`Net connect (socat) connection ${this.portId} error: ${err}.  Never retrying -- No retry time set`);
@@ -366,7 +372,11 @@ export class RS485Port {
                     if (typeof this._port !== 'undefined') logger.warn(`Net connect (socat) ${this.portId} recovered from lost connection.`);
                     logger.info(`Net connect (socat) Connection ${this.portId} connected`);
                     this._port = nc;
+                    // if just changing existing port, reset key flags
                     this.isOpen = true;
+                    this.isRTS = true;
+                    this.closing = false;
+                    this._processing = false;
                     this.emitPortStats();
                     resolve(true);
                     resolve = undefined;
@@ -414,6 +424,10 @@ export class RS485Port {
                     else logger.info(`Serial port: ${this._cfg.rs485Port} request to open successful ${this._cfg.portSettings.baudRate}b ${this._cfg.portSettings.dataBits}-${this._cfg.portSettings.parity}-${this._cfg.portSettings.stopBits}`);
                     this._port = sp;
                     this.isOpen = true;
+                    /// if just changing existing port, reset key flags
+                    this.isRTS = true;
+                    this.closing = false;
+                    this._processing = false;
                     sp.on('data', (data) => { if (!this.mockPort && !this.isPaused) this.resetConnTimer(); this.pushIn(data); });
                     this.resetConnTimer();
                     this.emitPortStats();
@@ -423,6 +437,9 @@ export class RS485Port {
                     logger.info(`Serial Port ${this.portId} has been closed ${this.portId}: ${err ? JSON.stringify(err) : ''}`);
                 });
                 sp.on('error', (err) => {
+                    // an underlying streams error from a SP write may call the error event
+                    // instead/in leiu of the error callback
+                    if (typeof sp.writeTimer !== 'undefined') { clearTimeout(sp.writeTimer); sp.writeTimer = null; }
                     this.isOpen = false;
                     if (sp.isOpen) sp.close((err) => { }); // call this with the error callback so that it doesn't emit to the error again.
                     this.resetConnTimer();
@@ -434,19 +451,23 @@ export class RS485Port {
     }
     public async closeAsync(): Promise<boolean> {
         try {
-            if (this._closing) return false;
-            this._closing = true;
+            if (this.closing) return false;
+            this.closing = true;
             if (this.connTimer) clearTimeout(this.connTimer);
-            if (typeof this._port !== 'undefined' && this.isOpen) {
+            if (typeof this._port !== 'undefined') {
                 let success = await new Promise<boolean>((resolve, reject) => {
                     if (this._cfg.netConnect) {
                         this._port.removeAllListeners();
                         this._port.once('error', (err) => {
                             if (err) {
-                                logger.error(`Error closing ${this.portId} ${ this._cfg.netHost }: ${ this._cfg.netPort } / ${ this._cfg.rs485Port }: ${ err }`);
+                                logger.error(`Error closing ${this.portId} ${this._cfg.netHost}: ${this._cfg.netPort} / ${this._cfg.rs485Port}: ${err}`);
                                 resolve(false);
                             }
                             else {
+                                // RSG - per the docs the error event will subsequently
+                                // fire the close event.  This block should never be called and
+                                // likely isn't needed; error listener should always have an err passed
+                                this._port.removeAllListeners();  // call again since we added 2x .once below.
                                 this._port = undefined;
                                 this.isOpen = false;
                                 logger.info(`Successfully closed (socat) ${this.portId} port ${this._cfg.netHost}:${this._cfg.netPort} / ${this._cfg.rs485Port}`);
@@ -457,6 +478,7 @@ export class RS485Port {
                             logger.info(`Net connect (socat) ${this.portId} closing: ${this._cfg.netHost}:${this._cfg.netPort}`);
                         });
                         this._port.once('close', (p) => {
+                            this._port.removeAllListeners();  // call again since we added 2x .once above.
                             this.isOpen = false;
                             this._port = undefined;
                             logger.info(`Net connect (socat) ${this.portId} successfully closed: ${this._cfg.netHost}:${this._cfg.netPort}`);
@@ -474,10 +496,11 @@ export class RS485Port {
                                 resolve(false);
                             }
                             else {
+                                this._port.removeAllListeners(); // remove any listeners still around
                                 this._port = undefined;
-                                logger.info(`Successfully closed ${this.portId} serial port ${this._cfg.rs485Port}`);
-                                resolve(true);
+                                logger.info(`Successfully closed portId ${this.portId} for serial port ${this._cfg.rs485Port}`);
                                 this.isOpen = false;
+                                resolve(true);
                             }
                         });
                     }
@@ -490,8 +513,8 @@ export class RS485Port {
                 return success;
             }
             return true;
-        } catch (err) { logger.error(`Error closing comms connection ${this.portId}: ${err.message}`); return Promise.resolve(false); }
-        finally { this._closing = false; this.emitPortStats(); }
+        } catch (err) { logger.error(`Error closing comms connection ${this.portId}: ${err.message}`); return false; }
+        finally { this.emitPortStats(); }
     }
     public pause() { this.isPaused = true; this.clearBuffer(); this.drain(function (err) { }); }
     // RKS: Resume is executed in a closure.  This is because we want the current async process to complete
@@ -500,7 +523,7 @@ export class RS485Port {
     protected resetConnTimer(...args) {
         //console.log(`resetting connection timer`);
         if (this.connTimer !== null) clearTimeout(this.connTimer);
-        if (!this._cfg.mockPort && this._cfg.inactivityRetry > 0 && !this._closing) this.connTimer = setTimeout(async () => {
+        if (!this._cfg.mockPort && this._cfg.inactivityRetry > 0 && !this.closing) this.connTimer = setTimeout(async () => {
             try {
                 if (this._cfg.netConnect)
                     logger.warn(`Inactivity timeout for ${this.portId} serial port ${this._cfg.netHost}:${this._cfg.netPort}/${this._cfg.rs485Port} after ${this._cfg.inactivityRetry} seconds`);
@@ -525,6 +548,7 @@ export class RS485Port {
             cb();
     }
     public write(bytes: Buffer, cb: Function) {
+        let _cb = cb;
         if (this._cfg.netConnect) {
             // SOCAT drops the connection and destroys the stream.  Could be weeks or as little as a day.
             if (typeof this._port === 'undefined' || this._port.destroyed !== false) {
@@ -535,15 +559,38 @@ export class RS485Port {
             else
                 this._port.write(bytes, 'binary', cb);
         }
-        else
-            this._port.write(bytes, cb);
+        else {
+            this.writeTimer = setTimeout(() => {
+                // RSG - I ran into a scenario where the underlying stream
+                // processor was not retuning the CB and comms would 
+                // completely stop.  This timeout is a failsafe.
+                // Further, the underlying stream may throw an event error 
+                // and not call the callback (per node docs) hence the
+                // public writeTimer.
+                if (typeof cb === 'function') {
+                    cb = undefined;
+                    _cb(new Error(`Serialport stream has not called the callback in 3s.`));
+                }
+            }, 3000);
+            this._port.write(bytes, (err) => {
+                if (typeof this.writeTimer !== 'undefined') {
+                    clearTimeout(this.writeTimer);
+                    this.writeTimer = null;
+                    // resolve();
+                    if (typeof cb === 'function') {
+                        cb = undefined;
+                        _cb(err);
+                    }
+                }
+            });
+        }
     }
-    private pushIn(pkt) { this._inBuffer.push.apply(this._inBuffer, pkt.toJSON().data); if(sys.isReady) setImmediate(() => { this.processPackets(); }); }
+    private pushIn(pkt) { this._inBuffer.push.apply(this._inBuffer, pkt.toJSON().data); if (sys.isReady) setImmediate(() => { this.processPackets(); }); }
     private pushOut(msg) { this._outBuffer.push(msg); setImmediate(() => { this.processPackets(); }); }
     private clearBuffer() { this._inBuffer.length = 0; this.clearOutboundBuffer(); }
     private closeBuffer() { clearTimeout(this.procTimer); this.clearBuffer(); this._msg = undefined; }
     private clearOutboundBuffer() {
-        let processing = this._processing;
+        // let processing = this._processing; // we are closing the port.  don't need to reinstate this status afterwards
         clearTimeout(this.procTimer);
         this.procTimer = null;
         this._processing = true;
@@ -564,11 +611,11 @@ export class RS485Port {
             this.counter.sndAborted++;
             msg = this._outBuffer.shift();
         }
-        this._processing = processing;
-        this.isRTS = true;
+        //this._processing = false; // processing; - we are closing the port
+        //this.isRTS = true; // - we are closing the port
     }
     private processPackets() {
-        if (this._processing) return;
+        if (this._processing || this.closing) return;
         if (this.procTimer) {
             clearTimeout(this.procTimer);
             this.procTimer = null;
@@ -594,7 +641,7 @@ export class RS485Port {
     protected processOutboundPackets() {
         let msg: Outbound;
         if (!this.processWaitPacket() && this._outBuffer.length > 0) {
-            if (this.isOpen) {
+            if (this.isOpen || this.closing) {
                 if (this.isRTS) {
                     msg = this._outBuffer.shift();
                     if (typeof msg === 'undefined' || !msg) return;
@@ -619,6 +666,7 @@ export class RS485Port {
                 this.counter.sndAborted++;
                 this.counter.updatefailureRate();
                 this.emitPortStats();
+                // return; // if port isn't open, do not continue and setTimeout 
             }
         }
         // RG: added the last `|| typeof msg !== 'undef'` because virtual chem controller only sends a single packet
@@ -635,67 +683,74 @@ export class RS485Port {
         // This ends in goofiness as it can send more than one message at a time while it
         // waits for the command buffer to be flushed.  NOTE: There is no success message and the callback to
         // write only verifies that the buffer got ahold of it.
-        if (!this.isRTS || this.mockPort) return;
-        this.isRTS = false;
-        var bytes = msg.toPacket();
-        if (this.isOpen) {
-            if (msg.remainingTries <= 0) {
-                // It will almost never fall into here.  The rare case where
-                // we have an RTS semaphore and a waiting response might make it go here.
-                msg.failed = true;
-                this._waitingPacket = null;
-                if (typeof msg.onAbort === 'function') msg.onAbort();
-                else logger.warn(`Message aborted after ${msg.tries} attempt(s): ${msg.toShortPacket()} `);
-                let err = new OutboundMessageError(msg, `Message aborted after ${msg.tries} attempt(s): ${msg.toShortPacket()} `);
-                if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
-                if (msg.requiresResponse) {
-                    if (msg.response instanceof Response && typeof (msg.response.callback) === 'function') {
-                        setTimeout(msg.response.callback, 100, msg);
+        try {
+            let self = this;
+            if (!this.isRTS || this.mockPort || this.closing) return;
+            var bytes = msg.toPacket();
+            if (this.isOpen) {
+                this.isRTS = false;  // only set if port is open, otherwise it won't be set back to true
+                if (msg.remainingTries <= 0) {
+                    // It will almost never fall into here.  The rare case where
+                    // we have an RTS semaphore and a waiting response might make it go here.
+                    msg.failed = true;
+                    this._waitingPacket = null;
+                    if (typeof msg.onAbort === 'function') msg.onAbort();
+                    else logger.warn(`Message aborted after ${msg.tries} attempt(s): ${msg.toShortPacket()} `);
+                    let err = new OutboundMessageError(msg, `Message aborted after ${msg.tries} attempt(s): ${msg.toShortPacket()} `);
+                    if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
+                    if (msg.requiresResponse) {
+                        if (msg.response instanceof Response && typeof (msg.response.callback) === 'function') {
+                            setTimeout(msg.response.callback, 100, msg);
+                        }
                     }
+                    this.counter.sndAborted++;
+                    this.isRTS = true;
+                    return;
                 }
-                this.counter.sndAborted++;
-                this.isRTS = true;
-                return;
-            }
-            this.counter.bytesSent += bytes.length;
-            msg.timestamp = new Date();
-            logger.packet(msg);
-            this.write(Buffer.from(bytes), (err) => {
-                msg.tries++;
-                this.isRTS = true;
-                if (err) {
-                    logger.error('Error writing packet %s', err);
-                    // We had an error so we need to set the waiting packet if there are retries
-                    if (msg.remainingTries > 0) this._waitingPacket = msg;
+                this.counter.bytesSent += bytes.length;
+                msg.timestamp = new Date();
+                logger.packet(msg);
+                this.write(Buffer.from(bytes), (err) => {
+                    clearTimeout(this.writeTimer);
+                    this.writeTimer = null;
+                    msg.tries++;
+                    this.isRTS = true;
+                    if (err) {
+                        if (msg.remainingTries > 0) self._waitingPacket = msg;
+                        else {
+                            msg.failed = true;
+                            logger.warn(`Message aborted after ${msg.tries} attempt(s): ${bytes}: ${err} `);
+                            // this is a hard fail.  We don't have any more tries left and the message didn't
+                            // make it onto the wire.
+                            let error = new OutboundMessageError(msg, `Message aborted after ${msg.tries} attempt(s): ${err} `);
+                            if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
+                            self._waitingPacket = null;
+                            self.counter.sndAborted++;
+                        }
+                        return;
+                    }
                     else {
-                        msg.failed = true;
-                        logger.warn(`Message aborted after ${msg.tries} attempt(s): ${bytes}: ${err} `);
-                        // This is a hard fail.  We don't have any more tries left and the message didn't
-                        // make it onto the wire.
-                        let error = new OutboundMessageError(msg, `Message aborted after ${msg.tries} attempt(s): ${err} `);
-                        if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
-                        this._waitingPacket = null;
-                        this.counter.sndAborted++;
-                    }
-                }
-                else {
-                    logger.verbose(`Wrote packet[${bytes}].Retries remaining: ${msg.remainingTries} `);
-                    // We have all the success we are going to get so if the call succeeded then
-                    // don't set the waiting packet when we aren't actually waiting for a response.
-                    if (!msg.requiresResponse) {
-                        // As far as we know the message made it to OCP.
-                        this._waitingPacket = null;
-                        this.counter.sndSuccess++;
-                        if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
+                        logger.verbose(`Wrote packet[${bytes}].Retries remaining: ${msg.remainingTries} `);
+                        // We have all the success we are going to get so if the call succeeded then
+                        // don't set the waiting packet when we aren't actually waiting for a response.
+                        if (!msg.requiresResponse) {
+                            // As far as we know the message made it to OCP.
+                            self._waitingPacket = null;
+                            self.counter.sndSuccess++;
+                            if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
 
+                        }
+                        else if (msg.remainingTries >= 0) {
+                            self._waitingPacket = msg;
+                        }
                     }
-                    else if (msg.remainingTries >= 0) {
-                        this._waitingPacket = msg;
-                    }
-                }
-                this.counter.updatefailureRate();
-                this.emitPortStats();
-            });
+                    self.counter.updatefailureRate();
+                    self.emitPortStats();
+                });
+            }
+        }
+        catch (err) {
+            logger.error(`Error sending message: ${err.message}`)
         }
     }
     private clearResponses(msgIn: Inbound) {
