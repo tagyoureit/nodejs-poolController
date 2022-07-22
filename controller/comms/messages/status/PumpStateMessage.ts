@@ -18,8 +18,44 @@ import { Inbound } from "../Messages";
 import { state } from "../../../State";
 import { sys, ControllerType } from "../../../Equipment";
 export class PumpStateMessage {
+    private static detectPumpType(msg: Inbound) {
+        let pumpType = -1;
+        switch (msg.action) {
+            case 1:
+                {
+                    let speed = (msg.extractPayloadByte(2) * 256) + msg.extractPayloadByte(3);
+                    if (speed > 0) {
+                        pumpType = speed < 300 ? sys.board.valueMaps.pumpTypes.getValue('vf') : sys.board.valueMaps.pumpTypes.getValue('vs');
+                    }
+                }
+                break;
+            case 9:
+            case 10:
+                pumpType = sys.board.valueMaps.pumpTypes.getValue('vsf');
+                break;
+        }
+        if (pumpType > 0) {
+            let pump = sys.pumps.find(x => x.address === msg.dest);
+            if (typeof pump === 'undefined') {
+                let id = sys.pumps.filter(elem => elem.master === 0).getMaxId(false, 0) + 1;
+                pump = sys.pumps.getItemById(id, true);
+                pump.name = `Pump ${msg.dest - 95}`;
+                pump.address = msg.dest;
+                pump.isActive = true;
+                pump.type = pumpType;
+                pump.master = 0;
+            }
+            let spump = state.pumps.getItemById(pump.id, true);
+            spump.address = pump.address;
+            spump.type = pump.type;
+            spump.isActive = pump.isActive;
+            spump.name = pump.name;
+            spump.type = pump.type;
+        }
+    }
     public static process(msg: Inbound) {
         if (sys.controllerType === ControllerType.Unknown) return;
+        if (msg.dest >= 96 && sys.controllerType === ControllerType.SunTouch) PumpStateMessage.detectPumpType(msg);
 
         // We only want to process the messages that are coming from the pump not to the pump.  At some point
         // this filter was removed.  Any messages that are coming from the panel are simply requests to the pump
