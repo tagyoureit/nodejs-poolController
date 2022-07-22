@@ -94,6 +94,7 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
             writeFailed: function(error, lines, failedAttempts){
                 /** return promise or void */
                 logger.error(`InfluxDB batch write failed writing ${lines.length} lines with ${failedAttempts} failed attempts.  ${error.message}`);
+                console.log(lines);
             },
             writeSuccess: function(lines){
                 logger.silly(`InfluxDB successfully wrote ${lines.length} lines.`)
