@@ -219,8 +219,8 @@ class SunTouchConfigQueue extends TouchConfigQueue {
         } else {
             logger.info(`Requesting ${sys.controllerType} configuration`);
             // Config categories that do nothing
-            // 195
-            // 196
+            // 195 - [0-2]
+            // 196 - [0-2]
             // 198 - [0-2]
             // 199 - [0-2]
             // 201 - [0-2]
@@ -229,22 +229,22 @@ class SunTouchConfigQueue extends TouchConfigQueue {
             // 205 - [0-2]
             // 206 - [0-2]
             // 207 - [0-2]
-            // 208
+            // 208 - [0-2]
             // 209 - [0-10] - This returns invalid data about schedules.  It is simply not correct
             // 212 - [0-2]
             // 213 - [0-2]
-            // 214
+            // 214 - [0]
             // 215 - [0-2]
             // 216 - [0-4] - This does not return anything about the pumps
-            // 218
-            // 219
-            // 220
+            // 218 - [0-2]
+            // 219 - [0-2]
+            // 220 - [0-2]
             // 223 - [0-2]
             // 224 - [1-2]
-            // 226
-            // 228
-            // 229
-            // 230
+            // 226 - [0]
+            // 228 - [0-2]
+            // 229 - [0-2]
+            // 230 - [0-2]
             // 231 - [0-2]
             // 233 - [0-2]
             // 234 - [0-2]
@@ -253,62 +253,42 @@ class SunTouchConfigQueue extends TouchConfigQueue {
             // 237 - [0-2]
             // 238 - [0-2]
             // 239 - [0-2]
-            // 240
-            // 241
-            // 242
-            // 243
-            // 244
-            // 245
-            // 246
-            // 247
-            // 248
-            // 249
-            // 250
-            // 251
+            // 240 - [0-2]
+            // 241 - [0-2]
+            // 242 - [0-2]
+            // 243 - [0-2]
+            // 244 - [0-2]
+            // 245 - [0-2]
+            // 246 - [0-2]
+            // 247 - [0-2]
+            // 248 - [0-2]
+            // 249 - [0-2]
+            // 250 - [0-2]
+            // 251 - [0-2]
 
             this.queueItems(GetTouchConfigCategories.version); // 252
             this.queueItems(GetTouchConfigCategories.dateTime, [0]); //197
-            // 198 = ???
-            // 199 = ???
             this.queueItems(GetTouchConfigCategories.heatTemperature, [0]); // 200
-            // 201 = ???
             //this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1); 202 SunTouch does not appear to support custom names.  No responses
-            // 203 = Circuits/Function -- later
-            // 204 = ???
-            // 205 = ???
-            // 206 = ???
-            // 207 = ???
             this.queueItems(GetTouchConfigCategories.solarHeatPump, [0]); // 208
             this.queueRange(GetTouchConfigCategories.circuits, 1, sys.board.equipmentIds.features.end); // 203 circuits & Features
             //this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules); // 209 This return is worthless in SunTouch
-            // 210 = This is reserved for IntelliChem requests
-            // 211 = This is reserved for IntelliChem request
             this.queueItems(GetTouchConfigCategories.delays, [0]); // 227
             this.queueItems(GetTouchConfigCategories.settings, [0]); // 232
             this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes, [0]); // 225 QuickTouch
-            //this.queueItems(GetTouchConfigCategories.is4is10, [0]); 224 SunTouch does not support is4 or is10 remotes. No responses
-            //this.queueItems(GetTouchConfigCategories.spaSideRemote, [0]); 214  SunTouch does not support spaCommand remotes. No responses
             this.queueItems(GetTouchConfigCategories.valves, [0]); // 221
-            //this.queueItems(GetTouchConfigCategories.lightGroupPositions); // 231  SunTouch does not support IntelliBrite.  No responses
-            //this.queueItems(GetTouchConfigCategories.highSpeedCircuits, [0]);  222 SunTouch reports high speed circuits elsewhere.  222 contains the first 2 schedules.
 
             // Check for these positions to see if we can get it to spit out all the schedules.
             this.queueItems(222, [0]); // First 2 schedules.  This request ignores the payload and does not return additional items.
-            //this.queueItems(223, [0, 1]);
-            //this.queueItems(224, [1, 2]); // There were no responses for [0]
-            
-
-            //this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps); 216  SunTouch does not keep a speed configuration for VS pumps. No responses
-            //this.queueRange(219, 1, sys.equipment.maxPumps);  // This is an attempt to see if the pump configuration exists on another message for SunTouch.  No responses
             this.queueItems(211, [0]);
             this.queueItems(19, [0]);  // If we send this request it will respond with a valid 147.  The correct request however should be 211.
             //this.queueRange(GetTouchConfigCategories.circuitGroups, 0, sys.equipment.maxFeatures - 1);  SunTouch does not support macros
             this.queueItems(GetTouchConfigCategories.intellichlor, [0]); // 217
-            let test = [195, 196, 208, 214, 218, 219, 220, 226, 228, 229, 230, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251];
-            for (let i = 0; i < test.length; i++) {
-                let cat = test[i];
-                this.queueRange(cat, 0, 2);
-            }
+            //let test = [195, 196, 208, 214, 218, 219, 220, 226, 228, 229, 230, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251];
+            //for (let i = 0; i < test.length; i++) {
+            //    let cat = test[i];
+            //    this.queueRange(cat, 0, 2);
+            //}
 
         }
         if (this.remainingItems > 0) {
