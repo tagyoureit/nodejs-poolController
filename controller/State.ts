@@ -1223,7 +1223,10 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState, IC
     public getExtended() {
         let sgrp = this.get(true); // Always operate on a copy.
         if (typeof sgrp.showInFeatures === 'undefined') sgrp.showInFeatures = true;
+        
         let cgrp = sys.circuitGroups.getItemById(this.id);
+        sgrp.showInFeatures = this.showInFeatures = cgrp.showInFeatures;
+        sgrp.isActive = this.isActive = cgrp.isActive;
         sgrp.circuits = [];
         for (let i = 0; i < cgrp.circuits.length; i++) {
             let cgc = cgrp.circuits.getItemByIndex(i).get(true);

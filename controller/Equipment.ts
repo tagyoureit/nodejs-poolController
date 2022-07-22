@@ -1946,6 +1946,9 @@ export class CircuitGroupCollection extends EqItemCollection<CircuitGroup> {
 }
 export class CircuitGroup extends EqItem implements ICircuitGroup, ICircuit {
     public dataName = 'circuitGroupConfig';
+    public initData() {
+        if (typeof this.data.showInFeatures === 'undefined') this.data.showInFeatures = true;
+    }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
