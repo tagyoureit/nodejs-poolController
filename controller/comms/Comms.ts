@@ -434,7 +434,12 @@ export class RS485Port {
                 });
                 sp.on('close', (err) => {
                     this.isOpen = false;
-                    logger.info(`Serial Port ${this.portId} has been closed ${this.portId}: ${err ? JSON.stringify(err) : ''}`);
+                    if (typeof err !== 'undefined' && err !== null && err.disconnected) {
+                        logger.info(`Serial Port  ${this.portId} - ${this._cfg.rs485Port} has been disconnected and closed.  ${JSON.stringify(err)}`)
+                    }
+                    else {
+                        logger.info(`Serial Port ${this.portId} - ${this._cfg.rs485Port} has been closed. ${err ? JSON.stringify(err) : ''}`);
+                    }
                 });
                 sp.on('error', (err) => {
                     // an underlying streams error from a SP write may call the error event
