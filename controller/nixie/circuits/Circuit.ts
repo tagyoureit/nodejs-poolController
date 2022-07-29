@@ -224,6 +224,8 @@ export class NixieCircuit extends NixieEquipment {
             cstate.action = sys.board.valueMaps.circuitActions.getValue('settheme');
             cstate.emitEquipmentChange();
             switch (type.name) {
+                case 'colorcascade':
+                case 'globrite':
                 case 'pooltone':
                 case 'magicstream':
                 case 'intellibrite':

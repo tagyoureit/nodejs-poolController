@@ -712,11 +712,13 @@ export class NixiePumpRS485 extends NixiePump {
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
             this.closing = true;
+            let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
             let pstate = state.pumps.getItemById(this.pump.id);
             this._targetSpeed = 0;
             try { await this.setDriveStateAsync(false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
-            try { await this.setPumpFeature(); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
-            try { await this.setDriveStateAsync(false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
+            try { if (!this.closing && pt.name !== 'vsf' && pt.name !== 'vs') await this.setPumpFeature(); } catch (err) { };
+            //try { await this.setPumpFeature(); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
+            //try { await this.setDriveStateAsync(false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
             try { await this.setPumpToRemoteControl(false); } catch (err) { logger.error(`Error closing pump ${this.pump.name}: ${err.message}`) }
             // Make sure the polling timer is dead after we have closted this all off.  That way we do not
             // have another process that revives it from the dead.
