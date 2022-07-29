@@ -691,6 +691,13 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
+        app.put('/config/chemController/calibrateDose', async (req, res, next) => {
+            try {
+                let schem = await sys.board.chemControllers.calibrateDoseAsync(req.body);
+                return res.status(200).send(schem.getExtended());
+            }
+            catch (err) { next(err); }
+        });
         app.put('/config/chemController/feed', async (req, res, next) => {
             try {
                 let chem = await sys.board.chemControllers.setChemControllerAsync(req.body);

@@ -4626,20 +4626,35 @@ export class ChemControllerCommands extends BoardCommands {
       return Promise.resolve(chem);
     } catch (err) { logger.error(`Error deleting chem controller ${err.message}`); }
   }
-  public async manualDoseAsync(data: any): Promise<ChemControllerState> {
-    try {
-      let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
-      if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Invalid chem controller id was provided ${data.id}`, 'chemController', data.id));
-      let chem = sys.chemControllers.find(elem => elem.id === id);
-      if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Chem controller was not found ${data.id}`, 'chemController', data.id));
-      // Let's check the type.  AFAIK you cannot manual dose an IntelliChem.
-      let type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
-      if (type.name !== 'rem') return Promise.reject(new InvalidEquipmentDataError(`You can only perform manual dosing on REM Chem controllers. Cannot manually dose ${type.desc}`, 'chemController', data.id));
-      // We are down to the nitty gritty.  Let REM Chem do its thing.
-      await ncp.chemControllers.manualDoseAsync(chem.id, data);
-      return Promise.resolve(state.chemControllers.getItemById(id));
-    } catch (err) { return Promise.reject(err); }
-  }
+    public async manualDoseAsync(data: any): Promise<ChemControllerState> {
+        try {
+            let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Invalid chem controller id was provided ${data.id}`, 'chemController', data.id));
+            let chem = sys.chemControllers.find(elem => elem.id === id);
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Chem controller was not found ${data.id}`, 'chemController', data.id));
+            // Let's check the type.  AFAIK you cannot manual dose an IntelliChem.
+            let type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
+            if (type.name !== 'rem') return Promise.reject(new InvalidEquipmentDataError(`You can only perform manual dosing on REM Chem controllers. Cannot manually dose ${type.desc}`, 'chemController', data.id));
+            // We are down to the nitty gritty.  Let REM Chem do its thing.
+            await ncp.chemControllers.manualDoseAsync(chem.id, data);
+            return Promise.resolve(state.chemControllers.getItemById(id));
+        } catch (err) { return Promise.reject(err); }
+    }
+    public async calibrateDoseAsync(data: any): Promise<ChemControllerState> {
+        try {
+            let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin calibration: Invalid chem controller id was provided ${data.id}`, 'chemController', data.id));
+            let chem = sys.chemControllers.find(elem => elem.id === id);
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin calibration: Chem controller was not found ${data.id}`, 'chemController', data.id));
+            // Let's check the type.  AFAIK you cannot manual dose an IntelliChem.
+            let type = sys.board.valueMaps.chemControllerTypes.transform(chem.type);
+            if (type.name !== 'rem') return Promise.reject(new InvalidEquipmentDataError(`You can only perform calibration dosing on REM Chem controllers. Cannot calibrate ${type.desc}`, 'chemController', data.id));
+            // We are down to the nitty gritty.  Let REM Chem do its thing.
+            await ncp.chemControllers.calibrateDoseAsync(chem.id, data);
+            return Promise.resolve(state.chemControllers.getItemById(id));
+        } catch (err) { return Promise.reject(err); }
+    }
+
   public async cancelDosingAsync(data: any): Promise<ChemControllerState> {
     try {
       let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
