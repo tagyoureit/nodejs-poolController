@@ -3310,7 +3310,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
                     });
                 }
             }
-            if (typeof obj.showInDashBoard !== 'undefined') {
+            if (typeof obj.showInDashboard !== 'undefined') {
                 let sbody = state.temps.bodies.getItemById(id, false);
                 body.showInDashboard = sbody.showInDashboard = utils.makeBool(obj.showInDashboard);
             }
