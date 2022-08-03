@@ -160,7 +160,25 @@ export class StateSocket {
                         if (!isNaN(parseFloat(data.orpTank.capacity))) scontroller.orp.tank.capacity = controller.orp.tank.capacity = parseFloat(data.orpTank.capacity);
                         if (typeof data.orpTank.units === 'string') scontroller.orp.tank.units = controller.orp.tank.units = data.orpTank.units;
                     }
+                    if (typeof data.acidPump !== 'undefined' || typeof data.orpPump !== 'undefined') {
+                        let chem = typeof data.acidPump !== 'undefined' ? controller.ph : controller.orp;
+                        let schem = typeof data.acidPump !== 'undefined' ? scontroller.ph : scontroller.orp;
+                        let vals = typeof data.acidPump !== 'undefined' ? data.acidPump : data.orpPump;
+                        let pump = chem.pump;
+                        switch (sys.board.valueMaps.chemPumpTypes.getName(pump.type)) {
+                            case 'ezo-pmp':
+                                if (typeof vals.dispense !== 'undefined') {
+                                    pump.ratedFlow = typeof vals.dispense.ratedFlow === 'number' ? vals.dispense.ratedFlow : pump.ratedFlow;
+                                }
+                                if (typeof vals.tank !== 'undefined') {
+                                    if (!isNaN(parseFloat(vals.tank.level))) schem.tank.level = parseFloat(vals.tank.level);
+                                    if (!isNaN(parseFloat(vals.tank.capacity))) schem.tank.capacity = chem.tank.capacity = parseFloat(vals.tank.capacity);
+                                    if (typeof vals.tank.units === 'string') schem.tank.units = chem.tank.units = vals.tank.units;
+                                }
+                                break;
+                        }
 
+                    }
                     // Need to build this out to include the type of controller.  If this is REM Chem we
                     // will send the whole rest of the nut over to it.  Intellichem will only let us
                     // set specific values.

@@ -1049,8 +1049,6 @@ class NixieChemical extends NixieChildEquipment {
                 // The chemical is not enabled so we need to ditch the mixing if it is currently underway.
                 await this.stopMixing(schem);
                 return;
-
-
             }
 
             let dt = new Date().getTime();
@@ -1172,6 +1170,12 @@ export class NixieChemPump extends NixieChildEquipment {
                 this.pump.ratedFlow = typeof data.ratedFlow !== 'undefined' ? data.ratedFlow : this.pump.ratedFlow;
                 this.pump.connectionId = typeof data.connectionId !== 'undefined' ? data.connectionId : this.pump.connectionId;
                 this.pump.deviceBinding = typeof data.deviceBinding !== 'undefined' ? data.deviceBinding : this.pump.deviceBinding;
+                let type = sys.board.valueMaps.chemPumpTypes.getName(this.pump.type);
+                if (this.pump.type === 'ezo-pmp') {
+                    // Now we need to ask for the pump attributes
+
+
+                }
             }
         } catch (err) { logger.error(`setPumpAsync: ${err.message}`); return Promise.reject(err); }
 
@@ -1219,7 +1223,7 @@ export class NixieChemPump extends NixieChildEquipment {
                 // We aren't going to do anything.
                 logger.verbose(`Chem pump dose ignore pump ${type}`);
             }
-            else if (type === 'relay') {
+            else if (type === 'relay' || type == 'ezo-pmp') {
                 if (dose.method === 'calibration') {
                     //if (dose.time - (dose._timeDosed / 1000) > 0) {
                     if (dose.timeRemaining > 0) {
@@ -1227,7 +1231,7 @@ export class NixieChemPump extends NixieChildEquipment {
                         let res = await this.turnOn(schem, 3000);
                         if (typeof res.status === 'undefined' || res.status.code !== 200) {
                             let status = res.status || { code: res.status.code, message: res.status.message };
-                            logger.error(`Chem pump could not activate relay ${status.code}: ${status.message}`);
+                            logger.error(`Chem pump could not activate pump ${status.code}: ${status.message}`);
                         }
                         let relay = res.obj;
                         try {
@@ -1336,10 +1340,6 @@ export class NixieChemPump extends NixieChildEquipment {
                         await this.chemical.cancelDosing(schem, 'unknown cancel');
                     }
                 }
-            }
-            else if (type === 'ezo-pmp') {
-                logger.info(`Attempting to dose ezo pump`);
-                await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: true, latch: 5000 });
             }
             // Check to see if we reached our max dosing time or volume or the tank is empty mix it up.
             let status = schem.dosingStatus;
