@@ -2670,7 +2670,6 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
             out.appendPayloadString(typeof data.name !== 'undefined' ? data.name.toString() : feature.name, 16);
             conn.queueSendMessage(out);
         });
-
     }
 
 }

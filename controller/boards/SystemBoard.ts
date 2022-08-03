@@ -599,7 +599,7 @@ export class byteValueMaps {
   public chemPumpTypes: byteValueMap = new byteValueMap([
     [0, { name: 'none', desc: 'No Pump', ratedFlow: false, tank: false, remAddress: false }],
     [1, { name: 'relay', desc: 'Relay Pump', ratedFlow: true, tank: true, remAddress: true }],
-    [2, { name: 'ezo-pmp', desc: 'Altas EZO-PMP', ratedFlow: false, tank: false, remAddress: true }]
+    [2, { name: 'ezo-pmp', desc: 'Altas EZO-PMP', ratedFlow: true, tank: true, remAddress: true }]
   ]);
   public chemPhProbeTypes: byteValueMap = new byteValueMap([
     [0, { name: 'none', desc: 'No Probe' }],

@@ -102,6 +102,7 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         eq.maxChlorinators = md.chlorinators = 1;
         eq.maxChemControllers = md.chemControllers = 1;
         eq.maxCustomNames = 20;
+        eq.maxSchedules = 99;
         eq.maxCircuitGroups = 10; // Not sure why this is 10 other than to allow for those that we are in control of.
         if (eq.single) {
             // Replace the body types with Hi-Temp and Lo-Temp
