@@ -1829,6 +1829,13 @@ class TouchFeatureCommands extends FeatureCommands {
             conn.queueSendMessage(out);
         });
     }
+    public async deleteFeatureAsync(data: any): Promise<Feature> {
+        let circuit = sys.circuits.getItemById(data.id);
+        if (circuit.master === 1) return await super.deleteFeatureAsync(data);
+        data.nameId = 0;
+        data.functionId = sys.board.valueMaps.circuitFunctions.getValue('notused');
+        return this.setFeatureAsync(data);
+    }
 
 }
 class TouchChlorinatorCommands extends ChlorinatorCommands {
