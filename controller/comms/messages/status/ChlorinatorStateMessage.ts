@@ -136,8 +136,8 @@ export class ChlorinatorStateMessage {
                         // Set it back to disabled.  Some asshole is futzing with the chlorinator output.
                         sys.board.chlorinator.setChlorAsync({ id: chlor.id, disabled: true });
                     }
-                    if (sys.controllerType === ControllerType.Virtual) {
-                        // This lets the iChlor use the temp probe from the 
+                    if (sys.controllerType === ControllerType.Nixie) {
+                        // This lets the current body use the iChlor temp probe 
                         let tbody: BodyTempState = sys.pumps.length > 0 ? state.temps.bodies.getBodyIsOn() : state.temps.bodies.getItemById(1, true);
                         if (msg.extractPayloadByte(2) >= 40 && typeof tbody !== 'undefined') tbody.temp = msg.extractPayloadByte(2);
                     }

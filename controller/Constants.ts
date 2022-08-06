@@ -304,7 +304,7 @@ export enum ControllerType {
     IntelliCom = 'intellicom',
     EasyTouch = 'easytouch',
     Unknown = 'unknown',
-    Virtual = 'virtual',
+    // Virtual = 'virtual',
     Nixie = 'nixie',
     AquaLink = 'aqualink',
     SunTouch = 'suntouch'

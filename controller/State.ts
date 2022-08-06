@@ -24,8 +24,7 @@ import { webApp } from '../web/Server';
 import { ControllerType, Timestamp, utils, Heliotrope } from './Constants';
 import { sys, Chemical, ChemController } from './Equipment';
 import { versionCheck } from '../config/VersionCheck';
-import { EquipmentStateMessage } from './comms/messages/status/EquipmentStateMessage';
-import { DataLogger, DataLoggerEntry, IDataLoggerEntry } from '../logger/DataLogger';
+import { DataLogger, DataLoggerEntry } from '../logger/DataLogger';
 import { delayMgr } from './Lockouts';
 
 export class State implements IState {
@@ -160,7 +159,7 @@ export class State implements IState {
         try {
             if (this._timerDirty) clearTimeout(this._timerDirty);
             this.persist();
-            if (sys.controllerType === ControllerType.Virtual) {
+/*             if (sys.controllerType === ControllerType.Virtual) {
                 for (let i = 0; i < state.temps.bodies.length; i++) {
                     state.temps.bodies.getItemByIndex(i).isOn = false;
                 }
@@ -170,7 +169,7 @@ export class State implements IState {
                 for (let i = 0; i < state.features.length; i++) {
                     state.features.getItemByIndex(i).isOn = false;
                 }
-            }
+            } */
             logger.info('State process shut down');
         } catch (err) { logger.error(`Error shutting down state process: ${err.message}`); }
     }

@@ -222,7 +222,7 @@ export class PoolSystem implements IPoolSystem {
     public get controllerType(): ControllerType { return this.data.controllerType as ControllerType; }
     public set controllerType(val: ControllerType) {
         let self = this;
-        if (this.controllerType !== val || this.controllerType === ControllerType.Virtual) {
+        if (this.controllerType !== val) {
             console.log(`RESETTING DATA -- Controller type changed from ${this.controllerType} to ${val}`);
             // Only go in here if there is a change to the controller type.
             this.resetData(); // Clear the configuration data.
@@ -231,11 +231,11 @@ export class PoolSystem implements IPoolSystem {
             EquipmentStateMessage.initDefaults();
             // We are actually changing the config so lets clear out all the data.
             this.board = BoardFactory.fromControllerType(val, this);
-            if (this.data.controllerType === ControllerType.Unknown || this.controllerType === ControllerType.Virtual) setTimeout(() => { self.initNixieController(); }, 7500);
+            if (this.data.controllerType === ControllerType.Unknown) setTimeout(() => { self.initNixieController(); }, 7500);
         }
     }
     public resetData() {
-        if (sys.controllerType !== ControllerType.Virtual && sys.controllerType !== ControllerType.Nixie) {
+        if (sys.controllerType !== ControllerType.Nixie) {
             // Do not clear this out if it is a virtual controller this causes problems.
             this.equipment.reset();
             this.circuitGroups.clear(0);
@@ -272,7 +272,6 @@ export class PoolSystem implements IPoolSystem {
         switch (sys.controllerType || ControllerType.Unknown) {
             case ControllerType.Unknown:
             case ControllerType.Nixie:
-            case ControllerType.Virtual:
                 state.equipment.controllerType = sys.controllerType = ControllerType.Nixie;
                 let board = sys.board as NixieBoard;
                 (async () => { await board.initNixieBoard(); })();

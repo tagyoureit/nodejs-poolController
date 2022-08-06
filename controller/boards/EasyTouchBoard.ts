@@ -466,7 +466,14 @@ export class EasyTouchBoard extends SystemBoard {
     public heaters: TouchHeaterCommands = new TouchHeaterCommands(this);
     public chemControllers: TouchChemControllerCommands = new TouchChemControllerCommands(this);
     protected _configQueue: TouchConfigQueue = new TouchConfigQueue();
-
+    public reloadConfig() {
+        //sys.resetSystem();
+        sys.configVersion.clear();
+        state.status = 0;
+        this.needsConfigChanges = true;
+        console.log('RESETTING THE CONFIGURATION');
+        this.modulesAcquired = false;
+    }
     public checkConfiguration() {
         if ((this.needsConfigChanges || (Date.now().valueOf() - new Date(sys.configVersion.lastUpdated).valueOf()) / 1000 / 60 > 20)) {
             //this._configQueue.clearTimer();
