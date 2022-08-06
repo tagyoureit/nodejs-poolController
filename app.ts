@@ -70,7 +70,6 @@ export async function stopPacketCaptureAsync() {
 export async function stopAsync(): Promise<void> {
     try {
         console.log('Shutting down open processes');
-        // await sys.board.virtualPumpControllers.stopAsync();
         await webApp.stopAutoBackup();
         await sys.stopAsync();
         await state.stopAsync();

@@ -42,7 +42,6 @@ import { TouchScheduleCommands } from "controller/boards/EasyTouchBoard";
 import { IntelliValveStateMessage } from "./status/IntelliValveStateMessage";
 import { IntelliChemStateMessage } from "./status/IntelliChemStateMessage";
 import { OutboundMessageError } from "../../Errors";
-import { prototype } from "events";
 import extend = require("extend");
 export enum Direction {
     In = 'in',

@@ -1,0 +1,82 @@
+import { sys } from "../../../../Equipment";
+import { PumpState, state } from "../../../../State";
+import { Outbound } from "../../Messages";
+
+export class MockPump {
+  constructor(){}
+
+  public convertOutbound(outboundMsg: Outbound){
+    let response: Outbound = Outbound.create({
+      portId: outboundMsg.portId,
+      protocol: outboundMsg.protocol
+    });
+
+    switch (outboundMsg.action){
+      case 7:
+        return this.pumpStatus(outboundMsg, response);
+      default:
+        return this.pumpAck(outboundMsg, response);
+    }
+  }
+
+  public pumpStatus(outboundMsg: Outbound, response: Outbound){
+    let pState:PumpState = state.pumps.getItemById(outboundMsg.dest - 96);
+    let pt = sys.board.valueMaps.pumpTypes.get(pState.type);
+    response.action = 7;
+    response.source = outboundMsg.dest;
+    response.dest = outboundMsg.source;
+    response.setPayloadBytes(0, 15);
+    response.setPayloadByte(0, pState.command, 2);
+    response.setPayloadByte(1, pState.mode, 0);
+    response.setPayloadByte(2, pState.driveState, 2);
+    let watts = 0;
+    if (Math.max(pState.rpm, pState.flow) > 0){
+      if (pState.rpm > 0) watts = pState.rpm/pt.maxSpeed * 2000 + this.random(100);
+      else if (pState.flow > 0) watts = pState.flow/pt.maxFlow * 2000 + this.random(100);
+      else //ss, ds, etc
+      watts = 2000 + this.random(250);
+    }
+    response.setPayloadByte(3, Math.floor(watts / 256), 0);
+    response.setPayloadByte(4, watts % 256, 0);
+    response.setPayloadByte(5, Math.floor(pState.rpm / 256), 0);
+    response.setPayloadByte(6, pState.rpm % 256, 0);
+    response.setPayloadByte(7, pState.flow, 0);
+    response.setPayloadByte(8, pState.ppc, 0);
+    // 9, 10 = unknown
+    // 11, 12 = Status code; 
+    response.setPayloadByte(11, Math.floor(pState.status / 256), 0);
+    response.setPayloadByte(12, pState.status % 256, 1);
+    let time = new Date();
+    response.setPayloadByte(13, time.getHours() * 60);
+    response.setPayloadByte(14, time.getMinutes());
+    
+    return response.toPacket()
+  }
+
+  public pumpAck(outboundMsg: Outbound, response: Outbound){
+    response.action = outboundMsg.action;
+    response.source = outboundMsg.dest;
+    response.dest = outboundMsg.source;
+    switch (outboundMsg.action){
+      case 10: {
+        response.setPayloadByte(0, outboundMsg.payload[2]);
+        response.setPayloadByte(1, outboundMsg.payload[3]);
+        break;
+      }
+      default:    
+        response.setPayloadByte(0, outboundMsg.payload[0]);
+      }
+    return response.toPacket();
+  }
+
+  private random(bounds: number, onlyPositive: boolean = false){
+    let rand = Math.random() * bounds;
+    if (!onlyPositive) {
+      if (Math.random()<=.5) rand = rand * -1;
+    }
+    return rand;
+  }
+
+}
+
+export var mockPump: MockPump = new MockPump();

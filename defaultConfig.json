@@ -14,7 +14,7 @@
         "dataBits": 8,
         "parity": "none",
         "stopBits": 1,
-        "flowControl": false,
+        "rtscts": false,
         "autoOpen": false,
         "lock": false
       }

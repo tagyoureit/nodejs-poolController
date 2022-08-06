@@ -68,13 +68,16 @@ export class ConfigRoute {
                 let cfg = config.getSection('controller');
                 for (let section in cfg) {
                     if (section.startsWith('comms')) {
-                        let cport = extend(true, { enabled: false, netConnect: false }, cfg[section]);
+                        let cport = extend(true, { enabled: false, netConnect: false, mockPort: false }, cfg[section]);
                         let port = conn.findPortById(cport.portId || 0);
                         if (typeof port !== 'undefined') cport.stats = port.stats;
                         opts.ports.push(cport);
                     }
                 }
                 opts.local = await conn.getLocalPortsAsync() || [];
+                opts.local.push({
+                    "path": "MOCK_PORT"
+                });
                 return res.status(200).send(opts);
             } catch (err) { next(err); }
         });
