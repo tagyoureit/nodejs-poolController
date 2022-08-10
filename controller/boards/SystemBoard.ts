@@ -3775,6 +3775,7 @@ export class ScheduleCommands extends BoardCommands {
     // if we make it this far, nothing is impacting us
     return false;
   }
+  public async updateSunriseSunsetAsync():Promise<boolean> {return Promise.resolve(false);};
 }
 export class HeaterCommands extends BoardCommands {
     public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {

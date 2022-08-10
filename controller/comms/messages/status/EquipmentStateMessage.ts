@@ -181,7 +181,12 @@ export class EquipmentStateMessage {
 
                     // RSG - added 7/8/2020
                     // Every 30 mins, check the timezone and adjust DST settings
-                    if (dt.getMinutes() % 30 === 0) sys.board.system.setTZ();
+                    if (dt.getMinutes() % 30 === 0) {
+                        sys.board.system.setTZ();
+                        sys.board.schedules.updateSunriseSunsetAsync().then((updated: boolean)=>{
+                            if (updated) {logger.debug(`Sunrise/sunset times updated on schedules.`);}
+                        });
+                    }
                     // Check and update clock when it is off by >5 mins (just for a small buffer) and:
                     // 1. IntelliCenter has "manual" time set (Internet will automatically adjust) and autoAdjustDST is enabled
                     // 2. *Touch is "manual" (only option) and autoAdjustDST is enabled - (same as #1)

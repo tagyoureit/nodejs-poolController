@@ -882,6 +882,41 @@ export class TouchScheduleCommands extends ScheduleCommands {
             conn.queueSendMessage(out);
         });
     }
+    public async updateSunriseSunsetAsync(): Promise<boolean> {
+        // *Touch doesn't have a notion of sunrise/sunset on the schedules;
+        // This will check the schedule and if the existing sunrise/sunset times 
+        // are not matching the desired time it will update the time on the OCP.
+        // https://github.com/tagyoureit/nodejs-poolController/discussions/560#discussioncomment-3362149
+        if (!state.heliotrope.isCalculated) { return Promise.resolve(false); }
+        const sunrise = state.heliotrope.sunrise.getHours() * 60 + state.heliotrope.sunrise.getMinutes();
+        const sunset = state.heliotrope.sunset.getHours() * 60 + state.heliotrope.sunset.getMinutes();
+
+        let anyUpdated = false;
+        for (let i = 0; i <= sys.schedules.length; i++) {
+            let sUpdated = false;
+            let sched = sys.schedules.getItemByIndex(i);
+            if (sched.startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise') && sched.startTime !== sunrise) {
+                sched.startTime = sunrise;
+                anyUpdated = sUpdated = true;
+            }
+            else if (sched.startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset') && sched.startTime !== sunset) {
+                sched.startTime = sunset;
+                anyUpdated = sUpdated = true;
+            }
+            if (sched.endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise') && sched.endTime !== sunrise) {
+                sched.endTime = sunrise;
+                anyUpdated = sUpdated = true;
+            }
+            else if (sched.endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset') && sched.endTime !== sunset) {
+                sched.endTime = sunset;
+                anyUpdated = sUpdated = true;
+            }
+            if (sUpdated) {
+                await sys.board.schedules.setScheduleAsync({id: sched.id});
+            }
+        }
+        return Promise.resolve(anyUpdated);
+    };
 }
 
 // todo: this can be implemented as a bytevaluemap
@@ -1167,7 +1202,7 @@ class TouchBodyCommands extends BodyCommands {
             // 1    | 97  | Spa setpoint
             // 2    | 7   | Pool/spa heat modes (01 = Heater spa 11 = Solar Only pool)
             // 3    | 0   | Cool set point for ultratemp
-            
+
 
             // Heat modes
             // 0 = Off
@@ -2892,7 +2927,7 @@ class TouchChemControllerCommands extends ChemControllerCommands {
                         chem.name = schem.name = name;
                         chem.flowSensor.enabled = false;
                         sys.board.bodies.setBodyAsync(sys.bodies.getItemById(1, false))
-                          .then(()=>{resolve(chem)});
+                            .then(()=>{resolve(chem)});
                     }
                 }
             });
@@ -2919,45 +2954,45 @@ class TouchChemControllerCommands extends ChemControllerCommands {
         let chem = sys.board.chemControllers.findChemController(data);
         if (chem.master === 1) return super.deleteChemControllerAsync(data);
         return new Promise<ChemController>((resolve, reject) => {
-        let out = Outbound.create({
-            action: 211,
-            response: Response.create({ protocol: Protocol.IntelliChem, action: 1, payload: [211] }),
-            retries: 3,
-            payload: [],
-            onComplete: (err) => {
-                if (err) { reject(err); }
-                else {
-                    let schem = state.chemControllers.getItemById(id);
-                    chem.isActive = false;
-                    chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
-                    chem.ph.tank.units = chem.orp.tank.units = '';
-                    schem.isActive = false;
-                    sys.board.bodies.setBodyAsync(sys.bodies.getItemById(1, false))
-                        .then(()=>{
-                            sys.chemControllers.removeItemById(id);
-                            state.chemControllers.removeItemById(id);
-                            resolve(chem);
-                        })
-                        .catch(()=>{reject(err);});
+            let out = Outbound.create({
+                action: 211,
+                response: Response.create({ protocol: Protocol.IntelliChem, action: 1, payload: [211] }),
+                retries: 3,
+                payload: [],
+                onComplete: (err) => {
+                    if (err) { reject(err); }
+                    else {
+                        let schem = state.chemControllers.getItemById(id);
+                        chem.isActive = false;
+                        chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
+                        chem.ph.tank.units = chem.orp.tank.units = '';
+                        schem.isActive = false;
+                        sys.board.bodies.setBodyAsync(sys.bodies.getItemById(1, false))
+                            .then(()=>{
+                                sys.chemControllers.removeItemById(id);
+                                state.chemControllers.removeItemById(id);
+                                resolve(chem);
+                            })
+                            .catch(()=>{reject(err);});
+                    }
                 }
-            }
+            });
+            // I think this payload should delete the controller on Touch.
+            out.insertPayloadBytes(0, 0, 22);
+            out.setPayloadByte(0, chem.address - 144 || 0);
+            out.setPayloadByte(1, Math.floor((chem.ph.setpoint * 100) / 256) || 0);
+            out.setPayloadByte(2, Math.round((chem.ph.setpoint * 100) % 256) || 0);
+            out.setPayloadByte(3, Math.floor(chem.orp.setpoint / 256) || 0);
+            out.setPayloadByte(4, Math.round(chem.orp.setpoint % 256) || 0);
+            out.setPayloadByte(5, 0);
+            out.setPayloadByte(6, 0);
+            out.setPayloadByte(7, Math.floor(chem.calciumHardness / 256) || 0);
+            out.setPayloadByte(8, Math.round(chem.calciumHardness % 256) || 0);
+            out.setPayloadByte(9, chem.cyanuricAcid || 0);
+            out.setPayloadByte(11, Math.floor(chem.alkalinity / 256) || 0);
+            out.setPayloadByte(12, Math.round(chem.alkalinity % 256) || 0);
+            out.setPayloadByte(13, 20);
+            conn.queueSendMessage(out);
         });
-        // I think this payload should delete the controller on Touch.
-        out.insertPayloadBytes(0, 0, 22);
-        out.setPayloadByte(0, chem.address - 144 || 0);
-        out.setPayloadByte(1, Math.floor((chem.ph.setpoint * 100) / 256) || 0);
-        out.setPayloadByte(2, Math.round((chem.ph.setpoint * 100) % 256) || 0);
-        out.setPayloadByte(3, Math.floor(chem.orp.setpoint / 256) || 0);
-        out.setPayloadByte(4, Math.round(chem.orp.setpoint % 256) || 0);
-        out.setPayloadByte(5, 0);
-        out.setPayloadByte(6, 0);
-        out.setPayloadByte(7, Math.floor(chem.calciumHardness / 256) || 0);
-        out.setPayloadByte(8, Math.round(chem.calciumHardness % 256) || 0);
-        out.setPayloadByte(9, chem.cyanuricAcid || 0);
-        out.setPayloadByte(11, Math.floor(chem.alkalinity / 256) || 0);
-        out.setPayloadByte(12, Math.round(chem.alkalinity % 256) || 0);
-        out.setPayloadByte(13, 20);
-        conn.queueSendMessage(out);
-    });
     }
 }
