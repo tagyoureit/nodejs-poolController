@@ -123,7 +123,7 @@ export class NixieChlorinator extends NixieEquipment {
             let isDosing = typeof data.isDosing !== 'undefined' ? utils.makeBool(data.isDosing) : chlor.isDosing;
             let model = typeof data.model !== 'undefined' ? sys.board.valueMaps.chlorinatorModel.encode(data.model) : chlor.model || 0;
             let saltTarget = typeof data.saltTarget === 'number' ? parseInt(data.saltTarget, 10) : chlor.saltTarget;
-
+            let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : chlor.address || 80;
             let portId = typeof data.portId !== 'undefined' ? parseInt(data.portId, 10) : chlor.portId;
             if (chlor.portId !== portId) {
                 if (portId === 0 && sys.controllerType !== ControllerType.Nixie) return Promise.reject(new InvalidEquipmentDataError(`You may not install a chlorinator on an ${sys.controllerType} system that is assigned to the Primary Port that is under Nixe control`, 'Chlorinator', portId));
@@ -145,6 +145,7 @@ export class NixieChlorinator extends NixieEquipment {
             schlor.model = chlor.model = model;
             schlor.body = chlor.body = body.val;
             chlor.portId = portId;
+            chlor.address = address;
             chlor.disabled = disabled;
             chlor.saltTarget = saltTarget;
             chlor.isDosing = isDosing;
@@ -155,6 +156,7 @@ export class NixieChlorinator extends NixieEquipment {
                 this.superChlorStart = 0;
                 this.superChlorinating = false;
             }
+            this.pollEquipmentAsync();
         }
         catch (err) { logger.error(`setChlorinatorAsync: ${err.message}`); return Promise.reject(err); }
     }
@@ -180,7 +182,7 @@ export class NixieChlorinator extends NixieEquipment {
             this.closing = false;
             this._suspendPolling = 0;
             // During startup it won't be uncommon for the comms to be out.  This will be because the body will be off so don't stress it so much.
-            this.pollEquipment();
+            this.pollEquipmentAsync();
         } catch (err) { logger.error(`Error initializing ${this.chlor.name} : ${err.message}`); }
     }
     public isBodyOn() { return sys.board.bodies.isBodyOn(this.chlor.body); }
@@ -201,7 +203,7 @@ export class NixieChlorinator extends NixieEquipment {
             cstate.superChlorRemaining = 0;
         }
     }
-    public async pollEquipment() {
+    public async pollEquipmentAsync() {
         let self = this;
         try {
             if (this._pollTimer) {
@@ -229,7 +231,7 @@ export class NixieChlorinator extends NixieEquipment {
             // Comms failure will be handeled by the message processor.
             logger.error(`Chlorinator ${this.chlor.name} comms failure: ${err.message}`);
         }
-        finally { if(!this.closing) this._pollTimer = setTimeout(() => {self.pollEquipment();}, this.pollingInterval); }
+        finally { if(!this.closing) this._pollTimer = setTimeout(() => {self.pollEquipmentAsync();}, this.pollingInterval); }
     }
     public async takeControl(): Promise<boolean> {
         try {
@@ -245,8 +247,7 @@ export class NixieChlorinator extends NixieEquipment {
                     let out = Outbound.create({
                         portId: this.chlor.portId || 0,
                         protocol: Protocol.Chlorinator,
-                        //dest: this.chlor.id,
-                        dest: 1,
+                        dest: this.chlor.address || 80,
                         action: 0,
                         payload: [0],
                         retries: 3, // IntelliCenter tries 4 times to get a response.
@@ -358,8 +359,7 @@ export class NixieChlorinator extends NixieEquipment {
                 let out = Outbound.create({
                     portId: this.chlor.portId || 0,
                     protocol: Protocol.Chlorinator,
-                    //dest: this.chlor.id,
-                    dest: 1,
+                    dest: this.chlor.address || 80,
                     action: 17,
                     payload: [cstate.targetOutput],
                     retries: 3, // IntelliCenter tries 8 times to make this happen.
@@ -404,8 +404,7 @@ export class NixieChlorinator extends NixieEquipment {
                         let out = Outbound.create({
                             portId: this.chlor.portId || 0,
                             protocol: Protocol.Chlorinator,
-                            //dest: this.chlor.id,
-                            dest: 1,
+                            dest: this.chlor.address || 80,
                             action: 20,
                             payload: [0],
                             retries: 3, // IntelliCenter tries 4 times to get a response.

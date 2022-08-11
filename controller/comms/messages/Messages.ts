@@ -90,7 +90,7 @@ export class Message {
     public get dest(): number {
         if (this.header.length > 2) {
             if (this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink) {
-                return this.header.length > 2 ? (this.header[2] >= 80 ? this.header[2] - 79 : 0) : -1;
+                return this.header.length > 2 ? (this.header[2] >= 80 ? this.header[2] : 0) : -1;
             }
             else if (this.protocol === Protocol.Hayward) {
                 //            src   act   dest             
@@ -103,7 +103,7 @@ export class Message {
     }
     public get source(): number {
         if (this.protocol === Protocol.Chlorinator) {
-            return this.header.length > 2 ? (this.header[2] >= 80 ? 0 : 1) : -1;
+            return this.header.length > 2 ? (this.header[2] >= 80 ? 0 : this.header[2]) : -1;
             // have to assume incoming packets with header[2] >= 80 (sent to a chlorinator)
             // are from controller (0);
             // likewise, if the destination is 0 (controller) we
@@ -750,7 +750,7 @@ class OutboundCommon extends Message {
     public set sub(val: number) { if (this.protocol !== Protocol.Chlorinator && this.protocol !== Protocol.AquaLink) this.header[1] = val; }
     public get sub() { return super.sub; }
     public set dest(val: number) {
-        if (this.protocol === Protocol.Chlorinator) this.header[2] = val + 79;
+        if (this.protocol === Protocol.Chlorinator) this.header[2] = val;
         else if (this.protocol === Protocol.Hayward) this.header[4] = val;
         else this.header[2] = val;
     }
@@ -801,16 +801,13 @@ class OutboundCommon extends Message {
             case Protocol.Unidentified:
             case Protocol.IntelliChem:
             case Protocol.Heater:
+            case Protocol.Hayward:
                 this.chkHi = Math.floor(sum / 256);
                 this.chkLo = (sum - (super.chkHi * 256));
                 break;
             case Protocol.AquaLink:
             case Protocol.Chlorinator:
-                this.term[0] = sum;
-                break;
-            case Protocol.Hayward:
-                this.chkHi = Math.floor(sum / 256);
-                this.chkLo = (sum - (super.chkHi * 256));
+                this.term[0] = sum % 256;
                 break;
         }
     }
@@ -979,11 +976,11 @@ export class Outbound extends OutboundCommon {
         if (typeof s === 'undefined') s = def;
         let l = typeof len === 'undefined' ? s.length : len;
         let buf = [];
-        for (let i = 0; i < l; l++) {
-            if (i < l) buf.push(s.charCodeAt(i));
-            else buf.push(i);
+        for (let i = 0; i < l; i++) {
+            if (i < s.length) buf.push(s.charCodeAt(i));
+            else buf.push(0);
         }
-        this.payload.splice(start, 0, ...buf);
+        this.payload.splice(start, l, ...buf);
         return this;
     }
     public toPacket(): number[] {

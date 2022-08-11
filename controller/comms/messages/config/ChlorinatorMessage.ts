@@ -85,7 +85,7 @@ export class ChlorinatorMessage {
                 // chlorinator.  These should be 0 anyway.
                 schlor.spaSetpoint = chlor.spaSetpoint = msg.extractPayloadByte(0) >> 1;
                 schlor.poolSetpoint = chlor.poolSetpoint = msg.extractPayloadByte(1);
-                chlor.address = chlor.id + 79;
+                chlor.address = msg.dest;
                 schlor.body = chlor.body = sys.equipment.maxBodies >= 1 || sys.equipment.shared === true ? 32 : 0;
             }
             if (typeof chlor.name === 'undefined') schlor.name = chlor.name = msg.extractPayloadString(6, 16);

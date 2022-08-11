@@ -75,9 +75,6 @@ export class ConfigRoute {
                     }
                 }
                 opts.local = await conn.getLocalPortsAsync() || [];
-                opts.local.push({
-                    "path": "MOCK_PORT"
-                });
                 return res.status(200).send(opts);
             } catch (err) { next(err); }
         });

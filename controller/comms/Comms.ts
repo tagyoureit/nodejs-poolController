@@ -89,6 +89,7 @@ export class Connection {
             pdata.rs485Port = typeof data.rs485Port !== 'undefined' ? data.rs485Port : pdata.rs485Port;
             pdata.inactivityRetry = typeof data.inactivityRetry === 'number' ? data.inactivityRetry : pdata.inactivityRetry;
             pdata.mockPort = typeof data.mockPort !== 'undefined' ? utils.makeBool(data.mockPort) : utils.makeBool(pdata.mockPort);
+            if (pdata.mockPort) {pdata.rs485Port = 'MOCK_PORT';}
             if (pdata.netConnect) {
                 pdata.netHost = typeof data.netHost !== 'undefined' ? data.netHost : pdata.netHost;
                 pdata.netPort = typeof data.netPort === 'number' ? data.netPort : pdata.netPort;
@@ -415,7 +416,7 @@ export class RS485Port {
                     if (err) {
                         this.resetConnTimer();
                         this.isOpen = false;
-                        logger.error(`Error opening port ${this.portId}: ${err.message}. ${this._cfg.inactivityRetry > 0 ? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; inactivityRetry set to ${this._cfg.inactivityRetry}`}`);
+                        logger.error(`Error opening port ${this.portId}: ${err.message}. ${this._cfg.inactivityRetry > 0 && !this.mockPort? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; (fwiw, inactivityRetry set to ${this._cfg.inactivityRetry})`}`);
                         resolve(false);
                     }
                     else resolve(true);
@@ -706,8 +707,8 @@ export class RS485Port {
         // This ends in goofiness as it can send more than one message at a time while it
         // waits for the command buffer to be flushed.  NOTE: There is no success message and the callback to
         // write only verifies that the buffer got ahold of it.
+        let self = this;
         try {
-            let self = this;
             if (!this.isRTS || this.closing) return;
             var bytes = msg.toPacket();
             if (this.isOpen) {
@@ -773,7 +774,23 @@ export class RS485Port {
             }
         }
         catch (err) {
-            logger.error(`Error sending message: ${err.message}`)
+            logger.error(`Error sending message: ${err.message}
+            for message: ${msg.toShortPacket()}`)
+            // the show, err, messages, must go on!
+            if (this.isOpen){
+                clearTimeout(this.writeTimer);
+                this.writeTimer = null;
+                msg.tries++;
+                this.isRTS = true;
+                msg.failed = true;
+                // this is a hard fail.  We don't have any more tries left and the message didn't
+                // make it onto the wire.
+                let error = new OutboundMessageError(msg, `Message aborted after ${msg.tries} attempt(s): ${err} `);
+                if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
+                this._waitingPacket = null;
+                this.counter.sndAborted++;
+                
+            }
         }
     }
     private clearResponses(msgIn: Inbound) {

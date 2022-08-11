@@ -1978,7 +1978,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             schlor.spaSetpoint = chlor.spaSetpoint = spaSetpoint;
             schlor.superChlorHours = chlor.superChlorHours = superChlorHours;
             schlor.body = chlor.body = body;
-            chlor.address = 79 + id;
+            if (typeof chlor.address === 'undefined') chlor.address = 80; // 79 + id;
             chlor.name = schlor.name = name;
             schlor.model = chlor.model = model;
             schlor.type = chlor.type = chlorType;

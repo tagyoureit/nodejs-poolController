@@ -3,6 +3,7 @@ import { logger } from "../../../../logger/Logger";
 import { ControllerType } from "../../../../controller/Constants";
 import { Outbound, Protocol } from "../Messages";
 import { mockPump } from "./status/MockPump";
+import { mockChlor } from "./status/MockChlorinator";
 
 
 export class MessagesMock {
@@ -34,10 +35,10 @@ export class MessagesMock {
           break;
       /* case Protocol.Heater:
           HeaterStateMessage.process(outboundMsg);
-          break;
+          break;*/
       case Protocol.Chlorinator:
-          ChlorinatorStateMessage.process(outboundMsg);
-          break;
+            return mockChlor.convertOutbound(outboundMsg);
+          /*
       case Protocol.Hayward:
           PumpStateMessage.processHayward(outboundMsg);
           break; */

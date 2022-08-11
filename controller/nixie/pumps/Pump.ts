@@ -70,6 +70,7 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
                         let npump = this.pumpFactory(pump);
                         logger.info(`Initializing Nixie Pump ${npump.id}-${pump.name}`);
                         this.push(npump);
+                        await npump.initAsync();
                     }
                 }
             }
@@ -172,7 +173,15 @@ export class NixiePump extends NixieEquipment {
         super(ncp);
         this.pump = pump;
         this._targetSpeed = 0;
-        this.pollEquipmentAsync();
+    }
+    public async initAsync() {
+        if (this._pollTimer) {
+            clearTimeout(this._pollTimer);
+            this._pollTimer = undefined;
+        }
+        this.closing = false;
+        this._suspendPolling = 0;
+        this.pollEquipmentAsync(); 
     }
     public get id(): number { return typeof this.pump !== 'undefined' ? this.pump.id : -1; }
     public async setPumpStateAsync(pstate: PumpState) {
@@ -244,6 +253,7 @@ export class NixiePump extends NixieEquipment {
             sys.pumps.sortById();
             state.pumps.sortById();
             this.pump.hasChanged = true;
+            this.pollEquipmentAsync(); 
             return Promise.resolve(new InterfaceServerResponse(200, 'Ok'));
         }
         catch (err) { logger.error(`Nixie setPumpAsync: ${err.message}`); return Promise.reject(err); }
@@ -251,7 +261,10 @@ export class NixiePump extends NixieEquipment {
     public async pollEquipmentAsync() {
         let self = this;
         try {
-            if (this.suspendPolling || this.closing) return;
+            // RSG 8-2022.  Refactored to add initasync.  With this.pollEquipmentAsync inside the
+            // constructor we could get here before the pump is initialized.  The added check
+            // for the 112 address prevented that previously, but now is just a final fail safe.
+            if (this.suspendPolling || this.closing || this.pump.address > 112) return;
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
             // let success = false;

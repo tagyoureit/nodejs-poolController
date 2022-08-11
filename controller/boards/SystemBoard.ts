@@ -3325,6 +3325,7 @@ export class ChlorinatorCommands extends BoardCommands {
         schlor.model = chlor.model = typeof obj.model !== 'undefined' ? sys.board.valueMaps.chlorinatorModel.encode(obj.model) : chlor.model;
         chlor.type = schlor.type = typeof obj.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(obj.type) : chlor.type || 0;
         chlor.body = schlor.body = body.val;
+        chlor.address = typeof obj.address !== 'undefined' ? parseInt(obj.address,10) : 80;
         schlor.poolSetpoint = chlor.poolSetpoint = poolSetpoint;
         schlor.spaSetpoint = chlor.spaSetpoint = spaSetpoint;
         chlor.ignoreSaltReading = typeof obj.ignoreSaltReading !== 'undefined' ? utils.makeBool(obj.ignoreSaltReading) : utils.makeBool(chlor.ignoreSaltReading);

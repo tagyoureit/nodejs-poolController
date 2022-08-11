@@ -1,71 +1,57 @@
-import { sys } from "../../../../Equipment";
-import { PumpState, state } from "../../../../State";
+import { logger } from "../../../../../logger/Logger";
 import { Outbound } from "../../Messages";
 
-export class MockPump {
+export class MockChlorinator {
   constructor(){}
 
   public convertOutbound(outboundMsg: Outbound){
     let response: Outbound = Outbound.create({
       portId: outboundMsg.portId,
-      protocol: outboundMsg.protocol
+      protocol: outboundMsg.protocol,
+      dest: 0
     });
 
     switch (outboundMsg.action){
-      case 7:
-        return this.pumpStatus(outboundMsg, response);
-      default:
-        return this.pumpAck(outboundMsg, response);
-    }
-  }
-
-  public pumpStatus(outboundMsg: Outbound, response: Outbound){
-    let pState:PumpState = state.pumps.getItemById(outboundMsg.dest - 96);
-    let pt = sys.board.valueMaps.pumpTypes.get(pState.type);
-    response.action = 7;
-    response.source = outboundMsg.dest;
-    response.dest = outboundMsg.source;
-    response.setPayloadBytes(0, 15);
-    response.setPayloadByte(0, pState.command, 2);
-    response.setPayloadByte(1, pState.mode, 0);
-    response.setPayloadByte(2, pState.driveState, 2);
-    let watts = 0;
-    if (Math.max(pState.rpm, pState.flow) > 0){
-      if (pState.rpm > 0) watts = pState.rpm/pt.maxSpeed * 2000 + this.random(100);
-      else if (pState.flow > 0) watts = pState.flow/pt.maxFlow * 2000 + this.random(100);
-      else //ss, ds, etc
-      watts = 2000 + this.random(250);
-    }
-    response.setPayloadByte(3, Math.floor(watts / 256), 0);
-    response.setPayloadByte(4, watts % 256, 0);
-    response.setPayloadByte(5, Math.floor(pState.rpm / 256), 0);
-    response.setPayloadByte(6, pState.rpm % 256, 0);
-    response.setPayloadByte(7, pState.flow, 0);
-    response.setPayloadByte(8, pState.ppc, 0);
-    // 9, 10 = unknown
-    // 11, 12 = Status code; 
-    response.setPayloadByte(11, Math.floor(pState.status / 256), 0);
-    response.setPayloadByte(12, pState.status % 256, 1);
-    let time = new Date();
-    response.setPayloadByte(13, time.getHours() * 60);
-    response.setPayloadByte(14, time.getMinutes());
-    
-    return response.toPacket()
-  }
-
-  public pumpAck(outboundMsg: Outbound, response: Outbound){
-    response.action = outboundMsg.action;
-    response.source = outboundMsg.dest;
-    response.dest = outboundMsg.source;
-    switch (outboundMsg.action){
-      case 10: {
-        response.setPayloadByte(0, outboundMsg.payload[2]);
-        response.setPayloadByte(1, outboundMsg.payload[3]);
+      case 0: // Set control OCP->Chlorinator: [16,2,80,0][0][98,16,3]
+        return this.chlorSetControl(outboundMsg, response);
+      case 17: // OCP->Chlorinator set output. [16,2,80,17][15][130,16,3]
+        return this.chlorSetOutput(outboundMsg, response);
+        case 19: // iChlor keep alive(?) [16, 2, 80, 19][117, 16, 3]
+        // need response   
         break;
-      }
-      default:    
-        response.setPayloadByte(0, outboundMsg.payload[0]);
-      }
+      case 20: // OCP->Chlorinator Get model [16,2,80,20][0][118,16,3]
+        return this.chlorGetModel(outboundMsg, response);
+      default:
+        logger.info(`No mock chlorinator response for ${outboundMsg.toShortPacket()} `);
+    }
+  }
+
+   public chlorSetControl(outboundMsg: Outbound, response: Outbound){
+    /*     
+    {"port":0,"id":42633,"valid":true,"dir":"out","proto":"chlorinator","pkt":[[],[], [16,2,80,0], [0],[98,16,3]],"ts":"2022-07-19T21:45:59.959-0700"}
+    {"port":0,"id":42634,"valid":true,"dir":"in","proto":"chlorinator","for":[42633],"pkt":[[],[],[16,2,0,1],[0,0],[19,16,3]],"ts": "2022-07-19T21:45:59.999-0700"} */
+    response.action = 1;
+    response.appendPayloadBytes(0, 2);
+    return response.toPacket();
+  }
+  public chlorSetOutput(outboundMsg: Outbound, response: Outbound){
+    /*     
+    {"port":0,"id":42639,"valid":true,"dir":"out","proto":"chlorinator","pkt":[[],[], [16,2,80,17], [100],[215,16,3]],"ts":"2022-07-19T21:46:00.302-0700"}
+    {"port":0,"id":42640,"valid":true,"dir":"in","proto":"chlorinator","for":[42639],"pkt":[[],[],[16,2,0,18],[78,128],[242,16,3]],"ts": "2022-07-19T21:46:00.341-0700"} */
+    response.action = 18;
+    response.appendPayloadBytes(0, 2);
+    // ideal high = 4500 = 90 * 50; ideal low = 2800 = 56 * 50
+    response.setPayloadByte(0, this.random(90-56, true)+56, 75)
+    response.setPayloadByte(1, 128); 
+    return response.toPacket();
+  }
+  public chlorGetModel(outboundMsg: Outbound, response: Outbound){
+    /*  
+    {"port":0,"id":42645,"valid":true,"dir":"out","proto":"chlorinator","pkt":[[],[], [16,2,80,20], [0],[118,16,3]],"ts":"2022-07-19T21:46:00.645-0700"}   
+    {"port":0,"id":42646,"valid":true,"dir":"in","proto":"chlorinator","for":[42645],"pkt":[[],[],[16,2,0,3],[0,73,110,116,101,108,108,105,99,104,108,111,114,45,45,54,48],[190,16,3]],"ts": "2022-07-19T21:46:00.700-0700"}   */
+    response.action = 3;
+    response.appendPayloadBytes(0, 17);
+    response.insertPayloadString(1, 'INTELLICHLOR--60');
     return response.toPacket();
   }
 
@@ -79,4 +65,4 @@ export class MockPump {
 
 }
 
-export var mockPump: MockPump = new MockPump();
+export var mockChlor: MockChlorinator = new MockChlorinator();

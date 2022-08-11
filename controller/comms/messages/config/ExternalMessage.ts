@@ -855,7 +855,7 @@ export class ExternalMessage {
                 // chlorinator.  These should be 0 anyway.
                 schlor.poolSetpoint = chlor.spaSetpoint = msg.extractPayloadByte(0) >> 1;
                 schlor.spaSetpoint = chlor.poolSetpoint = msg.extractPayloadByte(1);
-                chlor.address = chlor.id + 79;
+                if (typeof chlor.address === 'undefined') chlor.address = 80; // chlor.id + 79;
                 schlor.body = chlor.body = sys.equipment.maxBodies >= 1 || sys.equipment.shared === true ? 32 : 0;
             }
             schlor.superChlor = chlor.superChlor = msg.extractPayloadByte(2) - 128 > 0;
