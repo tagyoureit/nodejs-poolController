@@ -30,7 +30,7 @@ export class SunTouchBoard extends EasyTouchBoard {
     constructor(system: PoolSystem) {
         super(system); // graph chain to EasyTouchBoard constructor.
         this.valueMaps.expansionBoards = new byteValueMap([
-            [41, { name: 'shared', part: '520820', desc: 'Pool and Spa controller', bodies: 2, valves: 4, circuits: 5, single: false, shared: true, dual: false, features: 4, chlorinators: 1, chemControllers: 1  }],
+            [41, { name: 'shared', part: '520820', desc: 'Pool and Spa controller', bodies: 2, valves: 4, circuits: 5, single: false, shared: true, dual: false, features: 4, chlorinators: 1, chemControllers: 1 }],
             [40, { name: 'stsingle', part: '520819', desc: 'Pool or Spa controller', bodies: 2, valves: 4, circuits: 5, single: true, shared: true, dual: false, features: 4, chlorinators: 1, chemControllers: 1 }]
         ]);
         this._statusInterval = -1;
@@ -214,83 +214,79 @@ export class SunTouchBoard extends EasyTouchBoard {
 class SunTouchConfigQueue extends TouchConfigQueue {
     public queueChanges() {
         this.reset();
-        if (conn.mockPort) {
-            logger.info(`Skipping configuration request from OCP because MockPort enabled.`);
-        } else {
-            logger.info(`Requesting ${sys.controllerType} configuration`);
-            // Config categories that do nothing
-            // 195 - [0-2]
-            // 196 - [0-2]
-            // 198 - [0-2]
-            // 199 - [0-2]
-            // 201 - [0-2]
-            // 202 - [0-2] - Custom Names
-            // 204 - [0-2]
-            // 205 - [0-2]
-            // 206 - [0-2]
-            // 207 - [0-2]
-            // 208 - [0-2]
-            // 209 - [0-10] - This returns invalid data about schedules.  It is simply not correct
-            // 212 - [0-2]
-            // 213 - [0-2]
-            // 214 - [0]
-            // 215 - [0-2]
-            // 216 - [0-4] - This does not return anything about the pumps
-            // 218 - [0-2]
-            // 219 - [0-2]
-            // 220 - [0-2]
-            // 223 - [0-2]
-            // 224 - [1-2]
-            // 226 - [0]
-            // 228 - [0-2]
-            // 229 - [0-2]
-            // 230 - [0-2]
-            // 231 - [0-2]
-            // 233 - [0-2]
-            // 234 - [0-2]
-            // 235 - [0-2]
-            // 236 - [0-2]
-            // 237 - [0-2]
-            // 238 - [0-2]
-            // 239 - [0-2]
-            // 240 - [0-2]
-            // 241 - [0-2]
-            // 242 - [0-2]
-            // 243 - [0-2]
-            // 244 - [0-2]
-            // 245 - [0-2]
-            // 246 - [0-2]
-            // 247 - [0-2]
-            // 248 - [0-2]
-            // 249 - [0-2]
-            // 250 - [0-2]
-            // 251 - [0-2]
+        logger.info(`Requesting ${sys.controllerType} configuration`);
+        // Config categories that do nothing
+        // 195 - [0-2]
+        // 196 - [0-2]
+        // 198 - [0-2]
+        // 199 - [0-2]
+        // 201 - [0-2]
+        // 202 - [0-2] - Custom Names
+        // 204 - [0-2]
+        // 205 - [0-2]
+        // 206 - [0-2]
+        // 207 - [0-2]
+        // 208 - [0-2]
+        // 209 - [0-10] - This returns invalid data about schedules.  It is simply not correct
+        // 212 - [0-2]
+        // 213 - [0-2]
+        // 214 - [0]
+        // 215 - [0-2]
+        // 216 - [0-4] - This does not return anything about the pumps
+        // 218 - [0-2]
+        // 219 - [0-2]
+        // 220 - [0-2]
+        // 223 - [0-2]
+        // 224 - [1-2]
+        // 226 - [0]
+        // 228 - [0-2]
+        // 229 - [0-2]
+        // 230 - [0-2]
+        // 231 - [0-2]
+        // 233 - [0-2]
+        // 234 - [0-2]
+        // 235 - [0-2]
+        // 236 - [0-2]
+        // 237 - [0-2]
+        // 238 - [0-2]
+        // 239 - [0-2]
+        // 240 - [0-2]
+        // 241 - [0-2]
+        // 242 - [0-2]
+        // 243 - [0-2]
+        // 244 - [0-2]
+        // 245 - [0-2]
+        // 246 - [0-2]
+        // 247 - [0-2]
+        // 248 - [0-2]
+        // 249 - [0-2]
+        // 250 - [0-2]
+        // 251 - [0-2]
 
-            this.queueItems(GetTouchConfigCategories.version); // 252
-            this.queueItems(GetTouchConfigCategories.dateTime, [0]); //197
-            this.queueItems(GetTouchConfigCategories.heatTemperature, [0]); // 200
-            //this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1); 202 SunTouch does not appear to support custom names.  No responses
-            this.queueItems(GetTouchConfigCategories.solarHeatPump, [0]); // 208
-            this.queueRange(GetTouchConfigCategories.circuits, 1, sys.board.equipmentIds.features.end); // 203 circuits & Features
-            //this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules); // 209 This return is worthless in SunTouch
-            this.queueItems(GetTouchConfigCategories.delays, [0]); // 227
-            this.queueItems(GetTouchConfigCategories.settings, [0]); // 232
-            this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes, [0]); // 225 QuickTouch
-            this.queueItems(GetTouchConfigCategories.valves, [0]); // 221
+        this.queueItems(GetTouchConfigCategories.version); // 252
+        this.queueItems(GetTouchConfigCategories.dateTime, [0]); //197
+        this.queueItems(GetTouchConfigCategories.heatTemperature, [0]); // 200
+        //this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1); 202 SunTouch does not appear to support custom names.  No responses
+        this.queueItems(GetTouchConfigCategories.solarHeatPump, [0]); // 208
+        this.queueRange(GetTouchConfigCategories.circuits, 1, sys.board.equipmentIds.features.end); // 203 circuits & Features
+        //this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules); // 209 This return is worthless in SunTouch
+        this.queueItems(GetTouchConfigCategories.delays, [0]); // 227
+        this.queueItems(GetTouchConfigCategories.settings, [0]); // 232
+        this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes, [0]); // 225 QuickTouch
+        this.queueItems(GetTouchConfigCategories.valves, [0]); // 221
 
-            // Check for these positions to see if we can get it to spit out all the schedules.
-            this.queueItems(222, [0]); // First 2 schedules.  This request ignores the payload and does not return additional items.
-            this.queueItems(211, [0]);
-            this.queueItems(19, [0]);  // If we send this request it will respond with a valid 147.  The correct request however should be 211.
-            //this.queueRange(GetTouchConfigCategories.circuitGroups, 0, sys.equipment.maxFeatures - 1);  SunTouch does not support macros
-            this.queueItems(GetTouchConfigCategories.intellichlor, [0]); // 217
-            //let test = [195, 196, 208, 214, 218, 219, 220, 226, 228, 229, 230, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251];
-            //for (let i = 0; i < test.length; i++) {
-            //    let cat = test[i];
-            //    this.queueRange(cat, 0, 2);
-            //}
+        // Check for these positions to see if we can get it to spit out all the schedules.
+        this.queueItems(222, [0]); // First 2 schedules.  This request ignores the payload and does not return additional items.
+        this.queueItems(211, [0]);
+        this.queueItems(19, [0]);  // If we send this request it will respond with a valid 147.  The correct request however should be 211.
+        //this.queueRange(GetTouchConfigCategories.circuitGroups, 0, sys.equipment.maxFeatures - 1);  SunTouch does not support macros
+        this.queueItems(GetTouchConfigCategories.intellichlor, [0]); // 217
+        //let test = [195, 196, 208, 214, 218, 219, 220, 226, 228, 229, 230, 240, 241, 242, 243, 244, 245, 246, 247, 248, 249, 250, 251];
+        //for (let i = 0; i < test.length; i++) {
+        //    let cat = test[i];
+        //    this.queueRange(cat, 0, 2);
+        //}
 
-        }
         if (this.remainingItems > 0) {
             var self = this;
             setTimeout(() => { self.processNext(); }, 50);
@@ -318,26 +314,19 @@ class SunTouchCircuitCommands extends TouchCircuitCommands {
         let mappedId = id;
         if (id === 7) mappedId = 5;
         else if (id > 6) mappedId = id - 1;
-        return new Promise<ICircuitState>((resolve, reject) => {
-            let cstate = state.circuits.getInterfaceById(id);
-            let out = Outbound.create({
-                action: 134,
-                payload: [mappedId, val ? 1 : 0],
-                retries: 3,
-                response: true,
-                scope: `circuitState${id}`,
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        sys.board.circuits.setEndTime(c, cstate, val);
-                        cstate.isOn = val;
-                        state.emitEquipmentChanges();
-                        resolve(cstate);
-                    }
-                }
-            });
-            conn.queueSendMessage(out);
+        let cstate = state.circuits.getInterfaceById(id);
+        let out = Outbound.create({
+            action: 134,
+            payload: [mappedId, val ? 1 : 0],
+            retries: 3,
+            response: true,
+            scope: `circuitState${id}`
         });
+        await out.sendAsync();
+        sys.board.circuits.setEndTime(c, cstate, val);
+        cstate.isOn = val;
+        state.emitEquipmentChanges();
+        return cstate;
 
     }
     public async setCircuitAsync(data: any): Promise<ICircuit> {
@@ -360,48 +349,42 @@ class SunTouchCircuitCommands extends TouchCircuitCommands {
             let mappedId = id;
             if (id === 7) mappedId = 5;
             else if (id > 6) mappedId = id - 1;
-            return new Promise<ICircuit>(async (resolve, reject) => {
-                let out = Outbound.create({
-                    action: 139,
-                    payload: [mappedId, typeByte | (utils.makeBool(data.freeze) ? 64 : 0), nameByte, 0, 0],
-                    retries: 3,
-                    response: true,
-                    onComplete: async (err, msg) => {
-                        if (err) reject(err);
-                        else {
-                            let circuit = sys.circuits.getInterfaceById(data.id);
-                            let cstate = state.circuits.getInterfaceById(data.id);
-                            circuit.nameId = cstate.nameId = nameByte;
-                            circuit.name = typeof data.name !== 'undefined' ? data.name.toString() : circuit.name;
-                            circuit.showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? data.showInFeatures : circuit.showInFeatures || true;
-                            circuit.freeze = typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze;
-                            circuit.type = cstate.type = typeByte;
-                            circuit.eggTimer = typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer || 720;
-                            circuit.dontStop = (typeof data.dontStop !== 'undefined') ? utils.makeBool(data.dontStop) : circuit.eggTimer === 1620;
-                            cstate.isActive = circuit.isActive = true;
-                            circuit.master = 0;
-                            let eggTimer = sys.eggTimers.find(elem => elem.circuit === parseInt(data.id, 10));
-                            try {
-                                if (circuit.eggTimer === 720) {
-                                    if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
-                                }
-                                else {
-                                    await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: circuit.eggTimer, dontStop: circuit.dontStop, circuit: circuit.id });
-                                }
-                            }
-                            catch (err) {
-                                // fail silently if there are no slots to fill in the schedules
-                                logger.info(`Cannot set/delete eggtimer on circuit ${circuit.id}.  Error: ${err.message}`);
-                                circuit.eggTimer = 720;
-                                circuit.dontStop = false;
-                            }
-                            state.emitEquipmentChanges();
-                            resolve(circuit);
-                        }
-                    }
-                });
-                conn.queueSendMessage(out);
+
+            let out = Outbound.create({
+                action: 139,
+                payload: [mappedId, typeByte | (utils.makeBool(data.freeze) ? 64 : 0), nameByte, 0, 0],
+                retries: 3,
+                response: true
             });
+            await out.sendAsync();
+            circuit = sys.circuits.getInterfaceById(data.id);
+            let cstate = state.circuits.getInterfaceById(data.id);
+            circuit.nameId = cstate.nameId = nameByte;
+            circuit.name = typeof data.name !== 'undefined' ? data.name.toString() : circuit.name;
+            circuit.showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? data.showInFeatures : circuit.showInFeatures || true;
+            circuit.freeze = typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze;
+            circuit.type = cstate.type = typeByte;
+            circuit.eggTimer = typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer || 720;
+            circuit.dontStop = (typeof data.dontStop !== 'undefined') ? utils.makeBool(data.dontStop) : circuit.eggTimer === 1620;
+            cstate.isActive = circuit.isActive = true;
+            circuit.master = 0;
+            let eggTimer = sys.eggTimers.find(elem => elem.circuit === parseInt(data.id, 10));
+            try {
+                if (circuit.eggTimer === 720) {
+                    if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
+                }
+                else {
+                    await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: circuit.eggTimer, dontStop: circuit.dontStop, circuit: circuit.id });
+                }
+            }
+            catch (err) {
+                // fail silently if there are no slots to fill in the schedules
+                logger.info(`Cannot set/delete eggtimer on circuit ${circuit.id}.  Error: ${err.message}`);
+                circuit.eggTimer = 720;
+                circuit.dontStop = false;
+            }
+            state.emitEquipmentChanges();
+            return circuit;
         }
         catch (err) { logger.error(`setCircuitAsync error setting circuit ${JSON.stringify(data)}: ${err}`); return Promise.reject(err); }
     }

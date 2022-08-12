@@ -25,7 +25,7 @@ export class MockPump {
     response.action = 7;
     response.source = outboundMsg.dest;
     response.dest = outboundMsg.source;
-    response.setPayloadBytes(0, 15);
+    response.appendPayloadBytes(0, 15);
     response.setPayloadByte(0, pState.command, 2);
     response.setPayloadByte(1, pState.mode, 0);
     response.setPayloadByte(2, pState.driveState, 2);
@@ -58,13 +58,14 @@ export class MockPump {
     response.source = outboundMsg.dest;
     response.dest = outboundMsg.source;
     switch (outboundMsg.action){
+      case 1:
       case 10: {
-        response.setPayloadByte(0, outboundMsg.payload[2]);
-        response.setPayloadByte(1, outboundMsg.payload[3]);
+        response.appendPayloadByte(outboundMsg.payload[2]);
+        response.appendPayloadByte(outboundMsg.payload[3]);
         break;
       }
       default:    
-        response.setPayloadByte(0, outboundMsg.payload[0]);
+        response.appendPayloadByte(outboundMsg.payload[0]);
       }
     return response.toPacket();
   }

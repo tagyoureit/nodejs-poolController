@@ -331,7 +331,6 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
     }
     public async sendConfig(schem: ChemControllerState): Promise<boolean> {
         try {
-            return await new Promise<boolean>((resolve, reject) => {
                 this.configSent = false;
                 let out = Outbound.create({
                     protocol: Protocol.IntelliChem,
@@ -341,16 +340,7 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
                     payload: [],
                     retries: 3, // We are going to try 4 times.
                     response: Response.create({ protocol: Protocol.IntelliChem, action: 1 }),
-                    onAbort: () => { },
-                    onComplete: (err) => {
-                        if (err) {
-                            resolve(false);
-                        }
-                        else {
-                            this.configSent = true;
-                            resolve(true);
-                        }
-                    }
+                    onAbort: () => { }
                 });
                 out.insertPayloadBytes(0, 0, 21);
                 out.setPayloadByte(0, Math.floor((this.chem.ph.setpoint * 100) / 256) || 0);
@@ -365,15 +355,15 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
                 out.setPayloadByte(10, Math.floor(this.chem.alkalinity / 256) || 0);
                 out.setPayloadByte(12, Math.round(this.chem.alkalinity % 256) || 0);
                 logger.verbose(`Nixie: ${this.chem.name} sending IntelliChem settings action 146`);
-                conn.queueSendMessage(out);
-            });
+                out.sendAsync();
+                this.configSent = true;
+                return true;
         }
         catch (err) { logger.error(`Error updating IntelliChem: ${err.message}`); }
     }
     public async requestStatus(schem: ChemControllerState): Promise<boolean> {
         try {
             schem.type = 2;
-            let success = await new Promise<boolean>((resolve, reject) => {
                 let out = Outbound.create({
                     protocol: Protocol.IntelliChem,
                     source: 16,
@@ -382,21 +372,17 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
                     payload: [210],
                     retries: 3, // We are going to try 4 times.
                     response: Response.create({ protocol: Protocol.IntelliChem, action: 18 }),
-                    onAbort: () => { },
-                    onComplete: (err) => {
-                        if (err) {
-                            // If the IntelliChem is not responding we need to store that off.  If an 18 does
-                            // come across this will be cleared by the processing of that message.
-                            schem.alarms.comms = sys.board.valueMaps.chemControllerStatus.encode('nocomms');
-                            resolve(false);
-                        }
-                        else { resolve(true); }
-                    }
+                    onAbort: () => { }
                 });
-                conn.queueSendMessage(out);
-            });
-            return success;
-        } catch (err) { logger.error(`Communication error with IntelliChem : ${err.message}`); }
+                await out.sendAsync();
+            return true;
+        } catch (err) { 
+            // If the IntelliChem is not responding we need to store that off.  If an 18 does
+            // come across this will be cleared by the processing of that message.
+            schem.alarms.comms = sys.board.valueMaps.chemControllerStatus.encode('nocomms');
+            logger.error(`Communication error with IntelliChem : ${err.message}`); 
+            return false;
+        }
     }
     public async closeAsync() {
         try {

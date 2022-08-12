@@ -194,6 +194,23 @@ export class Connection {
         else
             logger.error(`queueSendMessage: Message was targeted for undefined port ${msg.portId || 0}`);
     }
+    public async queueSendMessageAsync(msg: Outbound):Promise<boolean> {
+        return new Promise((resolve, reject)=>{
+            let port = this.findPortById(msg.portId);
+            if (typeof port !== 'undefined'){
+                msg.onComplete = (err) => {
+                    if (err) {
+                        reject(err);
+                    }
+                    else resolve(true);
+                }
+                port.emitter.emit('messagewrite', msg);
+            }
+            else
+                logger.error(`queueSendMessage: Message was targeted for undefined port ${msg.portId || 0}`);
+        })
+    }
+
     public pauseAll() {
         for (let i = 0; i < this.rs485Ports.length; i++) {
             let port = this.rs485Ports[i];
@@ -577,7 +594,11 @@ export class RS485Port {
         else {
             if (this._port instanceof SerialPortMock && this.mockPort === true) {
                 let m = messagesMock.process(msg);
-                this._port.port.emitData(Buffer.from(m));
+                // fail silently if packet is not an array;
+                // packet will be rejected after retries expires
+                if (Array.isArray(m)){
+                    this._port.port.emitData(Buffer.from(m));
+                }
                 cb();
             }
             else {

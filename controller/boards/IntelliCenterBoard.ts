@@ -139,7 +139,7 @@ export class IntelliCenterBoard extends SystemBoard {
             [8, { name: 'Valve Exp', part: '522440', desc: 'Valve Expansion Module', valves: 6 }],
             [9, { name: 'A/D Module', part: '522039', desc: 'A/D Cover Module', covers: 2 }], // Finally have a user with one of these
             [10, { name: 'iChlor Mux', part: '522719', desc: 'iChlor MUX Card', chlorinators: 3 }], // This is a guess
-            [255, {name: 'i5x', part: '522033', desc: 'i5x Expansion Module', circuits: 5}] // This does not actually map to a known value at this point but we do know it will be > 6.
+            [255, { name: 'i5x', part: '522033', desc: 'i5x Expansion Module', circuits: 5 }] // This does not actually map to a known value at this point but we do know it will be > 6.
         ]);
 
         this.valueMaps.virtualCircuits = new byteValueMap([
@@ -159,11 +159,11 @@ export class IntelliCenterBoard extends SystemBoard {
         this.valueMaps.msgBroadcastActions.merge([
             [1, { name: 'ack', desc: 'Command Ack' }],
             [30, { name: 'config', desc: 'Configuration' }],
-            [164, {name: 'getconfig', desc: 'Get Configuration'}],
+            [164, { name: 'getconfig', desc: 'Get Configuration' }],
             [168, { name: 'setdata', desc: 'Set Data' }],
             [204, { name: 'stateext', desc: 'State Extension' }],
             [222, { name: 'getdata', desc: 'Get Data' }],
-            [228, {name: 'getversions', desc: 'Get Versions'}]
+            [228, { name: 'getversions', desc: 'Get Versions' }]
         ]);
         this.valueMaps.clockSources.merge([
             [1, { name: 'manual', desc: 'Manual' }],
@@ -175,7 +175,7 @@ export class IntelliCenterBoard extends SystemBoard {
             [2, { name: 'sunset', desc: 'Sunset' }]
         ]);
         this.valueMaps.lightThemes = new byteValueMap([
-            [0, { name: 'white', desc: 'White', sequence: 11, types:['intellibrite', 'magicstream'] }],
+            [0, { name: 'white', desc: 'White', sequence: 11, types: ['intellibrite', 'magicstream'] }],
             [1, { name: 'green', desc: 'Green', sequence: 9, types: ['intellibrite', 'magicstream'] }],
             [2, { name: 'blue', desc: 'Blue', sequence: 8, types: ['intellibrite', 'magicstream'] }],
             [3, { name: 'magenta', desc: 'Magenta', sequence: 12, types: ['intellibrite', 'magicstream'] }],
@@ -316,7 +316,7 @@ export class IntelliCenterBoard extends SystemBoard {
             sys.configVersion.valves = ver.valves;
         }
     }
-    public async stopAsync() { this._configQueue.close(); return super.stopAsync();}
+    public async stopAsync() { this._configQueue.close(); return super.stopAsync(); }
     public initExpansionModules(ocp0A: number, ocp0B: number, xcp1A: number, xcp1B: number, xcp2A: number, xcp2B: number, xcp3A: number, xcp3B: number) {
         state.equipment.controllerType = 'intellicenter';
         let inv = { bodies: 0, circuits: 0, valves: 0, shared: false, dual: false, covers: 0, chlorinators: 0, chemControllers: 0 };
@@ -385,7 +385,7 @@ export class IntelliCenterBoard extends SystemBoard {
         sys.general.options.master = 0;
         for (let i = 0; i < sys.circuits.length; i++) {
             let c = sys.circuits.getItemByIndex(i);
-            if(c.id <= 40) c.master = 0;
+            if (c.id <= 40) c.master = 0;
         }
         for (let i = 0; i < sys.valves.length; i++) {
             let v = sys.valves.getItemByIndex(i);
@@ -401,7 +401,7 @@ export class IntelliCenterBoard extends SystemBoard {
     public processMasterModules(modules: ExpansionModuleCollection, ocpA: number, ocpB: number, inv?) {
         // Map the expansion panels to their specific types through the valuemaps.  Sadly this means that
         // we need to determine if anything needs to be removed or added before actually doing it.
-        if (typeof inv === 'undefined') inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 0, chemControllers: 0};
+        if (typeof inv === 'undefined') inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 0, chemControllers: 0 };
         let slot0 = ocpA & 0x0F;
         let slot1 = (ocpA & 0xF0) >> 4;
         let slot2 = (ocpB & 0xF0) >> 4;
@@ -509,7 +509,7 @@ export class IntelliCenterBoard extends SystemBoard {
         let slot2 = (ocpB & 0xF0) >> 4;
         let slot3 = ocpB & 0xF;
         // Slot 0 always has to have a personality card but on an expansion module it cannot be 0.  At this point we only know that an i10x = 6 for slot 0.
-        if (slot0 <= 2) {  
+        if (slot0 <= 2) {
             modules.removeItemById(0);
             panel.isActive = false;
         }
@@ -671,7 +671,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             // as both boards are processing at the same time and sending an outbound ack.
             let out = Outbound.create({
                 action: 222, payload: [this.curr.category, itm], retries: 5,
-                response: Response.create({ dest:-1, action: 30, payload: [this.curr.category, itm], callback: () => { self.processNext(out); } })
+                response: Response.create({ dest: -1, action: 30, payload: [this.curr.category, itm], callback: () => { self.processNext(out); } })
             });
             logger.verbose(`Requesting config for: ${ConfigCategories[this.curr.category]} - Item: ${itm}`);
             setTimeout(() => { conn.queueSendMessage(out) }, 50);
@@ -691,7 +691,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
     }
     public queueChanges(ver: ConfigVersion) {
         let curr: ConfigVersion = sys.configVersion;
-        
+
         if (this._processing) {
             if (curr.hasChanges(ver)) this._newRequest = true;
             if (sys.configVersion.lastUpdated.getTime() > new Date().getTime() - 90000)
@@ -723,7 +723,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             req.oncomplete = function (req: IntelliCenterConfigRequest) {
                 let maxId = sys.features.getMaxId(true, 0) - sys.board.equipmentIds.features.start + 1;
                 // We only need to get the feature names required.  This will fill these after we know we have them.
-                if(maxId > 0) req.fillRange(6, Math.min(Math.ceil(maxId / 2) + 6, 21));
+                if (maxId > 0) req.fillRange(6, Math.min(Math.ceil(maxId / 2) + 6, 21));
             };
             this.push(req);
         }
@@ -748,7 +748,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             this.push(req);
         }
         if (this.compareVersions(curr.circuitGroups, ver.circuitGroups)) {
-            let req = new IntelliCenterConfigRequest(ConfigCategories.circuitGroups, ver.circuitGroups, [32,33], function (req: IntelliCenterConfigRequest) {
+            let req = new IntelliCenterConfigRequest(ConfigCategories.circuitGroups, ver.circuitGroups, [32, 33], function (req: IntelliCenterConfigRequest) {
                 // Only get group attributes for the ones we have defined.  The total number of message for all potential groups exceeds 50.
                 if (sys.circuitGroups.length + sys.lightGroups.length > 0) {
                     let maxId = (Math.max(sys.circuitGroups.getMaxId(true, 0), sys.lightGroups.getMaxId(true, 0)) - sys.board.equipmentIds.circuitGroups.start) + 1;
@@ -858,60 +858,56 @@ class IntelliCenterSystemCommands extends SystemCommands {
         });
     }
     public async setGeneralAsync(obj?: any): Promise<General> {
-        return new Promise<General>(async (resolve, reject) => {
-            try {
-                await new Promise<void>((resolve, reject) => {
-                    if (typeof obj.alias === 'string' && obj.alias !== sys.general.alias) {
-                        let out = Outbound.create({
-                            action: 168,
-                            payload: [12, 0, 0],
-                            retries: 3,
-                            onComplete: (err, msg) => {
-                                if (err) return Promise.reject(err);
-                                else { sys.general.alias = obj.alias; resolve(); }
-                            }
-                        }).appendPayloadString(obj.alias, 16);
-                        conn.queueSendMessage(out);
-                    }
-                    resolve();
-                });
-                if (typeof obj.options !== 'undefined') await sys.board.system.setOptionsAsync(obj.options).catch((err) => {
-                    console.log(`Caught reject from setOptionsAsync`);
-                    throw err;
-                });
-                if (typeof obj.location !== 'undefined') await sys.board.system.setLocationAsync(obj.location);
-                if (typeof obj.owner !== 'undefined') await sys.board.system.setOwnerAsync(obj.owner);
-                resolve(sys.general);
+        try {
+            if (typeof obj.alias === 'string' && obj.alias !== sys.general.alias) {
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [12, 0, 0],
+                    retries: 3
+                }).appendPayloadString(obj.alias, 16);
+                await out.sendAsync();
+                sys.general.alias = obj.alias;
             }
-            catch (err) {
-                console.log(`Rejected setGeneralAsync`);
-                reject(err);
+            if (typeof obj.options !== 'undefined') {
+                try {
+                    await sys.board.system.setOptionsAsync(obj.options)
+                }
+                catch (err) {
+                    logger.error(`Caught reject from setOptionsAsync`);
+                    return Promise.reject(err);
+                }
             }
-        });
+            if (typeof obj.location !== 'undefined') await sys.board.system.setLocationAsync(obj.location);
+            if (typeof obj.owner !== 'undefined') await sys.board.system.setOwnerAsync(obj.owner);
+            return sys.general;
+        }
+        catch (err) {
+            console.log(`Rejected setGeneralAsync: ${err.message}`);
+            return Promise.reject(err);
+        }
     }
     public async setTempSensorsAsync(obj?: any): Promise<TempSensorCollection> {
-        return new Promise<TempSensorCollection>(async (resolve, reject) => {
-            try {
-                let sensors = {
-                    waterTempAdj1: obj.waterTempAdj1,
-                    waterTempAdj2: obj.waterTempAdj2,
-                    waterTempAdj3: obj.waterTempAdj3,
-                    waterTempAdj4: obj.waterTempAdj4,
-                    airTempAdj: obj.airTempAdj, 
-                    solarTempAdj1: obj.solarTempAdj1,
-                    solarTempAdj2: obj.solarTempAdj2,
-                    solarTempAdj3: obj.solarTempAdj3,
-                    solarTempAdj4: obj.solarTempAdj4,
-                }
-                await this.setOptionsAsync(sensors); // Map this to the options message as these are one in the same.
-                resolve(sys.equipment.tempSensors);
+        try {
+            let sensors = {
+                waterTempAdj1: obj.waterTempAdj1,
+                waterTempAdj2: obj.waterTempAdj2,
+                waterTempAdj3: obj.waterTempAdj3,
+                waterTempAdj4: obj.waterTempAdj4,
+                airTempAdj: obj.airTempAdj,
+                solarTempAdj1: obj.solarTempAdj1,
+                solarTempAdj2: obj.solarTempAdj2,
+                solarTempAdj3: obj.solarTempAdj3,
+                solarTempAdj4: obj.solarTempAdj4,
             }
-            catch (err) { reject(err); }
-        });
+            await this.setOptionsAsync(sensors); // Map this to the options message as these are one in the same.
+            return sys.equipment.tempSensors;
+        }
+        catch (err) { return Promise.reject(err); }
+
     }
-    public async setOptionsAsync(obj?: any) : Promise<Options> {
+    public async setOptionsAsync(obj?: any): Promise<Options> {
         let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : Math.abs(num) || 0; }
-        
+
         let payload = [0, 0, 0,
             fnToByte(sys.equipment.tempSensors.getCalibration('water2')),
             fnToByte(sys.equipment.tempSensors.getCalibration('water1')),
@@ -940,7 +936,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
             15,
             sys.general.options.pumpDelay ? 1 : 0,  // 30
             sys.general.options.cooldownDelay ? 1 : 0,
-            0, 0, 100, 0, 0, 0, 0, 
+            0, 0, 100, 0, 0, 0, 0,
             sys.general.options.manualPriority ? 1 : 0, // 39
             sys.general.options.manualHeat ? 1 : 0];
         let arr = [];
@@ -948,273 +944,193 @@ class IntelliCenterSystemCommands extends SystemCommands {
             if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.equipment.tempSensors.getCalibration('water1')) {
                 payload[2] = 1;
                 payload[4] = fnToByte(parseInt(obj.waterTempAdj1, 10)) || 0;
-                await new Promise<void>((resolve, reject) => {
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: payload,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.equipment.tempSensors.setCalibration('water1', parseInt(obj.waterTempAdj1, 10)); resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                await out.sendAsync();
+                sys.equipment.tempSensors.setCalibration('water1', parseInt(obj.waterTempAdj1, 10));
             }
             if (typeof obj.waterTempAdj2 != 'undefined' && obj.waterTempAdj2 !== sys.equipment.tempSensors.getCalibration('water2')) {
-                await new Promise<void>((resolve, reject) => {
-                    payload[2] = 4;
-                    payload[7] = fnToByte(parseInt(obj.waterTempAdj2, 10)) || 0;
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: payload,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.equipment.tempSensors.setCalibration('water2', parseInt(obj.waterTempAdj2, 10)); resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                payload[2] = 4;
+                payload[7] = fnToByte(parseInt(obj.waterTempAdj2, 10)) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                await out.sendAsync();
+                sys.equipment.tempSensors.setCalibration('water2', parseInt(obj.waterTempAdj2, 10));
             }
             if (typeof obj.waterTempAdj3 != 'undefined' && obj.waterTempAdj3 !== sys.equipment.tempSensors.getCalibration('water3')) {
-                await new Promise<void>((resolve, reject) => {
-                    payload[2] = 6;
-                    payload[9] = fnToByte(parseInt(obj.waterTempAdj3, 10)) || 0;
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: payload,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.equipment.tempSensors.setCalibration('water3', parseInt(obj.waterTempAdj3, 10)); resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                payload[2] = 6;
+                payload[9] = fnToByte(parseInt(obj.waterTempAdj3, 10)) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                await out.sendAsync();
+                sys.equipment.tempSensors.setCalibration('water3', parseInt(obj.waterTempAdj3, 10));
             }
             if (typeof obj.waterTempAdj4 != 'undefined' && obj.waterTempAdj4 !== sys.equipment.tempSensors.getCalibration('water4')) {
-                await new Promise<void>((resolve, reject) => {
-                    payload[2] = 8;
-                    payload[11] = fnToByte(parseInt(obj.waterTempAdj4, 10)) || 0;
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        payload: payload,
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.equipment.tempSensors.setCalibration('water4', parseInt(obj.waterTempAdj3, 10)); resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                payload[2] = 8;
+                payload[11] = fnToByte(parseInt(obj.waterTempAdj4, 10)) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    response: IntelliCenterBoard.getAckResponse(168),
+                    payload: payload
                 });
+                await out.sendAsync();
+                sys.equipment.tempSensors.setCalibration('water4', parseInt(obj.waterTempAdj3, 10));
             }
 
             if (typeof obj.solarTempAdj1 != 'undefined' && obj.solarTempAdj1 !== sys.equipment.tempSensors.getCalibration('solar1')) {
-                await new Promise<void>((resolve, reject) => {
-                    payload[2] = 2;
-                    payload[5] = fnToByte(parseInt(obj.solarTempAdj1, 10)) || 0;
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: payload,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.equipment.tempSensors.setCalibration('solar1', parseInt(obj.solarTempAdj1, 10)); resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                payload[2] = 2;
+                payload[5] = fnToByte(parseInt(obj.solarTempAdj1, 10)) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                await out.sendAsync();
+                sys.equipment.tempSensors.setCalibration('solar1', parseInt(obj.solarTempAdj1, 10));
             }
             if (typeof obj.solarTempAdj2 != 'undefined' && obj.solarTempAdj2 !== sys.equipment.tempSensors.getCalibration('solar2')) {
-                await new Promise<void>((resolve, reject) => {
-                    payload[2] = 5;
-                    payload[8] = fnToByte(parseInt(obj.solarTempAdj2, 10)) || 0;
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: payload,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.equipment.tempSensors.setCalibration('solar2', parseInt(obj.solarTempAdj2, 10)); resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                payload[2] = 5;
+                payload[8] = fnToByte(parseInt(obj.solarTempAdj2, 10)) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                await out.sendAsync();
+                sys.equipment.tempSensors.setCalibration('solar2', parseInt(obj.solarTempAdj2, 10));
             }
             if (typeof obj.solarTempAdj3 != 'undefined' && obj.solarTempAdj3 !== sys.equipment.tempSensors.getCalibration('solar3')) {
-                await new Promise<void>((resolve, reject) => {
-                    payload[2] = 7;
-                    payload[10] = fnToByte(parseInt(obj.solarTempAdj3, 10)) || 0;
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: payload,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.equipment.tempSensors.setCalibration('solar3', parseInt(obj.solarTempAdj3, 10)); resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                payload[2] = 7;
+                payload[10] = fnToByte(parseInt(obj.solarTempAdj3, 10)) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                await out.sendAsync();
+                sys.equipment.tempSensors.setCalibration('solar3', parseInt(obj.solarTempAdj3, 10));
             }
             if (typeof obj.solarTempAdj4 != 'undefined' && obj.solarTempAdj4 !== sys.equipment.tempSensors.getCalibration('solar4')) {
-                await new Promise<void>((resolve, reject) => {
-                    payload[2] = 8;
-                    payload[12] = fnToByte(parseInt(obj.solarTempAdj4, 10)) || 0;
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: payload,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.equipment.tempSensors.setCalibration('solar3', parseInt(obj.solarTempAdj3, 10)); resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                payload[2] = 8;
+                payload[12] = fnToByte(parseInt(obj.solarTempAdj4, 10)) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                await out.sendAsync();
+                sys.equipment.tempSensors.setCalibration('solar3', parseInt(obj.solarTempAdj3, 10));
             }
             if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.equipment.tempSensors.getCalibration('air')) {
-                await new Promise<void>((resolve, reject) => {
-                    payload[2] = 3;
-                    payload[6] = fnToByte(parseInt(obj.airTempAdj, 10)) || 0;
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        payload: payload,
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.equipment.tempSensors.setCalibration('air', parseInt(obj.airTempAdj, 10)); resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                payload[2] = 3;
+                payload[6] = fnToByte(parseInt(obj.airTempAdj, 10)) || 0;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    response: IntelliCenterBoard.getAckResponse(168),
+                    payload: payload
                 });
+                await out.sendAsync();
+                sys.equipment.tempSensors.setCalibration('air', parseInt(obj.airTempAdj, 10));
             }
             if ((typeof obj.clockMode !== 'undefined' && obj.clockMode !== sys.general.options.clockMode) ||
                 (typeof obj.adjustDST !== 'undefined' && obj.adjustDST !== sys.general.options.adjustDST)) {
-                await new Promise<void>(function (resolve, reject) {
-                    let byte = 0x30; // These bits are always set.
-                    if (typeof obj.clockMode === 'undefined') byte |= sys.general.options.clockMode === 24 ? 0x40 : 0x00;
-                    else byte |= obj.clockMode === 24 ? 0x40 : 0x00;
-                    if (typeof obj.adjustDST === 'undefined') byte |= sys.general.options.adjustDST ? 0x80 : 0x00;
-                    else byte |= obj.adjustDST ? 0x80 : 0x00;
-                    payload[2] = 11;
-                    payload[14] = byte;
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        payload: payload,
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else {
-                                if (typeof obj.clockMode !== 'undefined') sys.general.options.clockMode = obj.clockMode === 24 ? 24 : 12;
-                                if (typeof obj.adjustDST !== 'undefined' || sys.general.options.clockSource !== 'server') sys.general.options.adjustDST = obj.adjustDST ? true : false;
-                                resolve();
-                            }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                let byte = 0x30; // These bits are always set.
+                if (typeof obj.clockMode === 'undefined') byte |= sys.general.options.clockMode === 24 ? 0x40 : 0x00;
+                else byte |= obj.clockMode === 24 ? 0x40 : 0x00;
+                if (typeof obj.adjustDST === 'undefined') byte |= sys.general.options.adjustDST ? 0x80 : 0x00;
+                else byte |= obj.adjustDST ? 0x80 : 0x00;
+                payload[2] = 11;
+                payload[14] = byte;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    response: IntelliCenterBoard.getAckResponse(168),
+                    payload: payload
                 });
+                await out.sendAsync();
+                if (typeof obj.clockMode !== 'undefined') sys.general.options.clockMode = obj.clockMode === 24 ? 24 : 12;
+                if (typeof obj.adjustDST !== 'undefined' || sys.general.options.clockSource !== 'server') sys.general.options.adjustDST = obj.adjustDST ? true : false;
             }
+
             if (typeof obj.clockSource != 'undefined' && obj.clockSource !== sys.general.options.clockSource) {
-                await new Promise<void>((resolve, reject) => {
-                    payload[2] = 11;
-                    payload[17] = obj.clockSource === 'internet' ? 0x01 : 0x00;
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: payload,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else {
-                                if (obj.clockSource === 'internet' || obj.clockSource === 'server' || obj.clockSource === 'manual')
-                                    sys.general.options.clockSource = obj.clockSource;
-                                sys.board.system.setTZ();
-                                resolve();
-                            }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                payload[2] = 11;
+                payload[17] = obj.clockSource === 'internet' ? 0x01 : 0x00;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                await out.sendAsync();
+                if (obj.clockSource === 'internet' || obj.clockSource === 'server' || obj.clockSource === 'manual')
+                    sys.general.options.clockSource = obj.clockSource;
+                sys.board.system.setTZ();
             }
             if (typeof obj.pumpDelay !== 'undefined' && obj.pumpDelay !== sys.general.options.pumpDelay) {
-                await new Promise<void>((resolve, reject) => {
-                    payload[2] = 27;
-                    payload[30] = obj.pumpDelay ? 0x01 : 0x00;
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        payload: payload,
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.options.pumpDelay = obj.pumpDelay ? true : false; resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                payload[2] = 27;
+                payload[30] = obj.pumpDelay ? 0x01 : 0x00;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    response: IntelliCenterBoard.getAckResponse(168),
+                    payload: payload
                 });
+                await out.sendAsync();
+                sys.general.options.pumpDelay = obj.pumpDelay ? true : false;
             }
             if (typeof obj.cooldownDelay !== 'undefined' && obj.cooldownDelay !== sys.general.options.cooldownDelay) {
-                await new Promise<void>((resolve, reject) => {
-                    payload[2] = 28;
-                    payload[31] = obj.cooldownDelay ? 0x01 : 0x00;
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: payload,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.options.cooldownDelay = obj.cooldownDelay ? true : false; resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                payload[2] = 28;
+                payload[31] = obj.cooldownDelay ? 0x01 : 0x00;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                await out.sendAsync();
+                sys.general.options.cooldownDelay = obj.cooldownDelay ? true : false;
             }
             if (typeof obj.manualPriority !== 'undefined' && obj.manualPriority !== sys.general.options.manualPriority) {
-                await new Promise<void>((resolve, reject) => {
-                    payload[2] = 36;
-                    payload[39] = obj.manualPriority ? 0x01 : 0x00;
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: payload,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.options.manualPriority = obj.manualPriority ? true : false; resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                payload[2] = 36;
+                payload[39] = obj.manualPriority ? 0x01 : 0x00;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                await out.sendAsync();
+                sys.general.options.manualPriority = obj.manualPriority ? true : false;
             }
             if (typeof obj.manualHeat !== 'undefined' && obj.manualHeat !== sys.general.options.manualHeat) {
-                await new Promise<void>((resolve, reject) => {
-                    payload[2] = 37;
-                    payload[40] = obj.manualHeat ? 0x01 : 0x00;
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: payload,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.options.manualHeat = obj.manualHeat ? true : false; resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                payload[2] = 37;
+                payload[40] = obj.manualHeat ? 0x01 : 0x00;
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: payload,
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                await out.sendAsync();
+                sys.general.options.manualHeat = obj.manualHeat ? true : false;
             }
             return Promise.resolve(sys.general.options);
         }
@@ -1224,136 +1140,96 @@ class IntelliCenterSystemCommands extends SystemCommands {
         try {
             let arr = [];
             if (typeof obj.address === 'string' && obj.address !== sys.general.location.address) {
-                await new Promise<void>((resolve, reject) => {
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: [12, 0, 1],
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.location.address = obj.address; resolve(); }
-                        }
-                    });
-                    out.appendPayloadString(obj.address, 32);
-                    conn.queueSendMessage(out);
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: [12, 0, 1],
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                out.appendPayloadString(obj.address, 32);
+                await out.sendAsync();
+                sys.general.location.address = obj.address;
             }
             if (typeof obj.country === 'string' && obj.country !== sys.general.location.country) {
-                await new Promise<void>((resolve, reject) => {
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: [12, 0, 8],
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.location.country = obj.country; resolve(); }
-                        }
-                    });
-                    out.appendPayloadString(obj.country, 32);
-                    conn.queueSendMessage(out);
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: [12, 0, 8],
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                out.appendPayloadString(obj.country, 32);
+                await out.sendAsync();
+                sys.general.location.country = obj.country;
             }
             if (typeof obj.city === 'string' && obj.city !== sys.general.location.city) {
-                await new Promise<void>((resolve, reject) => {
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: [12, 0, 9],
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.location.city = obj.city; resolve(); }
-                        }
-                    });
-                    out.appendPayloadString(obj.city, 32);
-                    conn.queueSendMessage(out);
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: [12, 0, 9],
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                out.appendPayloadString(obj.city, 32);
+                await out.sendAsync();
+                sys.general.location.city = obj.city;
             }
             if (typeof obj.state === 'string' && obj.state !== sys.general.location.state) {
-                await new Promise<void>((resolve, reject) => {
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: [12, 0, 10],
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.location.state = obj.state; resolve(); }
-                        }
-                    });
-                    out.appendPayloadString(obj.state, 32);
-                    conn.queueSendMessage(out);
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: [12, 0, 10],
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                out.appendPayloadString(obj.state, 32);
+                await out.sendAsync();
+                sys.general.location.state = obj.state;
             }
             if (typeof obj.zip === 'string' && obj.zip !== sys.general.location.zip) {
-                await new Promise<void>((resolve, reject) => {
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: [12, 0, 7],
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.location.zip = obj.zip; resolve(); }
-                        }
-                    });
-                    out.appendPayloadString(obj.zip, 6);
-                    conn.queueSendMessage(out);
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: [12, 0, 7],
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                out.appendPayloadString(obj.zip, 6);
+                await out.sendAsync();
+                sys.general.location.zip = obj.zip;
             }
 
             if (typeof obj.latitude === 'number' && obj.latitude !== sys.general.location.latitude) {
-                await new Promise<void>((resolve, reject) => {
-                    let lat = Math.round(Math.abs(obj.latitude) * 100);
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: [12, 0, 11,
-                            Math.floor(lat / 256),
-                            lat - Math.floor(lat / 256)],
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.location.longitude = lat / 100; resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                let lat = Math.round(Math.abs(obj.latitude) * 100);
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: [12, 0, 11,
+                        Math.floor(lat / 256),
+                        lat - Math.floor(lat / 256)],
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                await out.sendAsync();
+                sys.general.location.longitude = lat / 100;
             }
             if (typeof obj.longitude === 'number' && obj.longitude !== sys.general.location.longitude) {
-                await new Promise<void>((resolve, reject) => {
-                    let lon = Math.round(Math.abs(obj.longitude) * 100);
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: [12, 0, 12,
-                            Math.floor(lon / 256),
-                            lon - Math.floor(lon / 256)],
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.location.longitude = -(lon / 100); resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                let lon = Math.round(Math.abs(obj.longitude) * 100);
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: [12, 0, 12,
+                        Math.floor(lon / 256),
+                        lon - Math.floor(lon / 256)],
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                await out.sendAsync();
+                sys.general.location.longitude = -(lon / 100);
             }
             if (typeof obj.timeZone === 'number' && obj.timeZone !== sys.general.location.timeZone) {
-                await new Promise<void>((resolve, reject) => {
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: [12, 0, 13, parseInt(obj.timeZone, 10)],
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.location.timeZone = parseInt(obj.timeZone, 10); resolve(); }
-                        }
-                    });
-                    conn.queueSendMessage(out);
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: [12, 0, 13, parseInt(obj.timeZone, 10)],
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                await out.sendAsync();
+                sys.general.location.timeZone = parseInt(obj.timeZone, 10);
             }
             return Promise.resolve(sys.general.location);
         }
@@ -1363,84 +1239,59 @@ class IntelliCenterSystemCommands extends SystemCommands {
         let arr = [];
         try {
             if (typeof obj.name === 'string' && obj.name !== sys.general.owner.name) {
-                await new Promise<void>((resolve, reject) => {
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: [12, 0, 2],
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.owner.name = obj.name; resolve(); }
-                        }
-                    });
-                    out.appendPayloadString(obj.name, 16);
-                    conn.queueSendMessage(out);
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: [12, 0, 2],
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                out.appendPayloadString(obj.name, 16);
+                await out.sendAsync();
+                sys.general.owner.name = obj.name;
             }
             if (typeof obj.email === 'string' && obj.email !== sys.general.owner.email) {
-                await new Promise<void>((resolve, reject) => {
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: [12, 0, 3],
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.owner.email = obj.email; resolve(); }
-                        }
-                    });
-                    out.appendPayloadString(obj.email, 32);
-                    conn.queueSendMessage(out);
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: [12, 0, 3],
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                out.appendPayloadString(obj.email, 32);
+                await out.sendAsync();
+                sys.general.owner.email = obj.email;
             }
             if (typeof obj.email2 === 'string' && obj.email2 !== sys.general.owner.email2) {
-                await new Promise<void>((resolve, reject) => {
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        payload: [12, 0, 4],
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.owner.email2 = obj.email2; resolve(); }
-                        }
-                    });
-                    out.appendPayloadString(obj.email2, 32);
-                    conn.queueSendMessage(out);
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    response: IntelliCenterBoard.getAckResponse(168),
+                    payload: [12, 0, 4]
                 });
+                out.appendPayloadString(obj.email2, 32);
+                await out.sendAsync();
+                sys.general.owner.email2 = obj.email2;
             }
             if (typeof obj.phone2 === 'string' && obj.phone2 !== sys.general.owner.phone2) {
-                await new Promise<void>((resolve, reject) => {
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: [12, 0, 6],
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.owner.phone2 = obj.phone2; resolve(); }
-                        }
-                    });
-                    out.appendPayloadString(obj.phone2, 16);
-                    conn.queueSendMessage(out);
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: [12, 0, 6],
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                out.appendPayloadString(obj.phone2, 16);
+                await out.sendAsync();
+                sys.general.owner.phone2 = obj.phone2;
             }
             if (typeof obj.phone === 'string' && obj.phone !== sys.general.owner.phone) {
-                await new Promise<void>((resolve, reject) => {
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: [12, 0, 5],
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { sys.general.owner.phone = obj.phone; resolve(); }
-                        }
-                    });
-                    out.appendPayloadString(obj.phone, 16);
-                    conn.queueSendMessage(out);
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: [12, 0, 5],
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+                out.appendPayloadString(obj.phone, 16);
+                await out.sendAsync();
+                sys.general.owner.phone = obj.phone;
             }
             return Promise.resolve(sys.general.owner);
         }
@@ -1463,12 +1314,13 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         } catch (err) { logger.error(`checkEggTimerExpiration: Error synchronizing circuit relays ${err.message}`); }
     }
     public async setCircuitAsync(data: any): Promise<ICircuit> {
-        let id = parseInt(data.id, 10);
-        let circuit = sys.circuits.getItemById(id, false);
-        // Alright check to see if we are adding a nixie circuit.
-        if (id === -1 || circuit.master !== 0) 
-            return await super.setCircuitAsync(data);
-        return new Promise<ICircuit>((resolve, reject) => {
+        try {
+
+            let id = parseInt(data.id, 10);
+            let circuit = sys.circuits.getItemById(id, false);
+            // Alright check to see if we are adding a nixie circuit.
+            if (id === -1 || circuit.master !== 0)
+                return await super.setCircuitAsync(data);
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit Id has not been defined', data.id, 'Circuit'));
             if (!sys.board.equipmentIds.circuits.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Circuit Id ${id}: is out of range.`, id, 'Circuit'));
             let eggTimer = Math.min(typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer, 1440);
@@ -1488,37 +1340,36 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze) ? 1 : 0,
                     (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures) ? 1 : 0,
                     theme,
-                    eggHrs, eggMins, data.dontStop ? 1 : 0],
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        let scircuit = state.circuits.getItemById(circuit.id, true);
-                        circuit.eggTimer = eggTimer;
-                        circuit.dontStop = data.dontStop;
-                        circuit.freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze);
-                        scircuit.showInFeatures = circuit.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures);
-                        if (type === 9) scircuit.level = circuit.level = theme;
-                        else {
-                            let t = sys.board.valueMaps.circuitFunctions.transform(type);
-                            if (t.isLight == true) scircuit.lightingTheme = circuit.lightingTheme = theme;
-                            else {
-                                scircuit.lightingTheme = undefined;
-                                circuit.lightingTheme = 0;
-                            }
-                        }
-                        scircuit.name = circuit.name = typeof data.name !== 'undefined' ? data.name.toString().substring(0, 16) : circuit.name;
-                        scircuit.type = circuit.type = type;
-                        scircuit.isActive = circuit.isActive = true;
-                        circuit.master = 0;
-                        resolve(circuit);
-                    }
-                }
+                    eggHrs, eggMins, data.dontStop ? 1 : 0]
             });
             out.appendPayloadString(typeof data.name !== 'undefined' ? data.name.toString() : circuit.name, 16);
             out.retries = 5;
             out.response = IntelliCenterBoard.getAckResponse(168);
-            conn.queueSendMessage(out);
-        });
+            await out.sendAsync();
+            let scircuit = state.circuits.getItemById(circuit.id, true);
+            circuit.eggTimer = eggTimer;
+            circuit.dontStop = data.dontStop;
+            circuit.freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze);
+            scircuit.showInFeatures = circuit.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures);
+            if (type === 9) scircuit.level = circuit.level = theme;
+            else {
+                let t = sys.board.valueMaps.circuitFunctions.transform(type);
+                if (t.isLight == true) scircuit.lightingTheme = circuit.lightingTheme = theme;
+                else {
+                    scircuit.lightingTheme = undefined;
+                    circuit.lightingTheme = 0;
+                }
+            }
+            scircuit.name = circuit.name = typeof data.name !== 'undefined' ? data.name.toString().substring(0, 16) : circuit.name;
+            scircuit.type = circuit.type = type;
+            scircuit.isActive = circuit.isActive = true;
+            circuit.master = 0;
+            return circuit;
+        }
+        catch (err) {
+            return Promise.reject(err);
+        }
+
     }
     public async setCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         // When we save circuit groups we are going to reorder the whole mess.  IntelliCenter does some goofy
@@ -1553,111 +1404,89 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit group ids exceeded: ${id}`, id, 'circuitGroup'));
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'circuitGroup'));
         try {
-            await new Promise<void>((resolve, reject) => {
-                let eggTimer = (typeof obj.eggTimer !== 'undefined') ? parseInt(obj.eggTimer, 10) : group.eggTimer;
-                if (isNaN(eggTimer)) eggTimer = 720;
-                eggTimer = Math.max(Math.min(1440, eggTimer), 1);
-                if (obj.dontStop === true) eggTimer = 1440;
-                let eggHours = Math.floor(eggTimer / 60);
-                let eggMins = eggTimer - (eggHours * 60);
-                obj.dontStop = (eggTimer === 1440);
+            let eggTimer = (typeof obj.eggTimer !== 'undefined') ? parseInt(obj.eggTimer, 10) : group.eggTimer;
+            if (isNaN(eggTimer)) eggTimer = 720;
+            eggTimer = Math.max(Math.min(1440, eggTimer), 1);
+            if (obj.dontStop === true) eggTimer = 1440;
+            let eggHours = Math.floor(eggTimer / 60);
+            let eggMins = eggTimer - (eggHours * 60);
+            obj.dontStop = (eggTimer === 1440);
 
-                let out = Outbound.create({
-                    action: 168,
-                    payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 2, 0, 0],  // The last byte here should be don't stop but I believe this to be a current bug.
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    retries: 5,
-                    onComplete: (err, msg) => {
-                        if (err) reject(err);
-                        else {
-                            // sgroup.eggTimer = group.eggTimer = eggTimer;
-                            group.eggTimer = eggTimer;
-                            group.dontStop = obj.dontStop;
-                            sgroup.type = group.type = 2;
-                            sgroup.isActive = group.isActive = true;
-                            if (typeof obj.showInFeatures !== 'undefined') group.showInFeatures = utils.makeBool(obj.showInFeatures);
-                            sgroup.showInFeatures = group.showInFeatures;
-                            if (typeof obj.circuits !== 'undefined') {
-                                for (let i = 0; i < obj.circuits.length; i++) {
-                                    let c = group.circuits.getItemByIndex(i, true);
-                                    c.id = i + 1;
-                                    c.circuit = obj.circuits[i].circuit;
-                                }
-                                for (let i = obj.circuits.length; i < group.circuits.length; i++)
-                                    group.circuits.removeItemByIndex(i);
-                            }
-                            resolve();
-                        }
-                    }
-                });
-                // Add in all the info for the circuits.
-                if (typeof obj.circuits === 'undefined')
-                    for (let i = 0; i < 16; i++) {
-                        let c = group.circuits.getItemByIndex(i, false);
-                        out.payload.push(c.circuit ? c.circuit - 1 : 255);
-                    }
-                else {
-                    for (let i = 0; i < 16; i++)
-                        (i < obj.circuits.length) ? out.payload.push(obj.circuits[i].circuit - 1) : out.payload.push(255);
+            let out = Outbound.create({
+                action: 168,
+                payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 2, 0, 0],  // The last byte here should be don't stop but I believe this to be a current bug.
+                response: IntelliCenterBoard.getAckResponse(168),
+                retries: 5
+            });
+            // Add in all the info for the circuits.
+            if (typeof obj.circuits === 'undefined')
+                for (let i = 0; i < 16; i++) {
+                    let c = group.circuits.getItemByIndex(i, false);
+                    out.payload.push(c.circuit ? c.circuit - 1 : 255);
                 }
-                for (let i = 0; i < 16; i++) out.payload.push(0);
-                out.payload.push(eggHours);
-                out.payload.push(eggMins);
-                conn.queueSendMessage(out);
-            });
-            await new Promise<void>((resolve, reject) => {
-                let out = Outbound.create({
-                    action: 168,
-                    payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    retries: 3,
-                    onComplete: (err, msg) => {
-                        if (err) reject(err);
-                        else {
-                            if (typeof obj.name !== 'undefined') sgroup.name = group.name = obj.name.toString().substring(0, 16);
-                            resolve();
-                        }
-                    }
-                });
-                for (let i = 0; i < 16; i++) out.payload.push(255);
-                out.appendPayloadString(typeof obj.name !== 'undefined' ? obj.name : group.name, 16);
-                conn.queueSendMessage(out);
-            });
-            await new Promise<void>((resolve, reject) => {
-                let out = Outbound.create({
-                    action: 168,
-                    payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    retries: 3,
-                    onComplete: (err, msg) => {
-                        if (err) reject(err);
-                        else {
-                            if (typeof obj.circuits !== 'undefined') {
-                                for (let i = 0; i < obj.circuits.length; i++) {
-                                    let c = group.circuits.getItemByIndex(i);
-                                    c.desiredState = obj.circuits[i].desiredState || 1;
-                                }
-                            }
-                            resolve();
-                        }
-                    }
-                });
-                for (let i = 0; i < 16; i++) out.payload.push(0); // Push the 0s for the color
-                // Add in the desired State.
-                if (typeof obj.circuits === 'undefined')
-                    for (let i = 0; i < 16; i++) {
-                        let c = group.circuits.getItemByIndex(i, false);
-                        typeof c.desiredState !== 'undefined' ? out.payload.push(c.desiredState) : out.payload.push(255);
-                    }
-                else {
-                    for (let i = 0; i < 16; i++)
-                        (i < obj.circuits.length) ? out.payload.push(obj.circuits[i].desiredState || 1) : out.payload.push(255);
+            else {
+                for (let i = 0; i < 16; i++)
+                    (i < obj.circuits.length) ? out.payload.push(obj.circuits[i].circuit - 1) : out.payload.push(255);
+            }
+            for (let i = 0; i < 16; i++) out.payload.push(0);
+            out.payload.push(eggHours);
+            out.payload.push(eggMins);
+            await out.sendAsync();
+            group.eggTimer = eggTimer;
+            group.dontStop = obj.dontStop;
+            sgroup.type = group.type = 2;
+            sgroup.isActive = group.isActive = true;
+            if (typeof obj.showInFeatures !== 'undefined') group.showInFeatures = utils.makeBool(obj.showInFeatures);
+            sgroup.showInFeatures = group.showInFeatures;
+            if (typeof obj.circuits !== 'undefined') {
+                for (let i = 0; i < obj.circuits.length; i++) {
+                    let c = group.circuits.getItemByIndex(i, true);
+                    c.id = i + 1;
+                    c.circuit = obj.circuits[i].circuit;
                 }
-                conn.queueSendMessage(out);
+                for (let i = obj.circuits.length; i < group.circuits.length; i++)
+                    group.circuits.removeItemByIndex(i);
+            }
+
+            out = Outbound.create({
+                action: 168,
+                payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
+                response: IntelliCenterBoard.getAckResponse(168),
+                retries: 3
             });
-            return Promise.resolve(group);
+            for (let i = 0; i < 16; i++) out.payload.push(255);
+            out.appendPayloadString(typeof obj.name !== 'undefined' ? obj.name : group.name, 16);
+            await out.sendAsync();
+            if (typeof obj.name !== 'undefined') sgroup.name = group.name = obj.name.toString().substring(0, 16);
+            out = Outbound.create({
+                action: 168,
+                payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
+                response: IntelliCenterBoard.getAckResponse(168),
+                retries: 3
+            });
+            for (let i = 0; i < 16; i++) out.payload.push(0); // Push the 0s for the color
+            // Add in the desired State.
+            if (typeof obj.circuits === 'undefined')
+                for (let i = 0; i < 16; i++) {
+                    let c = group.circuits.getItemByIndex(i, false);
+                    typeof c.desiredState !== 'undefined' ? out.payload.push(c.desiredState) : out.payload.push(255);
+                }
+            else {
+                for (let i = 0; i < 16; i++)
+                    (i < obj.circuits.length) ? out.payload.push(obj.circuits[i].desiredState || 1) : out.payload.push(255);
+            }
+            await out.sendAsync();
+            if (typeof obj.circuits !== 'undefined') {
+                for (let i = 0; i < obj.circuits.length; i++) {
+                    let c = group.circuits.getItemByIndex(i);
+                    c.desiredState = obj.circuits[i].desiredState || 1;
+                }
+            }
+            return group;
         }
-        catch (err) { return Promise.reject(err); }
+        catch (err) {
+            return Promise.reject(err);
+        }
     }
     public async deleteCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         let group: CircuitGroup = null;
@@ -1665,62 +1494,41 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new EquipmentNotFoundError(`Invalid group id: ${obj.id}`, 'CircuitGroup'));
         group = sys.circuitGroups.getItemById(id);
         try {
-            await new Promise<void>((resolve, reject) => {
-                let out = Outbound.create({
-                    action: 168,
-                    payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 0, 0, 0],
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    retries: 5,
-                    onComplete: (err, msg) => {
-                        if (err) reject(err);
-                        else {
-                            let gstate = state.circuitGroups.getItemById(id);
-                            gstate.isActive = false;
-                            gstate.emitEquipmentChange();
-                            sys.circuitGroups.removeItemById(id);
-                            state.circuitGroups.removeItemById(id);
-                            resolve();
-                        }
-                    }
-                });
-                for (let i = 0; i < 16; i++) i < group.circuits.length ? out.payload.push(group.circuits.getItemByIndex(i).circuit - 1) : out.payload.push(255);
-                for (let i = 0; i < 16; i++) out.payload.push(0);
-                out.payload.push(12);
-                out.payload.push(0);
-                conn.queueSendMessage(out);
+            let out = Outbound.create({
+                action: 168,
+                payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 0, 0, 0],
+                response: IntelliCenterBoard.getAckResponse(168),
+                retries: 5
             });
-            await new Promise<void>((resolve, reject) => {
-                let out = Outbound.create({
-                    action: 168,
-                    payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    retries: 3,
-                    onComplete: (err, msg) => {
-                        if (err) reject(err);
-                        else {
-                            resolve();
-                        }
-                    }
-                });
-                for (let i = 0; i < 16; i++) out.payload.push(255);
-                out.appendPayloadString(group.name || '', 16);
-                conn.queueSendMessage(out);
+            for (let i = 0; i < 16; i++) i < group.circuits.length ? out.payload.push(group.circuits.getItemByIndex(i).circuit - 1) : out.payload.push(255);
+            for (let i = 0; i < 16; i++) out.payload.push(0);
+            out.payload.push(12);
+            out.payload.push(0);
+            await out.sendAsync();
+            let gstate = state.circuitGroups.getItemById(id);
+            gstate.isActive = false;
+            gstate.emitEquipmentChange();
+            sys.circuitGroups.removeItemById(id);
+            state.circuitGroups.removeItemById(id);
+
+            out = Outbound.create({
+                action: 168,
+                payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
+                response: IntelliCenterBoard.getAckResponse(168),
+                retries: 3
             });
-            await new Promise<void>((resolve, reject) => {
-                let out = Outbound.create({
-                    action: 168,
-                    payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    retries: 3,
-                    onComplete: (err, msg) => {
-                        if (err) reject(err);
-                        else { resolve(); }
-                    }
-                });
-                for (let i = 0; i < 16; i++) out.payload.push(0);
-                conn.queueSendMessage(out);
+            for (let i = 0; i < 16; i++) out.payload.push(255);
+            out.appendPayloadString(group.name || '', 16);
+            await out.sendAsync();
+            out = Outbound.create({
+                action: 168,
+                payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
+                response: IntelliCenterBoard.getAckResponse(168),
+                retries: 3
             });
-            return new Promise<CircuitGroup>((resolve, reject) => { resolve(group) });
+            for (let i = 0; i < 16; i++) out.payload.push(0);
+            await out.sendAsync();
+            return group;
         }
         catch (err) { return Promise.reject(err); }
     }
@@ -1745,141 +1553,119 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         if (typeof id === 'undefined') return Promise.reject(new Error(`Max light group ids exceeded`));
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new Error(`Invalid light group id: ${obj.id}`));
         try {
-            await new Promise<void>((resolve, reject) => {
-                let eggTimer = (typeof obj.eggTimer !== 'undefined') ? parseInt(obj.eggTimer, 10) : group.eggTimer;
-                if (isNaN(eggTimer)) eggTimer = 720;
-                eggTimer = Math.max(Math.min(1440, eggTimer), 1);
-                if (obj.dontStop === true) eggTimer = 1440;
-                let eggHours = Math.floor(eggTimer / 60);
-                let eggMins = eggTimer - (eggHours * 60);
-                obj.dontStop = (eggTimer === 1440);
-                sgroup = state.lightGroups.getItemById(id, true);
-                let theme = typeof obj.lightingTheme === 'undefined' ? group.lightingTheme || 0 : obj.lightingTheme;
-                let out = Outbound.create({
-                    action: 168,
-                    payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 1, (theme << 2) + 1, 0], // The last byte here should be don't stop but I believe this to be a current bug.
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    retries: 5,
-                    onComplete: (err, msg) => {
-                        if (err) reject(err);
-                        else {
-                            sgroup.type = group.type = 1;
-                            sgroup.lightingTheme = group.lightingTheme = theme;
-                            group.eggTimer = eggTimer;
-                            group.dontStop = obj.dontStop;
-                            if (typeof obj.circuits !== 'undefined') {
-                                for (let i = 0; i < obj.circuits.length; i++) {
-                                    let c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
-                                    c.circuit = obj.circuits[i].circuit;
-                                    c.swimDelay = obj.circuits[i].swimDelay;
-                                    if(typeof obj.circuits[i].color !== 'undefined') c.color = obj.circuits[i].color;
-                                }
-                                group.circuits.length = obj.circuits.length;
-                            }
-                            resolve();
-                        }
-                    }
-                });
-                // Add in all the info for the circuits.
-                if (typeof obj.circuits === 'undefined') {
-                    // Circuits
-                    for (let i = 0; i < 16; i++) {
-                        let c = group.circuits.getItemByIndex(i, false);
-                        out.payload.push(c.circuit ? c.circuit - 1 : 255);
-                    }
-                    // Swim Delay
-                    for (let i = 0; i < 16; i++) {
-                        let c = group.circuits.getItemByIndex(i, false);
-                        out.payload.push(c.circuit ? c.swimDelay : 255);
-                    }
-                }
-                else {
-                    // Circuits
-                    for (let i = 0; i < 16; i++) {
-                        if (i < obj.circuits.length) {
-                            let c = parseInt(obj.circuits[i].circuit, 10);
-                            out.payload.push(!isNaN(c) ? c - 1 : 255);
-                        }
-                        else out.payload.push(255);
-                    }
-                    // Swim Delay
-                    for (let i = 0; i < 16; i++) {
-                        if (i < obj.circuits.length) {
-                            let delay = parseInt(obj.circuits[i].swimDelay, 10);
-                            out.payload.push(!isNaN(delay) ? delay : 10);
-                        }
-                        else out.payload.push(0);
-                    }
-                }
-                out.payload.push(eggHours);
-                out.payload.push(eggMins);
-                conn.queueSendMessage(out);
+            let eggTimer = (typeof obj.eggTimer !== 'undefined') ? parseInt(obj.eggTimer, 10) : group.eggTimer;
+            if (isNaN(eggTimer)) eggTimer = 720;
+            eggTimer = Math.max(Math.min(1440, eggTimer), 1);
+            if (obj.dontStop === true) eggTimer = 1440;
+            let eggHours = Math.floor(eggTimer / 60);
+            let eggMins = eggTimer - (eggHours * 60);
+            obj.dontStop = (eggTimer === 1440);
+            sgroup = state.lightGroups.getItemById(id, true);
+            let theme = typeof obj.lightingTheme === 'undefined' ? group.lightingTheme || 0 : obj.lightingTheme;
+            let out = Outbound.create({
+                action: 168,
+                payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 1, (theme << 2) + 1, 0], // The last byte here should be don't stop but I believe this to be a current bug.
+                response: IntelliCenterBoard.getAckResponse(168),
+                retries: 5
             });
-            await new Promise<void>((resolve, reject) => {
-                let out = Outbound.create({
-                    action: 168,
-                    payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    retries: 3,
-                    onComplete: (err, msg) => {
-                        if (err) reject(err);
-                        else {
-                            if (typeof obj.name !== 'undefined') sgroup.name = group.name = obj.name.toString().substring(0, 16);
-                            resolve();
-                        }
-                    }
-                });
-                for (let i = 0; i < 16; i++) out.payload.push(255);
-                out.payload[3] = 10;
-                out.appendPayloadString(typeof obj.name !== 'undefined' ? obj.name : group.name, 16);
-                conn.queueSendMessage(out);
-            });
-            await new Promise<void>((resolve, reject) => {
-                let out = Outbound.create({
-                    action: 168,
-                    payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    retries: 3,
-                    onComplete: (err, msg) => {
-                        if (err) reject(err);
-                        else {
-                            if (typeof obj.circuits !== 'undefined') {
-                                for (let i = 0; i < obj.circuits.length; i++) {
-                                    let circ = group.circuits.getItemByIndex(i, true);
-                                    let color = 0;
-                                    if (i < obj.circuits.length) {
-                                        color = parseInt(obj.circuits[i].color, 10);
-                                        if (isNaN(color)) { color = circ.color || 0; }
-                                        //console.log(`Setting Color: {0}`, color);
-                                    }
-                                    circ.color = color;
-                                }
-                            }
-                            resolve();
-                        }
-                    }
-                });
-                if (typeof obj.circuits !== 'undefined') {
-                    for (let i = 0; i < 16; i++) {
-                        let color = 0;
-                        if (i < obj.circuits.length) {
-                            color = parseInt(obj.circuits[i].color, 10);
-                            if (isNaN(color)) {
-                                color = group.circuits.getItemByIndex(i, false).color;
-                            }
-                        }
-                        out.payload.push(color);
-                    }
+            // Add in all the info for the circuits.
+            if (typeof obj.circuits === 'undefined') {
+                // Circuits
+                for (let i = 0; i < 16; i++) {
+                    let c = group.circuits.getItemByIndex(i, false);
+                    out.payload.push(c.circuit ? c.circuit - 1 : 255);
                 }
-                else {
-                    for (let i = 0; i < 16; i++) {
-                        out.payload.push(group.circuits.getItemByIndex(i, false).color);
-                    }
+                // Swim Delay
+                for (let i = 0; i < 16; i++) {
+                    let c = group.circuits.getItemByIndex(i, false);
+                    out.payload.push(c.circuit ? c.swimDelay : 255);
                 }
-                out.appendPayloadString(obj.name || group.name, 16);
-                conn.queueSendMessage(out);
+            }
+            else {
+                // Circuits
+                for (let i = 0; i < 16; i++) {
+                    if (i < obj.circuits.length) {
+                        let c = parseInt(obj.circuits[i].circuit, 10);
+                        out.payload.push(!isNaN(c) ? c - 1 : 255);
+                    }
+                    else out.payload.push(255);
+                }
+                // Swim Delay
+                for (let i = 0; i < 16; i++) {
+                    if (i < obj.circuits.length) {
+                        let delay = parseInt(obj.circuits[i].swimDelay, 10);
+                        out.payload.push(!isNaN(delay) ? delay : 10);
+                    }
+                    else out.payload.push(0);
+                }
+            }
+            out.payload.push(eggHours);
+            out.payload.push(eggMins);
+            await out.sendAsync();
+            sgroup.type = group.type = 1;
+            sgroup.lightingTheme = group.lightingTheme = theme;
+            group.eggTimer = eggTimer;
+            group.dontStop = obj.dontStop;
+            if (typeof obj.circuits !== 'undefined') {
+                for (let i = 0; i < obj.circuits.length; i++) {
+                    let c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
+                    c.circuit = obj.circuits[i].circuit;
+                    c.swimDelay = obj.circuits[i].swimDelay;
+                    if (typeof obj.circuits[i].color !== 'undefined') c.color = obj.circuits[i].color;
+                }
+                group.circuits.length = obj.circuits.length;
+            }
+
+            out = Outbound.create({
+                action: 168,
+                payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
+                response: IntelliCenterBoard.getAckResponse(168),
+                retries: 3
             });
-            return Promise.resolve(group);
+            for (let i = 0; i < 16; i++) out.payload.push(255);
+            out.payload[3] = 10;
+            out.appendPayloadString(typeof obj.name !== 'undefined' ? obj.name : group.name, 16);
+            await out.sendAsync();
+            if (typeof obj.name !== 'undefined') sgroup.name = group.name = obj.name.toString().substring(0, 16);
+
+            out = Outbound.create({
+                action: 168,
+                payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
+                response: IntelliCenterBoard.getAckResponse(168),
+                retries: 3
+            });
+            if (typeof obj.circuits !== 'undefined') {
+                for (let i = 0; i < 16; i++) {
+                    let color = 0;
+                    if (i < obj.circuits.length) {
+                        color = parseInt(obj.circuits[i].color, 10);
+                        if (isNaN(color)) {
+                            color = group.circuits.getItemByIndex(i, false).color;
+                        }
+                    }
+                    out.payload.push(color);
+                }
+            }
+            else {
+                for (let i = 0; i < 16; i++) {
+                    out.payload.push(group.circuits.getItemByIndex(i, false).color);
+                }
+            }
+            out.appendPayloadString(obj.name || group.name, 16);
+            await out.sendAsync();
+            if (typeof obj.circuits !== 'undefined') {
+                for (let i = 0; i < obj.circuits.length; i++) {
+                    let circ = group.circuits.getItemByIndex(i, true);
+                    let color = 0;
+                    if (i < obj.circuits.length) {
+                        color = parseInt(obj.circuits[i].color, 10);
+                        if (isNaN(color)) { color = circ.color || 0; }
+                        //console.log(`Setting Color: {0}`, color);
+                    }
+                    circ.color = color;
+                }
+            }
+            return group;
         }
         catch (err) { return Promise.reject(err); }
     }
@@ -1889,62 +1675,42 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new Error(`Invalid light group id: ${obj.id}`));
         group = sys.lightGroups.getItemById(id);
         try {
-            await new Promise<void>((resolve, reject) => {
-                let out = Outbound.create({
-                    action: 168,
-                    payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 0, 0, 0],
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    retries: 5,
-                    onComplete: (err, msg) => {
-                        if (err) reject(err);
-                        else {
-                            let gstate = state.lightGroups.getItemById(id);
-                            gstate.isActive = false;
-                            gstate.emitEquipmentChange();
-                            sys.lightGroups.removeItemById(id);
-                            state.lightGroups.removeItemById(id);
-                            resolve();
-                        }
-                    }
-                });
-                for (let i = 0; i < 16; i++) i < group.circuits.length ? out.payload.push(group.circuits.getItemByIndex(i).circuit - 1) : out.payload.push(255);
-                for (let i = 0; i < 16; i++) out.payload.push(0);
-                out.payload.push(12);
-                out.payload.push(0);
-                conn.queueSendMessage(out);
+            let out = Outbound.create({
+                action: 168,
+                payload: [6, 0, id - sys.board.equipmentIds.circuitGroups.start, 0, 0, 0],
+                response: IntelliCenterBoard.getAckResponse(168),
+                retries: 5
             });
-            await new Promise<void>((resolve, reject) => {
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start],
-                    onComplete: (err, msg) => {
-                        if (err) reject(err);
-                        else {
-                            resolve();
-                        }
-                    }
-                });
-                for (let i = 0; i < 16; i++) out.payload.push(255);
-                out.appendPayloadString(group.name);
-                conn.queueSendMessage(out);
+            for (let i = 0; i < 16; i++) i < group.circuits.length ? out.payload.push(group.circuits.getItemByIndex(i).circuit - 1) : out.payload.push(255);
+            for (let i = 0; i < 16; i++) out.payload.push(0);
+            out.payload.push(12);
+            out.payload.push(0);
+            await out.sendAsync();
+            let gstate = state.lightGroups.getItemById(id);
+            gstate.isActive = false;
+            gstate.emitEquipmentChange();
+            sys.lightGroups.removeItemById(id);
+            state.lightGroups.removeItemById(id);
+            out = Outbound.create({
+                action: 168,
+                retries: 5,
+                response: IntelliCenterBoard.getAckResponse(168),
+                payload: [6, 1, id - sys.board.equipmentIds.circuitGroups.start]
             });
-            await new Promise<void>((resolve, reject) => {
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start],
-                    onComplete: (err, msg) => {
-                        if (err) reject(err);
-                        else { resolve(); }
-                    }
-                });
-                for (let i = 0; i < 16; i++) out.payload.push(0);
-                conn.queueSendMessage(out);
+            for (let i = 0; i < 16; i++) out.payload.push(255);
+            out.appendPayloadString(group.name);
+            await out.sendAsync();
+
+            out = Outbound.create({
+                action: 168,
+                retries: 5,
+                response: IntelliCenterBoard.getAckResponse(168),
+                payload: [6, 2, id - sys.board.equipmentIds.circuitGroups.start]
             });
-            return Promise.resolve(group);
+            for (let i = 0; i < 16; i++) out.payload.push(0);
+            await out.sendAsync();
+
+            return group;
         }
         catch (err) { return Promise.reject(err); }
     }
@@ -1966,47 +1732,28 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 msgs.msg1.payload[i + 3] = circuit ? circuit.color || 0 : 255;
                 msgs.msg2.payload[i + 3] = circuit ? circuit.color || 0 : 0;
             }
-            await new Promise<void>((resolve, reject) => {
-                msgs.msg0.response = IntelliCenterBoard.getAckResponse(168);
-                msgs.msg0.retries = 5;
-                msgs.msg0.onComplete = (err) => {
-                    if (!err) {
-                        for (let i = 0; i < group.circuits.length; i++) {
-                            let c = group.circuits[i];
-                            let circuit = grp.circuits.getItemByIndex(i, true);
-                            circuit.circuit = parseInt(c.circuit, 10);
-                            circuit.swimDelay = parseInt(c.swimDelay, 10);
-                            circuit.color = parseInt(c.color, 10);
-                            circuit.position = i + 1;
-                            //grp.circuits.add({ id: i, circuit: circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay });
-                        }
-                        // Trim anything that was removed.
-                        grp.circuits.length = group.circuits.length;
-                        resolve();
-                    }
-                    else reject(err);
-                }
-                conn.queueSendMessage(msgs.msg0);
-            });
-            await new Promise<void>((resolve, reject) => {
-                msgs.msg1.response = IntelliCenterBoard.getAckResponse(168);
-                msgs.msg1.retries = 5;
-                msgs.msg1.onComplete = (err) => {
-                    if (!err) { resolve(); }
-                    else reject(err);
-                }
-                conn.queueSendMessage(msgs.msg1);
-            });
-            await new Promise<void>((resolve, reject) => {
-                msgs.msg2.response = IntelliCenterBoard.getAckResponse(168);
-                msgs.msg2.retries = 5;
-                msgs.msg2.onComplete = (err) => {
-                    if (!err) { resolve(); }
-                    else reject(err);
-                }
-                conn.queueSendMessage(msgs.msg2);
-            });
-            return Promise.resolve(grp);
+            msgs.msg0.response = IntelliCenterBoard.getAckResponse(168);
+            msgs.msg0.retries = 5;
+            await msgs.msg0.sendAsync();
+            for (let i = 0; i < group.circuits.length; i++) {
+                let c = group.circuits[i];
+                let circuit = grp.circuits.getItemByIndex(i, true);
+                circuit.circuit = parseInt(c.circuit, 10);
+                circuit.swimDelay = parseInt(c.swimDelay, 10);
+                circuit.color = parseInt(c.color, 10);
+                circuit.position = i + 1;
+                //grp.circuits.add({ id: i, circuit: circuit.circuit, color: circuit.color, position: i, swimDelay: circuit.swimDelay });
+            }
+            // Trim anything that was removed.
+            grp.circuits.length = group.circuits.length;
+
+            msgs.msg1.response = IntelliCenterBoard.getAckResponse(168);
+            msgs.msg1.retries = 5;
+            await msgs.msg1.sendAsync();
+            msgs.msg2.response = IntelliCenterBoard.getAckResponse(168);
+            msgs.msg2.retries = 5;
+            await msgs.msg2.sendAsync();
+            return grp;
         }
         catch (err) { return Promise.reject(err); }
     }
@@ -2111,24 +1858,16 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             sgroup.emitEquipmentChange();
             out.payload[28 + byteNdx] = byte;
             // So now we have all the info we need to sequence the group.
-            await new Promise((resolve, reject) => {
-                out.retries = 5;
-                out.response = IntelliCenterBoard.getAckResponse(168);
-                out.onComplete = (err, msg) => {
-                    if (!err) {
-                        sgroup.action = sys.board.valueMaps.circuitActions.getValue(cmd.name);
-                        state.emitEquipmentChanges();
-                        resolve(sgroup);
-                    }
-                    else {
-                        sgroup.action = 0;
-                        reject(err);
-                    }
-                };
-                conn.queueSendMessage(out);
-            });
+            out.retries = 5;
+            out.response = IntelliCenterBoard.getAckResponse(168);
+            await out.sendAsync();
+            sgroup.action = sys.board.valueMaps.circuitActions.getValue(cmd.name);
+            state.emitEquipmentChanges();
             return sgroup;
-        } catch (err) { return Promise.reject(new InvalidOperationError(`Error Sequencing Light Group: ${err.message}`, 'sequenceLightGroupAsync')); }
+        } catch (err) {
+            sgroup.action = 0;
+            return Promise.reject(new InvalidOperationError(`Error Sequencing Light Group: ${err.message}`, 'sequenceLightGroupAsync'));
+        }
         //let nop = sys.board.valueMaps.circuitActions.getValue(operation);
         //if (nop > 0) {
         //    let out = this.createCircuitStateMessage(id, true);
@@ -2168,7 +1907,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         //            }
         //            else reject(err);
         //        };
-        //        conn.queueSendMessage(out);
+        //        await out.sendAsync();
         //    });
         //}
         //return Promise.resolve(sgroup);
@@ -2186,63 +1925,48 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
     //    }
     //}
     private async verifyVersionAsync(): Promise<boolean> {
-        return new Promise<boolean>((resolve, reject) => {
+        try {
             let out = Outbound.create({
                 action: 228,
                 retries: 3,
                 response: Response.create({ dest: -1, action: 164 }),
-                payload: [0],
-                onComplete: (err) => {
-                    if (err) reject(err);
-                    else {
-                        // Send an ACK to the OCP.
-                        let ack = Outbound.create({ action: 1, destination: 16, payload: [164] });
-                        conn.queueSendMessage(ack);
-                        resolve(true);
-                    }
-                }
+                payload: [0]
             });
-            conn.queueSendMessage(out);
-        });
+            await out.sendAsync();
+            let ack = Outbound.create({ action: 1, destination: 16, payload: [164] });
+            let res = await ack.sendAsync();
+            return res;
+        }
+        catch (err) {
+            return Promise.reject(err);
+        }
     }
     private async getConfigAsync(payload: number[]): Promise<boolean> {
-        return new Promise<boolean>((resolve, reject) => {
-            let out = Outbound.create({
-                action: 222,
-                retries: 3,
-                payload: payload,
-                response: Response.create({ dest: -1, action: 30, payload: payload }),
-                onComplete: (err) => {
-                    if (err) reject(err);
-                    else {
-                        let ack = Outbound.create({ action: 1, destination: 16, payload: [30] });
-                        conn.queueSendMessage(ack);
-                        resolve(true);
-                    }
-                }
-            });
-            conn.queueSendMessage(out);
+
+        let out = Outbound.create({
+            action: 222,
+            retries: 3,
+            payload: payload,
+            response: Response.create({ dest: -1, action: 30, payload: payload })
         });
+        await out.sendAsync();
+        let ack = Outbound.create({ action: 1, destination: 16, payload: [30] });
+        await ack.sendAsync();
+        return true;
 
     }
     private async verifyStateAsync(): Promise<boolean> {
-        return new Promise<boolean>((resolve, reject) => {
-            let out = Outbound.create({
-                action: 222,
-                retries: 3,
-                payload: [15, 0],
-                response: Response.create({ dest: -1, action: 30, payload: [15, 0] }),
-                onComplete: (err) => {
-                    if (err) reject(err);
-                    else {
-                        let ack = Outbound.create({ action: 1, destination: 16, payload: [30] });
-                        conn.queueSendMessage(ack);
-                        resolve(true);
-                    }
-                }
-            });
-            conn.queueSendMessage(out);
+        let out = Outbound.create({
+            action: 222,
+            retries: 3,
+            payload: [15, 0],
+            response: Response.create({ dest: -1, action: 30, payload: [15, 0] })
         });
+        await out.sendAsync();
+        let ack = Outbound.create({ action: 1, destination: 16, payload: [30] });
+        await ack.sendAsync();
+        return true;
+
     }
     public async setCircuitStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<ICircuitState> {
         let c = sys.circuits.getInterfaceById(id);
@@ -2272,44 +1996,36 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         try {
             //let b = await this.verifyVersionAsync();
             //if (b) b = await this.getConfigAsync([15, 0]);
-            return new Promise<ICircuitState>((resolve, reject) => {
-                let out = this.createCircuitStateMessage(id, val);
-                //if (sys.equipment.dual && id === 6) out.setPayloadByte(35, 1);
-                out.setPayloadByte(34, 1);
-                out.source = 16;
-                out.onComplete = async (err, msg: Inbound) => {
-                    if (err) reject(err);
-                    else {
-                        // There is a current bug in 1.047 where one controller will reset the settings
-                        // of another when they are not the controller that set it.  Either this is a BS bug
-                        // or there is some piece of information we do not have.
-                        let b = await this.getConfigAsync([15, 0]);
-                        let circ = state.circuits.getInterfaceById(id);
-                        // This doesn't work to set it back because the ICP will set it back but often this
-                        // can take several seconds to do so.
-                        //if (circ.isOn !== utils.makeBool(val)) await this.setCircuitStateAsync(id, val);
-                        state.emitEquipmentChanges();
-                        resolve(circ);
-                    }
-                };
-                out.scope = `circuitState${id}`;
-                out.retries = 5;
-                out.response = IntelliCenterBoard.getAckResponse(168);
-                conn.queueSendMessage(out);
-            });
+            let out = this.createCircuitStateMessage(id, val);
+            //if (sys.equipment.dual && id === 6) out.setPayloadByte(35, 1);
+            out.setPayloadByte(34, 1);
+            out.source = 16;
+            out.scope = `circuitState${id}`;
+            out.retries = 5;
+            out.response = IntelliCenterBoard.getAckResponse(168);
+            await out.sendAsync();
+            // There is a current bug in 1.047 where one controller will reset the settings
+            // of another when they are not the controller that set it.  Either this is a BS bug
+            // or there is some piece of information we do not have.
+            let b = await this.getConfigAsync([15, 0]);
+            let circ = state.circuits.getInterfaceById(id);
+            // This doesn't work to set it back because the ICP will set it back but often this
+            // can take several seconds to do so.
+            //if (circ.isOn !== utils.makeBool(val)) await this.setCircuitStateAsync(id, val);
+            state.emitEquipmentChanges();
+            return circ;
+
         }
         catch (err) { return Promise.reject(err); }
     }
     public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
         let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
         let gstate = (grp.dataName === 'circuitGroupConfig') ? state.circuitGroups.getItemById(grp.id, grp.isActive !== false) : state.lightGroups.getItemById(grp.id, grp.isActive !== false);
-        return new Promise<ICircuitGroupState>(async (resolve, reject) => {
-            try {
-                await sys.board.circuits.setCircuitStateAsync(id, val);
-                resolve(state.circuitGroups.getInterfaceById(id));
-            }
-            catch (err) { reject(err); }
-        });
+        try {
+            await sys.board.circuits.setCircuitStateAsync(id, val);
+            return state.circuitGroups.getInterfaceById(id);
+        }
+        catch (err) { return Promise.reject(err); }
     }
     public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> { return this.setCircuitGroupStateAsync(id, val); }
     public async setLightGroupThemeAsync(id: number, theme: number): Promise<ICircuitState> {
@@ -2318,21 +2034,14 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let sgroup = state.lightGroups.getItemById(id);
             let msgs = this.createLightGroupMessages(group);
             msgs.msg0.payload[4] = (theme << 2) + 1;
-            await new Promise<void>((resolve, reject) => {
-                msgs.msg0.response = IntelliCenterBoard.getAckResponse(168);
-                msgs.msg0.retries = 5;
-                msgs.msg0.onComplete = (err) => {
-                    if (!err) {
-                        group.lightingTheme = theme;
-                        sgroup.lightingTheme = theme;
-                        resolve();
-                    }
-                    else reject(err);
-                };
-                conn.queueSendMessage(msgs.msg0);
-            });
+            msgs.msg0.response = IntelliCenterBoard.getAckResponse(168);
+            msgs.msg0.retries = 5;
+            await msgs.msg0.sendAsync();
+            group.lightingTheme = theme;
+            sgroup.lightingTheme = theme;
+
             state.emitEquipmentChanges();
-            return Promise.resolve(sgroup);
+            return sgroup;
         }
         catch (err) { return Promise.reject(err); }
     }
@@ -2378,21 +2087,11 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 cstate.action = sys.board.valueMaps.circuitActions.getValue('lighttheme');
                 out.response = IntelliCenterBoard.getAckResponse(168);
                 out.retries = 5;
-                await new Promise<void>((resolve, reject) => {
-                    out.onComplete = (err) => {
-                        if (!err) {
-                            circuit.lightingTheme = theme;
-                            cstate.lightingTheme = theme;
-                            resolve();
-                        }
-                        else {
-                            reject(err);
-                        }
-                        cstate.action = 0;
-                    };
-                    out.appendPayloadString(circuit.name, 16);
-                    conn.queueSendMessage(out);
-                });
+                out.appendPayloadString(circuit.name, 16);
+                await out.sendAsync();
+                circuit.lightingTheme = theme;
+                cstate.lightingTheme = theme;
+                cstate.action = 0;
                 if (!cstate.isOn) await this.setCircuitStateAsync(id, true);
                 state.emitEquipmentChanges();
                 return Promise.resolve(cstate);
@@ -2560,28 +2259,20 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         try {
             if (!cstate.isOn)
                 await this.setCircuitStateAsync(id, true);
-            await new Promise<void>((resolve, reject) => {
-                let out = Outbound.create({
-                    action: 168, payload: [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
-                        level, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), circuit.dontStop ? 1 : 0],
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    retries: 5,
-                    onComplete: (err, msg) => {
-                        if (!err) {
-                            circuit.level = level;
-                            cstate.level = level;
-                            sys.board.circuits.setEndTime(circuit, cstate, true);
-                            cstate.isOn = true;
-                            state.emitEquipmentChanges();
-                            resolve();
-                        }
-                        else reject(err);
-                    }
-                });
-                out.appendPayloadString(circuit.name, 16);
-                conn.queueSendMessage(out);
+            let out = Outbound.create({
+                action: 168, payload: [1, 0, id - 1, circuit.type, circuit.freeze ? 1 : 0, circuit.showInFeatures ? 1 : 0,
+                    level, Math.floor(circuit.eggTimer / 60), circuit.eggTimer - ((Math.floor(circuit.eggTimer) / 60) * 60), circuit.dontStop ? 1 : 0],
+                response: IntelliCenterBoard.getAckResponse(168),
+                retries: 5
             });
-            return Promise.resolve(cstate);
+            out.appendPayloadString(circuit.name, 16);
+            await out.sendAsync();
+            circuit.level = level;
+            cstate.level = level;
+            sys.board.circuits.setEndTime(circuit, cstate, true);
+            cstate.isOn = true;
+            state.emitEquipmentChanges();
+            return cstate;
         }
         catch (err) { return Promise.reject(err); }
     }
@@ -2596,80 +2287,68 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
     public async toggleFeatureStateAsync(id): Promise<ICircuitState> { return sys.board.circuits.toggleCircuitStateAsync(id); }
     public syncGroupStates() { } // Do nothing and let IntelliCenter do it.
     public async setFeatureAsync(data: any): Promise<Feature> {
-        return new Promise<Feature>((resolve, reject) => {
-            let id = parseInt(data.id, 10);
-            let feature: Feature;
-            if (id <= 0) {
-                id = sys.features.getNextEquipmentId(sys.board.equipmentIds.features);
-                feature = sys.features.getItemById(id, false, { isActive: true, freeze: false });
-            }
-            else
-                feature = sys.features.getItemById(id, false);
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('feature Id has not been defined', data.id, 'Feature'));
-            if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`feature Id ${id}: is out of range.`, id, 'Feature'));
-            let eggTimer = Math.min(typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : feature.eggTimer, 1440);
-            if (isNaN(eggTimer)) eggTimer = feature.eggTimer;
-            if (data.dontStop === true) eggTimer = 1440;
-            data.dontStop = (eggTimer === 1440);
-            let eggHrs = Math.floor(eggTimer / 60);
-            let eggMins = eggTimer - (eggHrs * 60);
-            let out = Outbound.create({
-                action: 168,
-                response: IntelliCenterBoard.getAckResponse(168),
-                retries: 5,
-                payload: [2, 0, id - sys.board.equipmentIds.features.start,
-                    typeof data.type !== 'undefined' ? parseInt(data.type, 10) : feature.type,
-                    (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : feature.freeze) ? 1 : 0,
-                    (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : feature.showInFeatures) ? 1 : 0,
-                    eggHrs, eggMins, data.dontStop ? 1 : 0],
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        feature = sys.features.getItemById(id, true);
-                        let fstate = state.features.getItemById(id, true);
 
-                        feature.eggTimer = eggTimer;
-                        feature.dontStop = data.dontStop;
-                        feature.freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : feature.freeze);
-                        fstate.showInFeatures = feature.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : feature.showInFeatures);
-                        fstate.name = feature.name = typeof data.name !== 'undefined' ? data.name.toString().substring(0, 16) : feature.name;
-                        fstate.type = feature.type = typeof data.type !== 'undefined' ? parseInt(data.type, 10) : feature.type;
-                        fstate.emitEquipmentChange();
-                        resolve(feature);
-                    }
-                }
-            });
-            out.appendPayloadString(typeof data.name !== 'undefined' ? data.name.toString() : feature.name, 16);
-            conn.queueSendMessage(out);
+        let id = parseInt(data.id, 10);
+        let feature: Feature;
+        if (id <= 0) {
+            id = sys.features.getNextEquipmentId(sys.board.equipmentIds.features);
+            feature = sys.features.getItemById(id, false, { isActive: true, freeze: false });
+        }
+        else
+            feature = sys.features.getItemById(id, false);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('feature Id has not been defined', data.id, 'Feature'));
+        if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`feature Id ${id}: is out of range.`, id, 'Feature'));
+        let eggTimer = Math.min(typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : feature.eggTimer, 1440);
+        if (isNaN(eggTimer)) eggTimer = feature.eggTimer;
+        if (data.dontStop === true) eggTimer = 1440;
+        data.dontStop = (eggTimer === 1440);
+        let eggHrs = Math.floor(eggTimer / 60);
+        let eggMins = eggTimer - (eggHrs * 60);
+        let out = Outbound.create({
+            action: 168,
+            response: IntelliCenterBoard.getAckResponse(168),
+            retries: 5,
+            payload: [2, 0, id - sys.board.equipmentIds.features.start,
+                typeof data.type !== 'undefined' ? parseInt(data.type, 10) : feature.type,
+                (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : feature.freeze) ? 1 : 0,
+                (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : feature.showInFeatures) ? 1 : 0,
+                eggHrs, eggMins, data.dontStop ? 1 : 0]
         });
+        out.appendPayloadString(typeof data.name !== 'undefined' ? data.name.toString() : feature.name, 16);
+        await out.sendAsync();
+        feature = sys.features.getItemById(id, true);
+        let fstate = state.features.getItemById(id, true);
+
+        feature.eggTimer = eggTimer;
+        feature.dontStop = data.dontStop;
+        feature.freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : feature.freeze);
+        fstate.showInFeatures = feature.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : feature.showInFeatures);
+        fstate.name = feature.name = typeof data.name !== 'undefined' ? data.name.toString().substring(0, 16) : feature.name;
+        fstate.type = feature.type = typeof data.type !== 'undefined' ? parseInt(data.type, 10) : feature.type;
+        fstate.emitEquipmentChange();
+        return feature;
+
     }
     public async deleteFeatureAsync(data: any): Promise<Feature> {
-        return new Promise<Feature>((resolve, reject) => {
-            let id = parseInt(data.id, 10);
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('feature Id has not been defined', data.id, 'Feature'));
-            let feature = sys.features.getItemById(id, false);
-            let out = Outbound.create({
-                action: 168,
-                payload: [2, 0, id - sys.board.equipmentIds.features.start,
-                    255, // Delete the feature
-                    0, 0, 12, 0, 0],
-                response: IntelliCenterBoard.getAckResponse(168),
-                retries: 5,
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        sys.features.removeItemById(id);
-                        feature.isActive = false;
-                        let fstate = state.features.getItemById(id, false);
-                        fstate.showInFeatures = false;
-                        state.features.removeItemById(id);
-                        resolve(feature);
-                    }
-                }
-            });
-            out.appendPayloadString(typeof data.name !== 'undefined' ? data.name.toString() : feature.name, 16);
-            conn.queueSendMessage(out);
+        let id = parseInt(data.id, 10);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('feature Id has not been defined', data.id, 'Feature'));
+        let feature = sys.features.getItemById(id, false);
+        let out = Outbound.create({
+            action: 168,
+            payload: [2, 0, id - sys.board.equipmentIds.features.start,
+                255, // Delete the feature
+                0, 0, 12, 0, 0],
+            response: IntelliCenterBoard.getAckResponse(168),
+            retries: 5
         });
+        out.appendPayloadString(typeof data.name !== 'undefined' ? data.name.toString() : feature.name, 16);
+        await out.sendAsync();
+        sys.features.removeItemById(id);
+        feature.isActive = false;
+        let fstate = state.features.getItemById(id, false);
+        fstate.showInFeatures = false;
+        state.features.removeItemById(id);
+        return feature;
     }
 
 }
@@ -2726,40 +2405,35 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         let portId = typeof obj.portId !== 'undefined' ? parseInt(obj.portId, 10) : chlor.portId;
         if (portId !== chlor.portId && sys.chlorinators.count(elem => elem.id !== chlor.id && elem.portId === portId && elem.master !== 2) > 0) return Promise.reject(new InvalidEquipmentDataError(`Another chlorinator is installed on port #${portId}.  Only one chlorinator can be installed per port.`, 'Chlorinator', portId));
         if (typeof obj.ignoreSaltReading !== 'undefined') chlor.ignoreSaltReading = utils.makeBool(obj.ignoreSaltReading);
-        return new Promise<ChlorinatorState>((resolve, reject) => {
-            let out = Outbound.create({
-                action: 168,
-                payload: [7, 0, id - 1, body.val, 1,
-                    disabled ? 0 : isDosing ? 100 : poolSetpoint,
-                    disabled ? 0 : isDosing ? 100 : spaSetpoint,
-                    superChlorinate ? 1 : 0, superChlorHours, 0, 1],
-                response: IntelliCenterBoard.getAckResponse(168),
-                retries: 5,
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        let schlor = state.chlorinators.getItemById(id, true);
-                        let cchlor = sys.chlorinators.getItemById(id, true);
-                        chlor.master = 0;
-                        schlor.body = chlor.body = body.val;
-                        chlor.disabled = disabled;
-                        schlor.model = chlor.model = model;
-                        schlor.type = chlor.type = chlorType;
-                        chlor.name = schlor.name = name;
-                        chlor.isDosing = isDosing;
-                        chlor.saltTarget = saltTarget;
-                        schlor.isActive = cchlor.isActive = true;
-                        schlor.poolSetpoint = cchlor.poolSetpoint = poolSetpoint;
-                        schlor.spaSetpoint = cchlor.spaSetpoint = spaSetpoint;
-                        schlor.superChlorHours = cchlor.superChlorHours = superChlorHours;
-                        schlor.superChlor = cchlor.superChlor = superChlorinate;
-                        state.emitEquipmentChanges();
-                        resolve(schlor);
-                    }
-                }
-            });
-            conn.queueSendMessage(out);
+
+        let out = Outbound.create({
+            action: 168,
+            payload: [7, 0, id - 1, body.val, 1,
+                disabled ? 0 : isDosing ? 100 : poolSetpoint,
+                disabled ? 0 : isDosing ? 100 : spaSetpoint,
+                superChlorinate ? 1 : 0, superChlorHours, 0, 1],
+            response: IntelliCenterBoard.getAckResponse(168),
+            retries: 5
         });
+        await out.sendAsync();
+        let schlor = state.chlorinators.getItemById(id, true);
+        let cchlor = sys.chlorinators.getItemById(id, true);
+        chlor.master = 0;
+        schlor.body = chlor.body = body.val;
+        chlor.disabled = disabled;
+        schlor.model = chlor.model = model;
+        schlor.type = chlor.type = chlorType;
+        chlor.name = schlor.name = name;
+        chlor.isDosing = isDosing;
+        chlor.saltTarget = saltTarget;
+        schlor.isActive = cchlor.isActive = true;
+        schlor.poolSetpoint = cchlor.poolSetpoint = poolSetpoint;
+        schlor.spaSetpoint = cchlor.spaSetpoint = spaSetpoint;
+        schlor.superChlorHours = cchlor.superChlorHours = superChlorHours;
+        schlor.superChlor = cchlor.superChlor = superChlorinate;
+        state.emitEquipmentChanges();
+        return schlor;
+
     }
     public async deleteChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);
@@ -2768,25 +2442,18 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         if (chlor.master === 1) return await super.deleteChlorAsync(obj);
         let schlor = state.chlorinators.getItemById(id);
         // Verify the data.
-        return new Promise<ChlorinatorState>((resolve, reject) => {
-            let out = Outbound.create({
-                action: 168,
-                payload: [7, 0, id - 1, schlor.body || 0, 0, schlor.poolSetpoint || 0, schlor.spaSetpoint || 0, 0, schlor.superChlorHours || 0, 0, 0],
-                response: IntelliCenterBoard.getAckResponse(168),
-                retries: 5,
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        ncp.chlorinators.deleteChlorinatorAsync(id).then(()=>{});
-                        schlor = state.chlorinators.getItemById(id, true);
-                        state.chlorinators.removeItemById(id);
-                        sys.chlorinators.removeItemById(id);
-                        resolve(schlor);
-                    }
-                }
-            });
-            conn.queueSendMessage(out);
+        let out = Outbound.create({
+            action: 168,
+            payload: [7, 0, id - 1, schlor.body || 0, 0, schlor.poolSetpoint || 0, schlor.spaSetpoint || 0, 0, schlor.superChlorHours || 0, 0, 0],
+            response: IntelliCenterBoard.getAckResponse(168),
+            retries: 5
         });
+        await out.sendAsync();
+        ncp.chlorinators.deleteChlorinatorAsync(id).then(() => { });
+        schlor = state.chlorinators.getItemById(id, true);
+        state.chlorinators.removeItemById(id);
+        sys.chlorinators.removeItemById(id);
+        return schlor;
     }
 }
 class IntelliCenterPumpCommands extends PumpCommands {
@@ -2794,10 +2461,10 @@ class IntelliCenterPumpCommands extends PumpCommands {
         let arr: Outbound[] = [];
         let outSettings = Outbound.createMessage(
             168, [4, 0, pump.id - 1, pump.type, 0, pump.address, pump.minSpeed - Math.floor(pump.minSpeed / 256) * 256, Math.floor(pump.minSpeed / 256), pump.maxSpeed - Math.floor(pump.maxSpeed / 256) * 256
-                , Math.floor(pump.maxSpeed / 256), pump.minFlow, pump.maxFlow, pump.flowStepSize, pump.primingSpeed - Math.floor(pump.primingSpeed / 256) * 256
-                , Math.floor(pump.primingSpeed / 256), pump.speedStepSize / 10, pump.primingTime
-                , 5, 255, 255, 255, 255, 255, 255, 255, 255
-                , 0, 0, 0, 0, 0, 0, 0, 0], 0); // All the circuits and units.
+            , Math.floor(pump.maxSpeed / 256), pump.minFlow, pump.maxFlow, pump.flowStepSize, pump.primingSpeed - Math.floor(pump.primingSpeed / 256) * 256
+            , Math.floor(pump.primingSpeed / 256), pump.speedStepSize / 10, pump.primingTime
+            , 5, 255, 255, 255, 255, 255, 255, 255, 255
+            , 0, 0, 0, 0, 0, 0, 0, 0], 0); // All the circuits and units.
         let outName = Outbound.createMessage(
             168, [4, 1, pump.id - 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 0);
         for (let i = 0; i < 8; i++) {
@@ -2851,46 +2518,46 @@ class IntelliCenterPumpCommands extends PumpCommands {
         outName.appendPayloadString(pump.name, 16);
         return [outSettings, outName];
     }
-/*     public setPumpCircuit(pump: Pump, pumpCircuitDeltas: any) {
-        let { result, reason } = super.setPumpCircuit(pump, pumpCircuitDeltas);
-        if (result === 'OK') this.setPump(pump);
-        return { result: result, reason: reason };
-    }
-    public setPump(pump: Pump, obj?: any) {
-        super.setPump(pump, obj);
-        let msgs: Outbound[] = this.createPumpConfigMessages(pump);
-        for (let i = 0; i < msgs.length; i++){
-            conn.queueSendMessage(msgs[i]);
+    /*     public setPumpCircuit(pump: Pump, pumpCircuitDeltas: any) {
+            let { result, reason } = super.setPumpCircuit(pump, pumpCircuitDeltas);
+            if (result === 'OK') this.setPump(pump);
+            return { result: result, reason: reason };
         }
-    } */
+        public setPump(pump: Pump, obj?: any) {
+            super.setPump(pump, obj);
+            let msgs: Outbound[] = this.createPumpConfigMessages(pump);
+            for (let i = 0; i < msgs.length; i++){
+                conn.queueSendMessage(msgs[i]);
+            }
+        } */
     public async setPumpAsync(data: any): Promise<Pump> {
-        let id = (typeof data.id === 'undefined' || data.id <= 0) ? sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps) : parseInt(data.id, 10);
-        if (isNaN(id)) return Promise.reject(new Error(`Invalid pump id: ${data.id}`));
-        let pump = sys.pumps.getItemById(id, false);
-        if (data.master > 0 || pump.master > 0) return await super.setPumpAsync(data);
-
-        //                                        0                    6              10   11  12           15
-        //[255, 0, 255][165, 63, 15, 16, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 128,   2, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][11, 218]
-        //[255, 0, 255][165, 63, 15, 16, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9,   1,   2, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][11, 91]
-        //[255, 0, 255][165, 63, 15, 16, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 128,   2, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][11, 218]
-
-        //[255, 0, 255][165, 63, 15, 33, 168, 33][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 640, 255, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0][14, 231]
-        //[255, 0, 255][165, 63, 15, 33, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 300, 255,   3, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][12, 152]
-        if (isNaN(id)) return Promise.reject(new Error(`Invalid pump id: ${data.id}`));
-        else if (id >= sys.equipment.maxPumps) return Promise.reject(new Error(`Pump id out of range: ${data.id}`));
-        // We now need to get the type for the pump.  If the incoming data doesn't include it then we need to
-        // get it from the current pump configuration.
-        let ntype = (typeof data.type === 'undefined' || isNaN(parseInt(data.type, 10))) ? pump.type : parseInt(data.type, 10);
-        // While we are dealing with adds in the setPumpConfig we are not dealing with deletes so this needs to be a value greater than nopump.  If someone sends
-        // us a type that is <= 0 we need to throw an error.  If they dont define it or give us an invalid number we can move on.
-        if (isNaN(ntype) || ntype <= 0) return Promise.reject(new Error(`Invalid pump type: ${data.id} - ${data.type}`));
-        let type = sys.board.valueMaps.pumpTypes.transform(ntype);
-        if (typeof type.name === 'undefined') return Promise.reject(new Error(`Invalid pump type: ${data.id} - ${ntype}`));
-        // Build out our messsages. We are merging data together so that the data items from the current config can be overridden.  If they are not
-        // supplied then we will use what we already have.  This will make sure the information is valid and any change can be applied without the complete
-        // definition of the pump.  This is important since additional attributes may be added in the future and this keeps us current no matter what
-        // the endpoint capability is.
         try {
+            let id = (typeof data.id === 'undefined' || data.id <= 0) ? sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps) : parseInt(data.id, 10);
+            if (isNaN(id)) return Promise.reject(new Error(`Invalid pump id: ${data.id}`));
+            let pump = sys.pumps.getItemById(id, false);
+            if (data.master > 0 || pump.master > 0) return await super.setPumpAsync(data);
+
+            //                                        0                    6              10   11  12           15
+            //[255, 0, 255][165, 63, 15, 16, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 128,   2, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][11, 218]
+            //[255, 0, 255][165, 63, 15, 16, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9,   1,   2, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][11, 91]
+            //[255, 0, 255][165, 63, 15, 16, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 128,   2, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][11, 218]
+
+            //[255, 0, 255][165, 63, 15, 33, 168, 33][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 640, 255, 255, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0][14, 231]
+            //[255, 0, 255][165, 63, 15, 33, 168, 34][4, 0, 0, 3, 0, 96, 194, 1, 122, 13, 15, 130,  1, 196, 9, 300, 255,   3, 5, 0, 251, 128, 255, 255, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0][12, 152]
+            if (isNaN(id)) return Promise.reject(new Error(`Invalid pump id: ${data.id}`));
+            else if (id >= sys.equipment.maxPumps) return Promise.reject(new Error(`Pump id out of range: ${data.id}`));
+            // We now need to get the type for the pump.  If the incoming data doesn't include it then we need to
+            // get it from the current pump configuration.
+            let ntype = (typeof data.type === 'undefined' || isNaN(parseInt(data.type, 10))) ? pump.type : parseInt(data.type, 10);
+            // While we are dealing with adds in the setPumpConfig we are not dealing with deletes so this needs to be a value greater than nopump.  If someone sends
+            // us a type that is <= 0 we need to throw an error.  If they dont define it or give us an invalid number we can move on.
+            if (isNaN(ntype) || ntype <= 0) return Promise.reject(new Error(`Invalid pump type: ${data.id} - ${data.type}`));
+            let type = sys.board.valueMaps.pumpTypes.transform(ntype);
+            if (typeof type.name === 'undefined') return Promise.reject(new Error(`Invalid pump type: ${data.id} - ${ntype}`));
+            // Build out our messsages. We are merging data together so that the data items from the current config can be overridden.  If they are not
+            // supplied then we will use what we already have.  This will make sure the information is valid and any change can be applied without the complete
+            // definition of the pump.  This is important since additional attributes may be added in the future and this keeps us current no matter what
+            // the endpoint capability is.
             let outc = Outbound.create({ action: 168, payload: [4, 0, id - 1, ntype, 0] });
             outc.appendPayloadByte(parseInt(data.address, 10), id + 95);        // 5
             outc.appendPayloadInt(parseInt(data.minSpeed, 10), pump.minSpeed);  // 6
@@ -2981,119 +2648,105 @@ class IntelliCenterPumpCommands extends PumpCommands {
                 }
             }
             // We now have our messages.  Let's send them off and update our values.
-            await new Promise<void>((resolve, reject) => {
-                outc.response = IntelliCenterBoard.getAckResponse(168);
-                outc.retries = 5;
-                outc.onComplete = (err) => {
-                    if (err) reject(err);
+            outc.response = IntelliCenterBoard.getAckResponse(168);
+            outc.retries = 5;
+            await outc.sendAsync();
+            // We have been successful so lets set our pump with the new data.
+            pump = sys.pumps.getItemById(id, true);
+            let spump = state.pumps.getItemById(id, true);
+            spump.type = pump.type = ntype;
+            if (typeof data.model !== 'undefined') pump.model = data.model;
+            if (type.name === 'ss') {
+                pump.address = undefined;
+                pump.primingTime = 0;
+                pump.primingSpeed = type.primingSpeed || 2500;
+                pump.minSpeed = type.minSpeed || 450;
+                pump.maxSpeed = type.maxSpeed || 3450;
+                pump.minFlow = type.minFlow, 0;
+                pump.maxFlow = type.maxFlow, 130;
+                pump.circuits.clear();
+                if (typeof data.body !== 'undefined') pump.body = parseInt(data.body, 10);
+            }
+            else if (type.name === 'ds') {
+                pump.address = undefined;
+                pump.primingTime = 0;
+                pump.primingSpeed = type.primingSpeed || 2500;
+                pump.minSpeed = type.minSpeed || 450;
+                pump.maxSpeed = type.maxSpeed || 3450;
+                pump.minFlow = type.minFlow, 0;
+                pump.maxFlow = type.maxFlow, 130;
+                if (typeof data.body !== 'undefined') pump.body = parseInt(data.body, 10);
+            }
+            else {
+                if (typeof data.address !== 'undefined') pump.address = data.address;
+                if (typeof data.primingTime !== 'undefined') pump.primingTime = parseInt(data.primingTime, 10);
+                if (typeof data.primingSpeed !== 'undefined') pump.primingSpeed = parseInt(data.primingSpeed, 10);
+                if (typeof data.minSpeed !== 'undefined') pump.minSpeed = parseInt(data.minSpeed, 10);
+                if (typeof data.maxSpeed !== 'undefined') pump.maxSpeed = parseInt(data.maxSpeed, 10);
+                if (typeof data.minFlow !== 'undefined') pump.minFlow = parseInt(data.minFlow, 10);
+                if (typeof data.maxFlow !== 'undefined') pump.maxFlow = parseInt(data.maxFlow, 10);
+                if (typeof data.flowStepSize !== 'undefined') pump.flowStepSize = parseInt(data.flowStepSize, 10);
+                if (typeof data.speedStepSize !== 'undefined') pump.speedStepSize = parseInt(data.speedStepSize, 10);
+            }
+            if (typeof data.circuits !== 'undefined' && type.name !== 'undefined') {
+                // Set all the circuits
+                let id = 1;
+                for (let i = 0; i < 8; i++) {
+                    if (i >= data.circuits.length) pump.circuits.removeItemByIndex(i);
                     else {
-                        // We have been successful so lets set our pump with the new data.
-                        let pump = sys.pumps.getItemById(id, true);
-                        let spump = state.pumps.getItemById(id, true);
-                        spump.type = pump.type = ntype;
-                        if (typeof data.model !== 'undefined') pump.model = data.model;
-                        if (type.name === 'ss') {
-                            pump.address = undefined;
-                            pump.primingTime = 0;
-                            pump.primingSpeed = type.primingSpeed || 2500;
-                            pump.minSpeed = type.minSpeed || 450;
-                            pump.maxSpeed = type.maxSpeed || 3450;
-                            pump.minFlow = type.minFlow, 0;
-                            pump.maxFlow = type.maxFlow, 130;
-                            pump.circuits.clear();
-                            if (typeof data.body !== 'undefined') pump.body = parseInt(data.body, 10);
-                        }
-                        else if (type.name === 'ds') {
-                            pump.address = undefined;
-                            pump.primingTime = 0;
-                            pump.primingSpeed = type.primingSpeed || 2500;
-                            pump.minSpeed = type.minSpeed || 450;
-                            pump.maxSpeed = type.maxSpeed || 3450;
-                            pump.minFlow = type.minFlow, 0;
-                            pump.maxFlow = type.maxFlow, 130;
-                            if (typeof data.body !== 'undefined') pump.body = parseInt(data.body, 10);
-                        }
+                        let c = data.circuits[i];
+                        let circuitId = parseInt(c.circuit, 10);
+                        if (isNaN(circuitId)) pump.circuits.removeItemByIndex(i);
                         else {
-                            if (typeof data.address !== 'undefined') pump.address = data.address;
-                            if (typeof data.primingTime !== 'undefined') pump.primingTime = parseInt(data.primingTime, 10);
-                            if (typeof data.primingSpeed !== 'undefined') pump.primingSpeed = parseInt(data.primingSpeed, 10);
-                            if (typeof data.minSpeed !== 'undefined') pump.minSpeed = parseInt(data.minSpeed, 10);
-                            if (typeof data.maxSpeed !== 'undefined') pump.maxSpeed = parseInt(data.maxSpeed, 10);
-                            if (typeof data.minFlow !== 'undefined') pump.minFlow = parseInt(data.minFlow, 10);
-                            if (typeof data.maxFlow !== 'undefined') pump.maxFlow = parseInt(data.maxFlow, 10);
-                            if (typeof data.flowStepSize !== 'undefined') pump.flowStepSize = parseInt(data.flowStepSize, 10);
-                            if (typeof data.speedStepSize !== 'undefined') pump.speedStepSize = parseInt(data.speedStepSize, 10);
-                        }
-                        if (typeof data.circuits !== 'undefined' && type.name !== 'undefined') {
-                            // Set all the circuits
-                            let id = 1;
-                            for (let i = 0; i < 8; i++) {
-                                if (i >= data.circuits.length) pump.circuits.removeItemByIndex(i);
-                                else {
-                                    let c = data.circuits[i];
-                                    let circuitId = parseInt(c.circuit, 10);
-                                    if (isNaN(circuitId)) pump.circuits.removeItemByIndex(i);
-                                    else {
-                                        let circ = pump.circuits.getItemByIndex(i, true);
-                                        circ.circuit = circuitId;
-                                        circ.id = id++;
-                                        if (type.name === 'ds') circ.units = undefined;
-                                        else {
-                                            // Need to validate this earlier.
-                                            let units = c.units !== 'undefined' ? parseInt(c.units, 10) : 0
-                                            circ.units = units;
-                                        }
-                                    }
-                                }
+                            let circ = pump.circuits.getItemByIndex(i, true);
+                            circ.circuit = circuitId;
+                            circ.id = id++;
+                            if (type.name === 'ds') circ.units = undefined;
+                            else {
+                                // Need to validate this earlier.
+                                let units = c.units !== 'undefined' ? parseInt(c.units, 10) : 0
+                                circ.units = units;
                             }
                         }
-                        resolve();
                     }
-                };
-                conn.queueSendMessage(outc);
-            });
-            await new Promise<void>((resolve, reject) => {
-                outn.response = IntelliCenterBoard.getAckResponse(168);
-                outn.retries = 5;
-                outn.onComplete = (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        // We have been successful so lets set our pump with the new data.
-                        let pump = sys.pumps.getItemById(id, true);
-                        let spump = state.pumps.getItemById(id, true);
-                        if (typeof data.name !== 'undefined') spump.name = pump.name = data.name;
-                        spump.type = pump.type = ntype;
-                        if (type.name !== 'ss') {
-                            if (typeof data.circuits !== 'undefined') {
-                                // Set all the circuits
-                                for (let i = 0; i < 8; i++) {
-                                    if (i >= data.circuits.length) pump.circuits.removeItemByIndex(i);
-                                    else {
-                                        let c = data.circuits[i];
-                                        let circuitId = typeof c.circuit !== 'undefined' ? parseInt(c.circuit, 10) : pump.circuits.getItemById(i, false).circuit;
-                                        let circ = pump.circuits.getItemByIndex(i, true);
-                                        circ.circuit = circuitId;
-                                        circ.units = parseInt(c.units || circ.units, 10);
-                                        let speed = parseInt(c.speed, 10);
-                                        let flow = parseInt(c.flow, 10);
-                                        if (isNaN(speed)) speed = type.minSpeed || 0;
-                                        if (isNaN(flow)) flow = type.minFlow || 0;
-                                        //console.log({ flow: flow, speed: speed, type: JSON.stringify(type) });
-                                        if (circ.units === 1 && typeof type.minFlow !== 'undefined')
-                                            circ.flow = Math.max(flow, type.minFlow);
-                                        else if (circ.units === 0 && typeof type.minSpeed !== 'undefined')
-                                            circ.speed = Math.max(speed, type.minSpeed);
-                                    }
-                                }
-                            }
+                }
+            }
+
+
+            outn.response = IntelliCenterBoard.getAckResponse(168);
+            outn.retries = 5;
+            await outn.sendAsync();
+            // We have been successful so lets set our pump with the new data.
+            pump = sys.pumps.getItemById(id, true);
+            spump = state.pumps.getItemById(id, true);
+            if (typeof data.name !== 'undefined') spump.name = pump.name = data.name;
+            spump.type = pump.type = ntype;
+            if (type.name !== 'ss') {
+                if (typeof data.circuits !== 'undefined') {
+                    // Set all the circuits
+                    for (let i = 0; i < 8; i++) {
+                        if (i >= data.circuits.length) pump.circuits.removeItemByIndex(i);
+                        else {
+                            let c = data.circuits[i];
+                            let circuitId = typeof c.circuit !== 'undefined' ? parseInt(c.circuit, 10) : pump.circuits.getItemById(i, false).circuit;
+                            let circ = pump.circuits.getItemByIndex(i, true);
+                            circ.circuit = circuitId;
+                            circ.units = parseInt(c.units || circ.units, 10);
+                            let speed = parseInt(c.speed, 10);
+                            let flow = parseInt(c.flow, 10);
+                            if (isNaN(speed)) speed = type.minSpeed || 0;
+                            if (isNaN(flow)) flow = type.minFlow || 0;
+                            //console.log({ flow: flow, speed: speed, type: JSON.stringify(type) });
+                            if (circ.units === 1 && typeof type.minFlow !== 'undefined')
+                                circ.flow = Math.max(flow, type.minFlow);
+                            else if (circ.units === 0 && typeof type.minSpeed !== 'undefined')
+                                circ.speed = Math.max(speed, type.minSpeed);
                         }
-                        state.emitEquipmentChanges();
-                        resolve();
                     }
-                };
-                conn.queueSendMessage(outn);
-            });
-            return Promise.resolve(sys.pumps.getItemById(id));
+                }
+            }
+            state.emitEquipmentChanges();
+            return sys.pumps.getItemById(id);
         }
         catch (err) { return Promise.reject(err); }
     }
@@ -3123,30 +2776,20 @@ class IntelliCenterPumpCommands extends PumpCommands {
         outn.appendPayloadString('Pump -' + (id + 1), 16);
         // We now have our messages.  Let's send them off and update our values.
         try {
-            await new Promise<void>((resolve, reject) => {
-                outc.retries = 5;
-                outc.response = IntelliCenterBoard.getAckResponse(168);
-                outc.onComplete = (err) => {
-                    let spump = state.pumps.getItemById(id);
-                    sys.pumps.removeItemById(id);
-                    state.pumps.removeItemById(id);
-                    spump.isActive = false;
-                    spump.emitEquipmentChange();
+            outc.retries = 5;
+            outc.response = IntelliCenterBoard.getAckResponse(168);
+            await outc.sendAsync();
+            let spump = state.pumps.getItemById(id);
+            sys.pumps.removeItemById(id);
+            state.pumps.removeItemById(id);
+            spump.isActive = false;
+            spump.emitEquipmentChange();
 
-                    resolve();
-                };
-                conn.queueSendMessage(outc);
-            });
-            await new Promise<void>((resolve, reject) => {
-                outn.response = IntelliCenterBoard.getAckResponse(168);
-                outn.retries = 2;
-                outn.onComplete = (err) => {
-                    state.emitEquipmentChanges();
-                    resolve();
-                };
-                conn.queueSendMessage(outn);
-            });
-            return Promise.resolve(pump);
+            outn.response = IntelliCenterBoard.getAckResponse(168);
+            outn.retries = 2;
+            await outn.sendAsync();
+            state.emitEquipmentChanges();
+            return pump;
         } catch (err) { return Promise.reject(err); }
     }
 }
@@ -3196,35 +2839,28 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 bhs.body1.heatSetpoint, bhs.body1.coolSetpoint, bhs.body2.heatSetpoint, bhs.body2.coolSetpoint, bhs.body1.heatMode, bhs.body2.heatMode, 0, 0, 15,
                 sys.general.options.pumpDelay ? 1 : 0, sys.general.options.cooldownDelay ? 1 : 0, 0, 100, 0, 0, 0, 0, sys.general.options.manualPriority ? 1 : 0, sys.general.options.manualHeat ? 1 : 0, 0
             ];
-            return new Promise<boolean>((resolve, reject) => {
-                let out = Outbound.create({
-                    action: 168,
-                    payload: payload,
-                    retries: 2,
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    onComplete: (err, msg) => {
-                        bhs.processing = false;
-                        if (err) reject(err);
-                        else {
-                            let body1 = sys.bodies.getItemById(1);
-                            let sbody1 = state.temps.bodies.getItemById(1);
-                            body1.heatMode = sbody1.heatMode = bhs.body1.heatMode;
-                            body1.heatSetpoint = sbody1.heatSetpoint = bhs.body1.heatSetpoint;
-                            body1.coolSetpoint = sbody1.coolSetpoint = bhs.body1.coolSetpoint;
-                            if (sys.equipment.dual || sys.equipment.shared) {
-                                let body2 = sys.bodies.getItemById(2);
-                                let sbody2 = state.temps.bodies.getItemById(2);
-                                body2.heatMode = sbody2.heatMode = bhs.body2.heatMode;
-                                body2.heatSetpoint = sbody2.heatSetpoint = bhs.body2.heatSetpoint;
-                                body2.coolSetpoint = sbody2.coolSetpoint = bhs.body2.coolSetpoint;
-                            }
-                            state.emitEquipmentChanges();
-                            resolve(true);
-                        }
-                    }
-                });
-                conn.queueSendMessage(out);
+
+            let out = Outbound.create({
+                action: 168,
+                payload: payload,
+                retries: 2,
+                response: IntelliCenterBoard.getAckResponse(168)
             });
+            await out.sendAsync();
+            let body1 = sys.bodies.getItemById(1);
+            let sbody1 = state.temps.bodies.getItemById(1);
+            body1.heatMode = sbody1.heatMode = bhs.body1.heatMode;
+            body1.heatSetpoint = sbody1.heatSetpoint = bhs.body1.heatSetpoint;
+            body1.coolSetpoint = sbody1.coolSetpoint = bhs.body1.coolSetpoint;
+            if (sys.equipment.dual || sys.equipment.shared) {
+                let body2 = sys.bodies.getItemById(2);
+                let sbody2 = state.temps.bodies.getItemById(2);
+                body2.heatMode = sbody2.heatMode = bhs.body2.heatMode;
+                body2.heatSetpoint = sbody2.heatSetpoint = bhs.body2.heatSetpoint;
+                body2.coolSetpoint = sbody2.coolSetpoint = bhs.body2.coolSetpoint;
+            }
+            state.emitEquipmentChanges();
+            return true;
         }
         else {
             // Try every second to re-try if we have a bunch at once.
@@ -3260,61 +2896,48 @@ class IntelliCenterBodyCommands extends BodyCommands {
         }
         try {
             if (typeof obj.name === 'string' && obj.name !== body.name) {
-                await new Promise(function (resolve, reject) {
-                    let out = Outbound.create({
-                        action: 168,
-                        payload: [13, 0, byte],
-                        retries: 5,
-                        response: IntelliCenterBoard.getAckResponse(168),
-                        onComplete: (err, msg) => {
-                            if (err) reject(err);
-                            else { body.name = obj.name; resolve(body); }
-                        }
-                    });
-                    out.appendPayloadString(obj.name, 16);
-                    conn.queueSendMessage(out);
+                let out = Outbound.create({
+                    action: 168,
+                    payload: [13, 0, byte],
+                    retries: 5,
+                    response: IntelliCenterBoard.getAckResponse(168)
                 });
+
+                out.appendPayloadString(obj.name, 16);
+                await out.sendAsync();
+                body.name = obj.name;
             }
             if (typeof obj.capacity !== 'undefined') {
                 let cap = parseInt(obj.capacity, 10);
                 if (cap !== body.capacity) {
-                    await new Promise<void>((resolve, reject) => {
-                        let out = Outbound.create({
-                            action: 168,
-                            retries: 2,
-                            response: IntelliCenterBoard.getAckResponse(168),
-                            payload: [13, 0, byte + 4, Math.floor(cap / 1000)],
-                            onComplete: (err, msg) => {
-                                if (err) reject(err);
-                                else { body.capacity = cap; resolve(); }
-                            }
-                        });
-                        conn.queueSendMessage(out);
+                    let out = Outbound.create({
+                        action: 168,
+                        retries: 2,
+                        response: IntelliCenterBoard.getAckResponse(168),
+                        payload: [13, 0, byte + 4, Math.floor(cap / 1000)]
                     });
+                    await out.sendAsync();
+                    body.capacity = cap;
                 }
             }
             if (typeof obj.manualHeat !== 'undefined') {
                 let manHeat = utils.makeBool(obj.manualHeat);
                 if (manHeat !== body.manualHeat) {
-                    await new Promise<void>((resolve, reject) => {
-                        let out = Outbound.create({
-                            action: 168,
-                            payload: [13, 0, byte + 8, manHeat ? 1 : 0],
-                            onComplete: (err, msg) => {
-                                if (err) reject(err);
-                                else { body.manualHeat = manHeat; resolve(); }
-                            }
-                        });
-                        conn.queueSendMessage(out);
+                    let out = Outbound.create({
+                        action: 168,
+                        payload: [13, 0, byte + 8, manHeat ? 1 : 0]
                     });
+                    await out.sendAsync();
+                    body.manualHeat = manHeat;
                 }
             }
             if (typeof obj.showInDashboard !== 'undefined') {
                 let sbody = state.temps.bodies.getItemById(id, false);
                 body.showInDashboard = sbody.showInDashboard = utils.makeBool(obj.showInDashboard);
             }
-            return Promise.resolve(body);
+            return body;
         }
+
         catch (err) { return Promise.reject(err); }
     }
     public async setHeatModeAsync(body: Body, mode: number): Promise<BodyTempState> {
@@ -3323,23 +2946,23 @@ class IntelliCenterBodyCommands extends BodyCommands {
         await this.queueBodyHeatSettings(body.id, body.id === 2 ? 23 : 22, { heatMode: mode });
         return state.temps.bodies.getItemById(body.id);
         /*
-
+    
         let byte2 = 22;
         let body1 = sys.bodies.getItemById(1);
         let body2 = sys.bodies.getItemById(2);
-
+    
         let heat1 = body1.heatSetpoint || 78;
         let cool1 = body1.coolSetpoint || 100;
         let heat2 = body2.heatSetpoint || 78;
         let cool2 = body2.coolSetpoint || 103;
-
+    
         let mode1 = body1.heatMode || 1;
         let mode2 = body2.heatMode || 1;
         let bitopts = 0;
         if (sys.general.options.clockSource) bitopts += 32;
         if (sys.general.options.clockMode === 24) bitopts += 64;
         if (sys.general.options.adjustDST) bitopts += 128;
-
+    
         switch (body.id) {
             case 1:
                 byte2 = 22;
@@ -3369,7 +2992,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
                     }
                 }
             })
-            conn.queueSendMessage(out);
+            await out.sendAsync();
         });
         */
     }
@@ -3421,7 +3044,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
                     resolve(bstate);
                 }
             };
-            conn.queueSendMessage(out);
+            await out.sendAsync();
         });
         */
     }
@@ -3473,7 +3096,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
                     resolve(bstate);
                 }
             };
-            conn.queueSendMessage(out);
+            await out.sendAsync();
         });
         */
     }
@@ -3551,37 +3174,32 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             ],
                 0
             );
-            return new Promise<Schedule>((resolve, reject) => {
-                out.response = IntelliCenterBoard.getAckResponse(168);
-                out.retries = 5;
-                out.onComplete = (err, msg) => {
-                    if (!err) {
-                        sched = sys.schedules.getItemById(id, true);
-                        ssched = state.schedules.getItemById(id, true);
-                        sched.circuit = ssched.circuit = circuit;
-                        sched.scheduleDays = ssched.scheduleDays = schedDays;
-                        sched.scheduleType = ssched.scheduleType = schedType;
-                        sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
-                        sched.coolSetpoint = ssched.coolSetpoint = coolSetpoint;
-                        sched.heatSource = ssched.heatSource = heatSource;
-                        sched.startTime = ssched.startTime = startTime;
-                        sched.endTime = ssched.endTime = endTime;
-                        sched.startTimeType = ssched.startTimeType = startTimeType;
-                        sched.endTimeType = ssched.endTimeType = endTimeType;
-                        sched.startDate = ssched.startDate = startDate;
-                        sched.startMonth = startDate.getMonth() + 1;
-                        sched.startYear = startDate.getFullYear();
-                        sched.startDay = startDate.getDate();
-                        ssched.startDate = startDate;
-                        ssched.isActive = sched.isActive = true;
-                        ssched.display = sched.display = display;
-                        ssched.emitEquipmentChange();
-                        resolve(sched);
-                    }
-                    else reject(err);
-                };
-                conn.queueSendMessage(out); // Send it off in a letter to yourself.
-            });
+
+            out.response = IntelliCenterBoard.getAckResponse(168);
+            out.retries = 5;
+
+            await out.sendAsync(); // Send it off in a letter to yourself.
+            sched = sys.schedules.getItemById(id, true);
+            ssched = state.schedules.getItemById(id, true);
+            sched.circuit = ssched.circuit = circuit;
+            sched.scheduleDays = ssched.scheduleDays = schedDays;
+            sched.scheduleType = ssched.scheduleType = schedType;
+            sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
+            sched.coolSetpoint = ssched.coolSetpoint = coolSetpoint;
+            sched.heatSource = ssched.heatSource = heatSource;
+            sched.startTime = ssched.startTime = startTime;
+            sched.endTime = ssched.endTime = endTime;
+            sched.startTimeType = ssched.startTimeType = startTimeType;
+            sched.endTimeType = ssched.endTimeType = endTimeType;
+            sched.startDate = ssched.startDate = startDate;
+            sched.startMonth = startDate.getMonth() + 1;
+            sched.startYear = startDate.getFullYear();
+            sched.startDay = startDate.getDate();
+            ssched.startDate = startDate;
+            ssched.isActive = sched.isActive = true;
+            ssched.display = sched.display = display;
+            ssched.emitEquipmentChange();
+            return sched;
         }
         else
             return Promise.reject(new InvalidEquipmentIdError('No schedule information provided', undefined, 'Schedule'));
@@ -3617,19 +3235,13 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
                 retries: 5,
                 response: IntelliCenterBoard.getAckResponse(168)
             });
-            return new Promise<Schedule>((resolve, reject) => {
-                out.onComplete = (err, msg) => {
-                    if (!err) {
-                        sys.schedules.removeItemById(id);
-                        state.schedules.removeItemById(id);
-                        ssched.emitEquipmentChange();
-                        ssched.isActive = sched.isActive = false;
-                        resolve(sched);
-                    }
-                    else reject(err);
-                };
-                conn.queueSendMessage(out);
-            });
+
+            await out.sendAsync();
+            sys.schedules.removeItemById(id);
+            state.schedules.removeItemById(id);
+            ssched.emitEquipmentChange();
+            ssched.isActive = sched.isActive = false;
+            return sched;
 
         }
         else
@@ -3642,179 +3254,164 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
     private createHeaterConfigMessage(heater: Heater): Outbound {
         let out = Outbound.createMessage(
             168, [10, 0, heater.id, heater.type, heater.body, heater.differentialTemp, heater.startTempDelta, heater.stopTempDelta, heater.coolingEnabled ? 1 : 0,
-                heater.cooldownDelay || 6, heater.address,
-                //, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 // Name
-                heater.efficiencyMode, heater.maxBoostTemp, heater.economyTime], 0);
+            heater.cooldownDelay || 6, heater.address,
+            //, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 // Name
+            heater.efficiencyMode, heater.maxBoostTemp, heater.economyTime], 0);
         out.insertPayloadString(11, heater.name, 16);
         return out;
     }
-    public setHeater(heater: Heater, obj?: any) {
+    public async setHeater(heater: Heater, obj?: any) {
         super.setHeater(heater, obj);
         let out = this.createHeaterConfigMessage(heater);
-        conn.queueSendMessage(out);
+        await out.sendAsync();
     }
     public async setHeaterAsync(obj: any): Promise<Heater> {
         if (obj.master === 1 || parseInt(obj.id, 10) > 255) return super.setHeaterAsync(obj);
-        return new Promise<Heater>((resolve, reject) => {
-            let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
-            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
-            let heater: Heater;
-            if (id <= 0) {
-                // We are adding a heater.  In this case we need to find the first id slot that is empty.
-                id = sys.heaters.getNextEquipmentId(new EquipmentIdRange(1, 16));
+        let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
+        let heater: Heater;
+        if (id <= 0) {
+            // We are adding a heater.  In this case we need to find the first id slot that is empty.
+            id = sys.heaters.getNextEquipmentId(new EquipmentIdRange(1, 16));
+        }
+        heater = sys.heaters.getItemById(id, false);
+        let type = 0;
+        if (typeof obj.type === 'undefined' && (heater.type === 0 || typeof heater.type === 'undefined')) return Promise.reject(new InvalidEquipmentDataError(`Heater type was not specified for new heater`, 'Heater', obj.type));
+        else {
+            // We only get here if the type was not previously defined.
+            if (typeof obj.type === 'string' && isNaN(parseInt(obj.type, 10)))
+                type = sys.board.valueMaps.heaterTypes.getValue(obj.type);
+            else
+                type = parseInt(obj.type, 10);
+            if (!sys.board.valueMaps.heaterTypes.valExists(type)) return Promise.reject(new InvalidEquipmentDataError(`Heater type was not specified for new heater`, 'Heater', obj.type));
+            heater.type = type;
+        }
+        let htype = sys.board.valueMaps.heaterTypes.transform(type);
+        let address = heater.address || 112;
+        if (htype.hasAddress) {
+            if (typeof obj.address !== 'undefined') {
+                address = parseInt(obj.address, 10);
+                if (isNaN(address) || address < 112 || address > 128) return Promise.reject(new InvalidEquipmentDataError(`Invalid Heater address was specified`, 'Heater', obj.address));
             }
-            heater = sys.heaters.getItemById(id, false);
-            let type = 0;
-            if (typeof obj.type === 'undefined' && (heater.type === 0 || typeof heater.type === 'undefined')) return reject(new InvalidEquipmentDataError(`Heater type was not specified for new heater`, 'Heater', obj.type));
-            else {
-                // We only get here if the type was not previously defined.
-                if (typeof obj.type === 'string' && isNaN(parseInt(obj.type, 10)))
-                    type = sys.board.valueMaps.heaterTypes.getValue(obj.type);
-                else
-                    type = parseInt(obj.type, 10);
-                if (!sys.board.valueMaps.heaterTypes.valExists(type)) return reject(new InvalidEquipmentDataError(`Heater type was not specified for new heater`, 'Heater', obj.type));
-                heater.type = type;
+        }
+        let differentialTemp = heater.differentialTemp || 6;
+        if (typeof obj.differentialTemp !== 'undefined') {
+            differentialTemp = parseInt(obj.differentialTemp, 10);
+            if (isNaN(differentialTemp) || differentialTemp < 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid Differential Temp was specified`, 'Heater', obj.differentialTemp));
+        }
+        let efficiencyMode = heater.efficiencyMode || 0;
+        if (typeof obj.efficiencyMode !== 'undefined') {
+            efficiencyMode = parseInt(obj.efficiencyMode, 10);
+            if (isNaN(efficiencyMode) || efficiencyMode < 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid Efficiency Mode was specified`, 'Heater', obj.efficiencyMode));
+        }
+        let maxBoostTemp = heater.maxBoostTemp || 0;
+        if (typeof obj.maxBoostTemp !== 'undefined') {
+            maxBoostTemp = parseInt(obj.maxBoostTemp, 10);
+            if (isNaN(maxBoostTemp) || maxBoostTemp < 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid Max Boost Temp was specified`, 'Heater', obj.maxBoostTemp));
+        }
+        let startTempDelta = heater.startTempDelta || 5;
+        if (typeof obj.startTempDelta !== 'undefined') {
+            startTempDelta = parseInt(obj.startTempDelta, 10);
+            if (isNaN(startTempDelta) || startTempDelta < 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid Start Temp Delta was specified`, 'Heater', obj.startTempDelta));
+        }
+        let stopTempDelta = heater.stopTempDelta || 3;
+        if (typeof obj.stopTempDelta !== 'undefined') {
+            stopTempDelta = parseInt(obj.stopTempDelta, 10);
+            if (isNaN(stopTempDelta) || stopTempDelta < 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid Stop Temp Delta was specified`, 'Heater', obj.stopTempDelta));
+        }
+        let economyTime = heater.economyTime || 1;
+        if (typeof obj.economyTime !== 'undefined') {
+            economyTime = parseInt(obj.economyTime, 10);
+            if (isNaN(economyTime) || economyTime < 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid Economy Time was specified`, 'Heater', obj.economyTime));
+        }
+        let body = heater.body || 0;
+        if (typeof obj.body !== 'undefined') {
+            body = parseInt(obj.body, 10);
+            if (isNaN(obj.body) && typeof obj.body === 'string') body = sys.board.valueMaps.bodies.getValue(obj.body);
+            if (typeof body === 'undefined' || isNaN(body)) return Promise.reject(new InvalidEquipmentDataError(`Invalid Body was specified`, 'Heater', obj.body));
+        }
+        if (htype.hasAddress) {
+            if (isNaN(address) || address < 112 || address > 128) return Promise.reject(new InvalidEquipmentDataError(`Invalid Heater address was specified`, 'Heater', obj.address));
+            for (let i = 0; i < sys.heaters.length; i++) {
+                let h = sys.heaters.getItemByIndex(i);
+                if (h.id === id) continue;
+                let t = sys.board.valueMaps.heaterTypes.transform(h.type);
+                if (!t.hasAddress) continue;
+                if (h.address === address) return Promise.reject(new InvalidEquipmentDataError(`Heater id# ${h.id} ${t.desc} is already communicating on this address.`, 'Heater', obj.address));
             }
-            let htype = sys.board.valueMaps.heaterTypes.transform(type);
-            let address = heater.address || 112;
-            if (htype.hasAddress) {
-                if (typeof obj.address !== 'undefined') {
-                    address = parseInt(obj.address, 10);
-                    if (isNaN(address) || address < 112 || address > 128) return reject(new InvalidEquipmentDataError(`Invalid Heater address was specified`, 'Heater', obj.address));
-                }
-            }
-            let differentialTemp = heater.differentialTemp || 6;
-            if (typeof obj.differentialTemp !== 'undefined') {
-                differentialTemp = parseInt(obj.differentialTemp, 10);
-                if (isNaN(differentialTemp) || differentialTemp < 0) return reject(new InvalidEquipmentDataError(`Invalid Differential Temp was specified`, 'Heater', obj.differentialTemp));
-            }
-            let efficiencyMode = heater.efficiencyMode || 0;
-            if (typeof obj.efficiencyMode !== 'undefined') {
-                efficiencyMode = parseInt(obj.efficiencyMode, 10);
-                if (isNaN(efficiencyMode) || efficiencyMode < 0) return reject(new InvalidEquipmentDataError(`Invalid Efficiency Mode was specified`, 'Heater', obj.efficiencyMode));
-            }
-            let maxBoostTemp = heater.maxBoostTemp || 0;
-            if (typeof obj.maxBoostTemp !== 'undefined') {
-                maxBoostTemp = parseInt(obj.maxBoostTemp, 10);
-                if (isNaN(maxBoostTemp) || maxBoostTemp < 0) return reject(new InvalidEquipmentDataError(`Invalid Max Boost Temp was specified`, 'Heater', obj.maxBoostTemp));
-            }
-            let startTempDelta = heater.startTempDelta || 5;
-            if (typeof obj.startTempDelta !== 'undefined') {
-                startTempDelta = parseInt(obj.startTempDelta, 10);
-                if (isNaN(startTempDelta) || startTempDelta < 0) return reject(new InvalidEquipmentDataError(`Invalid Start Temp Delta was specified`, 'Heater', obj.startTempDelta));
-            }
-            let stopTempDelta = heater.stopTempDelta || 3;
-            if (typeof obj.stopTempDelta !== 'undefined') {
-                stopTempDelta = parseInt(obj.stopTempDelta, 10);
-                if (isNaN(stopTempDelta) || stopTempDelta < 0) return reject(new InvalidEquipmentDataError(`Invalid Stop Temp Delta was specified`, 'Heater', obj.stopTempDelta));
-            }
-            let economyTime = heater.economyTime || 1;
-            if (typeof obj.economyTime !== 'undefined') {
-                economyTime = parseInt(obj.economyTime, 10);
-                if (isNaN(economyTime) || economyTime < 0) return reject(new InvalidEquipmentDataError(`Invalid Economy Time was specified`, 'Heater', obj.economyTime));
-            }
-            let body = heater.body || 0;
-            if (typeof obj.body !== 'undefined') {
-                body = parseInt(obj.body, 10);
-                if (isNaN(obj.body) && typeof obj.body === 'string') body = sys.board.valueMaps.bodies.getValue(obj.body);
-                if (typeof body === 'undefined' || isNaN(body)) return reject(new InvalidEquipmentDataError(`Invalid Body was specified`, 'Heater', obj.body));
-            }
-            if (htype.hasAddress) {
-                if (isNaN(address) || address < 112 || address > 128) return reject(new InvalidEquipmentDataError(`Invalid Heater address was specified`, 'Heater', obj.address));
-                for (let i = 0; i < sys.heaters.length; i++) {
-                    let h = sys.heaters.getItemByIndex(i);
-                    if (h.id === id) continue;
-                    let t = sys.board.valueMaps.heaterTypes.transform(h.type);
-                    if (!t.hasAddress) continue;
-                    if (h.address === address) return reject(new InvalidEquipmentDataError(`Heater id# ${h.id} ${t.desc} is already communicating on this address.`, 'Heater', obj.address));
-                }
-            }
-            let cooldownDelay = heater.cooldownDelay || 5;
-            if (typeof obj.cooldownDelay !== 'undefined') {
-                cooldownDelay = parseInt(obj.cooldownDelay, 10);
-                if (isNaN(cooldownDelay) || cooldownDelay < 0 || cooldownDelay > 20) return reject(new InvalidEquipmentDataError(`Invalid cooldown delay was specified`, 'Heater', obj.cooldownDelay));
-            }
+        }
+        let cooldownDelay = heater.cooldownDelay || 5;
+        if (typeof obj.cooldownDelay !== 'undefined') {
+            cooldownDelay = parseInt(obj.cooldownDelay, 10);
+            if (isNaN(cooldownDelay) || cooldownDelay < 0 || cooldownDelay > 20) return Promise.reject(new InvalidEquipmentDataError(`Invalid cooldown delay was specified`, 'Heater', obj.cooldownDelay));
+        }
 
-            let out = Outbound.create({
-                action: 168,
-                payload: [10, 0, heater.id - 1,
-                    type,
-                    body,
-                    cooldownDelay,
-                    startTempDelta,
-                    stopTempDelta,
-                    (typeof obj.coolingEnabled !== 'undefined' ? utils.makeBool(obj.coolingEnabled) : utils.makeBool(heater.coolingEnabled)) ? 1 : 0,
-                    differentialTemp,
-                    address
-                ],
-                retries: 5,
-                response: IntelliCenterBoard.getAckResponse(168)
-            });
-            out.appendPayloadString(obj.name || heater.name, 16);
-            out.appendPayloadByte(efficiencyMode);
-            out.appendPayloadByte(maxBoostTemp);
-            out.appendPayloadByte(economyTime);
-            out.onComplete = (err, msg) => {
-                if (err) reject(err);
-                else {
-                    heater = sys.heaters.getItemById(heater.id, true);
-                    let hstate = state.heaters.getItemById(heater.id, true);
-                    hstate.type = heater.type = type;
-                    heater.body = body;
-                    heater.address = address;
-                    hstate.name = heater.name = obj.name || heater.name;
-                    heater.coolingEnabled = typeof obj.coolingEnabled !== 'undefined' ? utils.makeBool(obj.coolingEnabled) : utils.makeBool(heater.coolingEnabled);
-                    heater.differentialTemp = differentialTemp;
-                    heater.economyTime = economyTime;
-                    heater.startTempDelta = startTempDelta;
-                    heater.stopTempDelta = stopTempDelta;
-                    heater.cooldownDelay = cooldownDelay;
-                    sys.board.heaters.updateHeaterServices();
-                    sys.board.heaters.syncHeaterStates();
-                    resolve(heater);
-                }
-
-            };
-            conn.queueSendMessage(out);
-
+        let out = Outbound.create({
+            action: 168,
+            payload: [10, 0, heater.id - 1,
+                type,
+                body,
+                cooldownDelay,
+                startTempDelta,
+                stopTempDelta,
+                (typeof obj.coolingEnabled !== 'undefined' ? utils.makeBool(obj.coolingEnabled) : utils.makeBool(heater.coolingEnabled)) ? 1 : 0,
+                differentialTemp,
+                address
+            ],
+            retries: 5,
+            response: IntelliCenterBoard.getAckResponse(168)
         });
+        out.appendPayloadString(obj.name || heater.name, 16);
+        out.appendPayloadByte(efficiencyMode);
+        out.appendPayloadByte(maxBoostTemp);
+        out.appendPayloadByte(economyTime);
+
+        await out.sendAsync();
+        heater = sys.heaters.getItemById(heater.id, true);
+        let hstate = state.heaters.getItemById(heater.id, true);
+        hstate.type = heater.type = type;
+        heater.body = body;
+        heater.address = address;
+        hstate.name = heater.name = obj.name || heater.name;
+        heater.coolingEnabled = typeof obj.coolingEnabled !== 'undefined' ? utils.makeBool(obj.coolingEnabled) : utils.makeBool(heater.coolingEnabled);
+        heater.differentialTemp = differentialTemp;
+        heater.economyTime = economyTime;
+        heater.startTempDelta = startTempDelta;
+        heater.stopTempDelta = stopTempDelta;
+        heater.cooldownDelay = cooldownDelay;
+        sys.board.heaters.updateHeaterServices();
+        sys.board.heaters.syncHeaterStates();
+        return heater;
     }
     public async deleteHeaterAsync(obj): Promise<Heater> {
         if (obj.master === 1 || parseInt(obj.id, 10) > 255) return await super.deleteHeaterAsync(obj);
-        return new Promise<Heater>((resolve, reject) => {
-            let id = parseInt(obj.id, 10);
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
-            let heater = sys.heaters.getItemById(id);
-            let out = Outbound.create({
-                action: 168,
-                payload: [10, 0, heater.id - 1,
-                    0,
-                    1,
-                    5,
-                    5,
-                    3,
-                    0,
-                    6,
-                    112
-                ],
-                retries: 5,
-                response: IntelliCenterBoard.getAckResponse(168)
-            });
-            out.appendPayloadString('', 16);
-            out.appendPayloadByte(3);
-            out.appendPayloadByte(5);
-            out.appendPayloadByte(1);
-            out.onComplete = (err, msg) => {
-                if (err) reject(err);
-                else {
-                    heater.isActive = false;
-                    sys.heaters.removeItemById(id);
-                    state.heaters.removeItemById(id);
-                    resolve(heater);
-                }
-            };
-            conn.queueSendMessage(out);
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
+        let heater = sys.heaters.getItemById(id);
+        let out = Outbound.create({
+            action: 168,
+            payload: [10, 0, heater.id - 1,
+                0,
+                1,
+                5,
+                5,
+                3,
+                0,
+                6,
+                112
+            ],
+            retries: 5,
+            response: IntelliCenterBoard.getAckResponse(168)
         });
+        out.appendPayloadString('', 16);
+        out.appendPayloadByte(3);
+        out.appendPayloadByte(5);
+        out.appendPayloadByte(1);
+        await out.sendAsync();
+        heater.isActive = false;
+        sys.heaters.removeItemById(id);
+        state.heaters.removeItemById(id);
+        return heater;
     }
     public updateHeaterServices() {
         let htypes = sys.board.heaters.getInstalledHeaterTypes();
@@ -3873,7 +3470,7 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             sys.board.valueMaps.heatSources = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
             if (gasHeaterInstalled) sys.board.valueMaps.heatSources.set(3, { name: 'heater', desc: 'Heater' });
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'solar', desc: 'Solar Only' }], [21, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-            else if(solarInstalled) sys.board.valueMaps.heatSources.set(5, { name: 'solar', desc: 'Solar' });
+            else if (solarInstalled) sys.board.valueMaps.heatSources.set(5, { name: 'solar', desc: 'Solar' });
             if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Pref' }]]);
             else if (heatPumpInstalled) sys.board.valueMaps.heatSources.set(9, { name: 'heatpump', desc: 'Heat Pump' });
             if (sys.heaters.length > 0) sys.board.valueMaps.heatSources.set(32, { name: 'nochange', desc: 'No Change' });
@@ -3906,25 +3503,18 @@ class IntelliCenterValveCommands extends ValveCommands {
         // RKS: The valve messages are a bit unique since they are 0 based instead of 1s based.  Our configuration includes
         // the ability to set these valves appropriately via the interface by subtracting 1 from the circuit and the valve id.  In
         // shared body systems there is a gap for the additional intake/return valves that exist in i10d.
-        return new Promise<Valve>(function (resolve, reject) {
-            let v = extend(true, valve.get(true), obj);
-            let out = Outbound.create({
-                action: 168,
-                payload: [9, 0, v.id - 1, v.circuit - 1],
-                response: IntelliCenterBoard.getAckResponse(168),
-                retries: 5,
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        valve.name = v.name;
-                        valve.circuit = v.circuit;
-                        valve.type = v.type;
-                        resolve(valve);
-                    }
-                }
-            }).appendPayloadString(v.name, 16);
-            conn.queueSendMessage(out);
-        });
+        let v = extend(true, valve.get(true), obj);
+        let out = Outbound.create({
+            action: 168,
+            payload: [9, 0, v.id - 1, v.circuit - 1],
+            response: IntelliCenterBoard.getAckResponse(168),
+            retries: 5
+        }).appendPayloadString(v.name, 16);
+        await out.sendAsync();
+        valve.name = v.name;
+        valve.circuit = v.circuit;
+        valve.type = v.type;
+        return valve;
     }
 }
 export class IntelliCenterChemControllerCommands extends ChemControllerCommands {
@@ -4000,102 +3590,88 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
         //[255, 0, 255][165, 63, 15, 16, 168, 20][8, 0, 0, 32, 1, 144, 1, 248, 2, 144, 1, 1, 1, 29, 0, 0, 0, 100, 0, 0][4, 135]
         //Us
         //[255, 0, 255][165,  0, 15, 33, 168, 20][8, 0, 0, 32, 1, 144, 1, 248, 2, 144, 1, 1, 1, 33, 0, 0, 0, 100, 0, 0][4, 93]
-        return new Promise<ChemController>((resolve, reject) => {
-            let out = Outbound.create({
-                protocol: Protocol.Broadcast,
-                action: 168,
-                payload: [],
-                retries: 3, // We are going to try 4 times.
-                response: IntelliCenterBoard.getAckResponse(168),
-                //onAbort: () => { },
-                onComplete: (err) => {
-                    if (err) reject(err);
-                    else {
-                        chem = sys.chemControllers.getItemById(data.id, true);
-                        schem = state.chemControllers.getItemById(data.id, true);
-                        chem.master = 0;
-                        // Copy the data back to the chem object.
-                        schem.name = chem.name = name;
-                        schem.type = chem.type = sys.board.valueMaps.chemControllerTypes.encode('intellichem');
-                        chem.calciumHardness = calciumHardness;
-                        chem.cyanuricAcid = cyanuricAcid;
-                        chem.alkalinity = alkalinity;
-                        chem.borates = borates;
-                        chem.body = schem.body = body;
-                        schem.isActive = chem.isActive = true;
-                        chem.lsiRange.enabled = lsiRange.enabled;
-                        chem.lsiRange.low = lsiRange.low;
-                        chem.lsiRange.high = lsiRange.high;
-                        chem.ph.tolerance.enabled = phTolerance.enabled;
-                        chem.ph.tolerance.low = phTolerance.low;
-                        chem.ph.tolerance.high = phTolerance.high;
-                        chem.orp.tolerance.enabled = orpTolerance.enabled;
-                        chem.orp.tolerance.low = orpTolerance.low;
-                        chem.orp.tolerance.high = orpTolerance.high;
-                        chem.ph.setpoint = pHSetpoint;
-                        chem.orp.setpoint = orpSetpoint;
-                        schem.siCalcType = chem.siCalcType = siCalcType;
-                        chem.address = schem.address = address;
-                        chem.name = schem.name = name;
-                        chem.flowSensor.enabled = false;
-                        resolve(chem);
-                    }
-                }
-            });
-            
-            //[8, 0, chem.id - 1, body.val, 1, chem.address, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0]
-            out.insertPayloadBytes(0, 0, 20);
-            out.setPayloadByte(0, 8);
-            out.setPayloadByte(1, 0);
-            out.setPayloadByte(2, chem.id - 1);
-            out.setPayloadByte(3, body.val);
-            out.setPayloadByte(4, acidTankLevel + 1);
-            out.setPayloadByte(5, address);
-            out.setPayloadByte(6, 1);
-            out.setPayloadInt(7, Math.round(pHSetpoint * 100), 700);
-            out.setPayloadInt(9, orpSetpoint, 400);
-            out.setPayloadByte(11, 1);
-            out.setPayloadByte(12, 1);
-            //out.setPayloadByte(11, acidTankLevel + 1, 1);
-            //out.setPayloadByte(12, orpTankLevel + 1, 1);
-
-            out.setPayloadInt(13, calciumHardness, 25);
-            out.setPayloadInt(15, cyanuricAcid, 0);
-            out.setPayloadInt(17, alkalinity, 25);
-            conn.queueSendMessage(out);
+        let out = Outbound.create({
+            protocol: Protocol.Broadcast,
+            action: 168,
+            payload: [],
+            retries: 3, // We are going to try 4 times.
+            response: IntelliCenterBoard.getAckResponse(168),
+            //onAbort: () => { },
         });
+
+        //[8, 0, chem.id - 1, body.val, 1, chem.address, 1, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0]
+        out.insertPayloadBytes(0, 0, 20);
+        out.setPayloadByte(0, 8);
+        out.setPayloadByte(1, 0);
+        out.setPayloadByte(2, chem.id - 1);
+        out.setPayloadByte(3, body.val);
+        out.setPayloadByte(4, acidTankLevel + 1);
+        out.setPayloadByte(5, address);
+        out.setPayloadByte(6, 1);
+        out.setPayloadInt(7, Math.round(pHSetpoint * 100), 700);
+        out.setPayloadInt(9, orpSetpoint, 400);
+        out.setPayloadByte(11, 1);
+        out.setPayloadByte(12, 1);
+        //out.setPayloadByte(11, acidTankLevel + 1, 1);
+        //out.setPayloadByte(12, orpTankLevel + 1, 1);
+
+        out.setPayloadInt(13, calciumHardness, 25);
+        out.setPayloadInt(15, cyanuricAcid, 0);
+        out.setPayloadInt(17, alkalinity, 25);
+        await out.sendAsync();
+        chem = sys.chemControllers.getItemById(data.id, true);
+        schem = state.chemControllers.getItemById(data.id, true);
+        chem.master = 0;
+        // Copy the data back to the chem object.
+        schem.name = chem.name = name;
+        schem.type = chem.type = sys.board.valueMaps.chemControllerTypes.encode('intellichem');
+        chem.calciumHardness = calciumHardness;
+        chem.cyanuricAcid = cyanuricAcid;
+        chem.alkalinity = alkalinity;
+        chem.borates = borates;
+        chem.body = schem.body = body;
+        schem.isActive = chem.isActive = true;
+        chem.lsiRange.enabled = lsiRange.enabled;
+        chem.lsiRange.low = lsiRange.low;
+        chem.lsiRange.high = lsiRange.high;
+        chem.ph.tolerance.enabled = phTolerance.enabled;
+        chem.ph.tolerance.low = phTolerance.low;
+        chem.ph.tolerance.high = phTolerance.high;
+        chem.orp.tolerance.enabled = orpTolerance.enabled;
+        chem.orp.tolerance.low = orpTolerance.low;
+        chem.orp.tolerance.high = orpTolerance.high;
+        chem.ph.setpoint = pHSetpoint;
+        chem.orp.setpoint = orpSetpoint;
+        schem.siCalcType = chem.siCalcType = siCalcType;
+        chem.address = schem.address = address;
+        chem.name = schem.name = name;
+        chem.flowSensor.enabled = false;
+        return chem;
     }
     public async deleteChemControllerAsync(data: any): Promise<ChemController> {
         let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
         if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemController'));
         let chem = sys.chemControllers.getItemById(id);
         if (chem.master === 1) return super.deleteChemControllerAsync(data);
-        return new Promise<ChemController>((resolve, reject) => {
-            let out = Outbound.create({
-                action: 168,
-                response: IntelliCenterBoard.getAckResponse(168),
-                retries: 3,
-                payload: [8, 0, id - 1, 0, 1, chem.address || 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0],
-                onComplete: (err) => {
-                    if (err) { reject(err); }
-                    else {
-                        let schem = state.chemControllers.getItemById(id);
-                        chem.isActive = false;
-                        chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
-                        chem.ph.tank.units = chem.orp.tank.units = '';
-                        schem.isActive = false;
-                        sys.chemControllers.removeItemById(id);
-                        state.chemControllers.removeItemById(id);
-                        resolve(chem);
-                    }
-                }
-            });
-            out.setPayloadInt(7, Math.round(chem.ph.setpoint * 100), 700);
-            out.setPayloadInt(9, chem.orp.setpoint, 400);
-            out.setPayloadInt(13, chem.calciumHardness, 25);
-            out.setPayloadInt(15, chem.cyanuricAcid, 0);
-            conn.queueSendMessage(out);
+        let out = Outbound.create({
+            action: 168,
+            response: IntelliCenterBoard.getAckResponse(168),
+            retries: 3,
+            payload: [8, 0, id - 1, 0, 1, chem.address || 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0]
         });
+        out.setPayloadInt(7, Math.round(chem.ph.setpoint * 100), 700);
+        out.setPayloadInt(9, chem.orp.setpoint, 400);
+        out.setPayloadInt(13, chem.calciumHardness, 25);
+        out.setPayloadInt(15, chem.cyanuricAcid, 0);
+        await out.sendAsync();
+        let schem = state.chemControllers.getItemById(id);
+        chem.isActive = false;
+        chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
+        chem.ph.tank.units = chem.orp.tank.units = '';
+        schem.isActive = false;
+        sys.chemControllers.removeItemById(id);
+        state.chemControllers.removeItemById(id);
+        return chem;
     }
     //public async setChemControllerAsync(data: any): Promise<ChemController> {
     //    // This is a combined chem config/state setter.
@@ -4144,7 +3720,7 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
     //    let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
     //    if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
     //    let name = (typeof data.name !== 'string') ? chem.name || 'IntelliChem' + id : data.name;
-        
+
     //    return new Promise<ChemController>(async (resolve, reject) => {
     //        let out = Outbound.create({
     //            action: 168,
@@ -4183,7 +3759,7 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
     //        out.setPayloadInt(13, calciumHardness, 25);
     //        out.setPayloadInt(15, cyanuricAcid, 0);
     //        out.setPayloadInt(17, alkalinity, 25);
-    //        conn.queueSendMessage(out);
+    //        await out.sendAsync();
 
     //    });
     //}

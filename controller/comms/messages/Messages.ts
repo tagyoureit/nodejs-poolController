@@ -42,6 +42,7 @@ import { TouchScheduleCommands } from "controller/boards/EasyTouchBoard";
 import { IntelliValveStateMessage } from "./status/IntelliValveStateMessage";
 import { IntelliChemStateMessage } from "./status/IntelliChemStateMessage";
 import { OutboundMessageError } from "../../Errors";
+import { conn } from "../Comms"
 import extend = require("extend");
 export enum Direction {
     In = 'in',
@@ -883,7 +884,9 @@ export class Outbound extends OutboundCommon {
     public static createMessage(action: number, payload: number[], retries?: number, response?: Response | boolean): Outbound {
         return new Outbound(Protocol.Broadcast, sys.board.commandSourceAddress || Message.pluginAddress, sys.board.commandDestAddress || 16, action, payload, retries, response);
     }
-
+    public async sendAsync() {
+        return conn.queueSendMessageAsync(this);
+    }
     // Fields
     public retries: number = 0;
     public tries: number = 0;

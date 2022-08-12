@@ -55,7 +55,7 @@ class Config {
                         }
                     });
                 }
-                else throw err;
+                else return Promise.reject(err);
             });
             this._isLoading = false;
             this.getEnvVariables();
