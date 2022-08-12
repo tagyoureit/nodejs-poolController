@@ -305,7 +305,7 @@
       "topics": [
         {
           "topic": "state/chlorinators/@bind=data.id;/@bind=data.name;",
-          "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';}",
+          "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.currentOutput > 0 ?'\"on\"':'\"off\"';}",
           "description": "Bind 'on'/'off' as a message to the state topic."
         },
         {
