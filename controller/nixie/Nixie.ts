@@ -5,6 +5,7 @@ import { webApp } from "../../web/Server";
 import { logger } from "../../logger/Logger";
 import { INixieControlPanel } from "./NixieEquipment";
 import { NixieChemControllerCollection } from "./chemistry/ChemController";
+import { NixieChemDoserCollection } from "./chemistry/ChemDoser";
 
 import { sys, PoolSystem } from "../../controller/Equipment";
 import { NixieCircuitCollection } from './circuits/Circuit';
@@ -55,6 +56,7 @@ export class NixieControlPanel implements INixieControlPanel {
     // Only equipment controlled by Nixie is represented on the controller.  If interaction with
     // other equipment is required this should be sent back through the original controller.
     // Command sequence is <OCP>Board -> SystemBoard -> NixieController whenever the master is not identified as Nixie.
+    chemDosers: NixieChemDoserCollection = new NixieChemDoserCollection(this);
     chemControllers: NixieChemControllerCollection = new NixieChemControllerCollection(this);
     chlorinators: NixieChlorinatorCollection = new NixieChlorinatorCollection(this);
     circuits: NixieCircuitCollection = new NixieCircuitCollection(this);
@@ -69,6 +71,7 @@ export class NixieControlPanel implements INixieControlPanel {
         await this.heaters.setServiceModeAsync();
         await this.chlorinators.setServiceModeAsync();
         await this.chemControllers.setServiceModeAsync();
+        await this.chemDosers.setServiceModeAsync();
         await this.pumps.setServiceModeAsync();
     }
     public async initAsync(equipment: PoolSystem) {
@@ -86,6 +89,7 @@ export class NixieControlPanel implements INixieControlPanel {
             await this.heaters.initAsync(equipment.heaters);
             await this.chlorinators.initAsync(equipment.chlorinators);
             await this.chemControllers.initAsync(equipment.chemControllers);
+            await this.chemDosers.initAsync(equipment.chemDosers);
             await this.pumps.initAsync(equipment.pumps);
             await this.schedules.initAsync(equipment.schedules);
             logger.info(`Nixie Controller Initialized`)
@@ -124,6 +128,7 @@ export class NixieControlPanel implements INixieControlPanel {
     }
     public async closeAsync() {
         // Close all the associated equipment.
+        await this.chemDosers.closeAsync();
         await this.chemControllers.closeAsync();
         await this.chlorinators.closeAsync();
         await this.heaters.closeAsync();

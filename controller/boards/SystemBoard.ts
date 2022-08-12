@@ -18,10 +18,10 @@ import * as extend from 'extend';
 import { logger } from '../../logger/Logger';
 import { Message, Outbound } from '../comms/messages/Messages';
 import { Timestamp, utils } from '../Constants';
-import { Body, ChemController, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, ControllerType, CustomName, CustomNameCollection, EggTimer, Equipment, Feature, Filter, General, Heater, ICircuit, ICircuitGroup, ICircuitGroupCircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, TempSensorCollection, Valve } from '../Equipment';
+import { Body, ChemController, ChemDoser, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, ControllerType, CustomName, CustomNameCollection, EggTimer, Equipment, Feature, Filter, General, Heater, ICircuit, ICircuitGroup, ICircuitGroupCircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, TempSensorCollection, Valve } from '../Equipment';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, BoardProcessError, InvalidOperationError } from '../Errors';
 import { ncp } from "../nixie/Nixie";
-import { BodyTempState, ChemControllerState, ChlorinatorState, CircuitGroupState, FilterState, ICircuitGroupState, ICircuitState, LightGroupState, ScheduleState, state, TemperatureState, ValveState, VirtualCircuitState } from '../State';
+import { BodyTempState, ChemControllerState, ChemDoserState, ChlorinatorState, CircuitGroupState, FilterState, ICircuitGroupState, ICircuitState, LightGroupState, ScheduleState, state, TemperatureState, ValveState, VirtualCircuitState } from '../State';
 import { RestoreResults } from '../../web/Server';
 import { group } from 'console';
 
@@ -585,6 +585,10 @@ export class byteValueMaps {
     [2, { name: 'status', desc: 'Equipment Status' }],
     [82, { name: 'ivstatus', desc: 'IntelliValve Status' }]
   ]);
+    public chemDoserTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'acid', desc: 'Acid' }],
+        [1, { name: 'chlor', desc: 'Chlorine' }]
+    ]);
   public chemControllerTypes: byteValueMap = new byteValueMap([
     [0, { name: 'none', desc: 'None', ph: { min: 6.8, max: 7.6 }, orp: { min: 400, max: 800 }, hasAddress: false }],
     [1, { name: 'unknown', desc: 'Unknown', ph: { min: 6.8, max: 7.6 }, hasAddress: false }],
@@ -670,6 +674,43 @@ export class byteValueMaps {
     [1, { name: 'nocomms', desc: 'No Communication' }],
     [2, { name: 'config', desc: 'Invalid Configuration' }]
   ]);
+    public chemDoserStatus: byteValueMap = new byteValueMap([
+        [0, { name: 'ok', desc: 'Ok' }],
+        [1, { name: 'nocomms', desc: 'No Communication' }],
+        [2, { name: 'config', desc: 'Invalid Configuration' }]
+    ]);
+    public chemDoserHardwareFaults: byteValueMap = new byteValueMap([
+        [0, { name: 'ok', desc: 'Ok - No Faults' }],
+        [2, { name: 'pump', desc: 'Pump Fault' }],
+        [5, { name: 'chlormismatch', desc: 'Chlorinator body mismatch' }],
+        [6, { name: 'invalidbody', desc: 'Body capacity not valid' }],
+        [7, { name: 'flowsensor', desc: 'Flow Sensor Fault' }]
+    ]);
+    public chemDoserAlarms: byteValueMap = new byteValueMap([
+        [0, { name: 'ok', desc: 'Ok - No alarm' }],
+        [1, { name: 'noflow', desc: 'No Flow Detected' }],
+        [32, { name: 'tankempty', desc: 'Tank Empty' }],
+        [129, { name: 'tanklow', desc: 'Tank Low' }],
+        [131, { name: 'freezeprotect', desc: 'Freeze Protection Lockout' }]
+    ]);
+    public chemDoserWarnings: byteValueMap = new byteValueMap([
+        [0, { name: 'ok', desc: 'Ok - No Warning' }],
+        [8, { name: 'invalidsetup', desc: 'Invalid Setup' }],
+        [16, { name: 'chlorinatorComms', desc: 'Chlorinator Comms Error' }]
+    ]);
+    public chemDoserLimits: byteValueMap = new byteValueMap([
+        [0, { name: 'ok', desc: 'Ok - No limits reached' }],
+        [1, { name: 'lockout', desc: 'Lockout - Chemical will not dose' }],
+        [2, { name: 'dailylimit', desc: 'Daily Limit Reached' }],
+        [128, { name: 'commslost', desc: 'Communications with Chem Doser Lost' }]
+    ]);
+    public chemDoserDosingStatus: byteValueMap = new byteValueMap([
+        [0, { name: 'dosing', desc: 'Dosing' }],
+        [1, { name: 'mixing', desc: 'Mixing' }],
+        [2, { name: 'monitoring', desc: 'Monitoring' }]
+    ]);
+
+
   public chemControllerAlarms: byteValueMap = new byteValueMap([
     [0, { name: 'ok', desc: 'Ok - No alarm' }],
     [1, { name: 'noflow', desc: 'No Flow Detected' }],
@@ -693,7 +734,6 @@ export class byteValueMaps {
     [5, { name: 'chlormismatch', desc: 'Chlorinator body mismatch' }],
     [6, { name: 'invalidbody', desc: 'Body capacity not valid' }],
     [7, { name: 'flowsensor', desc: 'Flow Sensor Fault' }]
-
   ]);
   public chemControllerWarnings: byteValueMap = new byteValueMap([
     [0, { name: 'ok', desc: 'Ok - No Warning' }],
@@ -864,8 +904,8 @@ export class SystemBoard {
   public chlorinator: ChlorinatorCommands = new ChlorinatorCommands(this);
   public heaters: HeaterCommands = new HeaterCommands(this);
   public filters: FilterCommands = new FilterCommands(this);
-  public chemControllers: ChemControllerCommands = new ChemControllerCommands(this);
-
+    public chemControllers: ChemControllerCommands = new ChemControllerCommands(this);
+    public chemDosers: ChemDoserCommands = new ChemDoserCommands(this);
   public schedules: ScheduleCommands = new ScheduleCommands(this);
   public equipmentIds: EquipmentIds = new EquipmentIds();
   //public virtualChlorinatorController = new VirtualChlorinatorController(this);
@@ -2620,7 +2660,7 @@ export class CircuitCommands extends BoardCommands {
                 if (id === 6) circuit.type = sys.board.valueMaps.circuitFunctions.getValue('pool');
                 if (id === 1 && sys.equipment.shared) circuit.type = sys.board.valueMaps.circuitFunctions.getValue('spa');
                 if (typeof data.freeze !== 'undefined' || typeof circuit.freeze === 'undefined') circuit.freeze = utils.makeBool(data.freeze) || false;
-                if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures) || true;
+                if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures);
                 if (typeof data.dontStop !== 'undefined' && utils.makeBool(data.dontStop) === true) data.eggTimer = 1440;
                 if (typeof data.eggTimer !== 'undefined' || typeof circuit.eggTimer === 'undefined') circuit.eggTimer = parseInt(data.eggTimer, 10) || 0;
                 if (typeof data.connectionId !== 'undefined') circuit.connectionId = data.connectionId;
@@ -4558,60 +4598,224 @@ export class ValveCommands extends BoardCommands {
     return arrIds;
   }
 }
+export class ChemDoserCommands extends BoardCommands {
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
+        try {
+            // First delete the chemDosers that should be removed.
+            for (let i = 0; i < ctx.chemDosers.remove.length; i++) {
+                let c = ctx.chemDosers.remove[i];
+                try {
+                    await sys.board.chemDosers.deleteChemDoserAsync(c);
+                    res.addModuleSuccess('chemDoser', `Remove: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('chemDoser', `Remove: ${c.id}-${c.name}: ${err.message}`); }
+            }
+            for (let i = 0; i < ctx.chemDosers.update.length; i++) {
+                let c = ctx.chemDosers.update[i];
+                try {
+                    await sys.board.chemDosers.setChemDoserAsync(c);
+                    res.addModuleSuccess('chemDoser', `Update: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('chemDoser', `Update: ${c.id}-${c.name}: ${err.message}`); }
+            }
+            for (let i = 0; i < ctx.chemDosers.add.length; i++) {
+                let c = ctx.chemDosers.add[i];
+                try {
+                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                    // it won't error out.
+                    let chem = sys.chemDosers.getItemById(c.id, true);
+                    await sys.board.chemDosers.setChemDoserAsync(c);
+                    res.addModuleSuccess('chemDoser', `Add: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('chemDoser', `Add: ${c.id}-${c.name}: ${err.message}`); }
+            }
+            return true;
+        } catch (err) { logger.error(`Error restoring chemDosers: ${err.message}`); res.addModuleError('system', `Error restoring chemDosers: ${err.message}`); return false; }
+    }
+    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+        try {
+            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            // Look at chemDosers.
+            let cfg = rest.poolConfig;
+            for (let i = 0; i < cfg.chemDosers.length; i++) {
+                let r = cfg.chemDosers[i];
+                let c = sys.chemDosers.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.chemDosers.length; i++) {
+                let c = sys.chemDosers.getItemByIndex(i);
+                let r = cfg.chemDosers.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            return ctx;
+        } catch (err) { logger.error(`Error validating chemDosers for restore: ${err.message}`); }
+    }
+
+    public async deleteChemDoserAsync(data: any): Promise<ChemDoser> {
+        try {
+            let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
+            if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemDoser'));
+            let chem = sys.chemDosers.getItemById(id);
+            let schem = state.chemDosers.getItemById(id);
+            schem.isActive = chem.isActive = false;
+            await ncp.chemDosers.removeById(id);
+            sys.chemDosers.removeItemById(id);
+            state.chemDosers.removeItemById(id);
+            sys.emitEquipmentChange();
+            return Promise.resolve(chem);
+        } catch (err) { logger.error(`Error deleting chem controller ${err.message}`); }
+    }
+    public async manualDoseAsync(data: any): Promise<ChemDoserState> {
+        try {
+            let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Invalid chem controller id was provided ${data.id}`, 'chemDoser', data.id));
+            let chem = sys.chemDosers.find(elem => elem.id === id);
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Chem controller was not found ${data.id}`, 'chemDoser', data.id));
+            // Let's check the type.  AFAIK you cannot manual dose an IntelliChem.
+            // We are down to the nitty gritty.  Let REM Chem do its thing.
+            await ncp.chemDosers.manualDoseAsync(chem.id, data);
+            return Promise.resolve(state.chemDosers.getItemById(id));
+        } catch (err) { return Promise.reject(err); }
+    }
+    public async calibrateDoseAsync(data: any): Promise<ChemDoserState> {
+        try {
+            let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin calibration: Invalid chem controller id was provided ${data.id}`, 'chemDoser', data.id));
+            let chem = sys.chemDosers.find(elem => elem.id === id);
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin calibration: Chem controller was not found ${data.id}`, 'chemDoser', data.id));
+            // We are down to the nitty gritty.  Let REM Chem do its thing.
+            await ncp.chemDosers.calibrateDoseAsync(chem.id, data);
+            return Promise.resolve(state.chemDosers.getItemById(id));
+        } catch (err) { return Promise.reject(err); }
+    }
+
+    public async cancelDosingAsync(data: any): Promise<ChemDoserState> {
+        try {
+            let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel dosing: Invalid chem controller id was provided ${data.id}`, 'chemDoser', data.id));
+            let chem = sys.chemDosers.find(elem => elem.id === id);
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel dosing: Chem controller was not found ${data.id}`, 'chemDoser', data.id));
+            // We are down to the nitty gritty.  Let REM Chem do its thing.
+            await ncp.chemDosers.cancelDoseAsync(chem.id, data);
+            return Promise.resolve(state.chemDosers.getItemById(id));
+        } catch (err) { return Promise.reject(err); }
+    }
+    public async manualMixAsync(data: any): Promise<ChemDoserState> {
+        try {
+            let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin mixing: Invalid chem controller id was provided ${data.id}`, 'chemDoser', data.id));
+            let chem = sys.chemDosers.find(elem => elem.id === id);
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin mixing: Chem controller was not found ${data.id}`, 'chemDoser', data.id));
+            // We are down to the nitty gritty.  Let REM Chem do its thing.
+            await ncp.chemDosers.manualMixAsync(chem.id, data);
+            return Promise.resolve(state.chemDosers.getItemById(id));
+        } catch (err) { return Promise.reject(err); }
+    }
+    public async cancelMixingAsync(data: any): Promise<ChemDoserState> {
+        try {
+            let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel mixing: Invalid chem controller id was provided ${data.id}`, 'chemDoser', data.id));
+            let chem = sys.chemDosers.find(elem => elem.id === id);
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel mixing: Chem controller was not found ${data.id}`, 'chemDoser', data.id));
+            // We are down to the nitty gritty.  Let REM Chem do its thing.
+            await ncp.chemDosers.cancelMixingAsync(chem.id, data);
+            return Promise.resolve(state.chemDosers.getItemById(id));
+        } catch (err) { return Promise.reject(err); }
+    }
+    public findChemDoser(data: any) {
+        let id = parseInt(data.id, 10);
+        if (!isNaN(id)) return sys.chemDosers.find(x => x.id === id);
+    }
+    public async setChemDoserAsync(data: any): Promise<ChemDoser> {
+        // The following are the rules related to when an OCP is present.
+        // ==============================================================
+        // 1. IntelliChem cannot be controlled/polled via Nixie, since there is no enable/disable from the OCP at this point we don't know who is in control of polling.
+        // 2. With *Touch Commands will be sent directly to the IntelliChem controller in the hopes that the OCP will pick it up. Turns out this is not correct.  The TouchBoard now has the proper interface.
+        // 3. njspc will communicate to the OCP for IntelliChem control via the configuration interface.
+
+        // The following are the rules related to when no OCP is present.
+        // =============================================================
+        // 1. All chemDosers will be controlled via Nixie (IntelliChem, REM Chem).
+        try {
+            let chem = sys.board.chemDosers.findChemDoser(data);
+            let isAdd = typeof chem === 'undefined';
+            if (isAdd && sys.equipment.maxChemDosers <= sys.chemDosers.length) return Promise.reject(new InvalidEquipmentDataError(`The maximum number of chem controllers have been added to your controller`, 'chemDoser', sys.equipment.maxChemDosers));
+            if (isAdd) {
+                // At this point we are going to add the chem controller no matter what.
+                data.id = sys.chemDosers.getNextEquipmentId(new EquipmentIdRange(1, 10));
+                chem = sys.chemDosers.getItemById(data.id, true);
+            }
+            chem.isActive = true;
+            // So here is the thing.  If you have an OCP then the IntelliChem must be controlled by that.
+            // the messages on the bus will talk back to the OCP so if you do not do this mayhem will ensue.
+            await ncp.chemDosers.setDoserAsync(chem, data);
+            return Promise.resolve(chem);
+        }
+        catch (err) { return Promise.reject(err); }
+    }
+    public async setChemDoserStateAsync(data: any): Promise<ChemDoserState> {
+        let chem = sys.board.chemDosers.findChemDoser(data);
+        if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`A valid chem doser could not be found for id:${data.id} or address ${data.address}`, data.id || data.address, 'chemDoser'));
+        data.id = chem.id;
+        logger.info(`Setting ${chem.name} data ${chem.master}`);
+        if (chem.master === 1) await ncp.chemDosers.setDoserAsync(chem, data);
+        else await sys.board.chemDosers.setChemDoserAsync(data);
+        let schem = state.chemDosers.getItemById(chem.id, true);
+        return Promise.resolve(schem);
+    }
+}
 export class ChemControllerCommands extends BoardCommands {
-  public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
-    try {
-      // First delete the chemControllers that should be removed.
-      for (let i = 0; i < ctx.chemControllers.remove.length; i++) {
-        let c = ctx.chemControllers.remove[i];
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
         try {
-          await sys.board.chemControllers.deleteChemControllerAsync(c);
-          res.addModuleSuccess('chemController', `Remove: ${c.id}-${c.name}`);
-        } catch (err) { res.addModuleError('chemController', `Remove: ${c.id}-${c.name}: ${err.message}`); }
-      }
-      for (let i = 0; i < ctx.chemControllers.update.length; i++) {
-        let c = ctx.chemControllers.update[i];
+            // First delete the chemControllers that should be removed.
+            for (let i = 0; i < ctx.chemControllers.remove.length; i++) {
+                let c = ctx.chemControllers.remove[i];
+                try {
+                    await sys.board.chemControllers.deleteChemControllerAsync(c);
+                    res.addModuleSuccess('chemController', `Remove: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('chemController', `Remove: ${c.id}-${c.name}: ${err.message}`); }
+            }
+            for (let i = 0; i < ctx.chemControllers.update.length; i++) {
+                let c = ctx.chemControllers.update[i];
+                try {
+                    await sys.board.chemControllers.setChemControllerAsync(c);
+                    res.addModuleSuccess('chemController', `Update: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('chemController', `Update: ${c.id}-${c.name}: ${err.message}`); }
+            }
+            for (let i = 0; i < ctx.chemControllers.add.length; i++) {
+                let c = ctx.chemControllers.add[i];
+                try {
+                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                    // it won't error out.
+                    let chem = sys.chemControllers.getItemById(c.id, true);
+                    // RSG 11.24.21.  setChemControllerAsync will only set the type/address if it thinks it's new.   
+                    // For a restore, if we set the type/address here it will pass the validation steps.
+                    chem.type = c.type;
+                    // chem.address = c.address;
+                    await sys.board.chemControllers.setChemControllerAsync(c);
+                    res.addModuleSuccess('chemController', `Add: ${c.id}-${c.name}`);
+                } catch (err) { res.addModuleError('chemController', `Add: ${c.id}-${c.name}: ${err.message}`); }
+            }
+            return true;
+        } catch (err) { logger.error(`Error restoring chemControllers: ${err.message}`); res.addModuleError('system', `Error restoring chemControllers: ${err.message}`); return false; }
+    }
+    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
         try {
-          await sys.board.chemControllers.setChemControllerAsync(c);
-          res.addModuleSuccess('chemController', `Update: ${c.id}-${c.name}`);
-        } catch (err) { res.addModuleError('chemController', `Update: ${c.id}-${c.name}: ${err.message}`); }
-      }
-      for (let i = 0; i < ctx.chemControllers.add.length; i++) {
-        let c = ctx.chemControllers.add[i];
-        try {
-          // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-          // it won't error out.
-          let chem = sys.chemControllers.getItemById(c.id, true);
-          // RSG 11.24.21.  setChemControllerAsync will only set the type/address if it thinks it's new.   
-          // For a restore, if we set the type/address here it will pass the validation steps.
-          chem.type = c.type;
-          // chem.address = c.address;
-          await sys.board.chemControllers.setChemControllerAsync(c);
-          res.addModuleSuccess('chemController', `Add: ${c.id}-${c.name}`);
-        } catch (err) { res.addModuleError('chemController', `Add: ${c.id}-${c.name}: ${err.message}`); }
-      }
-      return true;
-    } catch (err) { logger.error(`Error restoring chemControllers: ${err.message}`); res.addModuleError('system', `Error restoring chemControllers: ${err.message}`); return false; }
-  }
-  public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
-    try {
-      let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-      // Look at chemControllers.
-      let cfg = rest.poolConfig;
-      for (let i = 0; i < cfg.chemControllers.length; i++) {
-        let r = cfg.chemControllers[i];
-        let c = sys.chemControllers.find(elem => r.id === elem.id);
-        if (typeof c === 'undefined') ctx.add.push(r);
-        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-      }
-      for (let i = 0; i < sys.chemControllers.length; i++) {
-        let c = sys.chemControllers.getItemByIndex(i);
-        let r = cfg.chemControllers.find(elem => elem.id == c.id);
-        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-      }
-      return ctx;
-    } catch (err) { logger.error(`Error validating chemControllers for restore: ${err.message}`); }
-  }
+            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            // Look at chemControllers.
+            let cfg = rest.poolConfig;
+            for (let i = 0; i < cfg.chemControllers.length; i++) {
+                let r = cfg.chemControllers[i];
+                let c = sys.chemControllers.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined') ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.chemControllers.length; i++) {
+                let c = sys.chemControllers.getItemByIndex(i);
+                let r = cfg.chemControllers.find(elem => elem.id == c.id);
+                if (typeof r === 'undefined') ctx.remove.push(c.get(true));
+            }
+            return ctx;
+        } catch (err) { logger.error(`Error validating chemControllers for restore: ${err.message}`); }
+    }
 
   public async deleteChemControllerAsync(data: any): Promise<ChemController> {
     try {

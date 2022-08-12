@@ -373,7 +373,7 @@ class SunTouchCircuitCommands extends TouchCircuitCommands {
                             let cstate = state.circuits.getInterfaceById(data.id);
                             circuit.nameId = cstate.nameId = nameByte;
                             circuit.name = typeof data.name !== 'undefined' ? data.name.toString() : circuit.name;
-                            circuit.showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? data.showInFeatures : circuit.showInFeatures || true;
+                            circuit.showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? data.showInFeatures : circuit.showInFeatures;
                             circuit.freeze = typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze;
                             circuit.type = cstate.type = typeByte;
                             circuit.eggTimer = typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer || 720;

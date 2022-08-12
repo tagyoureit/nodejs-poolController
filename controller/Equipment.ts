@@ -163,6 +163,7 @@ export class PoolSystem implements IPoolSystem {
         EqItemCollection.removeNullIds(cfg.lightGroups);
         EqItemCollection.removeNullIds(cfg.remotes);
         EqItemCollection.removeNullIds(cfg.chemControllers);
+        EqItemCollection.removeNullIds(cfg.chemDosers);
         EqItemCollection.removeNullIds(cfg.filters);
         if (typeof cfg.pumps !== 'undefined') {
             for (let i = 0; i < cfg.pumps.length; i++) {
@@ -189,6 +190,7 @@ export class PoolSystem implements IPoolSystem {
         this.customNames = new CustomNameCollection(this.data, 'customNames');
         this.eggTimers = new EggTimerCollection(this.data, 'eggTimers');
         this.chemControllers = new ChemControllerCollection(this.data, 'chemControllers');
+        this.chemDosers = new ChemDoserCollection(this.data, 'chemDosers');
         this.filters = new FilterCollection(this.data, 'filters');
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
     }
@@ -309,6 +311,7 @@ export class PoolSystem implements IPoolSystem {
     public security: Security;
     public customNames: CustomNameCollection;
     public chemControllers: ChemControllerCollection;
+    public chemDosers: ChemDoserCollection;
     public filters: FilterCollection;
     public appVersion: string;
     public get dirty(): boolean { return this._isDirty; }
@@ -886,6 +889,7 @@ export class Equipment extends EqItem {
         }
         if (typeof this.data.softwareVersion === 'undefined') this.data.softwareVersion = '';
         if (typeof this.data.bootloaderVersion === 'undefined') this.data.bootloaderVersion = '';
+        if (typeof this.data.maxChemDosers === 'undefined') this.data.maxChemDosers = 10;
     }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
@@ -927,6 +931,8 @@ export class Equipment extends EqItem {
     public set maxIntelliBrites(val: number) { this.setDataVal('maxIntelliBrites', val); }
     public get maxChemControllers(): number { return this.data.maxChemControllers; }
     public set maxChemControllers(val: number) { this.setDataVal('maxChemControllers', val); }
+    public get maxChemDosers(): number { return this.data.maxChemDosers; }
+    public set maxChemDosers(val: number) { this.setDataVal('maxChemDosers', val); }
     public get expansions(): ExpansionPanelCollection { return new ExpansionPanelCollection(this.data, "expansions"); }
     public get modules(): ExpansionModuleCollection { return new ExpansionModuleCollection(this.data, "modules"); }
     public get maxCustomNames(): number { return this.data.maxCustomNames || 10; }
@@ -1046,6 +1052,7 @@ export class Body extends EqItem {
     public initData() {
         if (typeof this.data.capacityUnits === 'undefined') this.data.capacityUnits = 1;
         if (typeof this.data.showInDashboard === 'undefined') this.data.showInDashboard = true;
+        if (typeof this.data.heatMode === 'undefined') this.data.heatMode = 0;
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
@@ -2052,7 +2059,7 @@ export class Security extends EqItem {
     public get roles(): SecurityRoleCollection { return new SecurityRoleCollection(this.data, "roles"); }
 }
 export class ChemControllerCollection extends EqItemCollection<ChemController> {
-    constructor(data: any, name?: string) { super(data, name || "chemcontrollers"); }
+    constructor(data: any, name?: string) { super(data, name || "chemControllers"); }
     public createItem(data: any): ChemController { return new ChemController(data); }
     public getItemByAddress(address: number, add?: boolean, data?: any): ChemController {
         let itm = this.find(elem => elem.address === address && typeof elem.address !== 'undefined');
@@ -2076,6 +2083,11 @@ export class ChemControllerCollection extends EqItemCollection<ChemController> {
         return id + 1;
     }
 }
+export class ChemDoserCollection extends EqItemCollection<ChemDoser> {
+    constructor(data: any, name?: string) { super(data, name || "chemDosers"); }
+    public createItem(data: any): ChemDoser { return new ChemDoser(data); }
+}
+
 export class FlowSensor extends ChildEqItem {
     public dataName = 'flowSensorConfig';
     public initData() {
@@ -2097,7 +2109,9 @@ export class FlowSensor extends ChildEqItem {
         return sensor;
     }
 }
-export class ChemController extends EqItem {
+export interface IChemController {
+}
+export class ChemController extends EqItem implements IChemController {
     public initData() {
         //var chemController = {
         //    id: 'number',               // Id of the controller
@@ -2233,6 +2247,56 @@ export class ChemController extends EqItem {
     // ORP
     // 1. Chlorinator Comms Lost.
 }
+export class ChemDoser extends EqItem implements IChemical {
+    public dataName = 'chemDoserConfig';
+    public initData() {
+        if (typeof this.data.pump === 'undefined') this.data.pump = {};
+        if (typeof this.data.tank === 'undefined') this.data.tank = {};
+        if (typeof this.data.flowSensor === 'undefined') this.data.flowSensor = {};
+        if (typeof this.data.enabled === 'undefined') this.data.enabled = true;
+        if (typeof this.data.dosingMethod === 'undefined') this.data.dosingMethod = 0;
+        if (typeof this.data.startDelay === 'undefined') this.data.startDelay = 1.5;
+        if (typeof this.data.maxDailyVolume === 'undefined') this.data.maxDailyVolume = 500;
+        if (typeof this.data.disableOnFreeze === 'undefined') this.data.disableOnFreeze = true; 
+        if (typeof this.data.disableChlorinator === 'undefined') this.data.disableChlorinator = true;
+        if (typeof this.mixingTime === 'undefined') this.data.mixingTime = 3600;
+        super.initData();
+    }
+    public get id(): number { return this.data.id; }
+    public set id(val: number) { this.setDataVal('id', val); }
+    public get name(): string { return this.data.name; }
+    public set name(val: string) { this.setDataVal('name', val); }
+    public get body(): number | any { return this.data.body; }
+    public set body(val: number | any) { this.setDataVal('body', sys.board.valueMaps.bodies.encode(val)); }
+    public get isActive(): boolean { return this.data.isActive; }
+    public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    public get chemType(): string { return this.data.chemType; }
+    public get enabled(): boolean { return utils.makeBool(this.data.enabled); }
+    public set enabled(val: boolean) { this.setDataVal('enabled', val); }
+    public get disableChlorinator(): boolean { return utils.makeBool(this.data.disableChlorinator); }
+    public set disableChlorinator(val: boolean) { this.setDataVal('disableChlorinator', val); }
+    public get disableOnFreeze(): boolean { return utils.makeBool(this.data.disableOnFreeze); }
+    public set disableOnFreeze(val: boolean) { this.setDataVal('disableOnFreeze', val); }
+    public get dosingVolume(): number { return this.data.dosingVolume; }
+    public set dosingVolume(val: number) { this.setDataVal('dosingVolume', val); }
+    public get mixingTime(): number { return this.data.mixingTime; }
+    public set mixingTime(val: number) { this.setDataVal('mixingTime', val); }
+    public get maxDailyVolume(): number { return this.data.maxDailyVolume; }
+    public set maxDailyVolume(val: number) { this.setDataVal('maxDailyVolume', val); }
+    public get dosingMethod(): number | any { return this.data.dosingMethod; }
+    public set dosingMethod(val: number | any) { this.setDataVal('dosingMethod', sys.board.valueMaps.chemDosingMethods.encode(val)); }
+    public get startDelay(): number { return this.data.startDelay; }
+    public set startDelay(val: number) { this.setDataVal('startDelay', val); }
+    public get flowSensor(): ChemFlowSensor { return new ChemFlowSensor(this.data, 'flowSensor', this); }
+    public get pump(): ChemicalPump { return new ChemicalPump(this.data, 'pump', this); }
+    public get tank(): ChemicalTank { return new ChemicalTank(this.data, 'tank', this); }
+    public getExtended() {
+        let chem = this.get(true);
+        chem.tank = this.tank.getExtended();
+        chem.pump = this.pump.getExtended();
+        return chem;
+    }
+}
 export class ChemFlowSensor extends FlowSensor {
     public dataName = 'flowSensorConfig';
     public initData() {
@@ -2248,7 +2312,13 @@ export class ChemFlowSensor extends FlowSensor {
         return sensor;
     }
 }
-export class Chemical extends ChildEqItem {
+export interface IChemical {
+    dosingMethod: number;
+    startDelay: number;
+    maxDosingTime?: number;
+    maxDosingVolume?: number;
+}
+export class Chemical extends ChildEqItem implements IChemical {
     public dataName = 'chemicalConfig';
     public initData() {
         if (typeof this.data.pump === 'undefined') this.data.pump = {};

@@ -1,15 +1,26 @@
 ﻿import { clearTimeout, setTimeout } from 'timers';
 import { conn } from '../../../controller/comms/Comms';
 import { Outbound, Protocol, Response } from '../../../controller/comms/messages/Messages';
-import { ChemController, ChemControllerCollection, ChemFlowSensor, Chemical, ChemicalChlor, ChemicalORP, ChemicalORPProbe, ChemicalPh, ChemicalPhProbe, ChemicalProbe, ChemicalPump, ChemicalTank, sys } from "../../../controller/Equipment";
+import { IChemical, IChemController, ChemController, ChemControllerCollection, ChemFlowSensor, Chemical, ChemicalChlor, ChemicalORP, ChemicalORPProbe, ChemicalPh, ChemicalPhProbe, ChemicalProbe, ChemicalPump, ChemicalTank, sys } from "../../../controller/Equipment";
 import { logger } from '../../../logger/Logger';
 import { InterfaceServerResponse, webApp } from "../../../web/Server";
 import { Timestamp, utils } from '../../Constants';
 import { EquipmentNotFoundError, EquipmentTimeoutError, InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError } from '../../Errors';
-import { ChemControllerState, ChemicalChlorState, ChemicalDoseState, ChemicalORPState, ChemicalPhState, ChemicalProbeORPState, ChemicalProbePHState, ChemicalProbeState, ChemicalPumpState, ChemicalState, ChemicalTankState, ChlorinatorState, state } from "../../State";
+import { IChemicalState, ChemControllerState, ChemicalChlorState, ChemicalDoseState, ChemicalORPState, ChemicalPhState, ChemicalProbeORPState, ChemicalProbePHState, ChemicalProbeState, ChemicalPumpState, ChemicalState, ChemicalTankState, ChlorinatorState, state } from "../../State";
 import { ncp } from '../Nixie';
 import { INixieControlPanel, NixieChildEquipment, NixieEquipment, NixieEquipmentCollection } from "../NixieEquipment";
 import { NixieChlorinator } from './Chlorinator';
+export interface INixieChemController {
+    bodyOnTime: number;
+    processAlarms: (schem: any) => void;
+    isBodyOn: () => boolean;
+}
+export interface INixieChemical extends NixieEquipment {
+    cancelDosing: (schem: IChemicalState, reason: string) => Promise<void>;
+    initDose: (schem: any) => Promise<void>;
+    chemController: INixieChemController;
+    chemical: IChemical;
+}
 export class NixieChemControllerCollection extends NixieEquipmentCollection<NixieChemControllerBase> {
     public async manualDoseAsync(id: number, data: any) {
         try {
@@ -156,7 +167,7 @@ export class NixieChemControllerCollection extends NixieEquipmentCollection<Nixi
             } catch (err) { return arr; }
         } */
 }
-export class NixieChemControllerBase extends NixieEquipment {
+export class NixieChemControllerBase extends NixieEquipment implements INixieChemController {
     public pollingInterval: number = 10000;
     protected _suspendPolling: number = 0;
     public get suspendPolling(): boolean { return this._suspendPolling > 0; }
@@ -198,7 +209,10 @@ export class NixieChemControllerBase extends NixieEquipment {
         return isOn;
     }
     public async setControllerAsync(data: any) { } // This is meant to be abstract override this value
+    public processAlarms(schem: any) { }
+
 }
+
 export class NixieIntelliChemController extends NixieChemControllerBase {
     public configSent: boolean = false;
     constructor(ncp: INixieControlPanel, chem: ChemController) {
@@ -843,7 +857,7 @@ export class NixieChemController extends NixieChemControllerBase {
                 }
                 else schem.alarms.pHProbeFault = 0;
                 if (chem.ph.pump.type !== 0) {
-                    let type = sys.board.valueMaps.chemPumpTypes.transform(chem.ph.probe.type);
+                    let type = sys.board.valueMaps.chemPumpTypes.transform(chem.ph.pump.type);
                     if (type.remAddress) {
                         let dev = await this.checkHardwareStatusAsync(chem.ph.pump.connectionId, chem.ph.pump.deviceBinding);
                         schem.alarms.pHPumpFault = dev.hasFault ? 2 : 0;
@@ -852,7 +866,7 @@ export class NixieChemController extends NixieChemControllerBase {
                 }
                 else schem.alarms.pHPumpFault = 0;
             }
-            else schem.alarms.pHPumpFault = schem.alarms.pHProbeFault = 0;
+            else schem.alarms.pHPumpFault = schem.alarms.pHPumpFault = 0;
             if (!chem.isActive) {
                 // We need to shut down the pumps.
             }
@@ -890,7 +904,7 @@ export class NixieChemController extends NixieChemControllerBase {
         this.orp.probe.syncRemoteREMFeeds(this.chem, servers);
     }
 }
-class NixieChemical extends NixieChildEquipment {
+class NixieChemical extends NixieChildEquipment implements INixieChemical {
     public chemical: Chemical;
     public pump: NixieChemPump;
     public chlor: NixieChemChlor;
@@ -922,7 +936,7 @@ class NixieChemical extends NixieChildEquipment {
         this.tank = new NixieChemTank(this, chemical.tank);
         logger.info(`Nixie Chemical ${chemical.chemType} object created`);
     }
-    public async cancelMixing(schem: ChemicalState): Promise<void> {
+    public async cancelMixing(schem: IChemicalState): Promise<void> {
         try {
             logger.verbose(`Cancelling ${this.chemType} Mix`);
             await this.stopMixing(schem);
@@ -966,7 +980,7 @@ class NixieChemical extends NixieChildEquipment {
         } catch (err) { logger.error(`setMixing: ${err.message}`); return Promise.reject(err); }
         finally { this.suspendPolling = false; }
     }
-    protected async stopMixing(schem: ChemicalState): Promise<void> {
+    protected async stopMixing(schem: IChemicalState): Promise<void> {
         try {
             this._stoppingMix = true;
             this.suspendPolling = true;
@@ -998,7 +1012,7 @@ class NixieChemical extends NixieChildEquipment {
         } catch (err) { logger.error(`Error stopping chemical mix`); return Promise.reject(err); }
         finally { this._stoppingMix = false; this.suspendPolling = false; }
     }
-    protected async initMixChemicals(schem: ChemicalState, mixingTime?: number): Promise<void> {
+    protected async initMixChemicals(schem: IChemicalState, mixingTime?: number): Promise<void> {
         try {
             if (this._stoppingMix) return;
             if (typeof this.currentMix === 'undefined') {
@@ -1034,7 +1048,7 @@ class NixieChemical extends NixieChildEquipment {
             }
         } catch (err) { logger.error(`Error initializing ${schem.chemType} mix: ${err.message}`); }
     }
-    public async mixChemicals(schem: ChemicalState, mixingTime?: number): Promise<void> {
+    public async mixChemicals(schem: IChemicalState, mixingTime?: number): Promise<void> {
         try {
             if (this._stoppingMix) {
                 logger.verbose(`${schem.chemType} is currently stopping mixChemicals ignored.`)
@@ -1086,7 +1100,7 @@ class NixieChemical extends NixieChildEquipment {
             });
         }
     }
-    public async initDose(schem: ChemicalState) { }
+    public async initDose(schem: IChemicalState) { }
     public async closeAsync() {
         try {
             // We are only killing the mix timer here so when njsPC is restarted it picks up where
@@ -1097,7 +1111,7 @@ class NixieChemical extends NixieChildEquipment {
         }
         catch (err) { logger.error(`chemController closeAsync ${err.message}`); return Promise.reject(err); }
     }
-    public async cancelDosing(schem: ChemicalState, reason: string): Promise<void> {
+    public async cancelDosing(schem: IChemicalState, reason: string): Promise<void> {
         try {
             if (typeof this.chemController.orp.orp.useChlorinator !== 'undefined' && this.chemController.orp.orp.useChlorinator && this.chemController.orp.orp.chlorDosingMethod > 0) {
                 if (!this.chlor.chlor.superChlor) await this.chlor.stopDosing(schem, reason);
@@ -1159,8 +1173,8 @@ export class NixieChemPump extends NixieChildEquipment {
     public _lastOnStatus: number;
     protected _dosingTimer: NodeJS.Timeout;
     private _isStopping = false;
-    constructor(chemical: NixieChemical, pump: ChemicalPump) { super(chemical); this.pump = pump; }
-    public get chemical(): NixieChemical { return this.getParent() as NixieChemical; }
+    constructor(chemical: INixieChemical, pump: ChemicalPump) { super(chemical); this.pump = pump; }
+    public get chemical(): INixieChemical { return this.getParent() as INixieChemical; }
     public async setPumpAsync(spump: ChemicalPumpState, data: any): Promise<void> {
         try {
             if (typeof data !== 'undefined') {
@@ -1180,7 +1194,7 @@ export class NixieChemPump extends NixieChildEquipment {
         } catch (err) { logger.error(`setPumpAsync: ${err.message}`); return Promise.reject(err); }
 
     }
-    public async stopDosing(schem: ChemicalState, reason: string): Promise<void> {
+    public async stopDosing(schem: IChemicalState, reason: string): Promise<void> {
         try {
             logger.debug(`Stopping ${schem.chemType} pump: ${reason}`);
             if (this._dosingTimer) {
@@ -1205,7 +1219,7 @@ export class NixieChemPump extends NixieChildEquipment {
         } catch (err) { logger.error(`Error stopping ${schem.chemType} dosing: ${err.message}`); return Promise.reject(err); }
         finally { this._isStopping = false; }
     }
-    public async dose(schem: ChemicalState): Promise<void> {
+    public async dose(schem: IChemicalState): Promise<void> {
         let self = this;
         let dose: ChemicalDoseState = schem.currentDose;
         try {
@@ -1392,7 +1406,7 @@ export class NixieChemPump extends NixieChildEquipment {
             }
         }
     }
-    public async turnOff(schem: ChemicalState): Promise<InterfaceServerResponse> {
+    public async turnOff(schem: IChemicalState): Promise<InterfaceServerResponse> {
         try {
             // We need to be turning this pig off.  If the REM service has been interrupted
             // then we will assume that the relay is off since any request to turn it on will be based upon
@@ -1404,7 +1418,7 @@ export class NixieChemPump extends NixieChildEquipment {
         }
         catch (err) { logger.error(`chemController.pump.turnOff: ${err.message}`); return Promise.reject(err); }
     }
-    public async turnOn(schem: ChemicalState, latchTimeout?: number): Promise<InterfaceServerResponse> {
+    public async turnOn(schem: IChemicalState, latchTimeout?: number): Promise<InterfaceServerResponse> {
         try {
             let res = await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, typeof latchTimeout !== 'undefined' ? { isOn: true, latch: latchTimeout } : { isOn: true });
             this.isOn = schem.pump.isDosing = true;
@@ -1433,7 +1447,7 @@ export class NixieChemChlor extends NixieChildEquipment {
             }
         } catch (err) { logger.error(`setChlorAsync: ${err.message}`); return Promise.reject(err); }
     }
-    public async stopDosing(schem: ChemicalState, reason: string): Promise<void> {
+    public async stopDosing(schem: IChemicalState, reason: string): Promise<void> {
         try {
             if (this._dosingTimer) {
                 clearTimeout(this._dosingTimer);
@@ -1553,7 +1567,7 @@ export class NixieChemChlor extends NixieChildEquipment {
             }
         }
     }
-    public async turnOff(schem: ChemicalState): Promise<ChlorinatorState> {
+    public async turnOff(schem: IChemicalState): Promise<ChlorinatorState> {
         try {
             //logger.info(`Turning off the chlorinator`);
             let chlor = sys.chlorinators.getItemById(1);
@@ -2652,7 +2666,7 @@ export class NixieChemProbeORP extends NixieChemProbe {
 }
 export class NixieChemFlowSensor extends NixieChildEquipment {
     public sensor: ChemFlowSensor;
-    constructor(parent: NixieChemControllerBase, sensor: ChemFlowSensor) {
+    constructor(parent: NixieEquipment, sensor: ChemFlowSensor) {
         super(parent);
         this.sensor = sensor;
         sensor.master = 1;
