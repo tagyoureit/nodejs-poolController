@@ -46,7 +46,8 @@ import { StateSocket } from "./services/state/StateSocket";
 import { UtilitiesRoute } from "./services/utilities/Utilities";
 import express = require('express');
 import extend = require("extend");
-
+import { setTimeout as setTimeoutSync } from 'timers';
+import { setTimeout } from 'timers/promises';
 
 // This class serves data and pages for
 // external interfaces as well as an internal dashboard.
@@ -230,7 +231,8 @@ export class WebServer {
             else
                 logger.info(`Auto-backup initialized Last Backup: ${Timestamp.toISOLocal(new Date(this.lastBackup))}`);
             // Lets wait a good 20 seconds before we auto-backup anything.  Now that we are initialized let the OCP have its way with everything.
-            setTimeout(() => { this.checkAutoBackup(); }, 20000);
+            await setTimeout(20000);
+            this.checkAutoBackup(); 
         }
         catch (err) { logger.error(`Error initializing auto-backup: ${err.message}`); }
     }
@@ -381,7 +383,7 @@ export class WebServer {
         if (this.autoBackup) {
             await this.pruneAutoBackups(bu.keepCount);
             let nextBackup = this.lastBackup + (bu.interval.days * 86400000) + (bu.interval.hours * 3600000);
-            setTimeout(async () => {
+            setTimeoutSync(async () => {
                 try {
                     await this.checkAutoBackup();
                 } catch (err) { logger.error(`Error checking auto-backup: ${err.message}`); }
@@ -489,7 +491,7 @@ export class WebServer {
                             }
                         }
                         stats.servers.push(ctx);
-                        if (!srv.isConnected) await utils.sleep(6000); // rem server waits to connect 5s before isConnected will be true. Server.ts#1256 = REMInterfaceServer.init();  What's a better way to do this?
+                        if (!srv.isConnected) await setTimeout(6000); // rem server waits to connect 5s before isConnected will be true. Server.ts#1256 = REMInterfaceServer.init();  What's a better way to do this?
                         if (typeof cfg === 'undefined' || typeof cfg.controllerConfig === 'undefined') ctx.server.errors.push(`Server configuration not found in zip file`);
                         else if (typeof srv === 'undefined') ctx.server.errors.push(`Server ${s.name} is not enabled in njsPC cannot restore.`);
                         else if (!srv.isConnected) ctx.server.errors.push(`Server ${s.name} is not connected cannot restore.`);
@@ -614,7 +616,7 @@ export class HttpServer extends ProtoServer {
     private socketHandler(sock: Socket) {
         let self = this;
         // this._sockets.push(sock);
-        setTimeout(async () => {
+        setTimeoutSync(async () => {
             // refresh socket list with every new socket
             self._sockets = await self.sockServer.fetchSockets();
         }, 100)
@@ -1330,7 +1332,7 @@ export class REMInterfaceServer extends ProtoServer {
         this.uuid = cfg.uuid;
         if (cfg.enabled) {
             this.initSockets();
-            setTimeout(async () => {
+            setTimeoutSync(async () => {
                 try {
                     await self.initConnection();
                 }
@@ -1383,9 +1385,9 @@ export class REMInterfaceServer extends ProtoServer {
                 url = '/config/checkemit'
                 data = { eventName: "checkemit", property: "result", value: 'success', connectionId: result.obj.id }
                 // wait for REM server to finish resetting
-                setTimeout(async () => {
+                setTimeoutSync(async () => {
                     try {
-                        let _tmr = setTimeout(() => { return reject(new Error(`initConnection: No socket response received.  Check REM→njsPC communications.`)) }, 5000);
+                        let _tmr = setTimeoutSync(() => { return reject(new Error(`initConnection: No socket response received.  Check REM→njsPC communications.`)) }, 5000);
                         let srv: HttpServer = webApp.findServer('http') as HttpServer;
                         srv.addListenerOnce('/checkemit', (data: any) => {
                             // if we receive the emit, data will work both ways.

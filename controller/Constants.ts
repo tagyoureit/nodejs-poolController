@@ -602,7 +602,7 @@ export class Utils {
         return seconds;
     }
     public isNullOrEmpty(val: any) { return (typeof val === 'string') ? val === null || val === '' : typeof val === 'undefined' || val === null; }
-    public sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+    // public sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
     // Use this method to get around the circular references for the toJSON function.
     public serialize(obj, fn?: (key, value) => any): string {
         let op = Object.getOwnPropertyNames(obj);

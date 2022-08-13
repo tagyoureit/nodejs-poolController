@@ -32,7 +32,6 @@ import { conn } from './comms/Comms';
 import { versionCheck } from "../config/VersionCheck";
 import { NixieControlPanel } from "./nixie/Nixie";
 import { NixieBoard } from 'controller/boards/NixieBoard';
-import { child } from "winston";
 
 interface IPoolSystem {
     cfgPath: string;

@@ -5,11 +5,12 @@ import { logger } from '../../../logger/Logger';
 import { NixieEquipment, NixieChildEquipment, NixieEquipmentCollection, INixieControlPanel } from "../NixieEquipment";
 import { Chlorinator, sys, ChlorinatorCollection } from "../../../controller/Equipment";
 import { ChlorinatorState, state, } from "../../State";
-import { setTimeout, clearTimeout } from 'timers';
+import { setTimeout as setTimeoutSync, clearTimeout } from 'timers';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
 import { Outbound, Protocol, Response } from '../../comms/messages/Messages';
 import { conn } from '../../comms/Comms';
 import { ncp } from '../Nixie';
+import { setTimeout } from 'timers/promises';
 
 export class NixieChlorinatorCollection extends NixieEquipmentCollection<NixieChlorinator> {
     public async deleteChlorinatorAsync(id: number) {
@@ -216,9 +217,9 @@ export class NixieChlorinator extends NixieEquipment {
                     this.suspendPolling = true;
                     if (state.mode === 0) {
                         if (!this.closing) await this.takeControlAsync();
-                        if (!this.closing) await utils.sleep(300);
+                        if (!this.closing) await setTimeout(300);
                         if (!this.closing) await this.setOutputAsync();
-                        if (!this.closing) await utils.sleep(300);
+                        if (!this.closing) await setTimeout(300);
                         if (!this.closing) await this.getModelAsync();
                     }
                 } catch (err) {
@@ -231,7 +232,7 @@ export class NixieChlorinator extends NixieEquipment {
             // Comms failure will be handeled by the message processor.
             logger.error(`Chlorinator ${this.chlor.name} comms failure: ${err.message}`);
         }
-        finally { if (!this.closing) this._pollTimer = setTimeout(() => { self.pollEquipmentAsync(); }, this.pollingInterval); }
+        finally { if (!this.closing) this._pollTimer = setTimeoutSync(() => { self.pollEquipmentAsync(); }, this.pollingInterval); }
     }
     public async takeControlAsync(): Promise<void> {
         //try {

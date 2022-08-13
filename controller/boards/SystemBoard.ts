@@ -24,7 +24,8 @@ import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdEr
 import { ncp } from "../nixie/Nixie";
 import { BodyTempState, ChemControllerState, ChemDoserState, ChlorinatorState, CircuitGroupState, FilterState, ICircuitGroupState, ICircuitState, LightGroupState, ScheduleState, state, TemperatureState, ValveState, VirtualCircuitState } from '../State';
 import { RestoreResults } from '../../web/Server';
-import { group } from 'console';
+import { setTimeout } from 'timers/promises';
+import { setTimeout as setTimeoutSync } from 'timers';
 
 
 export class byteValueMap extends Map<number, any> {
@@ -959,7 +960,7 @@ export class SystemBoard {
     } catch (err) { state.status = 255; logger.error(`Error performing processStatusAsync ${err.message}`); }
     finally {
       this.suspendStatus(false);
-      if (this.statusInterval > 0) this._statusTimer = setTimeout(async () => await self.processStatusAsync(), this.statusInterval);
+      if (this.statusInterval > 0) this._statusTimer = setTimeoutSync(async () => await self.processStatusAsync(), this.statusInterval);
     }
   }
     public async syncEquipmentItems() {
@@ -2479,7 +2480,7 @@ export class CircuitCommands extends BoardCommands {
         await sys.board.circuits.setCircuitStateAsync(arrCircs[i].id, false);
         //proms.push(ncp.circuits.sendOnOffSequenceAsync(arrCircs[i].id, cmd.sequence));
       }
-      await utils.sleep(10000);
+      await setTimeout(10000);
       for (let i = 0; i < arrCircs.length; i++) {
         await sys.board.circuits.setCircuitStateAsync(arrCircs[i].id, true);
         //proms.push(ncp.circuits.sendOnOffSequenceAsync(arrCircs[i].id, cmd.sequence));
@@ -2514,7 +2515,7 @@ export class CircuitCommands extends BoardCommands {
                 let thm = sys.board.valueMaps.lightThemes.findItem(cmd.endingTheme);
                 if (typeof thm !== 'undefined') slight.lightingTheme = circ.lightingTheme = thm.val;
             }
-            //await utils.sleep(7000);
+            //await setTimeout(7000);
             //await sys.board.circuits.setCircuitStateAsync(circ.id, false);
             //await sys.board.circuits.setCircuitStateAsync(circ.id, true);
             slight.action = 0;
@@ -2912,7 +2913,7 @@ export class CircuitCommands extends BoardCommands {
       if (nop > 0) {
         sgroup.action = nop;
         sgroup.emitEquipmentChange();
-        await utils.sleep(10000);
+        await setTimeout(10000);
         sgroup.action = 0;
         state.emitAllEquipmentChanges();
       }
@@ -3535,10 +3536,10 @@ export class ScheduleCommands extends BoardCommands {
         // if scheduleDays includes today
         if (days.includes(state.time.toDate().getDay())) {
           if (sched.changeHeatSetpoint && (sched.heatSource as any).val !== sys.board.valueMaps.heatSources.getValue('off') && sched.heatSetpoint > 0 && sched.heatSetpoint !== tbody.setPoint) {
-            setTimeout(() => sys.board.bodies.setHeatSetpointAsync(cbody, sched.heatSetpoint), 100);
+            setTimeoutSync(() => sys.board.bodies.setHeatSetpointAsync(cbody, sched.heatSetpoint), 100);
           }
           if ((sched.heatSource as any).val !== sys.board.valueMaps.heatSources.getValue('nochange') && sched.heatSource !== tbody.heatMode) {
-            setTimeout(() => sys.board.bodies.setHeatModeAsync(cbody, sys.board.valueMaps.heatModes.getValue((sched.heatSource as any).name)), 100);
+            setTimeoutSync(() => sys.board.bodies.setHeatModeAsync(cbody, sys.board.valueMaps.heatModes.getValue((sched.heatSource as any).name)), 100);
           }
         }
       }

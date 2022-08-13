@@ -5,12 +5,12 @@ import { logger } from '../../../logger/Logger';
 import { NixieEquipment, NixieChildEquipment, NixieEquipmentCollection, INixieControlPanel } from "../NixieEquipment";
 import { Pump, PumpCircuit, PumpCollection, PumpRelay, sys } from "../../../controller/Equipment";
 import { CircuitState, PumpState, state, } from "../../State";
-import { setTimeout, clearTimeout } from 'timers';
+import { setTimeout as setTimeoutSync, clearTimeout } from 'timers';
 import { NixieControlPanel } from '../Nixie';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
 import { Outbound, Protocol, Response } from '../../comms/messages/Messages';
 import { conn } from '../../comms/Comms';
-
+import { setTimeout } from 'timers/promises';
 
 export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
     public async deletePumpAsync(id: number) {
@@ -140,7 +140,7 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
         // loop through all pumps and update rates based on circuit changes
         // this would happen in <2s anyway based on pollAsync but this is immediate.
         for (let i = this.length - 1; i >= 0; i--) {
-            setTimeout(async () => {
+            setTimeoutSync(async () => {
                 let pump = this[i] as NixiePump;
                 try {
                     if (!pump.closing) await pump.pollEquipmentAsync();
@@ -273,7 +273,7 @@ export class NixiePump extends NixieEquipment {
             await this.setPumpStateAsync(pstate);
         }
         catch (err) { logger.error(`Nixie Error running pump sequence - ${err}`); }
-        finally { if (!this.closing) this._pollTimer = setTimeout(async () => await self.pollEquipmentAsync(), this.pollingInterval || 2000); }
+        finally { if (!this.closing) this._pollTimer = setTimeoutSync(async () => await self.pollEquipmentAsync(), this.pollingInterval || 2000); }
     }
     private async checkHardwareStatusAsync(connectionId: string, deviceBinding: string) {
         try {
@@ -542,7 +542,7 @@ export class NixiePumpRS485 extends NixiePump {
                 }
                 ;
                 if (!this.closing && pt.name !== 'vsf' && pt.name !== 'vs') await this.setPumpFeatureAsync(6);;
-                if (!this.closing) await utils.sleep(1000);;
+                if (!this.closing) await setTimeout(1000);;
                 if (!this.closing) await this.requestPumpStatusAsync();;
                 if (!this.closing) await this.setPumpToRemoteControlAsync();;
             }

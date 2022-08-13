@@ -5,7 +5,6 @@ import { logger } from "../../logger/Logger";
 import { sys as sysAlias } from "../../controller/Equipment";
 import { state as stateAlias} from "../../controller/State";
 import { webApp as webAppAlias } from '../Server';
-import { utils, Timestamp } from "../../controller/Constants";
 import { config } from "../../config/Config";
 export class BindingsFile {
     public static async fromBuffer(filename: string, buff: Buffer) {

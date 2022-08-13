@@ -16,12 +16,13 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 // add source map support for .js to .ts files
-require('source-map-support').install();
+//require('source-map-support').install();
+import 'source-map-support/register';
 
 import { logger } from "./logger/Logger";
 import { config } from "./config/Config";
 import { conn } from "./controller/comms/Comms";
-import { sys, ControllerType } from "./controller/Equipment";
+import { sys } from "./controller/Equipment";
 
 import { state } from "./controller/State";
 import { webApp } from "./web/Server";
@@ -76,7 +77,7 @@ export async function stopAsync(): Promise<void> {
         await state.stopAsync();
         await conn.stopAsync();
         await webApp.stopAsync();
-        config.update();
+        await config.updateAsync();
         await logger.stopAsync();
         // RKS: Uncomment below to see the shutdown process
         //await new Promise<void>((resolve, reject) => { setTimeout(() => { resolve(); }, 20000); });
