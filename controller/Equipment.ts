@@ -2260,17 +2260,27 @@ export class ChemDoser extends EqItem implements IChemical {
         if (typeof this.data.disableOnFreeze === 'undefined') this.data.disableOnFreeze = true; 
         if (typeof this.data.disableChlorinator === 'undefined') this.data.disableChlorinator = true;
         if (typeof this.mixingTime === 'undefined') this.data.mixingTime = 3600;
+        if (typeof this.data.setpoint === 'undefined') this.data.setpoint = 100;
+        if (typeof this.data.type === 'undefined') this.data.type = 0;
         super.initData();
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
+    public get setpoint(): number { return this.data.setpoint; }
+    public set setpoint(val: number) { this.setDataVal('setpoint', val); }
     public get body(): number | any { return this.data.body; }
     public set body(val: number | any) { this.setDataVal('body', sys.board.valueMaps.bodies.encode(val)); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get chemType(): string { return this.data.chemType; }
+    public get type(): number | any { return this.data.type; }
+    public set type(val: number | any) {
+        this.setDataVal('type', sys.board.valueMaps.chemDoserTypes.encode(val));
+        let t = sys.board.valueMaps.chemDoserTypes.findItem(val) || { val: 0, name: 'acid', desc: 'Acid' };
+        this.setDataVal('chemType', t.desc);
+    }
     public get enabled(): boolean { return utils.makeBool(this.data.enabled); }
     public set enabled(val: boolean) { this.setDataVal('enabled', val); }
     public get disableChlorinator(): boolean { return utils.makeBool(this.data.disableChlorinator); }
@@ -2288,6 +2298,8 @@ export class ChemDoser extends EqItem implements IChemical {
     public get startDelay(): number { return this.data.startDelay; }
     public set startDelay(val: number) { this.setDataVal('startDelay', val); }
     public get flowSensor(): ChemFlowSensor { return new ChemFlowSensor(this.data, 'flowSensor', this); }
+    public get flowOnlyMixing(): boolean { return utils.makeBool(this.data.flowOnlyMixing); }
+    public set flowOnlyMixing(val: boolean) { this.setDataVal('flowOnlyMixing', val); }
     public get pump(): ChemicalPump { return new ChemicalPump(this.data, 'pump', this); }
     public get tank(): ChemicalTank { return new ChemicalTank(this.data, 'tank', this); }
     public getExtended() {

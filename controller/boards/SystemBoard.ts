@@ -4666,9 +4666,9 @@ export class ChemDoserCommands extends BoardCommands {
     public async manualDoseAsync(data: any): Promise<ChemDoserState> {
         try {
             let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Invalid chem controller id was provided ${data.id}`, 'chemDoser', data.id));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Invalid chem doser id was provided ${data.id}`, 'chemDoser', data.id));
             let chem = sys.chemDosers.find(elem => elem.id === id);
-            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Chem controller was not found ${data.id}`, 'chemDoser', data.id));
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Chem doser was not found ${data.id}`, 'chemDoser', data.id));
             // Let's check the type.  AFAIK you cannot manual dose an IntelliChem.
             // We are down to the nitty gritty.  Let REM Chem do its thing.
             await ncp.chemDosers.manualDoseAsync(chem.id, data);
@@ -4678,9 +4678,9 @@ export class ChemDoserCommands extends BoardCommands {
     public async calibrateDoseAsync(data: any): Promise<ChemDoserState> {
         try {
             let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin calibration: Invalid chem controller id was provided ${data.id}`, 'chemDoser', data.id));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin calibration: Invalid chem doser id was provided ${data.id}`, 'chemDoser', data.id));
             let chem = sys.chemDosers.find(elem => elem.id === id);
-            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin calibration: Chem controller was not found ${data.id}`, 'chemDoser', data.id));
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin calibration: Chem doser was not found ${data.id}`, 'chemDoser', data.id));
             // We are down to the nitty gritty.  Let REM Chem do its thing.
             await ncp.chemDosers.calibrateDoseAsync(chem.id, data);
             return Promise.resolve(state.chemDosers.getItemById(id));
@@ -4690,9 +4690,9 @@ export class ChemDoserCommands extends BoardCommands {
     public async cancelDosingAsync(data: any): Promise<ChemDoserState> {
         try {
             let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel dosing: Invalid chem controller id was provided ${data.id}`, 'chemDoser', data.id));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel dosing: Invalid chem doser id was provided ${data.id}`, 'chemDoser', data.id));
             let chem = sys.chemDosers.find(elem => elem.id === id);
-            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel dosing: Chem controller was not found ${data.id}`, 'chemDoser', data.id));
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel dosing: Chem doser was not found ${data.id}`, 'chemDoser', data.id));
             // We are down to the nitty gritty.  Let REM Chem do its thing.
             await ncp.chemDosers.cancelDoseAsync(chem.id, data);
             return Promise.resolve(state.chemDosers.getItemById(id));
@@ -4701,9 +4701,9 @@ export class ChemDoserCommands extends BoardCommands {
     public async manualMixAsync(data: any): Promise<ChemDoserState> {
         try {
             let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin mixing: Invalid chem controller id was provided ${data.id}`, 'chemDoser', data.id));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin mixing: Invalid chem doser id was provided ${data.id}`, 'chemDoser', data.id));
             let chem = sys.chemDosers.find(elem => elem.id === id);
-            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin mixing: Chem controller was not found ${data.id}`, 'chemDoser', data.id));
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin mixing: Chem doser was not found ${data.id}`, 'chemDoser', data.id));
             // We are down to the nitty gritty.  Let REM Chem do its thing.
             await ncp.chemDosers.manualMixAsync(chem.id, data);
             return Promise.resolve(state.chemDosers.getItemById(id));
@@ -4712,9 +4712,9 @@ export class ChemDoserCommands extends BoardCommands {
     public async cancelMixingAsync(data: any): Promise<ChemDoserState> {
         try {
             let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel mixing: Invalid chem controller id was provided ${data.id}`, 'chemDoser', data.id));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel mixing: Invalid chem doser id was provided ${data.id}`, 'chemDoser', data.id));
             let chem = sys.chemDosers.find(elem => elem.id === id);
-            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel mixing: Chem controller was not found ${data.id}`, 'chemDoser', data.id));
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel mixing: Chem doser was not found ${data.id}`, 'chemDoser', data.id));
             // We are down to the nitty gritty.  Let REM Chem do its thing.
             await ncp.chemDosers.cancelMixingAsync(chem.id, data);
             return Promise.resolve(state.chemDosers.getItemById(id));
@@ -4753,7 +4753,7 @@ export class ChemDoserCommands extends BoardCommands {
     }
     public async setChemDoserStateAsync(data: any): Promise<ChemDoserState> {
         let chem = sys.board.chemDosers.findChemDoser(data);
-        if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`A valid chem doser could not be found for id:${data.id} or address ${data.address}`, data.id || data.address, 'chemDoser'));
+        if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`A valid chem doser could not be found for id:${data.id}`, data.id, 'chemDoser'));
         data.id = chem.id;
         logger.info(`Setting ${chem.name} data ${chem.master}`);
         if (chem.master === 1) await ncp.chemDosers.setDoserAsync(chem, data);

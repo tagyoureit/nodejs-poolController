@@ -1135,7 +1135,7 @@ class NixieChemical extends NixieChildEquipment implements INixieChemical {
 }
 export class NixieChemTank extends NixieChildEquipment {
     public tank: ChemicalTank;
-    constructor(chemical: NixieChemical, tank: ChemicalTank) {
+    constructor(chemical: INixieChemical, tank: ChemicalTank) {
         super(chemical);
         this.tank = tank;
         tank.master = 1;

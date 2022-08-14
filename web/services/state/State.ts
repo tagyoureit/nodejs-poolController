@@ -30,9 +30,19 @@ export class StateRoute {
         app.get('/state/chemController/:id', (req, res) => {
             res.status(200).send(state.chemControllers.getItemById(parseInt(req.params.id, 10)).getExtended());
         });
+        app.get('/state/chemDoser/:id', (req, res) => {
+            res.status(200).send(state.chemDosers.getItemById(parseInt(req.params.id, 10)).getExtended());
+        });
         app.put('/state/chemController', async (req, res, next) => {
             try {
                 let schem = await sys.board.chemControllers.setChemControllerStateAsync(req.body);
+                return res.status(200).send(schem.getExtended());
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/state/chemDoser', async (req, res, next) => {
+            try {
+                let schem = await sys.board.chemDosers.setChemDoserStateAsync(req.body);
                 return res.status(200).send(schem.getExtended());
             }
             catch (err) { next(err); }
@@ -44,11 +54,26 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
+        app.put('/state/chemDoser/manualDose', async (req, res, next) => {
+            try {
+                let schem = await sys.board.chemDosers.manualDoseAsync(req.body);
+                return res.status(200).send(schem.getExtended());
+            }
+            catch (err) { next(err); }
+        });
+
         app.put('/state/chemController/manualMix', async (req, res, next) => {
             try {
                 logger.debug(`Starting manual mix`);
                 let schem = await sys.board.chemControllers.manualMixAsync(req.body);
                 logger.debug(`Started manual mix`);
+                return res.status(200).send(schem.getExtended());
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/state/chemDoser/manualMix', async (req, res, next) => {
+            try {
+                let schem = await sys.board.chemDosers.manualMixAsync(req.body);
                 return res.status(200).send(schem.getExtended());
             }
             catch (err) { next(err); }
@@ -62,6 +87,11 @@ export class StateRoute {
                 hist.orp.push(schem.orp.doseHistory[i]);
             return res.status(200).send(hist);
         });
+        app.get('/state/chemDoser/:id/doseHistory', (req, res) => {
+            let schem = state.chemDosers.getItemById(parseInt(req.params.id));
+            return res.status(200).send(schem.doseHistory);
+        });
+
         app.put('/state/chemController/:id/doseHistory/orp/clear', async (req, res, next) => {
             try {
                 let schem = state.chemControllers.getItemById(parseInt(req.params.id));
@@ -71,6 +101,16 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
+        app.put('/state/chemDoser/:id/doseHistory/clear', async (req, res, next) => {
+            try {
+                let schem = state.chemDosers.getItemById(parseInt(req.params.id));
+                schem.doseHistory = [];
+                schem.calcDoseHistory();
+                return res.status(200).send(schem.doseHistory);
+            }
+            catch (err) { next(err); }
+        });
+
         app.put('/state/chemController/:id/doseHistory/ph/clear', async (req, res, next) => {
             try {
                 let schem = state.chemControllers.getItemById(parseInt(req.params.id));
@@ -95,6 +135,21 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
+        app.get('/state/chemDoser/:id/doseLog', async (req, res, next) => {
+            try {
+                let schem = state.chemDosers.getItemById(parseInt(req.params.id));
+                let filter = req.body || {};
+                let dh = await DataLogger.readFromEndAsync(`chemDosage_Peristalic.log`, ChemicalDoseState, (lineNumber: number, entry: ChemicalDoseState, arr: ChemicalDoseState[]): boolean => {
+                    if (entry.id !== schem.id) return false;
+                    if (typeof filter.lines !== 'undefined' && filter.lines <= arr.length) return false;
+                    if (typeof filter.date !== 'undefined' && entry.end < filter.date) return false;
+                    return true;
+                });
+                return res.status(200).send(dh);
+            }
+            catch (err) { next(err); }
+        });
+
         app.search('/state/chemController/:id/doseLog/ph', async (req, res, next) => {
             try {
                 let schem = state.chemControllers.getItemById(parseInt(req.params.id));
@@ -144,9 +199,23 @@ export class StateRoute {
             }
             catch (err) { next(err); }
         });
+        app.put('/state/chemDoser/cancelDosing', async (req, res, next) => {
+            try {
+                let schem = await sys.board.chemDosers.cancelDosingAsync(req.body);
+                return res.status(200).send(schem.getExtended());
+            }
+            catch (err) { next(err); }
+        });
         app.put('/state/chemController/cancelMixing', async (req, res, next) => {
             try {
                 let schem = await sys.board.chemControllers.cancelMixingAsync(req.body);
+                return res.status(200).send(schem.getExtended());
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/state/chemDoser/cancelMixing', async (req, res, next) => {
+            try {
+                let schem = await sys.board.chemDosers.cancelMixingAsync(req.body);
                 return res.status(200).send(schem.getExtended());
             }
             catch (err) { next(err); }

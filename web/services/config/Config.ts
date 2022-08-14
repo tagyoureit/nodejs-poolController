@@ -275,6 +275,27 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
+        app.get('/config/options/chemDosers', async (req, res, next) => {
+            try {
+                let remServers = await sys.ncp.getREMServers();
+                let opts = {
+                    bodies: sys.board.bodies.getBodyAssociations(),
+                    tempUnits: sys.board.valueMaps.tempUnits.toArray(),
+                    status: sys.board.valueMaps.chemDoserStatus.toArray(),
+                    pumpTypes: sys.board.valueMaps.chemPumpTypes.toArray(),
+                    volumeUnits: sys.board.valueMaps.volumeUnits.toArray(),
+                    flowSensorTypes: sys.board.valueMaps.flowSensorTypes.toArray(),
+                    remServers,
+                    dosingStatus: sys.board.valueMaps.chemDoserDosingStatus.toArray(),
+                    dosers: sys.chemDosers.get(),
+                    doserTypes: sys.board.valueMaps.chemDoserTypes.toArray(),
+                    maxChemDosers: sys.equipment.maxChemDosers
+                };
+                return res.status(200).send(opts);
+            }
+            catch (err) { next(err); }
+        });
+
         app.get('/config/options/rem', async (req, res, next) => {
             try {
                 let opts = {
@@ -691,9 +712,24 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
+        app.put('/config/chemDoser', async (req, res, next) => {
+            try {
+                let doser = await sys.board.chemDosers.setChemDoserAsync(req.body);
+                return res.status(200).send(doser.get());
+            }
+            catch (err) { next(err); }
+
+        });
         app.put('/config/chemController/calibrateDose', async (req, res, next) => {
             try {
                 let schem = await sys.board.chemControllers.calibrateDoseAsync(req.body);
+                return res.status(200).send(schem.getExtended());
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/config/chemDoser/calibrateDose', async (req, res, next) => {
+            try {
+                let schem = await sys.board.chemDosers.calibrateDoseAsync(req.body);
                 return res.status(200).send(schem.getExtended());
             }
             catch (err) { next(err); }
@@ -711,8 +747,16 @@ export class ConfigRoute {
                 return res.status(200).send(chem.get());
             }
             catch (err) { next(err); }
+        });
+        app.delete('/config/chemDoser', async (req, res, next) => {
+            try {
+                let doser = await sys.board.chemDosers.deleteChemDoserAsync(req.body);
+                return res.status(200).send(doser.get());
+            }
+            catch (err) { next(err); }
 
         });
+
         /*         app.get('/config/intellibrite', (req, res) => {
                     return res.status(200).send(sys.intellibrite.getExtended());
                 });
