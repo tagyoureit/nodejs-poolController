@@ -2299,8 +2299,8 @@ export class ChemDoserState extends EqState implements IChemicalState, IChemCont
             this.dosingTimeRemaining = 0;
             this.dosingVolumeRemaining = 0;
             if (dose.volumeDosed > 0 || dose.timeDosed > 0) {
-                this.doseHistory.unshift(dose);
                 this.dailyVolumeDosed = this.calcDoseHistory();
+                this.doseHistory.unshift(dose);
                 DataLogger.writeEnd(`chemDosage_${this.chemType}.log`, dose);
                 setImmediate(() => { webApp.emitToClients(`chemicalDose`, dose); });
             }
@@ -2677,8 +2677,8 @@ export class ChemicalState extends ChildEqState implements IChemicalState {
             this.dosingTimeRemaining = 0;
             this.dosingVolumeRemaining = 0;
             if (dose.volumeDosed > 0 || dose.timeDosed > 0) {
-                this.doseHistory.unshift(dose);
                 this.dailyVolumeDosed = this.calcDoseHistory();
+                this.doseHistory.unshift(dose);
                 DataLogger.writeEnd(`chemDosage_${this.chemType}.log`, dose);
                 setImmediate(() => { webApp.emitToClients(`chemicalDose`, dose); });
             }
