@@ -1551,7 +1551,11 @@ export class REMInterfaceServer extends ProtoServer {
     }
     public async getDevices() {
         try {
-            let response = await this.sendClientRequest('GET', '/devices/all', undefined, 10000);
+            let response = await this.sendClientRequest('GET', '/devices/all', undefined, 3000);
+            if (response.status.code !== 200) {
+                // Let's try again.  Sometimes the resolver for calls like this are stupid.
+                response = await this.sendClientRequest('GET', '/devices/all', undefined, 10000);
+            }
             return (response.status.code === 200) ? JSON.parse(response.data) : [];
         }
         catch (err) { logger.error(err); }
