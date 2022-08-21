@@ -275,6 +275,8 @@ export class ExternalMessage {
     private static processHeater(msg: Inbound) {
         // So a user is changing the heater info.  Lets
         // hijack it and get it ourselves.
+        // Installing hybrid heater.
+        //[165, 63, 15, 16, 168, 30][10, 0, 2, 5, 32, 5, 6, 3, 0, 6, 112, 72, 121, 98, 114, 105, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 1][4, 230]
         let isActive = msg.extractPayloadByte(3) !== 0;
         let heaterId = msg.extractPayloadByte(2) + 1;
         if (isActive) {

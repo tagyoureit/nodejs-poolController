@@ -3847,8 +3847,22 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             // 3 = Solar Heater
             // 4 = Solar Preferred
             // 5 = Heat Pump
-
             if (sys.heaters.length > 0) sys.board.valueMaps.heatSources = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
+            sys.board.valueMaps.heatModes = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
+            if (htypes.hybrid > 0) {
+                sys.board.valueMaps.heatModes.merge([
+                    [2, { name: 'heater', desc: 'Gas Heat' }],
+                    [7, { name: 'heatpump', desc: 'Heat Pump' }],
+                    [8, { name: 'heatpumppref', desc: 'Hybrid' }],
+                    [10, { name: 'dual', desc: 'Dual Heat' }]
+                ]);
+                sys.board.valueMaps.heatSources.merge([
+                    [2, { name: 'heater', desc: 'Gas Heat' }],
+                    [7, { name: 'heatpump', desc: 'Heat Pump' }],
+                    [8, { name: 'heatpumppref', desc: 'Hybrid' }],
+                    [10, { name: 'dual', desc: 'Dual Heat' }]
+                ]);
+            }
             if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[2, { name: 'heater', desc: 'Heater' }]]);
             if (mastertempInstalled) sys.board.valueMaps.heatSources.merge([[11, { name: 'mtheater', desc: 'MasterTemp' }]]);
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar Only', hasCoolSetpoint: htypes.hasCoolSetpoint }], [4, { name: 'solarpref', desc: 'Solar Preferred', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
@@ -3859,7 +3873,6 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             else if (ultratempInstalled) sys.board.valueMaps.heatSources.merge([[5, { name: 'ultratemp', desc: 'UltraTemp', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
             sys.board.valueMaps.heatSources.merge([[0, { name: 'nochange', desc: 'No Change' }]]);
 
-            sys.board.valueMaps.heatModes = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
             if (gasHeaterInstalled) sys.board.valueMaps.heatModes.merge([[2, { name: 'heater', desc: 'Heater' }]]);
             if (mastertempInstalled) sys.board.valueMaps.heatModes.merge([[11, { name: 'mtheater', desc: 'MasterTemp' }]]);
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled || mastertempInstalled)) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar Only' }], [4, { name: 'solarpref', desc: 'Solar Preferred' }]]);
