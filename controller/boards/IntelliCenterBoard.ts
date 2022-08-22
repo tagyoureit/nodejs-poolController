@@ -3835,6 +3835,10 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             // 4 = Solar Preferred
             // 5 = UltraTemp Only
             // 6 = UltraTemp Preferred????  This might be 22
+            // 7 = Hybrid Gas Only
+            // 8 = Hybrid Heatpump Only
+            // 9 = Hybrid - Hybrid Mode
+            // 10 = Hybrid - Dual Heat
             // 9 = Heat Pump
             // 25 = Heat Pump Preferred
             // ?? = Hybrid
@@ -3851,15 +3855,15 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             sys.board.valueMaps.heatModes = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
             if (htypes.hybrid > 0) {
                 sys.board.valueMaps.heatModes.merge([
-                    [2, { name: 'heater', desc: 'Gas Heat' }],
-                    [7, { name: 'heatpump', desc: 'Heat Pump' }],
-                    [8, { name: 'heatpumppref', desc: 'Hybrid' }],
+                    [7, { name: 'heater', desc: 'Gas Only' }],
+                    [8, { name: 'heatpump', desc: 'Heat Pump Only' }],
+                    [9, { name: 'heatpumppref', desc: 'Hybrid' }],
                     [10, { name: 'dual', desc: 'Dual Heat' }]
                 ]);
                 sys.board.valueMaps.heatSources.merge([
-                    [2, { name: 'heater', desc: 'Gas Heat' }],
-                    [7, { name: 'heatpump', desc: 'Heat Pump' }],
-                    [8, { name: 'heatpumppref', desc: 'Hybrid' }],
+                    [7, { name: 'heater', desc: 'Gas Only' }],
+                    [8, { name: 'heatpump', desc: 'Heat Pump Only' }],
+                    [9, { name: 'heatpumppref', desc: 'Hybrid' }],
                     [10, { name: 'dual', desc: 'Dual Heat' }]
                 ]);
             }
