@@ -3855,16 +3855,16 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             sys.board.valueMaps.heatModes = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
             if (htypes.hybrid > 0) {
                 sys.board.valueMaps.heatModes.merge([
-                    [7, { name: 'heater', desc: 'Gas Only' }],
-                    [8, { name: 'heatpump', desc: 'Heat Pump Only' }],
-                    [9, { name: 'heatpumppref', desc: 'Hybrid' }],
-                    [10, { name: 'dual', desc: 'Dual Heat' }]
+                    [7, { name: 'hybheat', desc: 'Gas Only' }],
+                    [8, { name: 'hybheatpump', desc: 'Heat Pump Only' }],
+                    [9, { name: 'hybhybrid', desc: 'Hybrid' }],
+                    [10, { name: 'hybdual', desc: 'Dual Heat' }]
                 ]);
                 sys.board.valueMaps.heatSources.merge([
-                    [7, { name: 'heater', desc: 'Gas Only' }],
-                    [8, { name: 'heatpump', desc: 'Heat Pump Only' }],
-                    [9, { name: 'heatpumppref', desc: 'Hybrid' }],
-                    [10, { name: 'dual', desc: 'Dual Heat' }]
+                    [7, { name: 'hybheat', desc: 'Gas Only' }],
+                    [8, { name: 'hybheatpump', desc: 'Heat Pump Only' }],
+                    [9, { name: 'hybhybrid', desc: 'Hybrid' }],
+                    [10, { name: 'hybdual', desc: 'Dual Heat' }]
                 ]);
             }
             if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[2, { name: 'heater', desc: 'Heater' }]]);

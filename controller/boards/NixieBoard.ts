@@ -266,6 +266,12 @@ export class NixieBoard extends SystemBoard {
             [4, { name: 'spaCommand', desc: 'Spa Command', maxButtons: 10 }]
         ]);
     }
+    public async checkConfiguration() {
+        state.status = sys.board.valueMaps.controllerStatus.transform(0, 0);
+        state.emitControllerChange();
+        state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
+        state.emitControllerChange();
+    }
     public async initNixieBoard() {
         try {
             this.killStatusCheck();
@@ -1780,17 +1786,32 @@ export class NixieHeaterCommands extends HeaterCommands {
         sys.board.valueMaps.heatModes = new byteValueMap([[1, { name: 'off', desc: 'Off' }]]);
         if (hybridInstalled) {
             sys.board.valueMaps.heatModes.merge([
-                [9, { name: 'heatpump', desc: 'Heat Pump' }],
-                [2, { name: 'heater', desc: 'Heater' }],
-                [25, { name: 'heatpumppref', desc: 'Hybrid' }],
-                [26, { name: 'dual', desc: 'Dual Heat' }]
+                [7, { name: 'hybheat', desc: 'Gas Only' }],
+                [8, { name: 'hybheatpump', desc: 'Heat Pump Only' }],
+                [9, { name: 'hybhybrid', desc: 'Hybrid' }],
+                [10, { name: 'hybdual', desc: 'Dual Heat' }]
             ]);
             sys.board.valueMaps.heatSources.merge([
-                [2, { name: 'heater', desc: 'Gas Heat' }],
-                [9, { name: 'heatpump', desc: 'Heat Pump' }],
-                [20, { name: 'heatpumppref', desc: 'Hybrid' }],
-                [21, { name: 'dual', desc: 'Dual Heat' }]
+                [7, { name: 'hybheat', desc: 'Gas Only' }],
+                [8, { name: 'hybheatpump', desc: 'Heat Pump Only' }],
+                [9, { name: 'hybhybrid', desc: 'Hybrid' }],
+                [10, { name: 'hybdual', desc: 'Dual Heat' }]
             ]);
+            // RKS: 08-24-22 The heat modes and sources for the hybrid heater are unique.  Turns out that
+            // these should be available if there is a gas heater ganged to the body as well.
+            // types cannot be ignored since they are specific to the heater.
+            //sys.board.valueMaps.heatModes.merge([
+            //    [9, { name: 'heatpump', desc: 'Heat Pump' }],
+            //    [2, { name: 'heater', desc: 'Heater' }],
+            //    [25, { name: 'heatpumppref', desc: 'Hybrid' }],
+            //    [26, { name: 'dual', desc: 'Dual Heat' }]
+            //]);
+            //sys.board.valueMaps.heatSources.merge([
+            //    [2, { name: 'heater', desc: 'Gas Heat' }],
+            //    [9, { name: 'heatpump', desc: 'Heat Pump' }],
+            //    [20, { name: 'heatpumppref', desc: 'Hybrid' }],
+            //    [21, { name: 'dual', desc: 'Dual Heat' }]
+            //]);
         }
         if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[2, { name: 'heater', desc: 'Heater' }]]);
         if (mastertempInstalled) sys.board.valueMaps.heatSources.merge([[11, { name: 'mtheater', desc: 'MasterTemp' }]]);

@@ -1285,7 +1285,9 @@ export class SystemCommands extends BoardCommands {
                     case 'solarSensor4':
                         {
                             let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                            if (isNaN(temp)) {
+                                return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                            }
                             state.temps.solarSensor4 = sys.equipment.tempSensors.getCalibration('solar4') + temp;
                         }
                         break;
@@ -1705,30 +1707,36 @@ export class BodyCommands extends BoardCommands {
     sys.board.heaters.syncHeaterStates();
     return Promise.resolve(bstate);
   }
-  public getHeatSources(bodyId: number) {
-    let heatSources = [];
-    let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
-    heatSources.push(this.board.valueMaps.heatSources.transformByName('nochange'));
-    if (heatTypes.total > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('off'));
-    if (heatTypes.gas > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('heater'));
-    if (heatTypes.mastertemp > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('mastertemp'));
-    if (heatTypes.solar > 0) {
-      let hm = this.board.valueMaps.heatSources.transformByName('solar');
-      heatSources.push(hm);
-      if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('solarpref'));
+    public getHeatSources(bodyId: number) {
+        let heatSources = [];
+        let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
+        heatSources.push(this.board.valueMaps.heatSources.transformByName('nochange'));
+        if (heatTypes.total > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('off'));
+        if (heatTypes.gas > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('heater'));
+        if (heatTypes.mastertemp > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('mastertemp'));
+        if (heatTypes.solar > 0) {
+            let hm = this.board.valueMaps.heatSources.transformByName('solar');
+            heatSources.push(hm);
+            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('solarpref'));
+        }
+        if (heatTypes.heatpump > 0) {
+            let hm = this.board.valueMaps.heatSources.transformByName('heatpump');
+            heatSources.push(hm);
+            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('heatpumppref'));
+        }
+        if (heatTypes.ultratemp > 0) {
+            let hm = this.board.valueMaps.heatSources.transformByName('ultratemp');
+            heatSources.push(hm);
+            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('ultratemppref'));
+        }
+        if (heatTypes.hybrid > 0) {
+            heatSources.push(this.board.valueMaps.heatSources.transformByName('hybheat'));
+            heatSources.push(this.board.valueMaps.heatSources.transformByName('hybheatpump'));
+            heatSources.push(this.board.valueMaps.heatSources.transformByName('hybhybrid'));
+            heatSources.push(this.board.valueMaps.heatSources.transformByName('hybdual'));
+        }
+        return heatSources;
     }
-    if (heatTypes.heatpump > 0) {
-      let hm = this.board.valueMaps.heatSources.transformByName('heatpump');
-      heatSources.push(hm);
-      if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('heatpumppref'));
-    }
-    if (heatTypes.ultratemp > 0) {
-      let hm = this.board.valueMaps.heatSources.transformByName('ultratemp');
-      heatSources.push(hm);
-      if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('ultratemppref'));
-    }
-    return heatSources;
-  }
     public getHeatModes(bodyId: number) {
         let heatModes = [];
         sys.board.heaters.updateHeaterServices();
@@ -1737,10 +1745,12 @@ export class BodyCommands extends BoardCommands {
         heatModes.push(this.board.valueMaps.heatModes.transformByName('off')); // In IC fw 1.047 off is no longer 0.
         let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
         if (heatTypes.hybrid > 0) {
-            heatModes.push(sys.board.valueMaps.heatModes.transformByName('heatpump'));
-            heatModes.push(sys.board.valueMaps.heatModes.transformByName('heater'));
-            heatModes.push(sys.board.valueMaps.heatModes.transformByName('heatpumppref'));
-            heatModes.push(sys.board.valueMaps.heatModes.transformByName('dual'));
+            // RKS: 08-24-22 Unfortunately we mistakenly thought that these needed to be matched to the other heater types.  The heat modes
+            // are unique for the hybrid heater.
+            heatModes.push(sys.board.valueMaps.heatModes.transformByName('hybheat'));
+            heatModes.push(sys.board.valueMaps.heatModes.transformByName('hybheatpump'));
+            heatModes.push(sys.board.valueMaps.heatModes.transformByName('hybhybrid'));
+            heatModes.push(sys.board.valueMaps.heatModes.transformByName('hybdual'));
             //heatModes = this.board.valueMaps.heatModes.toArray();
         }
         if (heatTypes.gas > 0) {
