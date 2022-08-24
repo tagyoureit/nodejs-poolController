@@ -1198,20 +1198,35 @@ export class SystemCommands extends BoardCommands {
     }
     public async setTempsAsync(obj: any): Promise<TemperatureState> {
         return new Promise<TemperatureState>((resolve, reject) => {
+            let units = sys.board.valueMaps.tempUnits.getName(state.temps.units) || 'F';
             for (let prop in obj) {
                 switch (prop) {
                     case 'air':
                     case 'airSensor':
                     case 'airSensor1':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.air = sys.equipment.tempSensors.getCalibration('air') + temp;
                         }
                         break;
                     case 'waterSensor1':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.waterSensor1 = sys.equipment.tempSensors.getCalibration('water1') + temp;
                             let body = state.temps.bodies.getItemById(1);
@@ -1227,7 +1242,14 @@ export class SystemCommands extends BoardCommands {
                         break;
                     case 'waterSensor2':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.waterSensor2 = sys.equipment.tempSensors.getCalibration('water2') + temp;
                             if (state.equipment.dual) {
@@ -1238,7 +1260,14 @@ export class SystemCommands extends BoardCommands {
                         break;
                     case 'waterSensor3':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.waterSensor3 = sys.equipment.tempSensors.getCalibration('water3') + temp;
                             let body = state.temps.bodies.getItemById(3);
@@ -1247,10 +1276,15 @@ export class SystemCommands extends BoardCommands {
                         break;
                     case 'waterSensor4':
                         {
-
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-                            state.temps.waterSensor4 = sys.equipment.tempSensors.getCalibration('water4') + temp;
                             let body = state.temps.bodies.getItemById(4);
                             if (body.isOn) body.temp = state.temps.waterSensor4;
                         }
@@ -1260,7 +1294,14 @@ export class SystemCommands extends BoardCommands {
                     case 'solar1':
                     case 'solar':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.solar = sys.equipment.tempSensors.getCalibration('solar1') + temp;
                         }
@@ -1268,7 +1309,14 @@ export class SystemCommands extends BoardCommands {
                     case 'solar2':
                     case 'solarSensor2':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.solarSensor2 = sys.equipment.tempSensors.getCalibration('solar2') + temp;
                         }
@@ -1276,7 +1324,14 @@ export class SystemCommands extends BoardCommands {
                     case 'solar3':
                     case 'solarSensor3':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.solarSensor3 = sys.equipment.tempSensors.getCalibration('solar3') + temp;
                         }
@@ -1284,10 +1339,15 @@ export class SystemCommands extends BoardCommands {
                     case 'solar4':
                     case 'solarSensor4':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
-                            if (isNaN(temp)) {
-                                return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
                             }
+                            if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.solarSensor4 = sys.equipment.tempSensors.getCalibration('solar4') + temp;
                         }
                         break;
