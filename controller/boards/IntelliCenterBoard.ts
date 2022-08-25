@@ -245,6 +245,7 @@ export class IntelliCenterBoard extends SystemBoard {
             [2, { name: 'solar', desc: 'Solar' }],
             [3, { name: 'cooling', desc: 'Cooling' }],
             [4, { name: 'hpheat', desc: 'Heating' }],
+            [5, { name: 'hybheat', desc: 'Heating'}],
             [6, { name: 'mtheat', desc: 'Heater' }],
             [8, { name: 'hpcool', desc: 'Cooling' }]
         ]);

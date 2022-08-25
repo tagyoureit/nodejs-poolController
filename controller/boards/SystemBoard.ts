@@ -2277,11 +2277,11 @@ export class CircuitCommands extends BoardCommands {
                         if (!remove) {
                             for (let j = 0; j < poolStates.length && !bState; j++) {
                                 let hstatus = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
-                                if (hstatus === 'heater' || hstatus === 'hpheat' || hstatus === 'mtheat') bState = true;
+                                if (hstatus === 'heater' || hstatus === 'hpheat' || hstatus === 'mtheat' || hstatus === 'hybheat') bState = true;
                             }
                             for (let j = 0; j < spaStates.length && !bState; j++) {
-                                let hstatus = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
-                                if (hstatus === 'heater' || hstatus === 'hpheat' || hstatus === 'mtheat') bState = true;
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus);
+                                if (hstatus === 'heater' || hstatus === 'hpheat' || hstatus === 'mtheat' || hstatus === 'hybheat') bState = true;
                             }
                         }
                         break;
@@ -4421,7 +4421,7 @@ export class HeaterCommands extends BoardCommands {
                                     if (hstatus === 'heater') isHeating = isOn = true;
                                     break;
                                 case 'hybrid':
-                                    if (hstatus === 'mtheat' || hstatus === 'heater' || hstatus === 'dual') isHeating = isOn = true;
+                                    if (hstatus === 'mtheat' || hstatus === 'heater' || hstatus === 'dual' || hstatus === 'hybheat') isHeating = isOn = true;
                                     break;
                                 case 'ultratemp':
                                 case 'heatpump':
