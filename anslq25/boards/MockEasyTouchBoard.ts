@@ -1,8 +1,9 @@
-import { logger } from "../../../../../logger/Logger";
-import { Outbound } from "../../Messages";
+import { logger } from "../../logger/Logger";
+import { Outbound } from "../../controller/comms/messages/Messages";
+import { MockStatusCommands, MockSystemBoard } from "./MockSystemBoard";
 
-export class MockEasyTouch {
-  constructor() { }
+export class MockEasyTouch extends MockSystemBoard {
+  constructor() { super(); }
 
   public convertOutbound(outboundMsg: Outbound) {
     let response: Outbound = Outbound.create({
@@ -139,4 +140,8 @@ export class MockEasyTouch {
 
 }
 
-export var mockEasyTouch: MockEasyTouch = new MockEasyTouch();
+export class EasyTouchMockStatusCommands extends MockStatusCommands{
+  public async processStatusAsync() {
+    console.log(`send status command`);
+  };
+}

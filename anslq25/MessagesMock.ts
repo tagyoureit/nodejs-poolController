@@ -1,10 +1,10 @@
-import { sys } from "../../../../controller/Equipment";
-import { logger } from "../../../../logger/Logger";
-import { ControllerType } from "../../../../controller/Constants";
-import { Outbound, Protocol } from "../Messages";
+import { sys } from "../controller/Equipment";
+import { logger } from "../logger/Logger";
+import { ControllerType } from "../controller/Constants";
+import { Outbound, Protocol } from "../controller/comms/messages/Messages";
 import { mockPump } from "./pumps/MockPump";
 import { mockChlor } from "./chemistry/MockChlorinator";
-import { mockEasyTouch } from "./boards/MockEasyTouchBoard";
+import { MockEasyTouch } from "./boards/MockEasyTouchBoard";
 
 export class MessagesMock {
     constructor() { }
@@ -12,7 +12,7 @@ export class MessagesMock {
     public process(outboundMsg: Outbound) {
         switch (outboundMsg.protocol) {
             case Protocol.Broadcast:
-                return mockEasyTouch.convertOutbound(outboundMsg);
+                return MockEasyTouch.convertOutbound(outboundMsg);
             /*
             case Protocol.IntelliValve:
                 IntelliValveStateMessage.process(outboundMsg);
@@ -24,7 +24,7 @@ export class MessagesMock {
                 if ((outboundMsg.source >= 96 && outboundMsg.source <= 111) || (outboundMsg.dest >= 96 && outboundMsg.dest <= 111))
                     return mockPump.convertOutbound(outboundMsg);
                 else
-                    return mockEasyTouch.convertOutbound(outboundMsg);
+                    return MockEasyTouch.convertOutbound(outboundMsg);
             /* case Protocol.Heater:
                 HeaterStateMessage.process(outboundMsg);
                 break;*/

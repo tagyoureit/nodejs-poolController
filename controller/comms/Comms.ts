@@ -27,7 +27,7 @@ import { InvalidEquipmentDataError, InvalidOperationError, OutboundMessageError 
 import { utils } from "../Constants";
 import { sys } from "../Equipment";
 import { webApp } from "../../web/Server";
-import { messagesMock } from './messages/mock/MessagesMock'
+import { messagesMock } from '../../anslq25/MessagesMock'
 const extend = require("extend");
 export class Connection {
     constructor() { }

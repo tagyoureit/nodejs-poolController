@@ -1,5 +1,5 @@
-import { logger } from "../../../../../logger/Logger";
-import { Outbound } from "../../Messages";
+import { logger } from "../../logger/Logger";
+import { Outbound } from "../../controller/comms/messages/Messages";
 
 export class MockChlorinator {
   constructor(){}
