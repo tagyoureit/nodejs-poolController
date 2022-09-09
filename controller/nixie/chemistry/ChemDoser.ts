@@ -429,7 +429,6 @@ export class NixieChemDoser extends NixieChemDoserBase implements INixieChemical
                     (typeof data.mixingTimeSeconds !== 'undefined' ? parseInt(data.mixingTimeSeconds, 10) : 0);
             }
             chem.mixingTime = typeof data.mixingTime !== 'undefined' ? parseInt(data.mixingTime, 10) : chem.mixingTime;
-           
             await this.flowSensor.setSensorAsync(data.flowSensor);
             await this.tank.setTankAsync(schem.tank, data.tank);
             await this.pump.setPumpAsync(schem.pump, data.pump);
@@ -664,9 +663,13 @@ export class NixieChemDoser extends NixieChemDoserBase implements INixieChemical
         try {
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
+            if (typeof this._mixTimer !== 'undefined' || this._mixTimer) clearTimeout(this._mixTimer);
+            this._mixTimer = null;
+            this.currentMix = null;
             this.closing = true;
             let schem = state.chemDosers.getItemById(this.chem.id);
             await this.cancelDosing(schem, 'closing');
+            logger.info(`Closed chem doser ${schem.id} ${schem.name}`);
             schem.emitEquipmentChange();
         }
         catch (err) { logger.error(`ChemDoser closeAsync: ${err.message}`); return Promise.reject(err); }

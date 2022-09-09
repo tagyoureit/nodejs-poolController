@@ -269,7 +269,8 @@ export class ConfigRoute {
                     warnings,
                     // waterFlow: sys.board.valueMaps.chemControllerWaterFlow.toArray(), // remove
                     controllers: sys.chemControllers.get(),
-                    maxChemControllers: sys.equipment.maxChemControllers
+                    maxChemControllers: sys.equipment.maxChemControllers,
+                    doserTypes: sys.board.valueMaps.chemDoserTypes.toArray()
                 };
                 return res.status(200).send(opts);
             }

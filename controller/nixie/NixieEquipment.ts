@@ -86,6 +86,7 @@ export class NixieEquipmentCollection<T> extends Array<NixieEquipment> {
                 let eq = this[ndx];
                 await eq.closeAsync();
                 this.splice(ndx, 1);
+                logger.info(`Removing chem doser id# ${id} at index ndx`);
             }
             else
                 logger.warn(`A Nixie equipment item was not found with id ${id}. Equipment not removed.`);
