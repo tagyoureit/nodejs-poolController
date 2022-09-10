@@ -24,8 +24,13 @@ export class MockSystemBoard {
   protected _statusTimer: NodeJS.Timeout;
   protected _statusCheckRef: number = 0;
   protected _statusInterval: number = 3000;
-
-  constructor(){}
+  protected _portId: number = 0;
+  constructor(){
+    this._portId = 0; // pass this in.
+    setTimeout(()=>{
+      this.processStatusAsync().then(()=>{});
+    }, 5000);
+  }
   public get statusInterval(): number { return this._statusInterval };
   public system: MockSystemCommands = new MockSystemCommands(this);
   public status: MockStatusCommands = new MockStatusCommands(this);
@@ -56,7 +61,21 @@ export class MockSystemBoard {
       if (this.statusInterval > 0) this._statusTimer = setTimeoutSync(async () => await self.processStatusAsync(), this.statusInterval);
     }
   }
-
+  public async setPortId(portId: number) {
+    let self = this;
+    try {
+      this.killStatusCheck();
+      this.suspendStatus(true);
+      this._portId = portId;
+      
+    } catch (err) {
+      logger.error(`Error changing port id: ${err.message}`);
+    }
+    finally {
+      this.suspendStatus(false);
+      this._statusTimer = setTimeoutSync(async () => await self.processStatusAsync(), this.statusInterval);
+    }
+  }
 }
 export class MockBoardCommands {
   protected mockBoard: MockSystemBoard = null;
@@ -66,5 +85,5 @@ export class MockSystemCommands extends MockBoardCommands{
 
 }
 export class MockStatusCommands extends MockBoardCommands{
-    public async processStatusAsync() {};
+    public async processStatusAsync(responseoutbound?: Outbound) {};
 }

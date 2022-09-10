@@ -1,6 +1,8 @@
 import { logger } from "../../logger/Logger";
 import { Outbound } from "../../controller/comms/messages/Messages";
 import { MockStatusCommands, MockSystemBoard } from "./MockSystemBoard";
+import { BodyTempState, state } from "../../controller/State";
+import { Heater, sys } from "controller/Equipment";
 
 export class MockEasyTouch extends MockSystemBoard {
   constructor() { super(); }
@@ -140,8 +142,102 @@ export class MockEasyTouch extends MockSystemBoard {
 
 }
 
-export class EasyTouchMockStatusCommands extends MockStatusCommands{
-  public async processStatusAsync() {
+export class EasyTouchMockStatusCommands extends MockStatusCommands {
+  public async processStatusAsync(response?: Outbound) {
+    if (typeof response === 'undefined'){
+      response = Outbound.create({
+        portId: outboundMsg.portId,
+        protocol: outboundMsg.protocol,
+        dest: outboundMsg.source,
+        source: outboundMsg.dest
+      });
+    }
     console.log(`send status command`);
+    response.appendPayloadBytes(0, 28);
+    // to do: reverse engineer logic for model types
+    response.setPayloadByte(27, 0); // model1
+    response.setPayloadByte(28, 13); // model2
+
+    // set time
+    response.setPayloadByte(0, state.time.hours);
+    response.setPayloadByte(1, state.time.minutes);
+
+    // set mode
+    response.setPayloadByte(9, response.setPayloadByte[9] | state.mode);
+
+    // set units
+    response.setPayloadByte(9, response[9] | state.temps.units);
+    
+    // set valves
+    response.setPayloadByte(10, state.valve);
+
+    // set delay
+    response.setPayloadByte(12, response[12] | state.delay);
+
+    // set freeze
+    if (state.freeze) response.setPayloadByte(9, response[9] | 0x08);
+
+    // set circuits
+    let circuits = state.circuits.get(true);
+    let circuitId = 0;
+    for (let i = 2; i <= circuits.length; i++) {
+      for (let j = 0; j < 8; j++) {
+
+        let circuit = circuits[circuitId];
+        if (circuit.isActive && circuit.isOn) {
+          response.setPayloadByte(i, response[i] & (1 >> j))
+        }
+      }
+      circuitId++;
+    }
+    // set temps
+    response.setPayloadByte(14, state.temps.waterSensor1);
+    response.setPayloadByte(18, state.temps.air);
+    let solar: Heater = sys.heaters.getItemById(2);
+    if (solar.isActive) response.setPayloadByte(19, state.temps.solar);
+    if (sys.bodies.length > 2 || sys.equipment.dual) response.setPayloadByte(15, state.temps.waterSensor2);
+    // set body attributes
+    if (sys.bodies.length > 0) {
+      const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
+      if (tbody.isOn) {
+        response.setPayloadByte(2, response[2] | 0x20);
+        if (tbody.heatMode > 0) {
+          let _heatStatus = sys.board.valueMaps.heatStatus.getName(tbody.heatStatus);
+          if (tbody.heaterOptions.hybrid > 0) {
+
+            if (_heatStatus === 'dual') response.setPayloadByte(10, response[10] | 0x14);
+            else if (_heatStatus === 'heater') response.setPayloadByte(10, response[10] | 0x10);
+            else if (_heatStatus === 'hpheat') response.setPayloadByte(10, response[10] | 0x04);
+          }
+          else {
+            if (_heatStatus === 'heater') response.setPayloadByte(10, response[10] | 0x04);
+            if (_heatStatus === 'cooling' || _heatStatus === 'solar') response.setPayloadByte(10, response[10] | 0x10);
+          }
+        }
+      }
+    }
+    if (sys.bodies.length > 1) {
+      const tbody: BodyTempState = state.temps.bodies.getItemById(2, true); 
+      // const cbody: Body = sys.bodies.getItemById(2);
+      let _heatStatus = sys.board.valueMaps.heatStatus.getName(tbody.heatStatus);
+      if (tbody.isOn) response.setPayloadByte(2, response[2] | 0x01);
+      response.setPayloadByte(22, response[22] | 0xCC << 2);
+      if (tbody.isOn){
+        if (tbody.heaterOptions.hybrid > 0){
+          let _heatStatus = sys.board.valueMaps.heatStatus.getName(tbody.heatStatus);
+          if (tbody.heatMode > 0){
+            if (_heatStatus === 'dual') response.setPayloadByte(10, response[10] | 0x28);
+            else if (_heatStatus === 'heater') response.setPayloadByte(10, response[10] | 0x20);
+            else if (_heatStatus === 'hpheat') response.setPayloadByte(10, response[10] | 0x08);
+          }
+          else {
+            if (_heatStatus === 'heater') response.setPayloadByte(10, response[10] | 0x28);
+            if (_heatStatus === 'cooling' || _heatStatus === 'solar') response.setPayloadByte(10, response[10] | 0x20);
+          }
+        }
+      }
+    };
   };
+
+
 }
