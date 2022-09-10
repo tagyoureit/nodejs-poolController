@@ -288,6 +288,11 @@
           "description": "Send set point."
         },
         {
+          "topic": "state/temps/bodies/@bind=data.id;/@bind=data.name;/heatSetpoint",
+          "message": "{\"heatSetpoint\":@bind=data.setPoint;}",
+          "description": "Send heat set point."
+        },
+        {
           "topic": "state/temps/bodies/@bind=data.id;/@bind=data.name;/coolSetpoint",
           "message": "{\"coolSetpoint\":@bind=data.coolSetpoint;}",
           "description": "Send cool set point."
