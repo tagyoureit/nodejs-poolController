@@ -21,14 +21,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import { MockEasyTouch } from './MockEasyTouchBoard';
 import { MockSystemBoard } from './MockSystemBoard';
 import { ControllerType } from '../../controller/Constants';
+import { PoolSystem } from 'controller/Equipment';
 // import { MockAquaLinkBoard } from './MockAquaLinkBoard';
 // import { MockSunTouchBoard } from "./MockSunTouchBoard";
 
 
-export class BoardFactory {
+export class MockBoardFactory {
     // Factory create the system board from the controller type.  Resist storing
     // the pool system as this can cause a leak.  The PoolSystem object already has a reference to this.
-    public static fromControllerType(ct: ControllerType) {
+    public static fromControllerType(ct: ControllerType, system: PoolSystem) {
         switch (ct) {
             // case ControllerType.IntelliCenter:
             //     return new MockIntelliCenterBoard(system);
@@ -37,13 +38,13 @@ export class BoardFactory {
             // case ControllerType.IntelliCom:
             //     return new MockIntelliComBoard(system);
             case ControllerType.EasyTouch:
-                return new MockEasyTouch();
+                return new MockEasyTouch(system);
             // case ControllerType.AquaLink:
             //     return new MockAquaLinkBoard(system);
             // case ControllerType.SunTouch:
             //     return new MockSunTouchBoard(system);
         }
-        return new MockSystemBoard();
+        return new MockSystemBoard(system);
     }
 
 }

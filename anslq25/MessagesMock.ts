@@ -5,14 +5,17 @@ import { Outbound, Protocol } from "../controller/comms/messages/Messages";
 import { mockPump } from "./pumps/MockPump";
 import { mockChlor } from "./chemistry/MockChlorinator";
 import { MockEasyTouch } from "./boards/MockEasyTouchBoard";
+import { MockSystemBoard } from "./boards/MockSystemBoard";
 
 export class MessagesMock {
     constructor() { }
 
     public process(outboundMsg: Outbound) {
+        
         switch (outboundMsg.protocol) {
             case Protocol.Broadcast:
                 return MockEasyTouch.convertOutbound(outboundMsg);
+                
             /*
             case Protocol.IntelliValve:
                 IntelliValveStateMessage.process(outboundMsg);

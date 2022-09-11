@@ -19,14 +19,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import { logger } from "../../logger/Logger";
 import { setTimeout as setTimeoutSync } from 'timers';
 import { Outbound } from "controller/comms/messages/Messages";
+import { SystemBoard } from "../../controller/boards/SystemBoard";
+import { PoolSystem, sys } from "../../controller/Equipment";
 
 export class MockSystemBoard {
   protected _statusTimer: NodeJS.Timeout;
   protected _statusCheckRef: number = 0;
   protected _statusInterval: number = 3000;
-  protected _portId: number = 0;
-  constructor(){
-    this._portId = 0; // pass this in.
+  constructor(system: PoolSystem){
+    // sys.anslq25.portId = 0; // pass this in.
     setTimeout(()=>{
       this.processStatusAsync().then(()=>{});
     }, 5000);
@@ -50,6 +51,7 @@ export class MockSystemBoard {
   public async processStatusAsync() {
     let self = this;
     try {
+      if (!sys.anslq25.isActive || typeof sys.anslq25.mockControllerType === 'undefined') this.closeAsync();
       if (this._statusCheckRef > 0) return;
       this.suspendStatus(true);
       if (typeof this._statusTimer !== 'undefined' && this._statusTimer) clearTimeout(this._statusTimer);
@@ -66,7 +68,7 @@ export class MockSystemBoard {
     try {
       this.killStatusCheck();
       this.suspendStatus(true);
-      this._portId = portId;
+      sys.anslq25.portId = portId;
       
     } catch (err) {
       logger.error(`Error changing port id: ${err.message}`);
@@ -76,6 +78,11 @@ export class MockSystemBoard {
       this._statusTimer = setTimeoutSync(async () => await self.processStatusAsync(), this.statusInterval);
     }
   }
+  public async closeAsync() {
+    try {
+    }
+    catch (err) { logger.error(err); }
+}
 }
 export class MockBoardCommands {
   protected mockBoard: MockSystemBoard = null;
@@ -85,5 +92,6 @@ export class MockSystemCommands extends MockBoardCommands{
 
 }
 export class MockStatusCommands extends MockBoardCommands{
+  public sendAck(outboundMsg, response){};
     public async processStatusAsync(responseoutbound?: Outbound) {};
 }

@@ -1,13 +1,13 @@
 import { logger } from "../../logger/Logger";
-import { Outbound } from "../../controller/comms/messages/Messages";
+import { Outbound, Protocol } from "../../controller/comms/messages/Messages";
 import { MockStatusCommands, MockSystemBoard } from "./MockSystemBoard";
 import { BodyTempState, state } from "../../controller/State";
-import { Heater, sys } from "controller/Equipment";
+import { Heater, PoolSystem, sys } from "../../controller/Equipment";
 
 export class MockEasyTouch extends MockSystemBoard {
-  constructor() { super(); }
+  constructor(system: PoolSystem) { super(system); }
 
-  public convertOutbound(outboundMsg: Outbound) {
+  public static convertOutbound(outboundMsg: Outbound) {
     let response: Outbound = Outbound.create({
       portId: outboundMsg.portId,
       protocol: outboundMsg.protocol,
@@ -38,8 +38,7 @@ export class MockEasyTouch extends MockSystemBoard {
       case 163: // set delay
       case 167: // set light group
       case 168: // set settings
-        return this.sendAck(outboundMsg, response);
-
+        return sys.mockBoard.status.sendAck(outboundMsg, response);
       case 194: // get controller status 
       case 197: // get date time
       case 198: // get circuit state
@@ -146,10 +145,10 @@ export class EasyTouchMockStatusCommands extends MockStatusCommands {
   public async processStatusAsync(response?: Outbound) {
     if (typeof response === 'undefined'){
       response = Outbound.create({
-        portId: outboundMsg.portId,
-        protocol: outboundMsg.protocol,
-        dest: outboundMsg.source,
-        source: outboundMsg.dest
+        portId: sys.anslq25.portId,
+        protocol: Protocol.Broadcast,
+        dest: 16,
+        source: 15
       });
     }
     console.log(`send status command`);

@@ -32,12 +32,15 @@ import { conn } from './comms/Comms';
 import { versionCheck } from "../config/VersionCheck";
 import { NixieControlPanel } from "./nixie/Nixie";
 import { NixieBoard } from 'controller/boards/NixieBoard';
+import { MockSystemBoard } from "../anslq25/boards/MockSystemBoard";
+import { MockBoardFactory } from "../anslq25/boards/MockBoardFactory";
 
 interface IPoolSystem {
     cfgPath: string;
     data: any;
     stopAsync(): void;
     persist(): void;
+    anslq25: Anslq25;
     general: General;
     equipment: Equipment;
     configVersion: ConfigVersion;
@@ -171,6 +174,7 @@ export class PoolSystem implements IPoolSystem {
             }
         }
         this.data = this.onchange(cfg, function () { sys.dirty = true; });
+        this.anslq25 = new Anslq25(this.data, 'anslq25');
         this.general = new General(this.data, 'pool');
         this.equipment = new Equipment(this.data, 'equipment');
         this.configVersion = new ConfigVersion(this.data, 'configVersion');
@@ -193,6 +197,7 @@ export class PoolSystem implements IPoolSystem {
         this.chemDosers = new ChemDoserCollection(this.data, 'chemDosers');
         this.filters = new FilterCollection(this.data, 'filters');
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
+        this.mockBoard = MockBoardFactory.fromControllerType(this.anslq25.mockControllerType, this);
     }
     // This performs a safe load of the config file.  If the file gets corrupt or actually does not exist
     // it will not break the overall system and allow hardened recovery.
@@ -220,6 +225,21 @@ export class PoolSystem implements IPoolSystem {
         state.status = 0;
         this.board = BoardFactory.fromControllerType(ControllerType.Unknown, this);
         setTimeout(function () { state.status = 0; conn.resumeAll(); }, 0);
+    }
+    public get mockControllerType(): ControllerType { return this.data.anslq25.controllerType as ControllerType; }
+    public set mockControllerType(val: ControllerType) {
+        let self = this;
+        if (this.controllerType !== val) {
+            console.log(`RESETTING DATA -- Mock Controller type changed from ${this.controllerType} to ${val}`);
+            // Only go in here if there is a change to the controller type.
+            //this.resetData(); // Clear the configuration data.
+            //state.resetData(); // Clear the state data.
+            this.data.anslq25.controllerType = val;
+            //EquipmentStateMessage.initDefaults();
+            // We are actually changing the config so lets clear out all the data.
+            this.mockBoard = MockBoardFactory.fromControllerType(val, this);
+            //if (this.data.anslq25.controllerType === ControllerType.Unknown) setTimeout(() => { self.initNixieController(); }, 7500);
+        }
     }
     public get controllerType(): ControllerType { return this.data.controllerType as ControllerType; }
     public set controllerType(val: ControllerType) {
@@ -266,7 +286,7 @@ export class PoolSystem implements IPoolSystem {
     public async stopAsync() {
         if (this._timerChanges) clearTimeout(this._timerChanges);
         if (this._timerDirty) clearTimeout(this._timerDirty);
-        logger.info(`Shut down sys (config) object timers`);
+        logger.info(`Shut down sys (config) object timers`); 
         return this.board.stopAsync();
     }
     public initNixieController() {
@@ -281,6 +301,7 @@ export class PoolSystem implements IPoolSystem {
         }
     }
     public board: SystemBoard = new SystemBoard(this);
+    public mockBoard: MockSystemBoard = new MockSystemBoard(this);
     public ncp: NixieControlPanel = new NixieControlPanel();
     public processVersionChanges(ver: ConfigVersion) { this.board.requestConfiguration(ver); }
     public checkConfiguration() { this.board.checkConfiguration(); }
@@ -292,6 +313,7 @@ export class PoolSystem implements IPoolSystem {
     protected _timerChanges: NodeJS.Timeout;
     protected _needsChanges: boolean;
     // All the equipment items below.
+    public anslq25: Anslq25;
     public general: General;
     public equipment: Equipment;
     public configVersion: ConfigVersion;
@@ -653,6 +675,20 @@ class EqItemCollection<T> implements IEqItemCollection {
         }
         return typeof minId !== 'undefined' ? minId : defId;
     }
+}
+export class Anslq25 extends EqItem {
+    ctor(data: any, name?: any): Anslq25 { return new Anslq25(data, name || 'anslq25'); }
+    public initData(){
+        if (typeof this.data.isActive === 'undefined') this.data.isActive = false;
+    }
+    public get mockControllerType(): ControllerType { return this.data.mockControllerType; }
+    public set mockControllerType(val: ControllerType) { this.setDataVal('mockControllerType', val); }
+    public get model(): string { return this.data.model; }
+    public set model(val: string) { this.setDataVal('model', val); }
+    public get isActive(): boolean { return this.data.isActive; }
+    public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    public get portId(): number { return this.data.portId; }
+    public set portId(val: number) { this.setDataVal('portId', val); }
 }
 export class General extends EqItem {
     ctor(data: any, name?: any): General { return new General(data, name || 'pool'); }
