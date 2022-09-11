@@ -276,6 +276,8 @@ export class ExternalMessage {
     private static processHeater(msg: Inbound) {
         // So a user is changing the heater info.  Lets
         // hijack it and get it ourselves.
+        // Installing hybrid heater.
+        //[165, 63, 15, 16, 168, 30][10, 0, 2, 5, 32, 5, 6, 3, 0, 6, 112, 72, 121, 98, 114, 105, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 1][4, 230]
         let isActive = msg.extractPayloadByte(3) !== 0;
         let heaterId = msg.extractPayloadByte(2) + 1;
         if (isActive) {
@@ -873,5 +875,27 @@ export class ExternalMessage {
             sys.chlorinators.removeItemById(1);
             state.chlorinators.removeItemById(1);
         }
+    }
+    public static processTouchSetHeatMode(msg: Inbound) {
+        // We get here because some other controller is setting the heat
+        // mode.  The OCP will emit an 8 later but it can be very slow
+        // in doing this. ScreenLogic also captures this message so it
+        // doesn't get behind.
+        //[165, 1, 16, 34, 136, 4][86, 100, 3, 0][2, 33]
+        //payload: [temp1, temp2, mode2 << 2 | mode1, setPoint],
+        let bstate1 = state.temps.bodies.getItemById(1);
+        let bstate2 = state.temps.bodies.getItemById(2);
+        let body1 = sys.bodies.getItemById(1);
+        let body2 = sys.bodies.getItemById(2);
+        let mode1 = msg.extractPayloadByte(2) & 0x03;
+        let mode2 = (msg.extractPayloadByte(2) & 0x0C) >> 2;
+        bstate1.setPoint = body1.heatSetpoint = msg.extractPayloadByte(0);
+        bstate1.coolSetpoint = body1.coolSetpoint = msg.extractPayloadByte(3);
+        bstate2.setPoint = body2.heatSetpoint = msg.extractPayloadByte(1);
+        bstate1.heatMode = body1.heatMode = mode1;
+        bstate2.heatMode = body2.heatMode = mode2;
+        msg.isProcessed = true;
+        state.emitEquipmentChanges();
+
     }
 }

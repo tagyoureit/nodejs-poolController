@@ -707,6 +707,9 @@ export class Inbound extends Message {
                     case 147:
                         IntellichemMessage.process(this);
                         break;
+                    case 136:
+                        ExternalMessage.processTouchSetHeatMode(this);
+                        break;
                     default:
                         if (this.action === 109 && this.payload[1] === 3) break;
                         if (this.source === 17 && this.payload[0] === 109) break;

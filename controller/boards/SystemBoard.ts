@@ -1200,20 +1200,35 @@ export class SystemCommands extends BoardCommands {
     }
     public async setTempsAsync(obj: any): Promise<TemperatureState> {
         return new Promise<TemperatureState>((resolve, reject) => {
+            let units = sys.board.valueMaps.tempUnits.getName(state.temps.units) || 'F';
             for (let prop in obj) {
                 switch (prop) {
                     case 'air':
                     case 'airSensor':
                     case 'airSensor1':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.air = sys.equipment.tempSensors.getCalibration('air') + temp;
                         }
                         break;
                     case 'waterSensor1':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.waterSensor1 = sys.equipment.tempSensors.getCalibration('water1') + temp;
                             let body = state.temps.bodies.getItemById(1);
@@ -1229,7 +1244,14 @@ export class SystemCommands extends BoardCommands {
                         break;
                     case 'waterSensor2':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.waterSensor2 = sys.equipment.tempSensors.getCalibration('water2') + temp;
                             if (state.equipment.dual) {
@@ -1240,7 +1262,14 @@ export class SystemCommands extends BoardCommands {
                         break;
                     case 'waterSensor3':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.waterSensor3 = sys.equipment.tempSensors.getCalibration('water3') + temp;
                             let body = state.temps.bodies.getItemById(3);
@@ -1249,10 +1278,15 @@ export class SystemCommands extends BoardCommands {
                         break;
                     case 'waterSensor4':
                         {
-
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
-                            state.temps.waterSensor4 = sys.equipment.tempSensors.getCalibration('water4') + temp;
                             let body = state.temps.bodies.getItemById(4);
                             if (body.isOn) body.temp = state.temps.waterSensor4;
                         }
@@ -1262,7 +1296,14 @@ export class SystemCommands extends BoardCommands {
                     case 'solar1':
                     case 'solar':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.solar = sys.equipment.tempSensors.getCalibration('solar1') + temp;
                         }
@@ -1270,7 +1311,14 @@ export class SystemCommands extends BoardCommands {
                     case 'solar2':
                     case 'solarSensor2':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.solarSensor2 = sys.equipment.tempSensors.getCalibration('solar2') + temp;
                         }
@@ -1278,7 +1326,14 @@ export class SystemCommands extends BoardCommands {
                     case 'solar3':
                     case 'solarSensor3':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.solarSensor3 = sys.equipment.tempSensors.getCalibration('solar3') + temp;
                         }
@@ -1286,7 +1341,14 @@ export class SystemCommands extends BoardCommands {
                     case 'solar4':
                     case 'solarSensor4':
                         {
-                            let temp = obj[prop] !== null ? parseFloat(obj[prop]) : 0;
+                            let temp = 0;
+                            if (obj[prop] !== null) {
+                                if (typeof obj[prop].temperature !== 'undefined') {
+                                    temp = parseFloat(obj[prop].temperature);
+                                    if (typeof obj[prop].units === 'string') temp = utils.convert.temperature.convertUnits(temp, obj[prop].units || units, units);
+                                }
+                                else temp = parseFloat(obj[prop]);
+                            }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
                             state.temps.solarSensor4 = sys.equipment.tempSensors.getCalibration('solar4') + temp;
                         }
@@ -1707,30 +1769,36 @@ export class BodyCommands extends BoardCommands {
     sys.board.heaters.syncHeaterStates();
     return Promise.resolve(bstate);
   }
-  public getHeatSources(bodyId: number) {
-    let heatSources = [];
-    let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
-    heatSources.push(this.board.valueMaps.heatSources.transformByName('nochange'));
-    if (heatTypes.total > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('off'));
-    if (heatTypes.gas > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('heater'));
-    if (heatTypes.mastertemp > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('mastertemp'));
-    if (heatTypes.solar > 0) {
-      let hm = this.board.valueMaps.heatSources.transformByName('solar');
-      heatSources.push(hm);
-      if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('solarpref'));
+    public getHeatSources(bodyId: number) {
+        let heatSources = [];
+        let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
+        heatSources.push(this.board.valueMaps.heatSources.transformByName('nochange'));
+        if (heatTypes.total > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('off'));
+        if (heatTypes.gas > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('heater'));
+        if (heatTypes.mastertemp > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('mastertemp'));
+        if (heatTypes.solar > 0) {
+            let hm = this.board.valueMaps.heatSources.transformByName('solar');
+            heatSources.push(hm);
+            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('solarpref'));
+        }
+        if (heatTypes.heatpump > 0) {
+            let hm = this.board.valueMaps.heatSources.transformByName('heatpump');
+            heatSources.push(hm);
+            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('heatpumppref'));
+        }
+        if (heatTypes.ultratemp > 0) {
+            let hm = this.board.valueMaps.heatSources.transformByName('ultratemp');
+            heatSources.push(hm);
+            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('ultratemppref'));
+        }
+        if (heatTypes.hybrid > 0) {
+            heatSources.push(this.board.valueMaps.heatSources.transformByName('hybheat'));
+            heatSources.push(this.board.valueMaps.heatSources.transformByName('hybheatpump'));
+            heatSources.push(this.board.valueMaps.heatSources.transformByName('hybhybrid'));
+            heatSources.push(this.board.valueMaps.heatSources.transformByName('hybdual'));
+        }
+        return heatSources;
     }
-    if (heatTypes.heatpump > 0) {
-      let hm = this.board.valueMaps.heatSources.transformByName('heatpump');
-      heatSources.push(hm);
-      if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('heatpumppref'));
-    }
-    if (heatTypes.ultratemp > 0) {
-      let hm = this.board.valueMaps.heatSources.transformByName('ultratemp');
-      heatSources.push(hm);
-      if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('ultratemppref'));
-    }
-    return heatSources;
-  }
     public getHeatModes(bodyId: number) {
         let heatModes = [];
         sys.board.heaters.updateHeaterServices();
@@ -1739,10 +1807,12 @@ export class BodyCommands extends BoardCommands {
         heatModes.push(this.board.valueMaps.heatModes.transformByName('off')); // In IC fw 1.047 off is no longer 0.
         let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
         if (heatTypes.hybrid > 0) {
-            heatModes.push(sys.board.valueMaps.heatModes.transformByName('heatpump'));
-            heatModes.push(sys.board.valueMaps.heatModes.transformByName('heater'));
-            heatModes.push(sys.board.valueMaps.heatModes.transformByName('heatpumppref'));
-            heatModes.push(sys.board.valueMaps.heatModes.transformByName('dual'));
+            // RKS: 08-24-22 Unfortunately we mistakenly thought that these needed to be matched to the other heater types.  The heat modes
+            // are unique for the hybrid heater.
+            heatModes.push(sys.board.valueMaps.heatModes.transformByName('hybheat'));
+            heatModes.push(sys.board.valueMaps.heatModes.transformByName('hybheatpump'));
+            heatModes.push(sys.board.valueMaps.heatModes.transformByName('hybhybrid'));
+            heatModes.push(sys.board.valueMaps.heatModes.transformByName('hybdual'));
             //heatModes = this.board.valueMaps.heatModes.toArray();
         }
         if (heatTypes.gas > 0) {
@@ -2209,11 +2279,11 @@ export class CircuitCommands extends BoardCommands {
                         if (!remove) {
                             for (let j = 0; j < poolStates.length && !bState; j++) {
                                 let hstatus = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
-                                if (hstatus === 'heater' || hstatus === 'hpheat' || hstatus === 'mtheat') bState = true;
+                                if (hstatus === 'heater' || hstatus === 'hpheat' || hstatus === 'mtheat' || hstatus === 'hybheat') bState = true;
                             }
                             for (let j = 0; j < spaStates.length && !bState; j++) {
-                                let hstatus = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
-                                if (hstatus === 'heater' || hstatus === 'hpheat' || hstatus === 'mtheat') bState = true;
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus);
+                                if (hstatus === 'heater' || hstatus === 'hpheat' || hstatus === 'mtheat' || hstatus === 'hybheat') bState = true;
                             }
                         }
                         break;
@@ -4354,7 +4424,7 @@ export class HeaterCommands extends BoardCommands {
                                     if (hstatus === 'heater') isHeating = isOn = true;
                                     break;
                                 case 'hybrid':
-                                    if (hstatus === 'mtheat' || hstatus === 'heater' || hstatus === 'dual') isHeating = isOn = true;
+                                    if (hstatus === 'mtheat' || hstatus === 'heater' || hstatus === 'dual' || hstatus === 'hybheat') isHeating = isOn = true;
                                     break;
                                 case 'ultratemp':
                                 case 'heatpump':
@@ -4669,9 +4739,9 @@ export class ChemDoserCommands extends BoardCommands {
     public async manualDoseAsync(data: any): Promise<ChemDoserState> {
         try {
             let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Invalid chem controller id was provided ${data.id}`, 'chemDoser', data.id));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Invalid chem doser id was provided ${data.id}`, 'chemDoser', data.id));
             let chem = sys.chemDosers.find(elem => elem.id === id);
-            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Chem controller was not found ${data.id}`, 'chemDoser', data.id));
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin dosing: Chem doser was not found ${data.id}`, 'chemDoser', data.id));
             // Let's check the type.  AFAIK you cannot manual dose an IntelliChem.
             // We are down to the nitty gritty.  Let REM Chem do its thing.
             await ncp.chemDosers.manualDoseAsync(chem.id, data);
@@ -4681,9 +4751,9 @@ export class ChemDoserCommands extends BoardCommands {
     public async calibrateDoseAsync(data: any): Promise<ChemDoserState> {
         try {
             let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin calibration: Invalid chem controller id was provided ${data.id}`, 'chemDoser', data.id));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin calibration: Invalid chem doser id was provided ${data.id}`, 'chemDoser', data.id));
             let chem = sys.chemDosers.find(elem => elem.id === id);
-            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin calibration: Chem controller was not found ${data.id}`, 'chemDoser', data.id));
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin calibration: Chem doser was not found ${data.id}`, 'chemDoser', data.id));
             // We are down to the nitty gritty.  Let REM Chem do its thing.
             await ncp.chemDosers.calibrateDoseAsync(chem.id, data);
             return Promise.resolve(state.chemDosers.getItemById(id));
@@ -4693,9 +4763,9 @@ export class ChemDoserCommands extends BoardCommands {
     public async cancelDosingAsync(data: any): Promise<ChemDoserState> {
         try {
             let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel dosing: Invalid chem controller id was provided ${data.id}`, 'chemDoser', data.id));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel dosing: Invalid chem doser id was provided ${data.id}`, 'chemDoser', data.id));
             let chem = sys.chemDosers.find(elem => elem.id === id);
-            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel dosing: Chem controller was not found ${data.id}`, 'chemDoser', data.id));
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel dosing: Chem doser was not found ${data.id}`, 'chemDoser', data.id));
             // We are down to the nitty gritty.  Let REM Chem do its thing.
             await ncp.chemDosers.cancelDoseAsync(chem.id, data);
             return Promise.resolve(state.chemDosers.getItemById(id));
@@ -4704,9 +4774,9 @@ export class ChemDoserCommands extends BoardCommands {
     public async manualMixAsync(data: any): Promise<ChemDoserState> {
         try {
             let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin mixing: Invalid chem controller id was provided ${data.id}`, 'chemDoser', data.id));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot begin mixing: Invalid chem doser id was provided ${data.id}`, 'chemDoser', data.id));
             let chem = sys.chemDosers.find(elem => elem.id === id);
-            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin mixing: Chem controller was not found ${data.id}`, 'chemDoser', data.id));
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot begin mixing: Chem doser was not found ${data.id}`, 'chemDoser', data.id));
             // We are down to the nitty gritty.  Let REM Chem do its thing.
             await ncp.chemDosers.manualMixAsync(chem.id, data);
             return Promise.resolve(state.chemDosers.getItemById(id));
@@ -4715,9 +4785,9 @@ export class ChemDoserCommands extends BoardCommands {
     public async cancelMixingAsync(data: any): Promise<ChemDoserState> {
         try {
             let id = typeof data.id !== 'undefined' ? parseInt(data.id) : undefined;
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel mixing: Invalid chem controller id was provided ${data.id}`, 'chemDoser', data.id));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel mixing: Invalid chem doser id was provided ${data.id}`, 'chemDoser', data.id));
             let chem = sys.chemDosers.find(elem => elem.id === id);
-            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel mixing: Chem controller was not found ${data.id}`, 'chemDoser', data.id));
+            if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot cancel mixing: Chem doser was not found ${data.id}`, 'chemDoser', data.id));
             // We are down to the nitty gritty.  Let REM Chem do its thing.
             await ncp.chemDosers.cancelMixingAsync(chem.id, data);
             return Promise.resolve(state.chemDosers.getItemById(id));
@@ -4756,7 +4826,7 @@ export class ChemDoserCommands extends BoardCommands {
     }
     public async setChemDoserStateAsync(data: any): Promise<ChemDoserState> {
         let chem = sys.board.chemDosers.findChemDoser(data);
-        if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`A valid chem doser could not be found for id:${data.id} or address ${data.address}`, data.id || data.address, 'chemDoser'));
+        if (typeof chem === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`A valid chem doser could not be found for id:${data.id}`, data.id, 'chemDoser'));
         data.id = chem.id;
         logger.info(`Setting ${chem.name} data ${chem.master}`);
         if (chem.master === 1) await ncp.chemDosers.setDoserAsync(chem, data);

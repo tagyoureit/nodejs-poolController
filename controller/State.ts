@@ -140,6 +140,7 @@ export class State implements IState {
             _state.filters = this.filters.getExtended();
             _state.schedules = this.schedules.getExtended();
             _state.chemControllers = this.chemControllers.getExtended();
+            _state.chemDosers = this.chemDosers.getExtended();
             _state.delays = delayMgr.serialize();
             return _state;
         }
@@ -2139,7 +2140,6 @@ export class ChemDoserState extends EqState implements IChemicalState, IChemCont
         if (typeof this.data.flowSensor === 'undefined') this.data.flowSensor = {};
         if (typeof this.data.alarms === 'undefined') { let a = this.alarms; }
         if (typeof this.data.warnings === 'undefined') { let w = this.warnings; }
-        if (typeof this.data.probe === 'undefined') this.data.probe = {};
         if (typeof this.data.tank === 'undefined') this.data.tank = { capacity: 0, level: 0, units: 0 };
         if (typeof this.data.pump === 'undefined') this.data.pump = { isDosing: false };
         if (typeof this.data.dosingTimeRemaining === 'undefined') this.data.dosingTimeRemaining = 0;
@@ -2157,6 +2157,8 @@ export class ChemDoserState extends EqState implements IChemicalState, IChemCont
         if (typeof this.data.dosingStatus === 'undefined') this.dosingStatus = 2;
         if (typeof this.data.enabled === 'undefined') this.data.enabled = true;
         if (typeof this.data.freezeProtect === 'undefined') this.data.freezeProtect = false;
+        if (typeof this.data.setpoint === 'undefined') this.data.setpoint = 100;
+        if (typeof this.data.suspendDosing === 'undefined') this.data.suspendDosing = false;
     }
     public dataName: string = 'chemDoser';
     public get id(): number { return this.data.id; }
@@ -2165,6 +2167,9 @@ export class ChemDoserState extends EqState implements IChemicalState, IChemCont
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
+    public get setpoint(): number { return this.data.setpoint; }
+    public set setpoint(val: number) { this.setDataVal('setpoint', val); }
+
     public get lastComm(): number { return this.data.lastComm || 0; }
     public set lastComm(val: number) { this.setDataVal('lastComm', val, false); }
     public get isBodyOn(): boolean { return this.data.isBodyOn; }
@@ -2189,6 +2194,7 @@ export class ChemDoserState extends EqState implements IChemicalState, IChemCont
     public set type(val: number) {
         if (this.type !== val) {
             this.data.type = sys.board.valueMaps.chemDoserTypes.transform(val);
+            this.data.chemType = this.data.type.desc;
             this.hasChanged = true;
         }
     }
@@ -2196,6 +2202,8 @@ export class ChemDoserState extends EqState implements IChemicalState, IChemCont
     public set enabled(val: boolean) { this.data.enabled = val; }
     public get freezeProtect(): boolean { return this.data.freezeProtect; }
     public set freezeProtect(val: boolean) { this.data.freezeProtect = val; }
+    public get suspendDosing(): boolean { return this.data.suspendDosing; }
+    public set suspendDosing(val: boolean) { this.data.suspendDosing = val; }
     public get chemType(): string { return this.data.chemType; }
     public get delayTimeRemaining(): number { return this.data.delayTimeRemaining; }
     public set delayTimeRemaining(val: number) { this.setDataVal('delayTimeRemaining', val); }
@@ -2235,7 +2243,6 @@ export class ChemDoserState extends EqState implements IChemicalState, IChemCont
     public set dailyLimitReached(val: boolean) { this.data.dailyLimitReached = val; }
     public get tank(): ChemicalTankState { return new ChemicalTankState(this.data, 'tank', this); }
     public get pump(): ChemicalPumpState { return new ChemicalPumpState(this.data, 'pump', this); }
-
     public get flowSensor(): ChemicalFlowSensorState { return new ChemicalFlowSensorState(this.data, 'flowSensor', this); }
     public get warnings(): ChemDoserStateWarnings { return new ChemDoserStateWarnings(this.data, 'warnings', this); }
     public get alarms(): ChemDoserStateAlarms { return new ChemDoserStateAlarms(this.data, 'alarms', this); }
@@ -2282,6 +2289,7 @@ export class ChemDoserState extends EqState implements IChemicalState, IChemCont
     public endDose(dtEnd: Date = new Date(), status: string = 'completed', volumeDosed: number = 0, timeDosed: number = 0): ChemicalDoseState {
         let dose = this.currentDose;
         if (typeof dose !== 'undefined') {
+            dose.type = 'Peristaltic';
             dose._timeDosed += timeDosed;
             dose.volumeDosed += volumeDosed;
             dose.end = dtEnd;
@@ -2292,8 +2300,8 @@ export class ChemDoserState extends EqState implements IChemicalState, IChemCont
             this.dosingTimeRemaining = 0;
             this.dosingVolumeRemaining = 0;
             if (dose.volumeDosed > 0 || dose.timeDosed > 0) {
-                this.doseHistory.unshift(dose);
                 this.dailyVolumeDosed = this.calcDoseHistory();
+                this.doseHistory.unshift(dose);
                 DataLogger.writeEnd(`chemDosage_${this.chemType}.log`, dose);
                 setImmediate(() => { webApp.emitToClients(`chemicalDose`, dose); });
             }
@@ -2307,10 +2315,12 @@ export class ChemDoserState extends EqState implements IChemicalState, IChemCont
         dose._timeDosed += timeDosed;
         dose.volumeDosed += volumeDosed;
         dose.timeDosed = dose._timeDosed / 1000;
+        dose.type = 'Peristaltic';
         this.volumeDosed = dose.volumeDosed;
         this.timeDosed = Math.round(dose._timeDosed / 1000);
         this.dosingTimeRemaining = dose.timeRemaining;
         this.dosingVolumeRemaining = dose.volumeRemaining;
+
         if (dose.volumeDosed > 0 || timeDosed > 0) setImmediate(() => { webApp.emitToClients(`chemicalDose`, dose); });
         return dose;
     }
@@ -2337,11 +2347,8 @@ export class ChemDoserState extends EqState implements IChemicalState, IChemCont
     public set doseHistory(val: ChemicalDoseState[]) { this.setDataVal('doseHistory', val); }
     public get chemController() { return this; }
     public getExtended(): any {
-        let chem = sys.chemControllers.getItemById(this.id);
+        let chem = sys.chemDosers.getItemById(this.id);
         let obj = this.get(true);
-        obj.alkalinity = chem.alkalinity;
-        obj.calciumHardness = chem.calciumHardness;
-        obj.cyanuricAcid = chem.cyanuricAcid;
         obj = extend(true, obj, chem.getExtended());
         return obj;
     }
@@ -2671,8 +2678,8 @@ export class ChemicalState extends ChildEqState implements IChemicalState {
             this.dosingTimeRemaining = 0;
             this.dosingVolumeRemaining = 0;
             if (dose.volumeDosed > 0 || dose.timeDosed > 0) {
-                this.doseHistory.unshift(dose);
                 this.dailyVolumeDosed = this.calcDoseHistory();
+                this.doseHistory.unshift(dose);
                 DataLogger.writeEnd(`chemDosage_${this.chemType}.log`, dose);
                 setImmediate(() => { webApp.emitToClients(`chemicalDose`, dose); });
             }
@@ -3190,8 +3197,8 @@ export class ChemDoserStateAlarms extends ChildEqState {
     public dataName = 'chemControllerAlarms';
     public initData() {
         if (typeof this.data.flow === 'undefined') this.data.flow = sys.board.valueMaps.chemDoserAlarms.transform(0);
-        if (typeof this.data.tank === 'undefined') this.data.pHTank = sys.board.valueMaps.chemDoserAlarms.transform(0);
-        if (typeof this.data.pumpFault === 'undefined') this.data.pHPumpFault = sys.board.valueMaps.chemDoserHardwareFaults.transform(0);
+        if (typeof this.data.tank === 'undefined') this.data.tank = sys.board.valueMaps.chemDoserAlarms.transform(0);
+        if (typeof this.data.pumpFault === 'undefined') this.data.pumpFault = sys.board.valueMaps.chemDoserHardwareFaults.transform(0);
         if (typeof this.data.bodyFault === 'undefined') this.data.bodyFault = sys.board.valueMaps.chemDoserHardwareFaults.transform(0);
         if (typeof this.data.flowSensorFault === 'undefined') this.data.flowSensorFault = sys.board.valueMaps.chemDoserHardwareFaults.transform(0);
         if (typeof this.data.comms === 'undefined') this.data.comms = sys.board.valueMaps.chemDoserStatus.transform(0);
