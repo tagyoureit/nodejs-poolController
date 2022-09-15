@@ -28,7 +28,7 @@ export class StateSocket {
                 await state.circuits.toggleCircuitStateAsync(parseInt(data.id, 10));
                 // return res.status(200).send(cstate);
             }
-            catch (err) {logger.error(err);}
+            catch (err) {logger.error(`Socket processing error /state/circuit/toggleState: ${err.message}`);}
         });  
         sock.on('/state/body/heatMode', async (data: any) => {
             // RKS: 06-24-20 -- Changed this so that users can send in the body id, circuit id, or the name.
@@ -52,7 +52,8 @@ export class StateSocket {
                 }
                 await sys.board.bodies.setHeatModeAsync(body, mode);
                 // return res.status(200).send(tbody);
-            } catch (err) { logger.error(err); }
+            }
+            catch (err) { logger.error(`Socket processing error /state/body/heatmode: ${err.message}`); }
         });
         sock.on('/state/body/setPoint', async (data: any) => {
             // RKS: 06-24-20 -- Changed this so that users can send in the body id, circuit id, or the name.
@@ -65,14 +66,14 @@ export class StateSocket {
                 }
                 await sys.board.bodies.setHeatSetpointAsync(body, parseInt(data.setPoint, 10));
                 // return res.status(200).send(tbody);
-            } catch (err) { logger.error(err); }
+            } catch (err) { logger.error(`Socket processing error /state/body/setPoint: ${err.message}`); }
         });
         sock.on('/temps', async (data: any) => {
             try {
                 data = JSON.parse(data);
                 await sys.board.system.setTempsAsync(data).catch(err => logger.error(err));
             }
-            catch (err) { logger.error(err); }
+            catch (err) { logger.error(`Socket processing error /temps: ${err.message}`); }
         });
         
         sock.on('/chlorinator', async (data: any) => {
@@ -98,7 +99,7 @@ export class StateSocket {
                     schlor.emitEquipmentChange();
                 }
             }
-            catch (err) { logger.error(err); }
+            catch (err) { logger.error(`Socket processing error /chlorinator: ${err.message}`); }
         });
         sock.on('/filter', async (data: any) => {
             try {
@@ -112,9 +113,7 @@ export class StateSocket {
                         await sys.board.filters.setFilterPressure(filter.id, data.pressure, data.pressureUnits || pu.name);
                     sfilter.emitEquipmentChange();
                 }
-
-                
-            } catch (err) { logger.error(err); }
+            } catch (err) { logger.error(`Socket processing error /filter: ${err.message}`); }
         });
         sock.on('/chemController', async (data: any) => {
             try {
@@ -187,7 +186,7 @@ export class StateSocket {
                     }
                 }
             }
-            catch (err) { logger.error(err); }
+            catch (err) { logger.error(`Socket processing error /chemController: ${err.message}`); }
         });
         sock.on('/circuit', async (data: any) => {
             try {
@@ -207,7 +206,7 @@ export class StateSocket {
                     await sys.board.features.setFeatureStateAsync(id, utils.makeBool(data.isOn || typeof data.state));
                 }
             }
-            catch (err) { logger.error(err); }
+            catch (err) { logger.error(`Socket processing error /feature: ${err.message}`); }
         });
         sock.on('/circuitGroup', async (data: any) => {
             try {
@@ -217,7 +216,7 @@ export class StateSocket {
                     await sys.board.circuits.setCircuitGroupStateAsync(id, utils.makeBool(data.isOn || typeof data.state));
                 }
             }
-            catch (err) { logger.error(err); }
+            catch (err) { logger.error(`Socket processing error /circuitGroup: ${err.message}`); }
         });
         sock.on('/lightGroup', async (data: any) => {
             try {
@@ -228,7 +227,7 @@ export class StateSocket {
                 }
                 if (!isNaN(id) && typeof data.theme !== 'undefined') await sys.board.circuits.setLightGroupThemeAsync(id, data.theme);
             }
-            catch (err) { logger.error(err); }
+            catch (err) { logger.error(`Socket processing error /lightGroup: ${err.message}`); }
         });
         sock.on('/panelMode', async (data: any) => {
             try {
@@ -262,7 +261,7 @@ export class StateSocket {
                     else sys.board.system.setPanelModeAsync({ mode: 'auto' });
                 }
                 else await sys.board.system.setPanelModeAsync(data);
-            } catch (err) { logger.error(err); }
+            } catch (err) { logger.error(`Socket processing error /panelMode: ${err.message}`); }
         });
         /*
         app.get('/state/chemController/:id', (req, res) => {

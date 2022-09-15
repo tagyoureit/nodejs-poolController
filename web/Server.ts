@@ -1343,18 +1343,18 @@ export class REMInterfaceServer extends ProtoServer {
         try {
             let response = await this.sendClientRequest('GET', '/config/backup/controller', undefined, 10000);
             return response;
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error requesting GET /config/backup/controller: ${err.message}`); }
     }
     public async validateRestore(cfg): Promise<InterfaceServerResponse> {
         try {
             let response = await this.sendClientRequest('PUT', '/config/restore/validate', cfg, 10000);
             return response;
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error requesting PUT /config/restore/validate ${err.message}`); }
     }
     public async restoreConfig(cfg): Promise<InterfaceServerResponse> {
         try {
             return await this.sendClientRequest('PUT', '/config/restore/file', cfg, 20000);
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error requesting PUT /config/restore/file ${err.message}`); }
     }
     private async initConnection() {
         try {

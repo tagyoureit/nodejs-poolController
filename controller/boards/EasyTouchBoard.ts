@@ -2239,7 +2239,43 @@ class TouchPumpCommands extends PumpCommands {
         // Need to do a check here if we are clearing out the circuits; id data.circuits === []
         // extend will keep the original array
         let bClearPumpCircuits = typeof data.circuits !== 'undefined' && data.circuits.length === 0;
-        if (!isAdd) data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
+        // RKS: 09-14-22 - This is fundamentally wrong.  This ensures that no circuit can be deleted
+        // from the pump.
+        if (!isAdd) {
+            data.address = typeof data.address !== 'undefined' ? data.address : pump.address;
+            data.backgroundCircuit = typeof data.backgroundCircuit !== 'undefined' ? data.backgroundCircuit : pump.backgroundCircuit;
+            data.backwashFlow = typeof data.backwashFlow !== 'undefined' ? data.backwashFlow : pump.backwashFlow;
+            data.backwashTime = typeof data.backwashTime !== 'undefined' ? data.backwashTime : pump.backwashTime;
+            data.body = typeof data.body !== 'undefined' ? data.body : pump.body;
+            data.filterSize = typeof data.filterSize !== 'undefined' ? data.filterSize : pump.filterSize;
+            data.flowStepSize = typeof data.flowStepSize !== 'undefined' ? data.flowStepSize : pump.flowStepSize
+            data.manualFilterGPM = typeof data.manualFilterGPM !== 'undefined' ? data.manualFilterGPM : pump.manualFilterGPM;
+            data.master = 0;
+            data.maxFlow = typeof data.maxFlow !== 'undefined' ? data.maxFlow : pump.maxFlow;
+            data.maxPressureIncrease = typeof data.maxPressureIncrease ? data.maxPressureIncrease : pump.maxPressureIncrease;
+            data.maxSpeed = typeof data.maxSpeed !== 'undefined' ? data.maxSpeed : pump.maxSpeed;
+            data.maxSystemTime = typeof data.maxSystemTime !== 'undefined' ? data.maxSystemTime : pump.maxSystemTime;
+            data.minFlow = typeof data.minFlow !== 'undefined' ? data.minFlow : pump.minFlow;
+            data.minSpeed = typeof data.minSpeed !== 'undefined' ? data.minSpeed : pump.minSpeed;
+            data.model = typeof data.model !== 'undefined' ? data.model : pump.model;
+            data.name = typeof data.name !== 'undefined' ? data.name : pump.name;
+            data.portId = typeof data.portId !== 'undefined' ? data.portId : pump.portId || 0;
+            data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? data.primingSpeed : pump.primingSpeed;
+            data.primingTime = typeof data.primingTime !== 'undefined' ? data.primingTime : pump.primingTime;
+            data.rinseTime = typeof data.rinseTime !== 'undefined' ? data.rinseTime : pump.rinseTime;
+            data.speedStepSize = typeof data.speedStepSize !== 'undefined' ? data.speedStepSize : pump.speedStepSize;
+            data.turnovers = typeof data.turnovers !== 'undefined' ? data.turnovers : pump.turnovers;
+            data.vacuumFlow = typeof data.vacuumFlow !== 'undefined' ? data.vacuumFlow : pump.vacuumFlow;
+            data.vacuumTime = typeof data.vacuumTime !== 'undefined' ? data.vacuumTime : pump.vacuumTime;
+            if (typeof data.circuits !== 'undefined') {
+                let circs = extend(true, [], data.circuits);
+                data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
+                data.circuits = circs;
+            }
+            else
+                data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
+            console.log(data);
+        }
         else data = extend(false, {}, data, { id: id, type: ntype });
         if (!isAdd && bClearPumpCircuits) data.circuits = [];
         data.name = data.name || pump.name || type.desc;

@@ -112,7 +112,9 @@ export class HttpInterfaceBindings extends BaseInterfaceBindings {
                             //console.log(response.statusCode);
                         });
                     }
-                    req.on('error', (err, req, res) => { logger.error(err); });
+                    req.on('error', (err, req, res) => {
+                        logger.error(`Error sending request for event ${evt}: ${err.message}`);
+                    });
                     if (typeof sbody !== 'undefined') {
                         req.write(sbody);
                     }

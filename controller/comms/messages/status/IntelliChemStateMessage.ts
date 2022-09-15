@@ -274,7 +274,7 @@ export class IntelliChemStateMessage {
                         temps.waterSensor2 = schem.ph.probe.temperature;
                     }
                 }
-                sys.board.system.setTempsAsync(temps).catch(err => logger.error(err))
+                sys.board.system.setTempsAsync(temps).catch(err => logger.error(`Error setting temp compensation for IntelliChem State: ${err.message}`))
             }
         }
         schem.ph.pump.isDosing = schem.ph.dosingStatus === 0 && chem.ph.enabled;
