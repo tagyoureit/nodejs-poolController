@@ -2274,7 +2274,6 @@ class TouchPumpCommands extends PumpCommands {
             }
             else
                 data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
-            console.log(data);
         }
         else data = extend(false, {}, data, { id: id, type: ntype });
         if (!isAdd && bClearPumpCircuits) data.circuits = [];
@@ -2364,6 +2363,7 @@ class TouchPumpCommands extends PumpCommands {
                 let arrCircuits = [];
                 // Below is a very strange mess that goofs up the circuit settings.
                 //{id:1, circuits:[{speed:1750, units:{val:0}, id:1, circuit:6}, {speed:2100, units:{val:0}, id:2, circuit:6}]}
+                let ubyte = 0;
                 for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
                     // RKS: This notion of always returning the max number of circuits was misguided.  It leaves gaps in the circuit definitions and makes the pump
                     // layouts difficult when there are a variety of supported circuits.  For instance with SF pumps you only get 4.
@@ -2386,6 +2386,7 @@ class TouchPumpCommands extends PumpCommands {
                         outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
                         outc.setPayloadByte(i + 21, speed % 256);
                         c.speed = speed;
+                        ubyte |= (1 << (i - 1));
                     }
                     else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
                         outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
@@ -2396,10 +2397,12 @@ class TouchPumpCommands extends PumpCommands {
                     if (arrCircuits.includes(c.circuit)) return Promise.reject(new InvalidEquipmentDataError(`Configuration for pump ${pump.name} is not correct circuit #${c.circuit} as included more than once. ${JSON.stringify(c)}`, 'Pump', data))
                     arrCircuits.push(c.circuit);
                 }
+                if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
             }
             else if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits === 'undefined') { // This pump type supports circuits and the payload did not contain them.
                 // Copy the data from the circuits array.  That way when we call pump.set to set the data back it will be persisted correctly.
                 data.circuits = extend(true, {}, pump.circuits.get());
+                let ubyte = 0;
                 for (let i = 1; i <= data.circuits.length; i++) data.circuits[i].id = i;
                 for (let i = 1; i <= pump.circuits.length && i <= type.maxCircuits; i++) {
                     let c = pump.circuits.getItemByIndex(i - 1);
@@ -2418,11 +2421,14 @@ class TouchPumpCommands extends PumpCommands {
                     if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
                         outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
                         outc.setPayloadByte(i + 21, speed % 256);
+                        ubyte |= (1 << (i - 1));
                     }
                     else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
                         outc.setPayloadByte((i * 2) + 4, flow); // Set to gpm
                     }
                 }
+                if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
+
             }
             return new Promise<Pump>((resolve, reject) => {
                 outc.onComplete = (err, msg) => {

@@ -391,7 +391,8 @@ export class PumpMessage {
     }
     private static processVSF_IT(msg: Inbound) {
         // Sample packet
-        // [255, 0, 255], [165, 33, 15, 16, 27, 46], [2, 64, 0, 0, 2, 1, 33, 2, 4, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [2, 94]
+        //[255, 0, 255][165, 33, 15, 16, 27, 46][2, 64, 0, 0, 2, 1, 33, 2, 4, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 0, 16, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [2, 94]
+        //[255, 0, 255][165,  1, 15, 16, 24, 31][1, 64, 0, 0, 0, 6, 5, 2, 8, 1, 11, 7, 13, 0, 0, 0, 0, 0, 0, 0, 0, 0, 220, 152, 184, 122, 0, 0, 0, 0, 0][4, 24]
         const pumpId = msg.extractPayloadByte(0);
         const pump = sys.pumps.getItemById(pumpId);
         if (typeof pump.model === 'undefined') pump.model = 0;
@@ -400,14 +401,9 @@ export class PumpMessage {
             if (_circuit !== 0){
                 const circuit: PumpCircuit = pump.circuits.getItemById(circuitId, true);
                 circuit.circuit = _circuit;
-                circuit.units =
-                (msg.extractPayloadByte(4) >> circuitId - 1 & 1) === 0 ? 1 : 0;
-                if (circuit.units)
-                circuit.flow = msg.extractPayloadByte(circuitId * 2 + 4);
-                else
-                circuit.speed =
-                msg.extractPayloadByte(circuitId * 2 + 4) * 256 +
-                msg.extractPayloadByte(circuitId + 21);
+                circuit.units = (msg.extractPayloadByte(4) >> circuitId - 1 & 1) === 0 ? 1 : 0;
+                if (circuit.units) circuit.flow = msg.extractPayloadByte(circuitId * 2 + 4);
+                else circuit.speed = msg.extractPayloadByte(circuitId * 2 + 4) * 256 + msg.extractPayloadByte(circuitId + 21);
             }
             else {
                 pump.circuits.removeItemById(_circuit);
