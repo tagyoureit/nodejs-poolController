@@ -34,7 +34,9 @@
       ],
       "rootTopic-DIRECTIONS": "You can override the root topic by renaming _rootTopic to rootTopic",
       "_rootTopic": "@bind=(state.equipment.alias).replace(' ','-').replace('/','').toLowerCase();",
-      "clientId": "@bind='mqttjs_njsPC_'+Math.random().toString(16).substr(2, 8);"
+      "clientId": "@bind='mqttjs_njsPC_'+Math.random().toString(16).substr(2, 8);",
+      "willTopic": "state/status",
+      "willPayload": "{\"val\":3,\"name\":\"lost\",\"desc\":\"Connection Lost\",\"percent\":0}"
     }
   },
   "events": [
