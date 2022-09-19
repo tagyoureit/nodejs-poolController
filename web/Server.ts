@@ -890,6 +890,7 @@ export class SsdpServer extends ProtoServer {
         }
     }
     public deviceXML(): string {
+        let ver = sys.appVersion.split('.');
         let XML = `<?xml version="1.0"?>
         <root xmlns="urn:schemas-upnp-org:device-1-0">
             <specVersion>
@@ -902,6 +903,11 @@ export class SsdpServer extends ProtoServer {
                 <manufacturer>tagyoureit</manufacturer>
                 <manufacturerURL>https://github.com/tagyoureit/nodejs-poolController</manufacturerURL>
                 <presentationURL>http://${webApp.ip()}:${webApp.httpPort()}/state/all</presentationURL>
+                <appVersion>
+                   <major>${ver[0] || 1}</major>
+                   <minor>${ver[1] || 0}</minor>
+                   <patch>${ver[2] || 0}</patch>
+                </appVersion>
                 <modelName>${this.modelName}</modelName>
                 <modelNumber>${this.modelNumber}</modelNumber>
                 <modelDescription>An application to control pool equipment.</modelDescription>
@@ -911,6 +917,9 @@ export class SsdpServer extends ProtoServer {
                 <deviceList></deviceList>
             </device>
         </root>`;
+        //console.log(XML.match(/<device>[\s|\S]+<appVersion>[\s|\S]+<major>(\d+)<\/major>/)[1]);
+        //console.log(XML.match(/<device>[\s|\S]+<appVersion>[\s|\S]+<minor>(\d+)<\/minor>/)[1]);
+        //console.log(XML.match(/<device>[\s|\S]+<appVersion>[\s|\S]+<patch>(\d+)<\/patch>/)[1]);
         return XML;
     }
     public async stopAsync() {
