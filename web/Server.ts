@@ -1365,6 +1365,8 @@ export class REMInterfaceServer extends ProtoServer {
                 let url = '/config/checkconnection/';
                 // can & should extend for https/username-password/ssl
                 let data: any = { type: "njspc", isActive: true, id: null, name: "njsPC - automatic", protocol: "http:", ipAddress: webApp.ip(), port: config.getSection('web').servers.http.port || 4200, userName: "", password: "", sslKeyFile: "", sslCertFile: "", hostnames: [] }
+                if (typeof this.cfg.options !== 'undefined' && this.cfg.options.host !== 'undefined' &&
+                    this.cfg.options.host.toLowerCase() === 'localhost' || this.cfg.options.host === '127.0.0.1') data.loopback = true;
                 logger.info(`Checking REM Connection ${data.name} ${data.ipAddress}:${data.port}`);
                 try {
                     data.hostnames = await dns.promises.reverse(data.ipAddress);
@@ -1390,7 +1392,7 @@ export class REMInterfaceServer extends ProtoServer {
                             // if we receive the emit, data will work both ways.
                             // console.log(data);
                             clearTimeout(_tmr);
-                            logger.info(`REM bi-directional communications established.`)
+                            logger.info(`${this.name} bi-directional communications established.`)
                             resolve();
                         });
                         result = await self.putApiService(url, data);
