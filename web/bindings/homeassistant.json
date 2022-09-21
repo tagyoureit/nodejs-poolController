@@ -89,7 +89,7 @@
               "device: device_id,",
               "command_on_template: `{\"id\": ${data.id}, \"isOn\": true}`,",
               "command_off_template: `{\"id\": ${data.id}, \"isOn\": false}`,",
-              "state_value_template: '{{value_json.isOn}}'});"
+              "state_template: '{{value_json.isOn}}'});"
             ],
             "filter": "@bind=data.showInFeatures; === true && @bind=data.type.isLight; === true"
           }
