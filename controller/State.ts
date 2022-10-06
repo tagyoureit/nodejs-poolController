@@ -344,6 +344,7 @@ export class State implements IState {
     public get isInitialized(): boolean { return typeof (this.data.status) !== 'undefined' && this.data.status.val !== 0; }
     public init() {
         console.log(`Init state for Pool Controller`);
+  
         var sdata = this.loadFile(this.statePath, {});
         sdata = extend(true, { mode: { val: -1 }, temps: { units: { val: 0, name: 'F', desc: 'Fahrenheit' } } }, sdata);
         if (typeof sdata.temps !== 'undefined' && typeof sdata.temps.bodies !== 'undefined') {
@@ -369,6 +370,9 @@ export class State implements IState {
         this._dt = new Timestamp(pnlTime);
         this._dt.milliseconds = 0;
         this.data = sdata;
+        this.equipment = new EquipmentState(this.data, 'equipment');
+        this.equipment.messages.clear();
+
         //this.onchange(state, function () { self.dirty = true; });
         this._dt.emitter.on('change', function () {
             self.data.time = self._dt.format();
@@ -382,7 +386,6 @@ export class State implements IState {
             versionCheck.checkGitRemote();
         });
         this.status = 0; // Initializing
-        this.equipment = new EquipmentState(this.data, 'equipment');
         this.equipment.controllerType = this._controllerType;
         this.temps = new TemperatureState(this.data, 'temps');
         this.pumps = new PumpStateCollection(this.data, 'pumps');
@@ -819,12 +822,14 @@ export class EquipmentMessages extends EqStateCollection<EquipmentMessage> {
                 rem = this.data.splice(i, 1);
             }
         }
+        if (typeof rem !== 'undefined') webApp.emitToClients('sysmessages', this.get(true));
         return typeof rem !== 'undefined' ? new EquipmentMessage(rem, undefined, undefined) : undefined;
     }
     // For lack of a better term category includes the equipment identifier if supplied.
     public removeItemByCategory(category: string) {
         let rem: EquipmentMessage[] = [];
         let cmr = EquipmentMessage.parseMessageCode(category);
+        let hasChanges = false;
         for (let i = this.data.length - 1; i >= 0; i--) {
             if (typeof (this.data[i].code) !== 'undefined') {
                 let cm = EquipmentMessage.parseMessageCode(this.data.code);
@@ -833,17 +838,20 @@ export class EquipmentMessages extends EqStateCollection<EquipmentMessage> {
                         if (typeof cmr.messageId === 'undefined' || cm.messageId === cmr.messageId) {
                             let data = this.data.splice(i, 1);
                             rem.push(new EquipmentMessage(data, undefined, undefined));
+                            hasChanges = true;
                         }
                     }
                 }
             }
         }
+        if (hasChanges) webApp.emitToClients('sysmessages', this.get(true));
         return rem;
     }
     public setMessageByCode(code: string, severity: string | number, message: string): EquipmentMessage {
         let msg = this.getItemByCode(code, true);
         msg.severity = sys.board.valueMaps.eqMessageSeverities.encode(severity, 0);
         msg.message = message;
+        webApp.emitToClients('sysmessages', this.get(true));
         return msg;
     }
 }

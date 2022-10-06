@@ -30,10 +30,10 @@ export async function initAsync() {
     try {
         await config.init();
         await logger.init();
-        await conn.initAsync();
         await sys.init();
         await state.init();
         await webApp.init();
+        await conn.initAsync();
         await sys.start();
         await webApp.initAutoBackup();
     } catch (err) { console.log(`Error Initializing nodejs-PoolController ${err.message}`);  }
