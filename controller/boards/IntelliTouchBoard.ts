@@ -309,7 +309,7 @@ class ITTouchConfigQueue extends TouchConfigQueue {
         this.queueItems(GetTouchConfigCategories.settings, [0]);
         this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes, [0]);
         this.queueItems(GetTouchConfigCategories.is4is10, [0]);
-        this.queueItems(GetTouchConfigCategories.spaSideRemote, [0]);
+        this.queueItems(GetTouchConfigCategories.quickTouchRemote, [0]);
         this.queueItems(GetTouchConfigCategories.valves, [0]);
         this.queueItems(GetTouchConfigCategories.lightGroupPositions);
         this.queueItems(GetTouchConfigCategories.highSpeedCircuits, [0]);

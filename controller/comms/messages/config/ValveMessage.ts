@@ -97,9 +97,9 @@ export class ValveMessage {
     }
     private static process_ValveAssignment_IT(msg: Inbound) {
         // sample packet
-        // 165,33,16,34,157,6,0,0,1,255,255,255,4,153  [set]
+        // [165,33,16,34,157,6],[0,0,1,255,255,255],[4,153]  [set]
+        // [165,33,16,34,157,6],[0,0,7,255,255,255],[4,159]] [set]
         // [165,33,15,16,29,24],[2,0,0,0,128,1,255,255,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[4,154] [get]
-        // [[][255,0,255][165,33,16,34,157,6][0,0,7,255,255,255][4,159]] [set]
         // what is payload[0]?
         for (let ndx = 4, id = 1; id <= sys.equipment.maxValves; ndx++) {
             let valve: Valve = sys.valves.getItemById(id);

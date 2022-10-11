@@ -90,7 +90,7 @@ export class Connection {
             pdata.rs485Port = typeof data.rs485Port !== 'undefined' ? data.rs485Port : pdata.rs485Port;
             pdata.inactivityRetry = typeof data.inactivityRetry === 'number' ? data.inactivityRetry : pdata.inactivityRetry;
             pdata.mockPort = typeof data.mockPort !== 'undefined' ? utils.makeBool(data.mockPort) : utils.makeBool(pdata.mockPort);
-            if (pdata.mockPort) {pdata.rs485Port = 'MOCK_PORT';}
+            if (pdata.mockPort) { pdata.rs485Port = 'MOCK_PORT'; }
             if (pdata.netConnect) {
                 pdata.netHost = typeof data.netHost !== 'undefined' ? data.netHost : pdata.netHost;
                 pdata.netPort = typeof data.netPort === 'number' ? data.netPort : pdata.netPort;
@@ -195,10 +195,10 @@ export class Connection {
         else
             logger.error(`queueSendMessage: Message was targeted for undefined port ${msg.portId || 0}`);
     }
-    public async queueSendMessageAsync(msg: Outbound):Promise<boolean> {
-        return new Promise((resolve, reject)=>{
+    public async queueSendMessageAsync(msg: Outbound): Promise<boolean> {
+        return new Promise((resolve, reject) => {
             let port = this.findPortById(msg.portId);
-            if (typeof port !== 'undefined'){
+            if (typeof port !== 'undefined') {
                 msg.onComplete = (err) => {
                     if (err) {
                         reject(err);
@@ -210,6 +210,11 @@ export class Connection {
             else
                 logger.error(`queueSendMessage: Message was targeted for undefined port ${msg.portId || 0}`);
         })
+    }
+
+    public sendMockPacket(msg: Inbound) {
+        let port = this.findPortById(msg.portId);
+        port.emitter.emit('mockmessagewrite', msg);
     }
 
     public pauseAll() {
@@ -275,6 +280,14 @@ export class RS485Port {
         this._outBuffer = [];
         this.procTimer = null;
         this.emitter.on('messagewrite', (msg) => { this.pushOut(msg); });
+        this.emitter.on('mockmessagewrite', (msg) => {
+            let bytes = msg.toPacket();
+            this.counter.bytesSent += bytes.length;
+            this.counter.sndSuccess++;
+            this.emitPortStats();
+            msg.process();
+        });
+
     }
     public isRTS: boolean = true;
     public reconnects: number = 0;
@@ -434,7 +447,7 @@ export class RS485Port {
                     if (err) {
                         this.resetConnTimer();
                         this.isOpen = false;
-                        logger.error(`Error opening port ${this.portId}: ${err.message}. ${this._cfg.inactivityRetry > 0 && !this.mockPort? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; (fwiw, inactivityRetry set to ${this._cfg.inactivityRetry})`}`);
+                        logger.error(`Error opening port ${this.portId}: ${err.message}. ${this._cfg.inactivityRetry > 0 && !this.mockPort ? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; (fwiw, inactivityRetry set to ${this._cfg.inactivityRetry})`}`);
                         resolve(false);
                     }
                     else resolve(true);
@@ -594,16 +607,16 @@ export class RS485Port {
         }
         else {
             if (this._port instanceof SerialPortMock && this.mockPort === true) {
-                let m = messagesMock.process(msg);
+                let m = messagesMock.processOutbound(msg);
                 // fail silently if packet is not an array;
                 // packet will be rejected after retries expires
-                if (Array.isArray(m)){
+                if (Array.isArray(m)) {
                     this._port.port.emitData(Buffer.from(m));
                 }
                 cb();
             }
             else {
-
+ 
                 this.writeTimer = setTimeout(() => {
                     // RSG - I ran into a scenario where the underlying stream
                     // processor was not retuning the CB and comms would 
@@ -799,7 +812,7 @@ export class RS485Port {
             logger.error(`Error sending message: ${err.message}
             for message: ${msg.toShortPacket()}`)
             // the show, err, messages, must go on!
-            if (this.isOpen){
+            if (this.isOpen) {
                 clearTimeout(this.writeTimer);
                 this.writeTimer = null;
                 msg.tries++;
@@ -811,7 +824,7 @@ export class RS485Port {
                 if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
                 this._waitingPacket = null;
                 this.counter.sndAborted++;
-                
+
             }
         }
     }
@@ -861,7 +874,7 @@ export class RS485Port {
         let status = this.isOpen ? 'open' : this._cfg.enabled ? 'closed' : 'disabled';
         return extend(true, { portId: this.portId, status: status, reconnects: this.reconnects }, this.counter)
     }
-    private emitPortStats() {
+    public emitPortStats() {
         webApp.emitToChannel('rs485PortStats', 'rs485Stats', this.stats);
     }
     private processCompletedMessage(msg: Inbound, ndx): number {
@@ -870,7 +883,6 @@ export class RS485Port {
         msg.id = Message.nextMessageId;
         this.counter.recCollisions += msg.collisions;
         this.counter.recRewinds += msg.rewinds;
-        logger.packet(msg);
         this.emitPortStats();
         if (msg.isValid) {
             this.counter.recSuccess++;
@@ -884,6 +896,7 @@ export class RS485Port {
             console.log('RS485 Stats:' + this.counter.toLog());
             ndx = this.rewindFailedMessage(msg, ndx);
         }
+        logger.packet(msg); // RSG - Moving this after msg clearing responses so emit will include responseFor data
         return ndx;
     }
     private rewindFailedMessage(msg: Inbound, ndx: number): number {

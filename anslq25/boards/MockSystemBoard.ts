@@ -18,27 +18,56 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import { logger } from "../../logger/Logger";
 import { setTimeout as setTimeoutSync } from 'timers';
-import { Outbound } from "controller/comms/messages/Messages";
-import { SystemBoard } from "../../controller/boards/SystemBoard";
-import { PoolSystem, sys } from "../../controller/Equipment";
+import { Inbound, Outbound, Protocol } from "../../controller/comms/messages/Messages";
+import { byteValueMap, byteValueMaps, SystemBoard } from "../../controller/boards/SystemBoard";
+import { Anslq25, PoolSystem, sys } from "../../controller/Equipment";
+import { ControllerType, utils } from "../../controller/Constants";
+import { conn } from "../../controller/comms/Comms";
+import { MockEasyTouch } from "./MockEasyTouchBoard";
 
 export class MockSystemBoard {
+  public valueMaps: byteValueMaps = new byteValueMaps();
   protected _statusTimer: NodeJS.Timeout;
   protected _statusCheckRef: number = 0;
-  protected _statusInterval: number = 3000;
-  constructor(system: PoolSystem){
+  protected _statusInterval: number = 5000;
+  constructor(system: PoolSystem) {
     // sys.anslq25.portId = 0; // pass this in.
-    setTimeout(()=>{
-      this.processStatusAsync().then(()=>{});
+    setTimeout(() => {
+      this.processStatusAsync().then(() => { });
     }, 5000);
   }
+  public expansionBoards: byteValueMap = new byteValueMap();
   public get statusInterval(): number { return this._statusInterval };
   public system: MockSystemCommands = new MockSystemCommands(this);
-  public status: MockStatusCommands = new MockStatusCommands(this);
-  public convertOutbound(outboundMsg: Outbound) {};
+  public circuits: MockCircuitCommands = new MockCircuitCommands(this);
+  public schedules: MockScheduleCommands = new MockScheduleCommands(this);
+  public heaters: MockHeaterCommands = new MockHeaterCommands(this);
+  public valves: MockValveCommands = new MockValveCommands(this);
+  public remotes: MockRemoteCommands = new MockRemoteCommands(this);
+  public static convertOutbound(outboundMsg: Outbound) { };
+  public async sendAsync(msg: Outbound){
+    // is the controller on a real/physical port or a mock port?
+    let port = conn.findPortById(sys.anslq25.portId);
+    if (port.mockPort) {
+      let inbound = new Inbound();
+      inbound.protocol = msg.protocol;
+      inbound.header = msg.header;
+      inbound.payload = msg.payload;
+      inbound.term = msg.term;
+      inbound.portId = msg.portId;
+      // don't need to wait for packet to process
+      setTimeout(()=>{conn.sendMockPacket(inbound)}, 10);
+      return Promise.resolve();
+    }
+    else {
+      return await msg.sendAsync();
+    }
+  }
+  public process(msg: Inbound): Outbound { return new Outbound(Protocol.Broadcast,0,0,0,[]); }
   protected killStatusCheck() {
     if (typeof this._statusTimer !== 'undefined' && this._statusTimer) clearTimeout(this._statusTimer);
     this._statusTimer = undefined;
+    this._statusCheckRef = 0;
   }
   public suspendStatus(bSuspend: boolean) {
     // The way status suspension works is by using a reference value that is incremented and decremented
@@ -46,30 +75,38 @@ export class MockSystemBoard {
     // it 2 times will still result in the status check being suspended.  This method also ensures the reference never falls below 0.
     if (bSuspend) this._statusCheckRef++;
     else this._statusCheckRef = Math.max(0, this._statusCheckRef - 1);
-    if (this._statusCheckRef > 1) logger.verbose(`Suspending status check: ${bSuspend} -- ${this._statusCheckRef}`);
-}
-  public async processStatusAsync() {
-    let self = this;
-    try {
-      if (!sys.anslq25.isActive || typeof sys.anslq25.mockControllerType === 'undefined') this.closeAsync();
-      if (this._statusCheckRef > 0) return;
-      this.suspendStatus(true);
-      if (typeof this._statusTimer !== 'undefined' && this._statusTimer) clearTimeout(this._statusTimer);
-      await this.status.processStatusAsync();
-    }
-    catch (err){
-      logger.error(`Error running mock processStatusAsync: ${err}`);
-      this.suspendStatus(false);
-      if (this.statusInterval > 0) this._statusTimer = setTimeoutSync(async () => await self.processStatusAsync(), this.statusInterval);
-    }
+    if (this._statusCheckRef > 1) logger.verbose(`Suspending ANSLQ25 status check: ${bSuspend} -- ${this._statusCheckRef}`);
   }
-  public async setPortId(portId: number) {
+  public async setAnslq25Async(data: any): Promise<Anslq25> {
     let self = this;
     try {
-      this.killStatusCheck();
       this.suspendStatus(true);
+      // if (typeof data.isActive === 'undefined') return Promise.reject(`Mock System Board: No isActive flag provided.`);
+      if (typeof data.anslq25portId === 'undefined') return Promise.reject(new Error(`Mock System Board: No portId provided.`));
+      if (typeof data.anslq25ControllerType === 'undefined') return Promise.reject(new Error(`Mock System Board: No controller type provided.`));
+      if (typeof data.anslq25model === 'undefined') return Promise.reject(new Error(`Mock System Board: No model provided.`));
+      //for (let i = 1; i <= )
+      let isActive = true; // utils.makeBool(data.isActive);
+      let portId = parseInt(data.anslq25portId, 10);
+      let port = conn.findPortById(portId);
+      if (typeof port === 'undefined') return Promise.reject(new Error(`Mock System Board: Invalid portId provided.`));
+      let mockControllerType = data.anslq25ControllerType;
+      let model = parseInt(data.anslq25model, 10);
       sys.anslq25.portId = portId;
-      
+      switch (mockControllerType) {
+        case ControllerType.EasyTouch:{
+          sys.anslq25ControllerType = ControllerType.EasyTouch;
+          // (sys.anslq25Board as MockEasyTouch).initExpansionModules(model);
+          break;
+        }
+        default: {
+          logger.warn(`No ANSLQ25 Mock Board definiton yet for: ${mockControllerType}`);
+          return Promise.reject(new Error(`No ANSLQ25 Mock Board definiton yet for: ${mockControllerType}`));
+        }
+      }
+      sys.anslq25.isActive = isActive;
+      sys.anslq25.model = model;
+
     } catch (err) {
       logger.error(`Error changing port id: ${err.message}`);
     }
@@ -78,20 +115,93 @@ export class MockSystemBoard {
       this._statusTimer = setTimeoutSync(async () => await self.processStatusAsync(), this.statusInterval);
     }
   }
+  public async deleteAnslq25Async(data: any)  {
+    try {
+
+      this.killStatusCheck();
+      this.closeAsync();
+      sys.anslq25.isActive = false;
+      sys.anslq25.portId = undefined;
+      sys.anslq25.model = undefined;
+      sys.anslq25ControllerType = ControllerType.None;
+    }
+    catch (err){
+
+    }
+    finally {
+      this.suspendStatus(false);
+    }
+
+  }
+
+  public async processStatusAsync() {
+    let self = this;
+    try {
+      if (this._statusCheckRef > 0) return;
+      this.suspendStatus(true);
+     
+      await sys.anslq25Board.system.sendStatusAsync();
+    }
+    catch (err) {
+      logger.error(`Error running mock processStatusAsync: ${err}`);
+    }
+    finally {
+      this.suspendStatus(false);
+      if (sys.anslq25.isActive){
+        if (this.statusInterval > 0) this._statusTimer = setTimeoutSync(async () => await self.processStatusAsync(), this.statusInterval);
+      }
+
+    }
+  }
+  // public async setPortId(portId: number) {
+  //   let self = this;
+  //   try {
+  //     this.suspendStatus(true);
+  //     sys.anslq25.portId = portId;
+
+  //   } catch (err) {
+  //     logger.error(`Error changing port id: ${err.message}`);
+  //   }
+  //   finally {
+  //     this.suspendStatus(false);
+  //     this._statusTimer = setTimeoutSync(async () => await self.processStatusAsync(), this.statusInterval);
+  //   }
+  // }
   public async closeAsync() {
     try {
     }
     catch (err) { logger.error(err); }
-}
+  }
 }
 export class MockBoardCommands {
   protected mockBoard: MockSystemBoard = null;
   constructor(parent: MockSystemBoard) { this.mockBoard = parent; }
 }
-export class MockSystemCommands extends MockBoardCommands{
-
+export class MockSystemCommands extends MockBoardCommands {
+  public sendAck(inbound:Inbound, response: Outbound) { return response;  };
+  public async processDateTimeAsync(msg: Inbound, response: Outbound){  };
+  public async processCustomNameAsync(msg: Inbound, response: Outbound){  };
+  public async processSettingsAsync(msg: Inbound, response: Outbound){  };
+  public async sendStatusAsync() { };
 }
-export class MockStatusCommands extends MockBoardCommands{
-  public sendAck(outboundMsg, response){};
-    public async processStatusAsync(responseoutbound?: Outbound) {};
+
+export class MockCircuitCommands extends MockBoardCommands {
+  public async processCircuitAsync( msg: Inbound, response: Outbound) { };
+  public async processLightGroupAsync( msg: Inbound, response: Outbound) { };
+}
+export class MockScheduleCommands extends MockBoardCommands {
+  public async processScheduleAsync( msg: Inbound, response: Outbound) { };
+}
+export class MockHeaterCommands extends MockBoardCommands {
+  public async processHeatModesAsync(msg: Inbound, response: Outbound) { };
+  public async processHeaterConfigAsync(msg: Inbound, response: Outbound) { };
+}
+export class MockValveCommands extends MockBoardCommands {
+  public async processValveOptionsAsync(msg: Inbound, response: Outbound) { };
+  public async processValveAssignmentsAsync(msg: Inbound, response: Outbound) { };
+}
+export class MockRemoteCommands extends MockBoardCommands {
+  public async processIS4IS10RemoteAsync(msg: Inbound, response: Outbound) { };
+  public async processQuickTouchRemoteAsync(msg: Inbound, response: Outbound) { };
+  public async processSpaCommandRemoteAsync(msg: Inbound, response: Outbound) { };
 }

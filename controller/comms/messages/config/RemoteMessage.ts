@@ -59,7 +59,7 @@ export class RemoteMessage {
     public static processRemote_IT(msg: Inbound) {
         /*      process Spa-side remotes
                     for is4  [165,33,16,34,33,11],[id,button1,button2,button3,button4,5,6,7,8,9,10],[chkh,chkl]
-                    for is10:[165,33,16,34,323,11],[id,button1,button2,button3,button4,btn5,btn1bot,btn2bot,btn3bot,btn4bot,btn5bot],[chkh,chkl]
+                    for is10:[165,33,16,34,32,11],[id,button1,button2,button3,button4,btn5,btn1bot,btn2bot,btn3bot,btn4bot,btn5bot],[chkh,chkl]
                     [255, 0, 255], [165, 33, 15, 16, 32, 11], [0, 1, 5, 18, 13, 5, 6, 7, 8, 9, 10], [1, 98]
                     [255, 0, 255], [165, 33, 15, 16, 32, 11], [1, 8, 2, 7, 7, 5, 8, 9, 8, 9, 3], [1, 83]
                     for quicktouch:

@@ -50,7 +50,7 @@ export class MockPump {
     response.setPayloadByte(13, time.getHours() * 60);
     response.setPayloadByte(14, time.getMinutes());
     
-    return response.toPacket()
+    return response;
   }
 
   public pumpAck(outboundMsg: Outbound, response: Outbound){
@@ -67,7 +67,7 @@ export class MockPump {
       default:    
         response.appendPayloadByte(outboundMsg.payload[0]);
       }
-    return response.toPacket();
+    return response;
   }
 
   private random(bounds: number, onlyPositive: boolean = false){

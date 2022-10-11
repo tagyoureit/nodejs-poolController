@@ -1,242 +1,476 @@
 import { logger } from "../../logger/Logger";
-import { Outbound, Protocol } from "../../controller/comms/messages/Messages";
-import { MockStatusCommands, MockSystemBoard } from "./MockSystemBoard";
+import { Inbound, Outbound, Protocol } from "../../controller/comms/messages/Messages";
+import { MockSystemCommands, MockSystemBoard, MockCircuitCommands, MockScheduleCommands, MockHeaterCommands, MockValveCommands, MockRemoteCommands } from "./MockSystemBoard";
 import { BodyTempState, state } from "../../controller/State";
-import { Heater, PoolSystem, sys } from "../../controller/Equipment";
-
+import { ControllerType, Heater, PoolSystem, sys } from "../../controller/Equipment";
+import { byteValueMap } from "../../controller/boards/SystemBoard";
+import { conn } from "../../controller/comms/Comms";
+import { Timestamp, utils } from "../../controller/Constants";
 export class MockEasyTouch extends MockSystemBoard {
-  constructor(system: PoolSystem) { super(system); }
+  constructor(system: PoolSystem) {
+    super(system);
+    this.valueMaps.expansionBoards = new byteValueMap([
+      [0, { name: 'ET28', part: 'ET2-8', desc: 'EasyTouch2 8', circuits: 8, shared: true }],
+      [1, { name: 'ET28P', part: 'ET2-8P', desc: 'EasyTouch2 8P', circuits: 8, single: true, shared: false }],
+      [2, { name: 'ET24', part: 'ET2-4', desc: 'EasyTouch2 4', circuits: 4, shared: true }],
+      [3, { name: 'ET24P', part: 'ET2-4P', desc: 'EasyTouch2 4P', circuits: 4, single: true, shared: false }],
+      [6, { name: 'ETPSL4', part: 'ET-PSL4', desc: 'EasyTouch PSL4', circuits: 4, features: 2, schedules: 4, pumps: 1, shared: true }],
+      [7, { name: 'ETPL4', part: 'ET-PL4', desc: 'EasyTouch PL4', circuits: 4, features: 2, schedules: 4, pumps: 1, single: true, shared: false }],
+      // EasyTouch 1 models all start at 128.
+      [128, { name: 'ET8', part: 'ET-8', desc: 'EasyTouch 8', circuits: 8, shared: true }],
+      [129, { name: 'ET8P', part: 'ET-8P', desc: 'EasyTouch 8', circuits: 8, single: true, shared: false }],
+      [130, { name: 'ET4', part: 'ET-4', desc: 'EasyTouch 4', circuits: 4, shared: true }],
+      [129, { name: 'ET4P', part: 'ET-4P', desc: 'EasyTouch 4P', circuits: 4, single: true, shared: false }]
+    ]);
+  }
+  public system: EasyTouchMockSystemCommands = new EasyTouchMockSystemCommands(this);
+  public circuits: EasyTouchMockCircuitCommands = new EasyTouchMockCircuitCommands(this);
+  public schedules: EasyTouchMockScheduleCommands = new EasyTouchMockScheduleCommands(this);
+  public heaters: EasyTouchMockHeaterCommands = new EasyTouchMockHeaterCommands(this);
+  public valves: EasyTouchMockValveCommands = new EasyTouchMockValveCommands(this);
+  public remotes: EasyTouchMockRemoteCommands = new EasyTouchMockRemoteCommands(this);
+}
 
-  public static convertOutbound(outboundMsg: Outbound) {
-    let response: Outbound = Outbound.create({
-      portId: outboundMsg.portId,
-      protocol: outboundMsg.protocol,
-      dest: outboundMsg.source,
-      source: outboundMsg.dest
-    });
-
-    switch (outboundMsg.action) {
-      case 133: // set date/time
-      case 134: // set circuit
-      case 136: // set heat/temperature
-      case 138: // set custom names
-      case 139: // set circuit names/functions
-      case 144: // set heat pump status
-      case 145: // set schedule
-      case 146: // set intellichem
-      case 147: // set intellichem
-      case 150: // set intellflo spa side controllers
-      case 152: // set pump config
-      case 153: // set intellichlor
-      case 155: // set pump config extended
-      case 157: // set valve 
-      case 158: // set high speed circuits
-      case 160: // set is4/is10 high speed circuits
-      case 161: // set quicktouch remote
-      case 162: // set solar/heat pump config
-      case 131: // set delay
-      case 163: // set delay
-      case 167: // set light group
-      case 168: // set settings
-        return sys.mockBoard.status.sendAck(outboundMsg, response);
-      case 194: // get controller status 
-      case 197: // get date time
-      case 198: // get circuit state
-      case 200: // get heat/status
-      case 202: // get custom names
-      case 203: //get circuit functions
-      case 208: // get heat pump status
-      case 209: // get schedule
-      case 210: // get intellichem
-      case 211: // get intellichem
-      case 214: // get intelliflo spa side
-      case 215: // get pump status
-      case 216: // get pump config
-      case 217: // get intellichlor
-      case 219: // get pump config
-      case 221: // get valve
-      case 222: // get high speed circuits
-      case 224: // get is4/is10 
-      case 225: //get quicktouch
-      case 226: // get solar/heat pump
-      case 227: // get delays
-      case 231: // get light groups
-      case 239: // get unknown
-      case 232: // get settings
-      case 253: // get sw version
-        logger.info(`Mock EasyTouch OCP - Packet ${outboundMsg.toShortPacket()} request not programmed yet.`)
-        break;
-      case 1: // Ack
-      case 2:  // Shared IntelliCenter/IntelliTouch
-      case 5:
-      case 8:
-      case 96: // EquipmentStateMessage.process(this);
-      case 10: // CustomNameMessage.process(this);
-      case 11: // CircuitMessage.processTouch(this);
-      case 25: // ChlorinatorMessage.processTouch(this);
-      case 153: // ExternalMessage.processTouchChlorinator(this);
-      case 17:
-      case 145: // ScheduleMessage.process(this);
-      case 18:  // IntellichemMessage.process(this);
-      case 24:
-      case 27:
-      case 152:
-      case 155: // PumpMessage.process(this);
-      case 30:
-      // switch (sys.controllerType) {
-      //     case ControllerType.Unknown:
-      //         break;
-      //     case ControllerType.SunTouch:
-      //         ScheduleMessage.processSunTouch(this);
-      //         break;
-      //     default:
-      //         OptionsMessage.process(this);
-      //         break;
-      // }
-      case 22:
-      case 32:
-      case 33: // RemoteMessage.process(this);
-      case 29:
-      case 35: // ValveMessage.process(this);
-      case 39:
-      case 167: // CircuitMessage.processTouch(this);
-      case 40:
-      case 168: // OptionsMessage.process(this);
-      case 41:  // CircuitGroupMessage.process(this);
-      case 197: // EquipmentStateMessage.process(this);    // Date/Time request
-      case 252: // EquipmentMessage.process(this);
-      case 9:
-      case 16:
-      case 34:
-      case 137:
-      case 144:
-      case 162: // HeaterMessage.process(this);
-      case 114:
-      case 115: // HeaterStateMessage.process(this);
-      case 147: // IntellichemMessage.process(this);
-        logger.info(`Mock EasyTouch OCP - Packet ${outboundMsg.toShortPacket()} should be coming to the OCP, not from it.`);
-        break;
-      default:
-        logger.info(`No mock EasyTouch response for ${outboundMsg.toShortPacket()} `);
+class EasyTouchMockSystemCommands extends MockSystemCommands {
+  public async processDateTimeAsync(msg: Inbound, response: Outbound) {
+    try {
+      response.action = 5;
+      response.appendPayloadBytes(0, 7);
+      response.setPayloadByte(0, state.time.hours);
+      response.setPayloadByte(1, state.time.minutes);
+      response.setPayloadByte(2, Timestamp.dayOfWeek(state.time));
+      response.setPayloadByte(3, state.time.date);
+      response.setPayloadByte(4, state.time.month);
+      response.setPayloadByte(5, state.time.year - 2000);
+      response.setPayloadByte(6, sys.general.options.adjustDST ? 1 : 0);
+      msg.isProcessed = true;
+      await sys.anslq25Board.sendAsync(response);
+    }
+    catch (err) {
+      logger.error(`ANSLQ25 error processing date/time.  ${err.message}`);
     }
   }
-
-  public sendAck(outboundMsg: Outbound, response: Outbound) {
+  public async processCustomNameAsync(msg: Inbound, response: Outbound): Promise<void> {
+    try {
+      response.action = 10;
+      response.appendPayloadByte(msg.payload[0]);
+      let cname = sys.customNames.getItemById(msg.payload[0]).name;
+      if (typeof cname === 'undefined') response.appendPayloadString(`CustomName${msg.payload[0]}`, 11);
+      else
+        response.appendPayloadString(cname, 11);
+      msg.isProcessed = true;
+      await sys.anslq25Board.sendAsync(response);
+    }
+    catch (err) {
+      logger.error(`ANSLQ25 error processing custom name ${msg.payload[0]}.  ${err.message}`);
+    }
+  }
+  public async processSettingsAsync(msg: Inbound, response: Outbound): Promise<void> {
+    try {
+      // 40/168/232
+      response.action = 40;
+      response.appendPayloadBytes(0, 10);
+      let chem = sys.chemControllers.getItemByAddress(144);
+      if (chem.isActive) response.setPayloadByte(3, 0x01, 0);
+      response.setPayloadByte(4, sys.general.options.manualHeat ? 1 : 0, 0);
+      response.setPayloadByte(5, sys.general.options.manualPriority ? 1 : 0, 0);
+      msg.isProcessed = true;
+      await sys.anslq25Board.sendAsync(response);
+    }
+    catch (err) {
+      logger.error(`ANSLQ25 error processing settings.  ${err.message}`);
+    }
+  }
+  public sendAck(inbound: Inbound, response: Outbound) {
     /*
     *  Per matching rules:
     *  if (msgIn.source === msgOut.dest && msgIn.payload[0] === msgOut.action) return true;
     */
     response.action = 1;
-    response.appendPayloadByte(outboundMsg.action);
-    return response.toPacket();
+    response.appendPayloadByte(inbound.action);
+    return response;
   }
-
-  private random(bounds: number, onlyPositive: boolean = false) {
-    let rand = Math.random() * bounds;
-    if (!onlyPositive) {
-      if (Math.random() <= .5) rand = rand * -1;
-    }
-    return rand;
-  }
-
-}
-
-export class EasyTouchMockStatusCommands extends MockStatusCommands {
-  public async processStatusAsync(response?: Outbound) {
-    if (typeof response === 'undefined'){
-      response = Outbound.create({
+  public async sendStatusAsync() {
+    try {
+      let msg = Outbound.create({
         portId: sys.anslq25.portId,
         protocol: Protocol.Broadcast,
         dest: 16,
-        source: 15
+        source: 15,
+        action: 2
       });
-    }
-    console.log(`send status command`);
-    response.appendPayloadBytes(0, 28);
-    // to do: reverse engineer logic for model types
-    response.setPayloadByte(27, 0); // model1
-    response.setPayloadByte(28, 13); // model2
 
-    // set time
-    response.setPayloadByte(0, state.time.hours);
-    response.setPayloadByte(1, state.time.minutes);
+      console.log(`send status command`);
+      msg.appendPayloadBytes(0, 29);
+      // to do: reverse engineer logic for model types
+      msg.setPayloadByte(27, 2); // model1
+      msg.setPayloadByte(28, 13); // model2
 
-    // set mode
-    response.setPayloadByte(9, response.setPayloadByte[9] | state.mode);
+      // set time
+      msg.setPayloadByte(0, state.time.hours);
+      msg.setPayloadByte(1, state.time.minutes);
 
-    // set units
-    response.setPayloadByte(9, response[9] | state.temps.units);
-    
-    // set valves
-    response.setPayloadByte(10, state.valve);
+      // set mode
+      msg.setPayloadByte(9, msg.setPayloadByte[9] | state.mode);
 
-    // set delay
-    response.setPayloadByte(12, response[12] | state.delay);
+      // set units
+      msg.setPayloadByte(9, msg[9] | state.temps.units);
 
-    // set freeze
-    if (state.freeze) response.setPayloadByte(9, response[9] | 0x08);
+      // set valves
+      msg.setPayloadByte(10, state.valve);
 
-    // set circuits
-    let circuits = state.circuits.get(true);
-    let circuitId = 0;
-    for (let i = 2; i <= circuits.length; i++) {
-      for (let j = 0; j < 8; j++) {
+      // set delay
+      msg.setPayloadByte(12, msg[12] | (Math.max(state.delay, 0)));
 
-        let circuit = circuits[circuitId];
-        if (circuit.isActive && circuit.isOn) {
-          response.setPayloadByte(i, response[i] & (1 >> j))
+      // set freeze
+      if (state.freeze) msg.setPayloadByte(9, msg[9] | 0x08);
+
+      // set circuits
+      let circuits = state.circuits.get(true);
+      let circuitId = 0;
+      for (let i = 2; i <= circuits.length; i++) {
+        for (let j = 0; j < 8; j++) {
+
+          let circuit = circuits[circuitId];
+          if (circuit.isActive && circuit.isOn) {
+            msg.setPayloadByte(i, msg[i] & (1 >> j))
+          }
         }
+        circuitId++;
       }
-      circuitId++;
-    }
-    // set temps
-    response.setPayloadByte(14, state.temps.waterSensor1);
-    response.setPayloadByte(18, state.temps.air);
-    let solar: Heater = sys.heaters.getItemById(2);
-    if (solar.isActive) response.setPayloadByte(19, state.temps.solar);
-    if (sys.bodies.length > 2 || sys.equipment.dual) response.setPayloadByte(15, state.temps.waterSensor2);
-    // set body attributes
-    if (sys.bodies.length > 0) {
-      const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
-      if (tbody.isOn) {
-        response.setPayloadByte(2, response[2] | 0x20);
-        if (tbody.heatMode > 0) {
-          let _heatStatus = sys.board.valueMaps.heatStatus.getName(tbody.heatStatus);
+      // set temps
+      msg.setPayloadByte(14, state.temps.waterSensor1);
+      msg.setPayloadByte(18, state.temps.air);
+      let solar: Heater = sys.heaters.getItemById(2);
+      if (solar.isActive) msg.setPayloadByte(19, state.temps.solar);
+      if (sys.bodies.length > 2 || sys.equipment.dual) msg.setPayloadByte(15, state.temps.waterSensor2);
+      // set body attributes
+      if (sys.bodies.length > 0) {
+        const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
+        if (tbody.isOn) {
+          msg.setPayloadByte(2, msg[2] | 0x20);
+          if (tbody.heatMode > 0) {
+            let _heatStatus = sys.board.valueMaps.heatStatus.getName(tbody.heatStatus);
+            if (tbody.heaterOptions.hybrid > 0) {
+
+              if (_heatStatus === 'dual') msg.setPayloadByte(10, msg[10] | 0x14);
+              else if (_heatStatus === 'heater') msg.setPayloadByte(10, msg[10] | 0x10);
+              else if (_heatStatus === 'hpheat') msg.setPayloadByte(10, msg[10] | 0x04);
+            }
+            else {
+              if (_heatStatus === 'heater') msg.setPayloadByte(10, msg[10] | 0x04);
+              if (_heatStatus === 'cooling' || _heatStatus === 'solar') msg.setPayloadByte(10, msg[10] | 0x10);
+            }
+          }
+        }
+        else msg.setPayloadByte(10, 0);
+      }
+      if (sys.bodies.length > 1) {
+        const tbody: BodyTempState = state.temps.bodies.getItemById(2, true);
+        // const cbody: Body = sys.bodies.getItemById(2);
+        let _heatStatus = sys.board.valueMaps.heatStatus.getName(tbody.heatStatus);
+        if (tbody.isOn) msg.setPayloadByte(2, msg[2] | 0x01);
+        msg.setPayloadByte(22, msg[22] | tbody.heatMode << 2);
+        if (tbody.isOn) {
           if (tbody.heaterOptions.hybrid > 0) {
+            let _heatStatus = sys.board.valueMaps.heatStatus.getName(tbody.heatStatus);
+            if (tbody.heatMode > 0) {
+              if (_heatStatus === 'dual') msg.setPayloadByte(10, msg[10] | 0x28);
+              else if (_heatStatus === 'heater') msg.setPayloadByte(10, msg[10] | 0x20);
+              else if (_heatStatus === 'hpheat') msg.setPayloadByte(10, msg[10] | 0x08);
+            }
+            else {
+              if (_heatStatus === 'heater') msg.setPayloadByte(10, msg[10] | 0x28);
+              if (_heatStatus === 'cooling' || _heatStatus === 'solar') msg.setPayloadByte(10, msg[10] | 0x20);
+            }
+          }
+        }
+        else msg.setPayloadByte(10, msg[10], 0);
+      };
 
-            if (_heatStatus === 'dual') response.setPayloadByte(10, response[10] | 0x14);
-            else if (_heatStatus === 'heater') response.setPayloadByte(10, response[10] | 0x10);
-            else if (_heatStatus === 'hpheat') response.setPayloadByte(10, response[10] | 0x04);
-          }
-          else {
-            if (_heatStatus === 'heater') response.setPayloadByte(10, response[10] | 0x04);
-            if (_heatStatus === 'cooling' || _heatStatus === 'solar') response.setPayloadByte(10, response[10] | 0x10);
-          }
-        }
-      }
+      // set temps -- 14 (water) and 15 (water2)
+      msg.setPayloadByte(14, state.temps.waterSensor1, 0);
+      if (sys.bodies.length > 2 || sys.equipment.dual) msg.setPayloadByte(15, state.temps.waterSensor2, 0);
+      msg.setPayloadByte(18, state.temps.air, 0);
+      msg.setPayloadByte(19, state.temps.solarSensor1, 0);
+      if (sys.bodies.length > 2 || sys.equipment.dual)
+        msg.setPayloadByte(17, state.temps.solarSensor2, 0);
+      if ((sys.bodies.length > 2))
+        msg.setPayloadByte(22, state.temps.solarSensor3, 0);
+      if ((sys.bodies.length > 3))
+        msg.setPayloadByte(23, state.temps.solarSensor4, 0);
+
+      await sys.anslq25Board.sendAsync(msg);
     }
-    if (sys.bodies.length > 1) {
-      const tbody: BodyTempState = state.temps.bodies.getItemById(2, true); 
-      // const cbody: Body = sys.bodies.getItemById(2);
-      let _heatStatus = sys.board.valueMaps.heatStatus.getName(tbody.heatStatus);
-      if (tbody.isOn) response.setPayloadByte(2, response[2] | 0x01);
-      response.setPayloadByte(22, response[22] | 0xCC << 2);
-      if (tbody.isOn){
-        if (tbody.heaterOptions.hybrid > 0){
-          let _heatStatus = sys.board.valueMaps.heatStatus.getName(tbody.heatStatus);
-          if (tbody.heatMode > 0){
-            if (_heatStatus === 'dual') response.setPayloadByte(10, response[10] | 0x28);
-            else if (_heatStatus === 'heater') response.setPayloadByte(10, response[10] | 0x20);
-            else if (_heatStatus === 'hpheat') response.setPayloadByte(10, response[10] | 0x08);
-          }
-          else {
-            if (_heatStatus === 'heater') response.setPayloadByte(10, response[10] | 0x28);
-            if (_heatStatus === 'cooling' || _heatStatus === 'solar') response.setPayloadByte(10, response[10] | 0x20);
-          }
-        }
+    catch (err) {
+      logger.error(`Error sending ANSLQ25 status packet: ${err.message}`);
+    }
+  };
+}
+
+class EasyTouchMockCircuitCommands extends MockCircuitCommands {
+  public async processCircuitAsync(msg: Inbound, response: Outbound) {
+    // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]
+    // set circuit 17 to function 14 and name 209
+    // response: [255,0,255][165,33,34,16,1,1][139][1,133]
+    // request for circuit 2: [165,33,16,33,203,1],[2],[1,197]]
+
+    try {
+      response.action = 11;
+      let circuit = sys.circuits.getInterfaceById(msg.payload[0]);
+      response.appendPayloadBytes(0, 5);
+      response.setPayloadByte(0, circuit.id);
+      response.setPayloadByte(1, circuit.type | (circuit.freeze ? 64 : 0), 0);
+      response.setPayloadByte(2, circuit.nameId, 53);
+      msg.isProcessed = true;
+      await sys.anslq25Board.sendAsync(response);
+    }
+    catch (err) {
+      logger.error(`ANSLQ25 error processing circuit ${msg.payload[0]}.  ${err.message}`);
+    }
+  };
+  public async processLightGroupAsync(msg: Inbound, response: Outbound) {
+    try {
+      // 39/167/231
+      // todo - when 25 packet length vs 32.  May need to add.
+      response.action = 39;
+      let lg = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
+      response.appendPayloadBytes(0, 32);
+      for (let byte = 0; byte <= 32; byte = byte + 4) {
+        let circuit = sys.circuits.getInterfaceById(byte);
+        response.setPayloadByte(byte, circuit.id, 0);
+        let pair = byte + 1;
+        const lgCircuit = lg.circuits.getItemByCircuitId(circuit.id);
+        response.setPayloadByte(pair, (lgCircuit.position - 1) << 4, 0);
+        response.setPayloadByte(pair, response.payload[pair] | lgCircuit.color, 0);
+        response.setPayloadByte(byte + 2, lgCircuit.swimDelay << 1, 0);
       }
-    };
+      msg.isProcessed = true;
+      await sys.anslq25Board.sendAsync(response);
+    }
+    catch (err) {
+      logger.error(`ANSLQ25 error processing circuit ${msg.payload[0]}.  ${err.message}`);
+    }
+  };
+}
+
+export class EasyTouchMockScheduleCommands extends MockScheduleCommands {
+  public async processScheduleAsync(msg: Inbound, response: Outbound) {
+    // Sample packet
+    // Request: 165,33,16,33,209,1,7,1,202
+    // Response: [165,33,15,16,17,7][6,12,25,0,6,30,0][1,76]
+    try {
+      response.action = 17;
+      response.appendPayloadBytes(0, 7);
+      let eggTimer = sys.eggTimers.getItemById(msg.payload[0]);
+      let schedule = sys.schedules.getItemById(msg.payload[0]);
+      if (eggTimer.isActive) {
+        response.setPayloadByte(0, eggTimer.id);
+        response.setPayloadByte(1, eggTimer.circuit);
+        response.setPayloadByte(2, 25);
+        response.setPayloadByte(4, eggTimer.runTime === 27 ? 27 : Math.floor(eggTimer.runTime / 60));
+        response.setPayloadByte(5, eggTimer.runTime === 27 ? 0 : eggTimer.runTime - (Math.floor(eggTimer.runTime / 60) * 60));
+      }
+      else {
+        response.setPayloadByte(0, schedule.id);
+        response.setPayloadByte(1, schedule.circuit, 0);
+        response.setPayloadByte(2, Math.floor(schedule.startTime / 60), 0);
+        response.setPayloadByte(3, Math.floor(schedule.startTime / 60) - (Math.floor(schedule.startTime / 60) * 60), 0);
+        response.setPayloadByte(4, schedule.scheduleType === 0 ? 0 : Math.floor(schedule.endTime / 60), 0);
+        response.setPayloadByte(5, Math.floor(schedule.endTime / 60) - (Math.floor(schedule.endTime / 60) * 60), 0);
+        response.setPayloadByte(6, schedule.scheduleDays, 0);
+      }
+      msg.isProcessed = true;
+      await sys.anslq25Board.sendAsync(response);
+    }
+    catch (err) {
+      logger.error(`ANSLQ25 error processing custom name ${msg.payload[0]}.  ${err.message}`);
+    }
+  };
+}
+
+export class EasyTouchMockHeaterCommands extends MockHeaterCommands {
+  public async processHeatModesAsync(msg: Inbound, response: Outbound) {
+    // IntelliTouch only.  Heat status
+    // [165,x,15,16,8,13],[75,75,64,87,101,11,0, 0 ,62 ,0 ,0 ,0 ,0] ,[2,190]
+    // Heat Modes
+    // 1 = Heater
+    // 2 = Solar Preferred
+    // 3 = Solar Only
+    //[81, 81, 82, 85, 97, 7, 0, 0, 0, 100, 100, 4, 0][3, 87]
+    // byte | val |
+    // 0    | 81  | Water sensor 1
+    // 1    | 81  | Unknown (Probably water sensor 2 on a D)
+    // 2    | 82  | Air sensor
+    // 3    | 85  | Body 1 setpoint
+    // 4    | 97  | Body 2 setpoint
+    // 5    | 7   | Body 1 & 2 heat mode. (0111) (Pool = 11 Solar only/Spa = 01 Heater)
+    // 6    | 0   | Unknown (Water Sensor 3)
+    // 7    | 0   | Unknown (Water Sensor 4)
+    // 8    | 0   | Unknown -- Reserved air sensor
+    // 9    | 100 | Unknown (Body 3 setpoint)
+    // 10   | 100 | Unknown (Body 4 setpoint)
+    // 11   | 4   | Unknown (Body 3 & 4 head mode. (0010) (Pool = 00 = Off/ 10 = Solar Preferred)
+    // 12   | 0   | Unknown
+    // There are two messages sent when the OCP tries to tse a heat mode in IntelliTouch.  The first one on the action 136 is for the first 2 bodies and the second
+    // is for the remaining 2 bodies.  The second half of this message mirrors the values for the second 136 message.
+
+    try {
+      response.appendPayloadBytes(0, 13);
+      response.action = 8;
+
+      const tbody1: BodyTempState = state.temps.bodies.getItemById(1);
+      const tbody2: BodyTempState = state.temps.bodies.getItemById(2);
+      response.setPayloadByte(0, state.temps.waterSensor1, 0);
+      response.setPayloadByte(1, state.temps.waterSensor2, 0);
+      response.setPayloadByte(2, state.temps.air, 0);
+      response.setPayloadByte(3, tbody1.setPoint, 0);
+      response.setPayloadByte(4, tbody2.setPoint, 0);
+      const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
+      if (tbody.heaterOptions.hybrid > 0) {
+        response.setPayloadByte(5, tbody2.heatMode << 2 | tbody1.heatMode, 0);
+      }
+      else {
+        response.setPayloadByte(5, tbody1.heatMode << 2 | tbody2.heatMode, 0);
+      }
+      response.setPayloadByte(9, tbody1.coolSetpoint, 0);
+      response.setPayloadByte(9, tbody2.coolSetpoint, 0);
+      msg.isProcessed = true;
+      await sys.anslq25Board.sendAsync(response);
+    }
+    catch (err) {
+      logger.error(`ANSLQ25 error processing heat modes.  ${err.message}`);
+    }
   };
 
 
+  public async processHeaterConfigAsync(msg: Inbound, response: Outbound) {
+    // 34/162/226
+
+    try {
+      response.appendPayloadBytes(0, 3);
+      response.action = 34;
+      const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
+      if (tbody.heaterOptions.hybrid > 0) {
+        response.setPayloadByte(1, 0x10);
+      }
+      else if (tbody.heaterOptions.heatpump > 0) {
+        response.setPayloadByte(1, 0x20);
+        let hpump = sys.heaters.getItemById(3);
+        if (hpump.heatingEnabled) response.setPayloadByte(1, response.payload[1] | 0x01);
+        if (hpump.coolingEnabled) response.setPayloadByte(1, response.payload[1] | 0x02);
+      }
+      else if (tbody.heaterOptions.solar > 0) {
+        response.setPayloadByte(0, 0x01);
+        let solar = sys.heaters.getItemById(2);
+        if (solar.freeze) response.setPayloadByte(1, response.payload[1] | 0x80);
+        if (solar.coolingEnabled) response.setPayloadByte(1, response.payload[1] | 0x20);
+        response.setPayloadByte(2, (solar.startTempDelta - 3) << 1);
+        response.setPayloadByte(2, response.payload[2] | (solar.stopTempDelta - 2) << 6);
+
+      }
+      msg.isProcessed = true;
+      await sys.anslq25Board.sendAsync(response);
+    }
+    catch (err) {
+      logger.error(`ANSLQ25 error processing heater config.  ${err.message}`);
+    }
+  };
+}
+
+export class EasyTouchMockValveCommands extends MockValveCommands {
+  public async processValveAssignmentsAsync(msg: Inbound, response: Outbound) {
+    try {
+      // 29/157/221
+      response.appendPayloadBytes(0, 24);
+      response.action = 29;
+      response.setPayloadByte(1, 2);  //constant
+      for (let ndx = 4, id = 1; id <= sys.equipment.maxValves; ndx++) {
+        let valve = sys.valves.getItemById(id);
+        response.setPayloadByte(ndx, valve.circuit, 0);
+        id++;
+      }
+      msg.isProcessed = true;
+      await sys.anslq25Board.sendAsync(response);
+    }
+    catch (err) {
+      logger.error(`ANSLQ25 error processing valve assignment packet.  ${err.message}`);
+    }
+  };
+  public async processValveOptionsAsync(msg: Inbound, response: Outbound) {
+    try {
+      // 35/163/227
+      response.appendPayloadBytes(0, 2);
+      response.action = 35;
+      response.setPayloadByte(0, (sys.general.options.pumpDelay ? 128 : 0) | 4, 4);
+      msg.isProcessed = true;
+      await sys.anslq25Board.sendAsync(response);
+    }
+    catch (err) {
+      logger.error(`ANSLQ25 error processing valve options packet.  ${err.message}`);
+    }
+  };
+}
+
+export class EasyTouchMockRemoteCommands extends MockRemoteCommands {
+  public async processIS4IS10RemoteAsync(msg: Inbound, response: Outbound) {
+    try {
+      // 32/160/224
+      response.action = 32;
+      response.appendPayloadBytes(0, 11);
+      console.log(sys.remotes.length);
+      for (let i = 0; i < sys.remotes.length; i++) {
+
+        let remote = sys.remotes.getItemById(i + 1);
+        response.setPayloadByte(0, i);
+        response.setPayloadByte(1, remote.button1, 0);
+        response.setPayloadByte(2, remote.button2, 0);
+        response.setPayloadByte(3, remote.button3, 0);
+        response.setPayloadByte(4, remote.button4, 0);
+        response.setPayloadByte(5, remote.button5, 0);
+        response.setPayloadByte(6, remote.button6, 0);
+        response.setPayloadByte(7, remote.button7, 0);
+        response.setPayloadByte(8, remote.button8, 0);
+        response.setPayloadByte(9, remote.button9, 0);
+        response.setPayloadByte(10, remote.button10, 0);
+        await sys.anslq25Board.sendAsync(response);
+      }
+      msg.isProcessed = true;
+    }
+    catch (err) {
+      logger.error(`ANSLQ25 error processing IS4/IS10 packet.  ${err.message}`);
+    }
+  };
+  public async processQuickTouchRemoteAsync(msg: Inbound, response: Outbound) {
+    try {
+      // 33/161/225
+      response.action = 33;
+      response.appendPayloadBytes(0, 4);
+      let remote = sys.remotes.getItemById(6);
+      response.setPayloadByte(0, remote.button1, 0);
+      response.setPayloadByte(1, remote.button2, 0);
+      response.setPayloadByte(2, remote.button3, 0);
+      response.setPayloadByte(3, remote.button4, 0);
+      msg.isProcessed = true;
+      await sys.anslq25Board.sendAsync(response);
+    }
+    catch (err) {
+      logger.error(`ANSLQ25 error processing quicktouch remote packet.  ${err.message}`);
+    }
+  };
+  public async processSpaCommandRemoteAsync(msg: Inbound, response: Outbound) {
+    try {
+      // 22/150/214
+      response.action = 22;
+      response.appendPayloadBytes(0, 16);
+      let remote = sys.remotes.getItemById(7);
+      response.setPayloadByte(5, remote.pumpId, 0);
+      response.setPayloadByte(6, remote.stepSize, 0);
+      msg.isProcessed = true;
+      await sys.anslq25Board.sendAsync(response);
+    }
+    catch (err) {
+      logger.error(`ANSLQ25 error processing spa command remote packet.  ${err.message}`);
+    }
+  };
 }

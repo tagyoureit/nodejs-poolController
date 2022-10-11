@@ -317,6 +317,19 @@ export class ConfigRoute {
                 return res.status(200).send(opts);
             } catch (err) { next(err); }
         });
+        app.get('/config/options/anslq25ControllerType', async (req, res, next) => {
+            try {
+                let opts = {
+                    // controllerType: typeof sys.anslq25.controllerType === 'undefined' ? '' : sys.anslq25.controllerType,
+                    // model: typeof sys.anslq25.model === 'undefined' ? '' : sys.anslq25.model,
+                    // equipment: sys.equipment.get(),
+                    ...sys.anslq25.get(true),
+                    controllerTypes: sys.getAvailableControllerTypes(['easytouch', 'intellitouch', 'intellicenter']),
+                    rs485ports: await conn.listInstalledPorts()
+                }
+                return res.status(200).send(opts);
+            } catch (err) { next(err); }
+        });
         app.get('/config/options/chlorinators', async (req, res, next) => {
             try {
                 let opts = {
@@ -402,6 +415,13 @@ export class ConfigRoute {
             try {
                 let controller = await sys.board.setControllerType(req.body);
                 return res.status(200).send(controller.get(true));
+            } catch (err) { next(err); }
+        });
+        app.put('/config/anslq25ControllerType', async (req, res, next) => {
+            try {
+                // sys.anslq25ControllerType
+                await sys.anslq25Board.setAnslq25Async(req.body);
+                return res.status(200).send(sys.anslq25.get(true));
             } catch (err) { next(err); }
         });
         app.delete('/config/filter', async (req, res, next) => {
@@ -945,6 +965,18 @@ export class ConfigRoute {
                 let opts = req.body;
                 let results = await webApp.restoreServers(opts);
                 return res.status(200).send(results);
+            } catch (err) { next(err); }
+        });
+        app.put('/app/anslq25', async(req, res, next) => {
+            try {
+                await sys.anslq25Board.setAnslq25Async(req.body);
+                return res.status(200).send(sys.anslq25.get(true));
+            } catch (err) { next(err); }
+        });
+        app.delete('/app/anslq25', async(req, res, next) => {
+            try {
+                await sys.anslq25Board.deleteAnslq25Async(req.body);
+                return res.status(200).send(sys.anslq25.get(true));
             } catch (err) { next(err); }
         });
     }

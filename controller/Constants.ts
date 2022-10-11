@@ -298,6 +298,13 @@ export class Timestamp {
     public static locale() { return Intl.DateTimeFormat().resolvedOptions().locale; }
     public static parseISO(val: string): RegExpExecArray { return typeof val !== 'undefined' && val ? Timestamp.dateTextISO.exec(val) : null; }
     public static parseAjax(val: string): RegExpExecArray { return typeof val !== 'undefined' && val ? Timestamp.dateTextAjax.exec(val) : null; }
+    public static dayOfWeek(time: Timestamp): number {
+        // for IntelliTouch set date/time
+        if (time.toDate().getUTCDay() === 0)
+            return 0;
+        else
+            return Math.pow(2, time.toDate().getUTCDay() - 1);
+    }
 }
 export enum ControllerType {
     IntelliCenter = 'intellicenter',
@@ -308,7 +315,8 @@ export enum ControllerType {
     // Virtual = 'virtual',
     Nixie = 'nixie',
     AquaLink = 'aqualink',
-    SunTouch = 'suntouch'
+    SunTouch = 'suntouch',
+    None = 'none'
 }
 // export enum VirtualDeviceType {
 //     Pump = 'pump',
@@ -703,6 +711,13 @@ export class Utils {
         let slope = (points_y[0] - points_y[points_y.length - 1]) / (points_x[0] - points_x[points_x.length - 1]);
         return slope;
     }
+    private random(bounds: number, onlyPositive: boolean = false) {
+        let rand = Math.random() * bounds;
+        if (!onlyPositive) {
+          if (Math.random() <= .5) rand = rand * -1;
+        }
+        return rand;
+      }
 }
 
 export const utils = new Utils();

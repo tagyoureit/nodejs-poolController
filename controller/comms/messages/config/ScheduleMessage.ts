@@ -159,7 +159,7 @@ export class ScheduleMessage {
             eggTimer.isActive = eggTimerActive;
             const circuit = sys.circuits.getInterfaceById(circuitId);
             circuit.eggTimer = eggTimer.runTime;
-            circuit.eggTimer === 720;
+            //circuit.eggTimer === 720;
             circuit.dontStop = circuit.eggTimer === 1620;
             // When eggTimers are found go back and check existing schedules to see if a runOnce schedule already exists.
              // It is possible that the runOnce schedule will be discovered before the eggTimer so we need to adjust the endTime 

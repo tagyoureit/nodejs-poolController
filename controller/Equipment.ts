@@ -77,9 +77,9 @@ export class PoolSystem implements IPoolSystem {
     constructor() {
         this.cfgPath = path.posix.join(process.cwd(), '/data/poolConfig.json');
     }
-    public getAvailableControllerTypes() {
+    public getAvailableControllerTypes(include:string[] = ['easytouch', 'intellitouch', 'intellicenter', 'nixie']) {
         let arr = [];
-        arr.push({
+        if (include.indexOf('easytouch')>=0) arr.push({
             type: 'easytouch', name: 'EasyTouch',
             models: [
                 { val: 0, name: 'ET28', part: 'ET2-8', desc: 'EasyTouch2 8', circuits: 8, bodies: 2, shared: true },
@@ -95,7 +95,7 @@ export class PoolSystem implements IPoolSystem {
                 { val: 129, name: 'ET4P', part: 'ET-4P', desc: 'EasyTouch 4P', circuits: 4, bodies: 1, shared: false }
             ]
         });
-        arr.push({
+        if (include.indexOf('intellitouch')>=0) arr.push({
             type: 'intellitouch', name: 'IntelliTouch',
             models: [
                 { val: 0, name: 'IT5', part: 'i5+3', desc: 'IntelliTouch i5+3', bodies: 2, circuits: 6, shared: true },
@@ -111,7 +111,7 @@ export class PoolSystem implements IPoolSystem {
             ]
 
         });
-        arr.push({
+        if (include.indexOf('intellicenter')>=0) arr.push({
             type: 'intellicenter', name: 'IntelliCenter',
             models: [
                 { val: 0, name: 'i5P', part: '523125Z', desc: 'IntelliCenter i5P', bodies: 1, valves: 2, circuits: 5, shared: false, dual: false, chlorinators: 1, chemControllers: 1 },
@@ -123,7 +123,7 @@ export class PoolSystem implements IPoolSystem {
                 { val: 7, name: 'i10D', part: '523029Z', desc: 'IntelliCenter i10D', bodies: 2, valves: 2, circuits: 11, shared: false, dual: true, chlorinators: 2, chemControllers: 2 },
             ]
         });
-        arr.push({
+        if (include.indexOf('nixie')>=0) arr.push({
             type: 'nixie', name: 'Nixie', canChange: true,
             models: [
                 { val: 0, name: 'nxp', part: 'NXP', desc: 'Nixie Single Body', bodies: 1, shared: false, dual: false },
@@ -197,7 +197,7 @@ export class PoolSystem implements IPoolSystem {
         this.chemDosers = new ChemDoserCollection(this.data, 'chemDosers');
         this.filters = new FilterCollection(this.data, 'filters');
         this.board = BoardFactory.fromControllerType(this.controllerType, this);
-        this.mockBoard = MockBoardFactory.fromControllerType(this.anslq25.mockControllerType, this);
+        this.anslq25Board = MockBoardFactory.fromControllerType(this.data.anslq25.controllerType, this);
     }
     // This performs a safe load of the config file.  If the file gets corrupt or actually does not exist
     // it will not break the overall system and allow hardened recovery.
@@ -226,18 +226,18 @@ export class PoolSystem implements IPoolSystem {
         this.board = BoardFactory.fromControllerType(ControllerType.Unknown, this);
         setTimeout(function () { state.status = 0; conn.resumeAll(); }, 0);
     }
-    public get mockControllerType(): ControllerType { return this.data.anslq25.controllerType as ControllerType; }
-    public set mockControllerType(val: ControllerType) {
-        let self = this;
-        if (this.controllerType !== val) {
-            console.log(`RESETTING DATA -- Mock Controller type changed from ${this.controllerType} to ${val}`);
+    public get anslq25ControllerType(): ControllerType { return this.data.anslq25.controllerType as ControllerType; }
+    public set anslq25ControllerType(val: ControllerType) {
+        //let self = this;
+        if (this.anslq25ControllerType !== val) {
+            console.log(`Mock Controller type changed from ${this.anslq25.controllerType} to ${val}`);
             // Only go in here if there is a change to the controller type.
             //this.resetData(); // Clear the configuration data.
             //state.resetData(); // Clear the state data.
             this.data.anslq25.controllerType = val;
             //EquipmentStateMessage.initDefaults();
             // We are actually changing the config so lets clear out all the data.
-            this.mockBoard = MockBoardFactory.fromControllerType(val, this);
+            this.anslq25Board = MockBoardFactory.fromControllerType(val, this);
             //if (this.data.anslq25.controllerType === ControllerType.Unknown) setTimeout(() => { self.initNixieController(); }, 7500);
         }
     }
@@ -301,7 +301,7 @@ export class PoolSystem implements IPoolSystem {
         }
     }
     public board: SystemBoard = new SystemBoard(this);
-    public mockBoard: MockSystemBoard = new MockSystemBoard(this);
+    public anslq25Board: MockSystemBoard; // = new MockSystemBoard(this);
     public ncp: NixieControlPanel = new NixieControlPanel();
     public processVersionChanges(ver: ConfigVersion) { this.board.requestConfiguration(ver); }
     public checkConfiguration() { this.board.checkConfiguration(); }
@@ -681,14 +681,15 @@ export class Anslq25 extends EqItem {
     public initData(){
         if (typeof this.data.isActive === 'undefined') this.data.isActive = false;
     }
-    public get mockControllerType(): ControllerType { return this.data.mockControllerType; }
-    public set mockControllerType(val: ControllerType) { this.setDataVal('mockControllerType', val); }
-    public get model(): string { return this.data.model; }
-    public set model(val: string) { this.setDataVal('model', val); }
+    public get controllerType(): ControllerType { return this.data.controllerType; }
+    public set controllerType(val: ControllerType) { this.setDataVal('controllerType', val); }
+    public get model(): number { return this.data.model; }
+    public set model(val: number) { this.setDataVal('model', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get portId(): number { return this.data.portId; }
     public set portId(val: number) { this.setDataVal('portId', val); }
+    public get modules(): ExpansionModuleCollection { return new ExpansionModuleCollection(this.data, "modules"); }
 }
 export class General extends EqItem {
     ctor(data: any, name?: any): General { return new General(data, name || 'pool'); }

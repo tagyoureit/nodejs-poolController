@@ -15,12 +15,12 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { O_TRUNC } from 'constants';
+
 import * as extend from 'extend';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { Message, Outbound, Protocol, Response } from '../comms/messages/Messages';
-import { utils } from '../Constants';
+import { Timestamp, utils } from '../Constants';
 import { Body, ChemController, ConfigVersion, CustomName, EggTimer, Feature, Heater, ICircuit, LightGroup, LightGroupCircuit, Options, PoolSystem, Pump, Schedule, sys } from '../Equipment';
 import { EquipmentTimeoutError, InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError } from '../Errors';
 import { ncp } from "../nixie/Nixie";
@@ -534,7 +534,7 @@ export class TouchConfigQueue extends ConfigQueue {
         this.queueItems(GetTouchConfigCategories.settings);
         this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes);
         this.queueItems(GetTouchConfigCategories.is4is10);
-        this.queueItems(GetTouchConfigCategories.spaSideRemote);
+        this.queueItems(GetTouchConfigCategories.quickTouchRemote);
         this.queueItems(GetTouchConfigCategories.valves);
         this.queueItems(GetTouchConfigCategories.lightGroupPositions);
         this.queueItems(GetTouchConfigCategories.highSpeedCircuits);
@@ -586,6 +586,7 @@ export class TouchConfigQueue extends ConfigQueue {
         let itm = 0;
         const self = this;
         if (this.curr && !this.curr.isComplete) {
+
             itm = this.curr.items.shift();
             const out: Outbound = Outbound.create({
                 source: Message.pluginAddress,
@@ -593,11 +594,25 @@ export class TouchConfigQueue extends ConfigQueue {
                 action: this.curr.setcategory,
                 payload: [itm],
                 retries: 3,
-                response: Response.create({ response: true, callback: () => { self.processNext(out); } })
+                response: Response.create({
+                    response: true, callback: () => {
+                        self.processNext(out);
+                    }
+                })
                 // response: true,
                 // onResponseProcessed: function () { self.processNext(out); }
             });
-            setTimeout(() => conn.queueSendMessage(out), 50);
+            //out.timeout = 5000;
+            // setTimeout(() => conn.queueSendMessage(out), 50);
+            out.sendAsync()
+                .then(() => {
+                    logger.debug(`msg ${out.toShortPacket()} sent successfully`);
+                })
+                .catch((err) => {
+                    logger.error(`Error sending configuration request message: ${err.message};`);
+                    setTimeout(()=>{self.processNext(out);}, 50);
+                })
+        
         } else {
             // Now that we are done check the configuration a final time.  If we have anything outstanding
             // it will get picked up.
@@ -873,7 +888,7 @@ export enum TouchConfigCategories {
     customNames = 10,
     circuits = 11,
     schedules = 17,
-    spaSideRemote = 22,
+    quickTouchRemote = 22,
     pumpStatus = 23,
     pumpConfig = 24,
     intellichlor = 25,
@@ -893,7 +908,7 @@ export enum GetTouchConfigCategories {
     customNames = 202,
     circuits = 203,
     schedules = 209,
-    spaSideRemote = 214,
+    quickTouchRemote = 214,
     pumpStatus = 215,
     pumpConfig = 216,
     intellichlor = 217,
@@ -926,13 +941,7 @@ class TouchSystemCommands extends SystemCommands {
         }
     }
     public async setDateTimeAsync(obj: any): Promise<any> {
-        let dayOfWeek = function (): number {
-            // for IntelliTouch set date/time
-            if (state.time.toDate().getUTCDay() === 0)
-                return 0;
-            else
-                return Math.pow(2, state.time.toDate().getUTCDay() - 1);
-        }
+
         let dst = sys.general.options.adjustDST ? 1 : 0;
         if (typeof obj.dst !== 'undefined') utils.makeBool(obj.dst) ? dst = 1 : dst = 0;
         let { hour = state.time.hours,
@@ -940,7 +949,7 @@ class TouchSystemCommands extends SystemCommands {
             date = state.time.date,
             month = state.time.month,
             year = state.time.year >= 100 ? state.time.year - 2000 : state.time.year,
-            dow = dayOfWeek() } = obj;
+            dow = Timestamp.dayOfWeek(state.time) } = obj;
         if (obj.dt instanceof Date) {
             let _dt: Date = obj.dt;
             hour = _dt.getHours();

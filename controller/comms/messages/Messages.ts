@@ -45,6 +45,8 @@ import { IntelliChemStateMessage } from "./status/IntelliChemStateMessage";
 import { OutboundMessageError } from "../../Errors";
 import { conn } from "../Comms"
 import extend = require("extend");
+import { MessagesMock } from "../../../anslq25/MessagesMock";
+
 export enum Direction {
     In = 'in',
     Out = 'out'
@@ -167,6 +169,38 @@ export class Message {
     }
     public toLog(): string {
         return `{"port":${this.portId},"id":${ this.id },"valid":${ this.isValid },"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)}, ${JSON.stringify(this.header)}, ${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts":"${Timestamp.toISOLocal(this.timestamp)}"}`;
+    }
+    public static convertOutboundToInbound(out: Outbound): Inbound{
+        let inbound = new Inbound();
+        out.portId = inbound.portId;
+        out.id = inbound.id;
+        out.protocol = inbound.protocol;
+        out.scope = inbound.scope;
+        out.preamble = inbound.preamble; 
+        out.padding = inbound.padding;
+        out.action = inbound.action;
+        out.dest = inbound.dest;
+        out.source = inbound.source;
+        out.header = inbound.header;
+        out.payload = inbound.payload;
+        out.term = inbound.term;
+        return inbound;
+    }
+    public static convertInboundToOutbound(inbound: Inbound): Outbound{
+        let out = new Outbound(
+            inbound.protocol,
+            inbound.source,
+            inbound.dest,
+            inbound.action,
+            inbound.payload,
+        );
+        inbound.id = out.id;
+        inbound.scope = out.scope;
+        inbound.preamble = out.preamble; 
+        inbound.padding = out.padding;
+        inbound.header = out.header;
+        inbound.term = out.term;
+        return out;
     }
 }
 export class Inbound extends Message {
@@ -720,6 +754,9 @@ export class Inbound extends Message {
         }
     }
     public process() {
+        if (this. portId === sys.anslq25.portId) {
+            return MessagesMock.processInbound(this);
+        }
         switch (this.protocol) {
             case Protocol.Broadcast:
                 this.processBroadcast();
@@ -1051,7 +1088,10 @@ export class Response extends OutboundCommon {
         try {
             if (typeof this.responseBool === 'boolean' && this.responseBool) bresp = this.evalResponse(msgIn, msgOut);
             else return bresp;
-            if (bresp === true && typeof msgOut !== 'undefined') msgIn.responseFor.push(msgOut.id);
+            if (bresp === true && typeof msgOut !== 'undefined') {
+                msgIn.responseFor.push(msgOut.id);
+                logger.silly(`Message in ${msgIn.id} is a response for message out ${msgOut.id}`);
+            }
             return bresp;
         }
         catch (err) { }

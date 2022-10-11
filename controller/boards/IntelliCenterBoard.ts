@@ -677,6 +677,14 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             });
             logger.verbose(`Requesting config for: ${ConfigCategories[this.curr.category]} - Item: ${itm}`);
             setTimeout(() => { conn.queueSendMessage(out) }, 50);
+            out.sendAsync()
+            .then(() => {
+                //logger.debug(`msg ${out.toShortPacket()} sent successfully`);
+            })
+            .catch((err) => {
+                logger.error(`Error sending configuration request message: ${err.message};`);
+                setTimeout(()=>{self.processNext(out);}, 10);
+            })
         } else {
             // Now that we are done check the configuration a final time.  If we have anything outstanding
             // it will get picked up.
