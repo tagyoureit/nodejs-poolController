@@ -107,7 +107,7 @@ export class NixieControlPanel implements INixieControlPanel {
                 lines = buff.toString().split('\n');
             }
             return lines;
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error reading log file ${logFile}: ${err.message}`); }
     }
     public async logData(logFile: string, data: any) {
         try {
@@ -124,7 +124,7 @@ export class NixieControlPanel implements INixieControlPanel {
             else
                 lines.unshift(data.toString());
             fs.writeFileSync(logPath, lines.join('\n'));
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error logging to ${logFile}: ${err.message}`); }
     }
     public async closeAsync() {
         // Close all the associated equipment.
@@ -167,7 +167,7 @@ export class NixieControlPanel implements INixieControlPanel {
                 await ncp.chemControllers.syncRemoteREMFeeds(srv);
             }
             return srv;
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error gettting REM Servers: ${err.message}`); }
     }
 }
 

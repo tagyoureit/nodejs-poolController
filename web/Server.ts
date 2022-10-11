@@ -799,7 +799,7 @@ export class HttpsServer extends HttpServer {
                 res.header('Access-Control-Allow-Methods', 'OPTIONS, GET, POST, PUT, DELETE');
                 if ('OPTIONS' === req.method) { res.sendStatus(200); }
                 else {
-                    if (req.url !== '/upnp.xml') {
+                    if (!req.url.startsWith('/upnp.xml')) {
                         logger.info(`[${new Date().toLocaleString()}] ${req.ip} ${req.method} ${req.url} ${typeof req.body === 'undefined' ? '' : JSON.stringify(req.body)}`);
                         logger.logAPI(`{"dir":"in","proto":"api","requestor":"${req.ip}","method":"${req.method}","path":"${req.url}",${typeof req.body === 'undefined' ? '' : `"body":${JSON.stringify(req.body)},`}"ts":"${Timestamp.toISOLocal(new Date())}"}${os.EOL}`);
                     }
@@ -893,6 +893,7 @@ export class SsdpServer extends ProtoServer {
         }
     }
     public deviceXML(): string {
+        let ver = sys.appVersion.split('.');
         let XML = `<?xml version="1.0"?>
         <root xmlns="urn:schemas-upnp-org:device-1-0">
             <specVersion>
@@ -905,6 +906,11 @@ export class SsdpServer extends ProtoServer {
                 <manufacturer>tagyoureit</manufacturer>
                 <manufacturerURL>https://github.com/tagyoureit/nodejs-poolController</manufacturerURL>
                 <presentationURL>http://${webApp.ip()}:${webApp.httpPort()}/state/all</presentationURL>
+                <appVersion>
+                   <major>${ver[0] || 1}</major>
+                   <minor>${ver[1] || 0}</minor>
+                   <patch>${ver[2] || 0}</patch>
+                </appVersion>
                 <modelName>${this.modelName}</modelName>
                 <modelNumber>${this.modelNumber}</modelNumber>
                 <modelDescription>An application to control pool equipment.</modelDescription>
@@ -914,6 +920,9 @@ export class SsdpServer extends ProtoServer {
                 <deviceList></deviceList>
             </device>
         </root>`;
+        //console.log(XML.match(/<device>[\s|\S]+<appVersion>[\s|\S]+<major>(\d+)<\/major>/)[1]);
+        //console.log(XML.match(/<device>[\s|\S]+<appVersion>[\s|\S]+<minor>(\d+)<\/minor>/)[1]);
+        //console.log(XML.match(/<device>[\s|\S]+<appVersion>[\s|\S]+<patch>(\d+)<\/patch>/)[1]);
         return XML;
     }
     public async stopAsync() {
@@ -1346,18 +1355,18 @@ export class REMInterfaceServer extends ProtoServer {
         try {
             let response = await this.sendClientRequest('GET', '/config/backup/controller', undefined, 10000);
             return response;
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error requesting GET /config/backup/controller: ${err.message}`); }
     }
     public async validateRestore(cfg): Promise<InterfaceServerResponse> {
         try {
             let response = await this.sendClientRequest('PUT', '/config/restore/validate', cfg, 10000);
             return response;
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error requesting PUT /config/restore/validate ${err.message}`); }
     }
     public async restoreConfig(cfg): Promise<InterfaceServerResponse> {
         try {
             return await this.sendClientRequest('PUT', '/config/restore/file', cfg, 20000);
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error requesting PUT /config/restore/file ${err.message}`); }
     }
     private async initConnection() {
         try {
@@ -1368,6 +1377,8 @@ export class REMInterfaceServer extends ProtoServer {
                 let url = '/config/checkconnection/';
                 // can & should extend for https/username-password/ssl
                 let data: any = { type: "njspc", isActive: true, id: null, name: "njsPC - automatic", protocol: "http:", ipAddress: webApp.ip(), port: config.getSection('web').servers.http.port || 4200, userName: "", password: "", sslKeyFile: "", sslCertFile: "", hostnames: [] }
+                if (typeof this.cfg.options !== 'undefined' && this.cfg.options.host !== 'undefined' &&
+                    this.cfg.options.host.toLowerCase() === 'localhost' || this.cfg.options.host === '127.0.0.1') data.loopback = true;
                 logger.info(`Checking REM Connection ${data.name} ${data.ipAddress}:${data.port}`);
                 try {
                     data.hostnames = await dns.promises.reverse(data.ipAddress);
@@ -1393,7 +1404,7 @@ export class REMInterfaceServer extends ProtoServer {
                             // if we receive the emit, data will work both ways.
                             // console.log(data);
                             clearTimeout(_tmr);
-                            logger.info(`REM bi-directional communications established.`)
+                            logger.info(`${this.name} bi-directional communications established.`)
                             resolve();
                         });
                         result = await self.putApiService(url, data);

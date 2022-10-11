@@ -4455,7 +4455,7 @@ export class HeaterCommands extends BoardCommands {
                                     else if (hstate.isOn !== isOn || hstate.isCooling !== isCooling) {
                                         await ncp.heaters.setHeaterStateAsync(hstate, isOn, isCooling);
                                     }
-                                } catch (err) { logger.error(err.message); }
+                                } catch (err) { logger.error(`Error setting heater state ${hstate.name}: ${err.message}`); }
                             })();
                             else {
                                 hstate.isOn = isOn;
@@ -4479,7 +4479,7 @@ export class HeaterCommands extends BoardCommands {
                         try {
                             await ncp.heaters.setHeaterStateAsync(hstate, false, false);
                             hstate.bodyId = 0;
-                        } catch (err) { logger.error(err.message); }
+                        } catch (err) { logger.error(`Error turning off heater ${heater.name}: ${err.message}`); }
                     })();
                     else {
                         hstate.isOn = false;

@@ -56,6 +56,8 @@
             "if (data.type.val==2) {icontype='mdi:pool'};",
             "return JSON.stringify({ name: data.name,",
             "unique_id: `poolController-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}`,",
+            "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+            "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
             "state_topic: `${ctx.vars.mqttTopic}/state/circuits/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}`,",
             "command_topic: `${ctx.vars.mqttTopic}/state/circuits/setState`,",
             "payload_on: `{\"id\": ${data.id}, \"isOn\": true}`,",
@@ -79,6 +81,8 @@
               " suggested_area : 'Pool'};",
               "return JSON.stringify({ name: `Pool ${data.name}`,",
               "unique_id: `poolController-${data.id}-pool${data.name.replace(/\\s+/g, '').toLowerCase()}`,",
+              "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+              "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
               "schema: 'template',",
               "command_topic: `${ctx.vars.mqttTopic}/state/circuits/setState`,",
               "state_topic: `${ctx.vars.mqttTopic}/state/circuits/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}`,",
@@ -105,9 +109,12 @@
             " suggested_area : 'Pool'};",
             "return JSON.stringify({ name: `${data.name} RPM`,",
             "unique_id: `poolController-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}-rpm`,",
+            "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+            "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
             "state_topic: `${ctx.vars.mqttTopic}/state/pumps/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}/rpm`,",
             "device: device_id,",
             "icon: 'mdi:pump',",
+            "state_class: 'measurement',",
             "unit_of_measurement: 'rpm',",
             "value_template:'{{value_json.rpm}}'});"
           ]
@@ -122,6 +129,8 @@
             " suggested_area : 'Pool'};",
             "return JSON.stringify({ name: `${data.name} watts`,",
             "unique_id: `poolController-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}-watts`,",
+            "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+            "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
             "state_topic: `${ctx.vars.mqttTopic}/state/pumps/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}/watts`,",
             "device: device_id,",
             "icon: 'mdi:lightning-bolt',",
@@ -141,9 +150,12 @@
             " suggested_area : 'Pool'};",
             "return JSON.stringify({ name: `${data.name} flow`,",
             "unique_id: `poolController-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}-flow`,",
+            "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+            "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
             "state_topic: `${ctx.vars.mqttTopic}/state/pumps/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}/flow`,",
             "device: device_id,",
             "icon: 'mdi:waves-arrow-right',",
+            "state_class: 'measurement',",
             "unit_of_measurement: 'gpm',",
             "value_template:'{{value_json.flow}}'});"
           ]
@@ -164,6 +176,8 @@
             " suggested_area : 'Pool'};",
             "return JSON.stringify({ name: data.name,",
             "unique_id: `poolController-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}`,",
+            "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+            "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
             "state_topic: `${ctx.vars.mqttTopic}/state/features/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}`,",
             "command_topic: `${ctx.vars.mqttTopic}/state/features/setState`,",
             "payload_on: `{\"id\": ${data.id}, \"isOn\": true}`,",
@@ -192,6 +206,8 @@
             " suggested_area : 'Pool'};",
             "return JSON.stringify({ name: data.name,",
             "unique_id: `poolController-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}`,",
+            "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+            "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
             "state_topic: `${ctx.vars.mqttTopic}/state/circuitGroups/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}`,",
             "command_topic: `${ctx.vars.mqttTopic}/state/circuitGroups/setState`,",
             "payload_on: `{\"id\": ${data.id}, \"isOn\": true}`,",
@@ -220,6 +236,8 @@
             " suggested_area : 'Pool'};",
             "return JSON.stringify({ name: `${data.name} Heater`,",
             "unique_id: `poolController-body-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}`,",
+            "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+            "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
             "action_topic: `${ctx.vars.mqttTopic}/state/temps/bodies/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}/heatStatus`,",
             "action_template: `{{ 'off' if value_json.heatStatus.val==0 else 'heating' }}`,",
             "device: device_id,",
@@ -255,15 +273,165 @@
             " suggested_area : 'Pool'};",
             "return JSON.stringify({ name: `Air temp`,",
             "unique_id: `poolController-1-airsensor`,",
+            "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+            "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
             "device: device_id,",
             "device_class: 'temperature',",
+            "state_class: 'measurement',",
             "state_topic: `${ctx.vars.mqttTopic}/state/temps/air`,",
             "unit_of_measurement: `°${state.temps.data.units.name}`,",
             "value_template: '{{value_json.temp}}'});"
           ]
         }
       ]
-    }
+    },
+    {
+      "name": "chemController",
+      "description": "Populate the chem controllers",
+      "topics": [
+        {
+          "topic": "@bind=vars.hassTopic;/sensor/@bind=vars.mqttTopic;/@bind=vars.mqttTopic;-@bind=data.name;-ph/config",
+          "useRootTopic": false,
+          "processor": [
+            "let device_id = {",
+            " name : 'Pool Controller - njsPC',",
+            " ids: [`${ctx.vars.mqttTopic}`],",
+            " suggested_area : 'Pool'};",
+            "return JSON.stringify({ name: `${data.name} pH`,",
+            "unique_id: `poolController-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}-ph`,",
+            "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+            "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
+            "device: device_id,",
+            "icon: 'mdi:ph',",
+            "state_class: 'measurement',",
+            "state_topic: `${ctx.vars.mqttTopic}/state/chemControllers/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}/ph/level`});"
+          ]
+        },
+        {
+          "topic": "@bind=vars.hassTopic;/sensor/@bind=vars.mqttTopic;/@bind=vars.mqttTopic;-@bind=data.name;-orp/config",
+          "useRootTopic": false,
+          "processor": [
+            "let device_id = {",
+            " name : 'Pool Controller - njsPC',",
+            " ids: [`${ctx.vars.mqttTopic}`],",
+            " suggested_area : 'Pool'};",
+            "return JSON.stringify({ name: `${data.name} ORP`,",
+            "unique_id: `poolController-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}-orp`,",
+            "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+            "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
+            "device: device_id,",
+            "icon: 'mdi:water-check-outline',",
+            "state_class: 'measurement',",
+            "unit_of_measurement: 'mV',",
+            "state_topic: `${ctx.vars.mqttTopic}/state/chemControllers/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}/orp/level`});"
+          ]
+        },
+        {
+          "topic": "@bind=vars.hassTopic;/sensor/@bind=vars.mqttTopic;/@bind=vars.mqttTopic;-@bind=data.name;-acid-tank-level/config",
+          "useRootTopic": false,
+          "processor": [
+            "let device_id = {",
+            " name : 'Pool Controller - njsPC',",
+            " ids: [`${ctx.vars.mqttTopic}`],",
+            " suggested_area : 'Pool'};",
+            "return JSON.stringify({ name: `${data.name} Acid Tank Level`,",
+            "unique_id: `poolController-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}-acid-tank-level`,",
+            "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+            "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
+            "device: device_id,",
+            "icon: 'mdi:propane-tank-outline',",
+            "state_class: 'measurement',",
+            "state_topic: `${ctx.vars.mqttTopic}/state/chemControllers/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}/acidTankLevel`,",
+            "value_template: '{{value_json.acidTankLevel}}'});"
+          ]
+        },
+        {
+          "topic": "@bind=vars.hassTopic;/sensor/@bind=vars.mqttTopic;/@bind=vars.mqttTopic;-@bind=data.name;-flow-alarm/config",
+          "useRootTopic": false,
+          "processor": [
+            "let device_id = {",
+            " name : 'Pool Controller - njsPC',",
+            " ids: [`${ctx.vars.mqttTopic}`],",
+            " suggested_area : 'Pool'};",
+            "return JSON.stringify({ name: `${data.name} Flow Alarm`,",
+            "unique_id: `poolController-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}-flow-alarm`,",
+            "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+            "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
+            "device: device_id,",
+            "icon: 'mdi:waves-arrow-right',",
+            "state_topic: `${ctx.vars.mqttTopic}/state/chemControllers/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}/alarms/flow`,",
+            "value_template: '{{value_json.name}}'});"
+          ]
+        }
 
+      ]
+    },
+    {
+      "name": "chlorinator",
+      "description": "Populate the chlorinators",
+      "topics": [
+        {
+          "topic": "@bind=vars.hassTopic;/sensor/@bind=vars.mqttTopic;/@bind=vars.mqttTopic;-@bind=data.name;-salt-level/config",
+          "useRootTopic": false,
+          "processor": [
+            "let device_id = {",
+            " name : 'Pool Controller - njsPC',",
+            " ids: [`${ctx.vars.mqttTopic}`],",
+            " suggested_area : 'Pool'};",
+            "return JSON.stringify({ name: `${data.name} Salt Level`,",
+            "unique_id: `poolController-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}-salt-level`,",
+            "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+            "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
+            "device: device_id,",
+            "icon: 'mdi:shaker-outline',",
+            "state_class: 'measurement',",
+            "unit_of_measurement: 'ppm',",
+            "state_topic: `${ctx.vars.mqttTopic}/state/chlorinators/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}/saltLevel`,",
+            "value_template: '{{value_json.saltLevel}}'});"
+          ]
+        },
+        {
+          "topic": "@bind=vars.hassTopic;/sensor/@bind=vars.mqttTopic;/@bind=vars.mqttTopic;-@bind=data.name;-current-output/config",
+          "useRootTopic": false,
+          "processor": [
+            "let device_id = {",
+            " name : 'Pool Controller - njsPC',",
+            " ids: [`${ctx.vars.mqttTopic}`],",
+            " suggested_area : 'Pool'};",
+            "return JSON.stringify({ name: `${data.name} Current Output`,",
+            "unique_id: `poolController-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}-current-output`,",
+            "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+            "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
+            "device: device_id,",
+            "icon: 'mdi:gauge',",
+            "state_class: 'measurement',",
+            "unit_of_measurement: '%',",
+            "state_topic: `${ctx.vars.mqttTopic}/state/chlorinators/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}/currentOutput`,",
+            "value_template: '{{value_json.currentOutput}}'});"
+          ]
+        },
+        {
+          "topic": "@bind=vars.hassTopic;/binary_sensor/@bind=vars.mqttTopic;/@bind=vars.mqttTopic;-@bind=data.name;-superchlorinate/config",
+          "useRootTopic": false,
+          "processor": [
+            "let device_id = {",
+            " name : 'Pool Controller - njsPC',",
+            " ids: [`${ctx.vars.mqttTopic}`],",
+            " suggested_area : 'Pool'};",
+            "return JSON.stringify({ name: `${data.name} Super Chlorinate`,",
+            "unique_id: `poolController-${data.id}-${data.name.replace(/\\s+/g, '').toLowerCase()}-super-chlorinate`,",
+            "availability_topic: `${ctx.vars.mqttTopic}/state/status`,",
+            "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
+            "device: device_id,",
+            "device_class: 'running',",
+            "icon: 'mdi:exclamation',",
+            "state_topic: `${ctx.vars.mqttTopic}/state/chlorinators/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}/superChlor`,",
+            "payload_on: 'on',",
+            "payload_off: 'off',",
+            "value_template: '{{value_json.superChlor}}'});"
+          ]
+        }
+      ]
+    }
   ]
 }

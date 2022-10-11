@@ -26,6 +26,7 @@ import { Message, Outbound, Inbound, Response } from './messages/Messages';
 import { InvalidEquipmentDataError, InvalidOperationError, OutboundMessageError } from '../Errors';
 import { utils } from "../Constants";
 import { sys } from "../Equipment";
+import { state } from "../State";
 import { webApp } from "../../web/Server";
 import { messagesMock } from '../../anslq25/MessagesMock'
 const extend = require("extend");
@@ -50,6 +51,7 @@ export class Connection {
             let section = `controller.comms` + (portId === 0 ? '' : portId);
             let cfg = config.getSection(section, {});
             config.removeSection(section);
+            state.equipment.messages.removeItemByCode(`rs485:${portId}:connection`);
             return cfg;
         } catch (err) { logger.error(`Error deleting aux port`) }
     }
@@ -118,6 +120,7 @@ export class Connection {
             existing = this.getPortByCfg(cfg);
             if (typeof existing !== 'undefined') {
                 existing.reconnects = 0;
+                //existing.emitPortStats();
                 if (!await existing.openAsync(cfg)) {
                     if (cfg.netConnect) return Promise.reject(new InvalidOperationError(`Unable to open Socat Connection to ${pdata.netHost}`, 'setPortAsync'));
                     return Promise.reject(new InvalidOperationError(`Unable to open RS485 port ${pdata.rs485Port}`, 'setPortAsync'));
@@ -289,6 +292,7 @@ export class RS485Port {
         });
 
     }
+    public get name(): string { return this.portId === 0 ? 'Primary' : `Aux${this.portId}` }
     public isRTS: boolean = true;
     public reconnects: number = 0;
     public emitter: EventEmitter;
@@ -315,8 +319,12 @@ export class RS485Port {
     public async openAsync(cfg?: any): Promise<boolean> {
         if (this.isOpen) await this.closeAsync();
         if (typeof cfg !== 'undefined') this._cfg = cfg;
-        if (!this._cfg.enabled) return true;
-        if (this._cfg.netConnect) {
+        if (!this._cfg.enabled) {
+            this.emitPortStats();
+            state.equipment.messages.removeItemByCode(`rs485:${this.portId}:connection`);
+            return true;
+        }
+        if (this._cfg.netConnect && !this._cfg.mockPort) {
             let sock: net.Socket = this._port as net.Socket;
             if (typeof this._port !== 'undefined' && this.isOpen) {
                 // This used to try to reconnect and recreate events even though the socket was already connected.  This resulted in
@@ -326,7 +334,13 @@ export class RS485Port {
             }
             else if (typeof this._port !== 'undefined') {
                 // We need to kill the existing connection by ending it.
-                this._port.end();
+                let port = this._port as net.Socket;
+                await new Promise<boolean>((resolve, _) => {
+                    port.end(() => {
+                        resolve(true);
+                    });
+                });
+                port.destroy();
             }
             let nc: net.Socket = new net.Socket();
             nc.once('connect', () => { logger.info(`Net connect (socat) ${this._cfg.portId} connected to: ${this._cfg.netHost}:${this._cfg.netPort}`); }); // Socket is opened but not yet ready.
@@ -340,6 +354,7 @@ export class RS485Port {
                 });
                 this.emitPortStats();
                 this.processPackets(); // if any new packets have been added to queue, process them.
+                state.equipment.messages.removeItemByCode(`rs485:${this.portId}:connection`);
             });
             nc.once('close', (p) => {
                 this.isOpen = false;
@@ -361,7 +376,7 @@ export class RS485Port {
                         } catch (err) { }
                     }, this._cfg.inactivityRetry * 1000);
                 }
-                logger.info(`Net connect (socat) ${this._cfg.portId} closed ${p === true ? 'due to error' : ''}: ${this._cfg.netHost}:${this._cfg.netPort}`);
+                logger.info(`Net connect (socat) ${this._cfg.portId} closed ${p === true ? 'due to error'  : ''}: ${this._cfg.netHost}:${this._cfg.netPort}`);
             });
             nc.on('end', () => { // Happens when the other end of the socket closes.
                 this.isOpen = false;
@@ -401,6 +416,8 @@ export class RS485Port {
                         this.connTimer = setTimeout(async () => { try { await this.openAsync(); } catch (err) { } }, this._cfg.inactivityRetry * 1000);
                     }
                     else logger.error(`Net connect (socat) connection ${this.portId} error: ${err}.  Never retrying -- No retry time set`);
+                    state.equipment.messages.setMessageByCode(`rs485:${this.portId}:connection`, 'error', `${this.name} RS485 port disconnected`);
+
                 });
                 nc.connect(this._cfg.netPort, this._cfg.netHost, () => {
                     if (typeof this._port !== 'undefined') logger.warn(`Net connect (socat) ${this.portId} recovered from lost connection.`);
@@ -449,8 +466,14 @@ export class RS485Port {
                         this.isOpen = false;
                         logger.error(`Error opening port ${this.portId}: ${err.message}. ${this._cfg.inactivityRetry > 0 && !this.mockPort ? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; (fwiw, inactivityRetry set to ${this._cfg.inactivityRetry})`}`);
                         resolve(false);
+                        state.equipment.messages.setMessageByCode(`rs485:${this.portId}:connection`, 'error', `${this.name} RS485 port disconnected`);
                     }
-                    else resolve(true);
+                    else {
+                        state.equipment.messages.removeItemByCode(`rs485:${this.portId}:connection`);
+                        resolve(true);
+                    }
+                    this.emitPortStats();
+
                 });
                 // The event processors below should not resolve or reject the promise.  This is the misnomer with the stupid javascript promise
                 // structure when dealing with serial ports.  The original promise will be either accepted or rejected above with the open method.  These 
@@ -490,6 +513,7 @@ export class RS485Port {
                     this.resetConnTimer();
                     logger.error(`Serial Port ${this.portId}: An error occurred : ${this._cfg.rs485Port}: ${JSON.stringify(err)}`);
                     this.emitPortStats();
+
                 });
             });
         }
@@ -499,8 +523,8 @@ export class RS485Port {
             if (this.closing) return false;
             this.closing = true;
             if (this.connTimer) clearTimeout(this.connTimer);
-            if (typeof this._port !== 'undefined') {
-                let success = await new Promise<boolean>((resolve, reject) => {
+            if (typeof this._port !== 'undefined' && this.isOpen) {
+                let success = await new Promise<boolean>(async (resolve, reject) => {
                     if (this._cfg.netConnect) {
                         this._port.removeAllListeners();
                         this._port.once('error', (err) => {
@@ -532,7 +556,18 @@ export class RS485Port {
                         logger.info(`Net connect (socat) ${this.portId} request close: ${this._cfg.netHost}:${this._cfg.netPort}`);
                         // Unfortunately the end call does not actually work in node.  It will simply not return anything so we are going to
                         // just call destroy and forcibly close it.
-                        this._port.destroy();
+                        let port = this._port as net.Socket;
+                        await new Promise<boolean>((resfin, _) => {
+                            port.end(() => {
+                                logger.info(`Net connect (socat) ${this.portId} sent FIN packet: ${this._cfg.netHost}:${this._cfg.netPort}`);
+                                resfin(true);
+                            });
+                        });
+                        
+                        if (typeof this._port !== 'undefined') {
+                            logger.info(`Net connect (socat) destroy socket: ${this._cfg.netHost}:${this._cfg.netPort}`);
+                            this._port.destroy();
+                        }
                     }
                     else if (!(this._port instanceof net.Socket) && typeof this._port.close === 'function') {
                         this._port.close((err) => {

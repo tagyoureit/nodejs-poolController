@@ -59,11 +59,15 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                 rejectUnauthorized: !baseOpts.selfSignedCertificate,
                 url
             }
+            this.setWillOptions(opts);
             this.client = connect(url, opts);
             this.client.on('connect', async () => {
                 try {
                     logger.info(`MQTT connected to ${url}`);
                     await this.subscribe();
+                    // make sure status is up to date immediately
+                    // especially in the case of a re-connect
+                    this.bindEvent("controller", state.controllerState);
                 } catch (err) { logger.error(err); }
             });
             this.client.on('reconnect', () => {
@@ -74,6 +78,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             });
             this.client.on('error', (error) => {
                 logger.error(`MQTT error ${error}`)
+                this.clearWillState();
             });
         } catch (err) { logger.error(`Error initializing MQTT client ${this.cfg.name}: ${err}`); }
     }
@@ -211,6 +216,41 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             }
         }
         return toks;
+    }
+    private setWillOptions = (connectOpts) => {
+        const baseOpts = extend(true, { headers: {} }, this.cfg.options, this.context.options);
+
+        if (baseOpts.willTopic !== 'undefined') {
+          const rootTopic = this.rootTopic();
+          const topic = `${rootTopic}/${baseOpts.willTopic}`;
+          const publishOptions = {
+              retain: typeof baseOpts.retain !== 'undefined' ? baseOpts.retain : true,
+              qos: typeof baseOpts.qos !== 'undefined' ? baseOpts.qos : 2
+          };
+
+          connectOpts.will = {
+              topic: topic,
+              payload: baseOpts.willPayload,
+              retain: publishOptions.retain,
+              qos: publishOptions.qos
+          };
+        }
+    }
+    private clearWillState() {
+        if (typeof this.client.options.will === 'undefined')  return;
+        let willTopic = this.client.options.will.topic;
+        let willPayload = this.client.options.will.payload;
+
+        if (typeof this.events !== 'undefined') this.events.forEach(evt => {
+            if (typeof evt.topics !== 'undefined') evt.topics.forEach(t => {
+                if (typeof t.lastSent !== 'undefined') {
+                    let lm = t.lastSent.find(elem => elem.topic === willTopic);
+                    if (typeof lm !== 'undefined') {
+                        lm.message = willPayload.toString();
+                    }
+                }
+            });
+        });
     }
     public rootTopic = () => {
         let toks = {};

@@ -22,7 +22,7 @@ import { conn } from '../comms/Comms';
 import { Message, Outbound, Protocol, Response } from '../comms/messages/Messages';
 import { Timestamp, utils } from '../Constants';
 import { Body, ChemController, ConfigVersion, CustomName, EggTimer, Feature, Heater, ICircuit, LightGroup, LightGroupCircuit, Options, PoolSystem, Pump, Schedule, sys } from '../Equipment';
-import { EquipmentTimeoutError, InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError } from '../Errors';
+import { InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError } from '../Errors';
 import { ncp } from "../nixie/Nixie";
 import { BodyTempState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, state } from '../State';
 import { BodyCommands, byteValueMap, ChemControllerCommands, ChlorinatorCommands, CircuitCommands, ConfigQueue, ConfigRequest, EquipmentIdRange, FeatureCommands, HeaterCommands, PumpCommands, ScheduleCommands, SystemBoard, SystemCommands } from './SystemBoard';
@@ -610,9 +610,9 @@ export class TouchConfigQueue extends ConfigQueue {
                 })
                 .catch((err) => {
                     logger.error(`Error sending configuration request message: ${err.message};`);
-                    setTimeout(()=>{self.processNext(out);}, 50);
+                    setTimeout(() => { self.processNext(out); }, 50);
                 })
-        
+
         } else {
             // Now that we are done check the configuration a final time.  If we have anything outstanding
             // it will get picked up.
@@ -1907,6 +1907,7 @@ class TouchPumpCommands extends PumpCommands {
             spump.emitData('pumpExt', spump.getExtended());
         }
     }
+
     public async setPumpAsync(data: any): Promise<Pump> {
         // Rules regarding Pumps in *Touch
         // In *Touch there are basically three classifications of pumps. These include those under control of RS485, Dual Speed, and Single Speed.
@@ -1986,7 +1987,42 @@ class TouchPumpCommands extends PumpCommands {
             // Need to do a check here if we are clearing out the circuits; id data.circuits === []
             // extend will keep the original array
             let bClearPumpCircuits = typeof data.circuits !== 'undefined' && data.circuits.length === 0;
-            if (!isAdd) data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
+            // RKS: 09-14-22 - This is fundamentally wrong.  This ensures that no circuit can be deleted
+            // from the pump.
+            if (!isAdd) {
+                data.address = typeof data.address !== 'undefined' ? data.address : pump.address;
+                data.backgroundCircuit = typeof data.backgroundCircuit !== 'undefined' ? data.backgroundCircuit : pump.backgroundCircuit;
+                data.backwashFlow = typeof data.backwashFlow !== 'undefined' ? data.backwashFlow : pump.backwashFlow;
+                data.backwashTime = typeof data.backwashTime !== 'undefined' ? data.backwashTime : pump.backwashTime;
+                data.body = typeof data.body !== 'undefined' ? data.body : pump.body;
+                data.filterSize = typeof data.filterSize !== 'undefined' ? data.filterSize : pump.filterSize;
+                data.flowStepSize = typeof data.flowStepSize !== 'undefined' ? data.flowStepSize : pump.flowStepSize
+                data.manualFilterGPM = typeof data.manualFilterGPM !== 'undefined' ? data.manualFilterGPM : pump.manualFilterGPM;
+                data.master = 0;
+                data.maxFlow = typeof data.maxFlow !== 'undefined' ? data.maxFlow : pump.maxFlow;
+                data.maxPressureIncrease = typeof data.maxPressureIncrease ? data.maxPressureIncrease : pump.maxPressureIncrease;
+                data.maxSpeed = typeof data.maxSpeed !== 'undefined' ? data.maxSpeed : pump.maxSpeed;
+                data.maxSystemTime = typeof data.maxSystemTime !== 'undefined' ? data.maxSystemTime : pump.maxSystemTime;
+                data.minFlow = typeof data.minFlow !== 'undefined' ? data.minFlow : pump.minFlow;
+                data.minSpeed = typeof data.minSpeed !== 'undefined' ? data.minSpeed : pump.minSpeed;
+                data.model = typeof data.model !== 'undefined' ? data.model : pump.model;
+                data.name = typeof data.name !== 'undefined' ? data.name : pump.name;
+                data.portId = typeof data.portId !== 'undefined' ? data.portId : pump.portId || 0;
+                data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? data.primingSpeed : pump.primingSpeed;
+                data.primingTime = typeof data.primingTime !== 'undefined' ? data.primingTime : pump.primingTime;
+                data.rinseTime = typeof data.rinseTime !== 'undefined' ? data.rinseTime : pump.rinseTime;
+                data.speedStepSize = typeof data.speedStepSize !== 'undefined' ? data.speedStepSize : pump.speedStepSize;
+                data.turnovers = typeof data.turnovers !== 'undefined' ? data.turnovers : pump.turnovers;
+                data.vacuumFlow = typeof data.vacuumFlow !== 'undefined' ? data.vacuumFlow : pump.vacuumFlow;
+                data.vacuumTime = typeof data.vacuumTime !== 'undefined' ? data.vacuumTime : pump.vacuumTime;
+                if (typeof data.circuits !== 'undefined') {
+                    let circs = extend(true, [], data.circuits);
+                    data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
+                    data.circuits = circs;
+                }
+                else
+                    data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
+            }
             else data = extend(false, {}, data, { id: id, type: ntype });
             if (!isAdd && bClearPumpCircuits) data.circuits = [];
             data.name = data.name || pump.name || type.desc;
@@ -2075,6 +2111,7 @@ class TouchPumpCommands extends PumpCommands {
                     let arrCircuits = [];
                     // Below is a very strange mess that goofs up the circuit settings.
                     //{id:1, circuits:[{speed:1750, units:{val:0}, id:1, circuit:6}, {speed:2100, units:{val:0}, id:2, circuit:6}]}
+                    let ubyte = 0;
                     for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
                         // RKS: This notion of always returning the max number of circuits was misguided.  It leaves gaps in the circuit definitions and makes the pump
                         // layouts difficult when there are a variety of supported circuits.  For instance with SF pumps you only get 4.
@@ -2097,6 +2134,7 @@ class TouchPumpCommands extends PumpCommands {
                             outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
                             outc.setPayloadByte(i + 21, speed % 256);
                             c.speed = speed;
+                            ubyte |= (1 << (i - 1));
                         }
                         else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
                             outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
@@ -2107,10 +2145,12 @@ class TouchPumpCommands extends PumpCommands {
                         if (arrCircuits.includes(c.circuit)) return Promise.reject(new InvalidEquipmentDataError(`Configuration for pump ${pump.name} is not correct circuit #${c.circuit} as included more than once. ${JSON.stringify(c)}`, 'Pump', data))
                         arrCircuits.push(c.circuit);
                     }
+                    if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
                 }
                 else if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits === 'undefined') { // This pump type supports circuits and the payload did not contain them.
                     // Copy the data from the circuits array.  That way when we call pump.set to set the data back it will be persisted correctly.
                     data.circuits = extend(true, {}, pump.circuits.get());
+                    let ubyte = 0;
                     for (let i = 1; i <= data.circuits.length; i++) data.circuits[i].id = i;
                     for (let i = 1; i <= pump.circuits.length && i <= type.maxCircuits; i++) {
                         let c = pump.circuits.getItemByIndex(i - 1);
@@ -2129,12 +2169,41 @@ class TouchPumpCommands extends PumpCommands {
                         if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
                             outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
                             outc.setPayloadByte(i + 21, speed % 256);
+                            ubyte |= (1 << (i - 1));
                         }
                         else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
                             outc.setPayloadByte((i * 2) + 4, flow); // Set to gpm
                         }
                     }
+                    if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
+
                 }
+                /*             return new Promise<Pump>((resolve, reject) => {
+                                outc.onComplete = (err, msg) => {
+                                    if (err) reject(err);
+                                    else {
+                                        pump = sys.pumps.getItemById(id, true);
+                                        // RKS: 05-20-22 Boooh to this if the payload does not include its
+                                        // circuits we have just destroyed the pump definition.  So I added code to
+                                        // make sure that the data is complete.
+                                        pump.set(data); // Sets all the data back to the pump.
+                                        let spump = state.pumps.getItemById(id, true);
+                                        spump.name = pump.name;
+                                        spump.type = pump.type;
+                                        spump.emitEquipmentChange();
+                                        resolve(pump);
+                                        const pumpConfigRequest = Outbound.create({
+                                            action: 216,
+                                            payload: [pump.id],
+                                            retries: 2,
+                                            response: true
+                                        });
+                                        conn.queueSendMessage(pumpConfigRequest);
+                                    }
+                                };
+                                conn.queueSendMessage(outc);
+                            }); */
+
 
                 await outc.sendAsync();
                 pump = sys.pumps.getItemById(id, true);
@@ -2156,6 +2225,7 @@ class TouchPumpCommands extends PumpCommands {
                 return pump;
             }
         }
+
         catch (err) {
             logger.error(`Error setting pump: ${err.message}`);
             return Promise.reject(err);
