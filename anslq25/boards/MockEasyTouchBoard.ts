@@ -1,8 +1,8 @@
 import { logger } from "../../logger/Logger";
 import { Inbound, Outbound, Protocol } from "../../controller/comms/messages/Messages";
-import { MockSystemCommands, MockSystemBoard, MockCircuitCommands, MockScheduleCommands, MockHeaterCommands, MockValveCommands, MockRemoteCommands } from "./MockSystemBoard";
+import { MockSystemCommands, MockSystemBoard, MockCircuitCommands, MockScheduleCommands, MockHeaterCommands, MockValveCommands, MockRemoteCommands, MockPumpCommands } from "./MockSystemBoard";
 import { BodyTempState, state } from "../../controller/State";
-import { ControllerType, Heater, PoolSystem, sys } from "../../controller/Equipment";
+import { ControllerType, Heater, PoolSystem, PumpCircuit, sys } from "../../controller/Equipment";
 import { byteValueMap } from "../../controller/boards/SystemBoard";
 import { conn } from "../../controller/comms/Comms";
 import { Timestamp, utils } from "../../controller/Constants";
@@ -29,12 +29,20 @@ export class MockEasyTouch extends MockSystemBoard {
   public heaters: EasyTouchMockHeaterCommands = new EasyTouchMockHeaterCommands(this);
   public valves: EasyTouchMockValveCommands = new EasyTouchMockValveCommands(this);
   public remotes: EasyTouchMockRemoteCommands = new EasyTouchMockRemoteCommands(this);
+  public pumps: EasyTouchMockPumpCommands = new EasyTouchMockPumpCommands(this);
+
 }
 
 class EasyTouchMockSystemCommands extends MockSystemCommands {
-  public async processDateTimeAsync(msg: Inbound, response: Outbound) {
+  public async processDateTimeAsync(msg: Inbound) {
     try {
-      response.action = 5;
+      let response: Outbound = Outbound.create({
+        action: 5,
+        portId: msg.portId,
+        protocol: msg.protocol,
+        dest: msg.source,
+        source: 16 //msg.dest
+      });
       response.appendPayloadBytes(0, 7);
       response.setPayloadByte(0, state.time.hours);
       response.setPayloadByte(1, state.time.minutes);
@@ -45,14 +53,21 @@ class EasyTouchMockSystemCommands extends MockSystemCommands {
       response.setPayloadByte(6, sys.general.options.adjustDST ? 1 : 0);
       msg.isProcessed = true;
       await sys.anslq25Board.sendAsync(response);
+      //conn.queueSendMessage(response);
     }
     catch (err) {
       logger.error(`ANSLQ25 error processing date/time.  ${err.message}`);
     }
   }
-  public async processCustomNameAsync(msg: Inbound, response: Outbound): Promise<void> {
+  public async processCustomNameAsync(msg: Inbound): Promise<void> {
     try {
-      response.action = 10;
+      let response: Outbound = Outbound.create({
+        action: 10,
+        portId: msg.portId,
+        protocol: msg.protocol,
+        dest: msg.source,
+        source: 16 //msg.dest
+      });
       response.appendPayloadByte(msg.payload[0]);
       let cname = sys.customNames.getItemById(msg.payload[0]).name;
       if (typeof cname === 'undefined') response.appendPayloadString(`CustomName${msg.payload[0]}`, 11);
@@ -65,10 +80,16 @@ class EasyTouchMockSystemCommands extends MockSystemCommands {
       logger.error(`ANSLQ25 error processing custom name ${msg.payload[0]}.  ${err.message}`);
     }
   }
-  public async processSettingsAsync(msg: Inbound, response: Outbound): Promise<void> {
+  public async processSettingsAsync(msg: Inbound): Promise<void> {
     try {
       // 40/168/232
-      response.action = 40;
+      let response: Outbound = Outbound.create({
+        action: 40,
+        portId: msg.portId,
+        protocol: msg.protocol,
+        dest: msg.source,
+        source: 16 //msg.dest
+      });
       response.appendPayloadBytes(0, 10);
       let chem = sys.chemControllers.getItemByAddress(144);
       if (chem.isActive) response.setPayloadByte(3, 0x01, 0);
@@ -81,14 +102,23 @@ class EasyTouchMockSystemCommands extends MockSystemCommands {
       logger.error(`ANSLQ25 error processing settings.  ${err.message}`);
     }
   }
-  public sendAck(inbound: Inbound, response: Outbound) {
+  public async sendAck(msg: Inbound) {
     /*
     *  Per matching rules:
     *  if (msgIn.source === msgOut.dest && msgIn.payload[0] === msgOut.action) return true;
     */
-    response.action = 1;
-    response.appendPayloadByte(inbound.action);
-    return response;
+    let response: Outbound = Outbound.create({
+      action: 1,
+      portId: msg.portId,
+      protocol: msg.protocol,
+      dest: msg.source,
+      source: 16 //msg.dest
+    });
+
+    response.appendPayloadByte(msg.action);
+    msg.isProcessed = true;
+    await sys.anslq25Board.sendAsync(response);
+    // conn.queueSendMessage(response);
   }
   public async sendStatusAsync() {
     try {
@@ -103,7 +133,11 @@ class EasyTouchMockSystemCommands extends MockSystemCommands {
       console.log(`send status command`);
       msg.appendPayloadBytes(0, 29);
       // to do: reverse engineer logic for model types
-      msg.setPayloadByte(27, 2); // model1
+      // sys.equipment.model;
+      // let mod = sys.board.valueMaps.expansionBoards.get(sys.equipment.modules.getItemById(0).type);
+      let mt = sys.equipment.modules.getItemById(0);
+      let model1 = mt.type
+      msg.setPayloadByte(27, model1); // model1
       msg.setPayloadByte(28, 13); // model2
 
       // set time
@@ -209,19 +243,37 @@ class EasyTouchMockSystemCommands extends MockSystemCommands {
 }
 
 class EasyTouchMockCircuitCommands extends MockCircuitCommands {
-  public async processCircuitAsync(msg: Inbound, response: Outbound) {
+  public async processCircuitAsync(msg: Inbound) {
     // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]
     // set circuit 17 to function 14 and name 209
     // response: [255,0,255][165,33,34,16,1,1][139][1,133]
     // request for circuit 2: [165,33,16,33,203,1],[2],[1,197]]
 
     try {
-      response.action = 11;
+      let response: Outbound = Outbound.create({
+        action: 11,
+        portId: msg.portId,
+        protocol: msg.protocol,
+        dest: msg.source,
+        source: 16 //msg.dest
+      });
       let circuit = sys.circuits.getInterfaceById(msg.payload[0]);
       response.appendPayloadBytes(0, 5);
       response.setPayloadByte(0, circuit.id);
-      response.setPayloadByte(1, circuit.type | (circuit.freeze ? 64 : 0), 0);
-      response.setPayloadByte(2, circuit.nameId, 53);
+      if (circuit.id === 1) {
+        response.setPayloadByte(1, 1 | (circuit.freeze ? 64 : 0), 0);
+        response.setPayloadByte(2, 72, 53);
+
+      }
+      else if (circuit.id === 6) {
+        response.setPayloadByte(1, 2 | (circuit.freeze ? 64 : 0), 0);
+        response.setPayloadByte(2, 61, 53);
+
+      }
+      else {
+        response.setPayloadByte(1, circuit.type | (circuit.freeze ? 64 : 0), 0);
+        response.setPayloadByte(2, circuit.nameId, 53);
+      }
       msg.isProcessed = true;
       await sys.anslq25Board.sendAsync(response);
     }
@@ -229,11 +281,17 @@ class EasyTouchMockCircuitCommands extends MockCircuitCommands {
       logger.error(`ANSLQ25 error processing circuit ${msg.payload[0]}.  ${err.message}`);
     }
   };
-  public async processLightGroupAsync(msg: Inbound, response: Outbound) {
+  public async processLightGroupAsync(msg: Inbound) {
     try {
       // 39/167/231
       // todo - when 25 packet length vs 32.  May need to add.
-      response.action = 39;
+      let response: Outbound = Outbound.create({
+        action: 39,
+        portId: msg.portId,
+        protocol: msg.protocol,
+        dest: msg.source,
+        source: 16 //msg.dest
+      });
       let lg = sys.lightGroups.getItemById(sys.board.equipmentIds.circuitGroups.start);
       response.appendPayloadBytes(0, 32);
       for (let byte = 0; byte <= 32; byte = byte + 4) {
@@ -241,7 +299,7 @@ class EasyTouchMockCircuitCommands extends MockCircuitCommands {
         response.setPayloadByte(byte, circuit.id, 0);
         let pair = byte + 1;
         const lgCircuit = lg.circuits.getItemByCircuitId(circuit.id);
-        response.setPayloadByte(pair, (lgCircuit.position - 1) << 4, 0);
+        response.setPayloadByte(pair, Math.max((lgCircuit.position - 1), 0), 0);
         response.setPayloadByte(pair, response.payload[pair] | lgCircuit.color, 0);
         response.setPayloadByte(byte + 2, lgCircuit.swimDelay << 1, 0);
       }
@@ -255,12 +313,18 @@ class EasyTouchMockCircuitCommands extends MockCircuitCommands {
 }
 
 export class EasyTouchMockScheduleCommands extends MockScheduleCommands {
-  public async processScheduleAsync(msg: Inbound, response: Outbound) {
+  public async processScheduleAsync(msg: Inbound) {
     // Sample packet
     // Request: 165,33,16,33,209,1,7,1,202
     // Response: [165,33,15,16,17,7][6,12,25,0,6,30,0][1,76]
     try {
-      response.action = 17;
+      let response: Outbound = Outbound.create({
+        action: 17,
+        portId: msg.portId,
+        protocol: msg.protocol,
+        dest: msg.source,
+        source: 16 //msg.dest
+      });
       response.appendPayloadBytes(0, 7);
       let eggTimer = sys.eggTimers.getItemById(msg.payload[0]);
       let schedule = sys.schedules.getItemById(msg.payload[0]);
@@ -290,7 +354,7 @@ export class EasyTouchMockScheduleCommands extends MockScheduleCommands {
 }
 
 export class EasyTouchMockHeaterCommands extends MockHeaterCommands {
-  public async processHeatModesAsync(msg: Inbound, response: Outbound) {
+  public async processHeatModesAsync(msg: Inbound) {
     // IntelliTouch only.  Heat status
     // [165,x,15,16,8,13],[75,75,64,87,101,11,0, 0 ,62 ,0 ,0 ,0 ,0] ,[2,190]
     // Heat Modes
@@ -316,8 +380,14 @@ export class EasyTouchMockHeaterCommands extends MockHeaterCommands {
     // is for the remaining 2 bodies.  The second half of this message mirrors the values for the second 136 message.
 
     try {
+      let response: Outbound = Outbound.create({
+        action: 8,
+        portId: msg.portId,
+        protocol: msg.protocol,
+        dest: msg.source,
+        source: 16 //msg.dest
+      });
       response.appendPayloadBytes(0, 13);
-      response.action = 8;
 
       const tbody1: BodyTempState = state.temps.bodies.getItemById(1);
       const tbody2: BodyTempState = state.temps.bodies.getItemById(2);
@@ -344,12 +414,18 @@ export class EasyTouchMockHeaterCommands extends MockHeaterCommands {
   };
 
 
-  public async processHeaterConfigAsync(msg: Inbound, response: Outbound) {
+  public async processHeaterConfigAsync(msg: Inbound) {
     // 34/162/226
 
     try {
+      let response: Outbound = Outbound.create({
+        action: 34,
+        portId: msg.portId,
+        protocol: msg.protocol,
+        dest: msg.source,
+        source: 16 //msg.dest
+      });
       response.appendPayloadBytes(0, 3);
-      response.action = 34;
       const tbody: BodyTempState = state.temps.bodies.getItemById(1, true);
       if (tbody.heaterOptions.hybrid > 0) {
         response.setPayloadByte(1, 0x10);
@@ -379,11 +455,17 @@ export class EasyTouchMockHeaterCommands extends MockHeaterCommands {
 }
 
 export class EasyTouchMockValveCommands extends MockValveCommands {
-  public async processValveAssignmentsAsync(msg: Inbound, response: Outbound) {
+  public async processValveAssignmentsAsync(msg: Inbound) {
     try {
       // 29/157/221
+      let response: Outbound = Outbound.create({
+        action: 29,
+        portId: msg.portId,
+        protocol: msg.protocol,
+        dest: msg.source,
+        source: 16 //msg.dest
+      });
       response.appendPayloadBytes(0, 24);
-      response.action = 29;
       response.setPayloadByte(1, 2);  //constant
       for (let ndx = 4, id = 1; id <= sys.equipment.maxValves; ndx++) {
         let valve = sys.valves.getItemById(id);
@@ -397,11 +479,17 @@ export class EasyTouchMockValveCommands extends MockValveCommands {
       logger.error(`ANSLQ25 error processing valve assignment packet.  ${err.message}`);
     }
   };
-  public async processValveOptionsAsync(msg: Inbound, response: Outbound) {
+  public async processValveOptionsAsync(msg: Inbound) {
     try {
       // 35/163/227
+      let response: Outbound = Outbound.create({
+        action: 35,
+        portId: msg.portId,
+        protocol: msg.protocol,
+        dest: msg.source,
+        source: 16 //msg.dest
+      });
       response.appendPayloadBytes(0, 2);
-      response.action = 35;
       response.setPayloadByte(0, (sys.general.options.pumpDelay ? 128 : 0) | 4, 4);
       msg.isProcessed = true;
       await sys.anslq25Board.sendAsync(response);
@@ -413,10 +501,17 @@ export class EasyTouchMockValveCommands extends MockValveCommands {
 }
 
 export class EasyTouchMockRemoteCommands extends MockRemoteCommands {
-  public async processIS4IS10RemoteAsync(msg: Inbound, response: Outbound) {
+  public async processIS4IS10RemoteAsync(msg: Inbound) {
     try {
       // 32/160/224
-      response.action = 32;
+      let response: Outbound = Outbound.create({
+        action: 32,
+        portId: msg.portId,
+        protocol: msg.protocol,
+        dest: msg.source,
+        source: 16 //msg.dest
+      });
+
       response.appendPayloadBytes(0, 11);
       console.log(sys.remotes.length);
       for (let i = 0; i < sys.remotes.length; i++) {
@@ -432,19 +527,25 @@ export class EasyTouchMockRemoteCommands extends MockRemoteCommands {
         response.setPayloadByte(7, remote.button7, 0);
         response.setPayloadByte(8, remote.button8, 0);
         response.setPayloadByte(9, remote.button9, 0);
-        response.setPayloadByte(10, remote.button10, 0);
-        await sys.anslq25Board.sendAsync(response);
+        response.setPayloadByte(10, remote.button10, 0);  
       }
       msg.isProcessed = true;
+      await sys.anslq25Board.sendAsync(response);
     }
     catch (err) {
       logger.error(`ANSLQ25 error processing IS4/IS10 packet.  ${err.message}`);
     }
   };
-  public async processQuickTouchRemoteAsync(msg: Inbound, response: Outbound) {
+  public async processQuickTouchRemoteAsync(msg: Inbound) {
     try {
       // 33/161/225
-      response.action = 33;
+      let response: Outbound = Outbound.create({
+        action: 33,
+        portId: msg.portId,
+        protocol: msg.protocol,
+        dest: msg.source,
+        source: 16 //msg.dest
+      });
       response.appendPayloadBytes(0, 4);
       let remote = sys.remotes.getItemById(6);
       response.setPayloadByte(0, remote.button1, 0);
@@ -458,10 +559,16 @@ export class EasyTouchMockRemoteCommands extends MockRemoteCommands {
       logger.error(`ANSLQ25 error processing quicktouch remote packet.  ${err.message}`);
     }
   };
-  public async processSpaCommandRemoteAsync(msg: Inbound, response: Outbound) {
+  public async processSpaCommandRemoteAsync(msg: Inbound) {
     try {
       // 22/150/214
-      response.action = 22;
+      let response: Outbound = Outbound.create({
+        action: 22,
+        portId: msg.portId,
+        protocol: msg.protocol,
+        dest: msg.source,
+        source: 16 //msg.dest
+      });
       response.appendPayloadBytes(0, 16);
       let remote = sys.remotes.getItemById(7);
       response.setPayloadByte(5, remote.pumpId, 0);
@@ -474,3 +581,116 @@ export class EasyTouchMockRemoteCommands extends MockRemoteCommands {
     }
   };
 }
+
+export class EasyTouchMockPumpCommands extends MockPumpCommands {
+  public async processPumpConfigAsync(msg: Inbound) {
+    try {
+      // 24/152/212 and 27/155/215(?)
+      // [255, 0, 255], [165, 33, 15, 16, 27, 46], [2, 6, 15, 2, 0, 1, 29, 11, 35, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 0, 30, 30, 55, 5, 10, 60, 5, 1, 50, 0, 10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [3, 41]
+      let response: Outbound = Outbound.create({
+        action: 24,
+        portId: msg.portId,
+        protocol: msg.protocol,
+        dest: msg.source,
+        source: 16 //msg.dest
+      });
+      response.appendPayloadBytes(0, 46);
+      let pump = sys.pumps.getItemById(msg.payload[0]);
+      response.setPayloadByte(0, pump.id);
+      response.setPayloadByte(1, pump.type, 0);
+      switch (pump.type) {
+        case 0: //none
+          {
+            break;
+          }
+        case 1: // vf
+          {
+            let pumpCircuits = pump.circuits.get();
+            for (let circuitId = 1; circuitId <= sys.board.valueMaps.pumpTypes.get(pump.type).maxCircuits; circuitId++) {
+              let pumpCircuit: PumpCircuit = pumpCircuits[circuitId];
+              if (pumpCircuit.circuit > 0) {
+                response.setPayloadByte(circuitId * 2 + 3, pumpCircuit.circuit, 0);
+                response.setPayloadByte(circuitId * 2 + 4, pumpCircuit.flow, 30);
+              }
+              response.setPayloadByte(1, pump.backgroundCircuit, 0);
+              response.setPayloadByte(2, pump.filterSize / 1000, 0);
+              response.setPayloadByte(3, pump.turnovers, 0);
+              response.setPayloadByte(21, pump.manualFilterGPM, 0);
+              response.setPayloadByte(22, pump.primingSpeed, 0);
+              response.setPayloadByte(23, pump.primingTime, 0);
+              response.setPayloadByte(23, pump.maxSystemTime << 4, 0);
+              response.setPayloadByte(24, pump.maxPressureIncrease, 0);
+              response.setPayloadByte(25, pump.backwashFlow, 0);
+              response.setPayloadByte(26, pump.backwashTime, 0);
+              response.setPayloadByte(27, pump.rinseTime, 0);
+              response.setPayloadByte(28, pump.vacuumFlow, 0);
+              response.setPayloadByte(30, pump.vacuumTime, 0);
+
+            }
+            break;
+          }
+        case 64: // vsf
+          {
+            let pumpCircuits = pump.circuits.get();
+            for (let circuitId = 1; circuitId <= sys.board.valueMaps.pumpTypes.get(pump.type).maxCircuits; circuitId++) {
+              let pumpCircuit: PumpCircuit = pumpCircuits[circuitId];
+              if (pumpCircuit.circuit > 0) {
+                response.setPayloadByte(4, pumpCircuit.units << circuitId - 1 | response.payload[4], response.payload[4]);
+                if (pumpCircuit.units) {
+                  response.setPayloadByte(circuitId * 2 + 4, pumpCircuit.flow, response.payload[4]);
+
+                }
+                else {
+                  response.setPayloadByte(circuitId * 2 + 4, pumpCircuit.speed - (pumpCircuit.speed % 256) / 256, 0);
+                  response.setPayloadByte(circuitId + 21, pumpCircuit.speed % 256, 0);
+                }
+              }
+            }
+            break;
+          }
+        case 128: // vs
+        case 169: //vs+svrs
+          {
+            let pumpCircuits = pump.circuits.get();
+            for (let circuitId = 1; circuitId <= sys.board.valueMaps.pumpTypes.get(pump.type).maxCircuits; circuitId++) {
+              let pumpCircuit: PumpCircuit = pumpCircuits[circuitId];
+              if (pumpCircuit.circuit > 0) {
+
+                response.setPayloadByte(circuitId * 2 + 4, pumpCircuit.speed - (pumpCircuit.speed % 256) / 256, 0);
+                response.setPayloadByte(circuitId + 21, pumpCircuit.speed % 256, 0);
+              }
+            }
+            break;
+          }
+      }
+      msg.isProcessed = true;
+      await sys.anslq25Board.sendAsync(response);
+    }
+    catch (err) {
+      logger.error(`ANSLQ25 error processing spa command remote packet.  ${err.message}`);
+    }
+  };
+  public async processHighSpeedCircuitsAsync(msg: Inbound) {
+    try {
+      // 30/158/222
+      let response: Outbound = Outbound.create({
+        action: 30,
+        portId: msg.portId,
+        protocol: msg.protocol,
+        dest: msg.source,
+        source: 16 //msg.dest
+      });
+      response.appendPayloadBytes(0, 16);
+      let pump = sys.pumps.getDualSpeed();
+      let pumpCircuits = pump.circuits.get();
+      for (let i = 1; i <= pumpCircuits.length; i++) {
+        response.setPayloadByte(i, pumpCircuits[i].circuit, 0);
+      }
+      msg.isProcessed = true;
+      await sys.anslq25Board.sendAsync(response);
+    }
+    catch (err) {
+      logger.error(`ANSLQ25 error processing spa command remote packet.  ${err.message}`);
+    }
+  };
+};

@@ -1,11 +1,12 @@
 import { sys } from "../../controller/Equipment";
 import { PumpState, state } from "../../controller/State";
 import { Outbound } from "../../controller/comms/messages/Messages";
+import { conn } from "controller/comms/Comms";
 
 export class MockPump {
   constructor(){}
 
-  public convertOutbound(outboundMsg: Outbound){
+  public process(outboundMsg: Outbound){
     let response: Outbound = Outbound.create({
       portId: outboundMsg.portId,
       protocol: outboundMsg.protocol
@@ -13,9 +14,9 @@ export class MockPump {
 
     switch (outboundMsg.action){
       case 7:
-        return this.pumpStatus(outboundMsg, response);
+        this.pumpStatus(outboundMsg, response);
       default:
-        return this.pumpAck(outboundMsg, response);
+        this.pumpAck(outboundMsg, response);
     }
   }
 
@@ -50,7 +51,7 @@ export class MockPump {
     response.setPayloadByte(13, time.getHours() * 60);
     response.setPayloadByte(14, time.getMinutes());
     
-    return response;
+    conn.queueSendMessage(response);
   }
 
   public pumpAck(outboundMsg: Outbound, response: Outbound){
@@ -67,7 +68,7 @@ export class MockPump {
       default:    
         response.appendPayloadByte(outboundMsg.payload[0]);
       }
-    return response;
+    conn.queueSendMessage(response);
   }
 
   private random(bounds: number, onlyPositive: boolean = false){

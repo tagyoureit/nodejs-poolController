@@ -689,6 +689,8 @@ export class Anslq25 extends EqItem {
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get portId(): number { return this.data.portId; }
     public set portId(val: number) { this.setDataVal('portId', val); }
+    public get broadcastComms(): boolean { return this.data.broadcastComms; }
+    public set broadcastComms(val: boolean) { this.setDataVal('broadcastComms', val); }
     public get modules(): ExpansionModuleCollection { return new ExpansionModuleCollection(this.data, "modules"); }
 }
 export class General extends EqItem {

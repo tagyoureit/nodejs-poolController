@@ -595,9 +595,13 @@ export class TouchConfigQueue extends ConfigQueue {
                 payload: [itm],
                 retries: 3,
                 response: Response.create({
-                    response: true, callback: () => {
-                        self.processNext(out);
+                    response: true
+                    , callback: () => {
+                        console.log(`CALLBACKED`);
                     }
+                    // , callback: () => {
+                    //     self.processNext(out);
+                    // }
                 })
                 // response: true,
                 // onResponseProcessed: function () { self.processNext(out); }
@@ -609,7 +613,9 @@ export class TouchConfigQueue extends ConfigQueue {
                     logger.debug(`msg ${out.toShortPacket()} sent successfully`);
                 })
                 .catch((err) => {
-                    logger.error(`Error sending configuration request message: ${err.message};`);
+                    logger.error(`Error sending configuration request message on port ${out.portId}: ${err.message};`);
+                })
+                .finally(()=>{
                     setTimeout(() => { self.processNext(out); }, 50);
                 })
 

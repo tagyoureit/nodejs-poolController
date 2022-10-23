@@ -2,21 +2,17 @@ import { Inbound, Message, Outbound, Protocol } from "../controller/comms/messag
 import { ControllerType } from "../controller/Constants";
 import { sys } from "../controller/Equipment";
 import { logger } from "../logger/Logger";
+import { MockSystemBoard } from "./boards/MockSystemBoard";
 import { mockChlor } from "./chemistry/MockChlorinator";
+import { mockPump, MockPump } from "./pumps/MockPump";
 
 
 export class MessagesMock {
     constructor() { }
 
-    public static processInbound(msg: Inbound): Outbound {
+    public static process(msg: Inbound) {
         switch (msg.protocol) {
             case Protocol.Broadcast: {
-                let response: Outbound = Outbound.create({
-                    portId: msg.portId,
-                    protocol: msg.protocol,
-                    dest: msg.source,
-                    source: msg.dest
-                });
                 switch (sys.controllerType) {
                     case ControllerType.IntelliCenter:
                         switch (msg.action) {
@@ -43,8 +39,8 @@ export class MessagesMock {
                                 case 147: // set intellichem
                                 case 150: // set intellflo spa side controllers
                                 case 152: // set pump config
-                                case 153: // set intellichlor
                                 case 155: // set pump config extended
+                                case 153: // set intellichlor
                                 case 157: // set valve
                                 case 158: // set high speed circuits
                                 case 160: // set is4/is10 high speed circuits
@@ -54,29 +50,29 @@ export class MessagesMock {
                                 case 163: // set delay
                                 case 167: // set light group
                                 case 168: // set settings
-                                    return sys.anslq25Board.system.sendAck(msg, response);
-
+                                    sys.anslq25Board.system.sendAck(msg);
+                                    break;
                                 /*  GET COMMANDS  */
                                 case 194: // get controller status
                                     break;
                                 case 197: // get date time
-                                    sys.anslq25Board.system.processDateTimeAsync(msg, response);
+                                    sys.anslq25Board.system.processDateTimeAsync(msg);
                                     break;
                                 case 198: // get circuit state
                                     break;
                                 case 200: // get heat/status
-                                    sys.anslq25Board.heaters.processHeatModesAsync(msg, response);
+                                    sys.anslq25Board.heaters.processHeatModesAsync(msg);
                                     break;
                                 case 202: // get custom names
-                                    sys.anslq25Board.system.processCustomNameAsync(msg, response);
+                                    sys.anslq25Board.system.processCustomNameAsync(msg);
                                     break;
                                 case 203: //get circuit functions
-                                    sys.anslq25Board.circuits.processCircuitAsync(msg, response);
+                                    sys.anslq25Board.circuits.processCircuitAsync(msg);
                                     break;
                                 case 208: // get heat pump status
                                     break;
                                 case 209: // get schedule
-                                    sys.anslq25Board.schedules.processScheduleAsync(msg, response);
+                                    sys.anslq25Board.schedules.processScheduleAsync(msg);
                                     break;
 
                                 case 210: // get intellichem
@@ -84,38 +80,42 @@ export class MessagesMock {
                                     logger.error(`mock packet ${msg.action} not programmed yet.`)
                                     break;
                                 case 214: // get intelliflo spa side
-                                    sys.anslq25Board.remotes.processSpaCommandRemoteAsync(msg, response);
+                                    sys.anslq25Board.remotes.processSpaCommandRemoteAsync(msg);
                                     break;
                                 case 215: // get pump status
+                                    break;
                                 case 216: // get pump config
+                                    sys.anslq25Board.pumps.processPumpConfigAsync(msg);
+                                    break
                                 case 217: // get intellichlor
                                 case 219: // get pump config
                                     logger.error(`mock packet ${msg.action} not programmed yet.`)
                                     break;
                                 case 221: // get valve
-                                    sys.anslq25Board.valves.processValveAssignmentsAsync(msg, response);
+                                    sys.anslq25Board.valves.processValveAssignmentsAsync(msg);
                                     break;
                                 case 222: // get high speed circuits
+                                    sys.anslq25Board.pumps.processHighSpeedCircuitsAsync(msg);
                                     break;
                                 case 224: // get is4/is10
-                                    sys.anslq25Board.remotes.processIS4IS10RemoteAsync(msg, response);
+                                    sys.anslq25Board.remotes.processIS4IS10RemoteAsync(msg);
                                     break;
                                 case 225: //get quicktouch
-                                    sys.anslq25Board.remotes.processQuickTouchRemoteAsync(msg, response);
+                                    sys.anslq25Board.remotes.processQuickTouchRemoteAsync(msg);
                                     break;
                                 case 226: // get solar/heat pump
-                                    sys.anslq25Board.heaters.processHeaterConfigAsync(msg, response);
+                                    sys.anslq25Board.heaters.processHeaterConfigAsync(msg);
                                     break;
                                 case 227: // get delays
-                                    sys.anslq25Board.valves.processValveOptionsAsync(msg, response);
+                                    sys.anslq25Board.valves.processValveOptionsAsync(msg);
                                     break;
                                 case 231: // get light groups
-                                    sys.anslq25Board.circuits.processLightGroupAsync(msg, response);
+                                    sys.anslq25Board.circuits.processLightGroupAsync(msg);
                                     break;
                                 case 239: // get unknown
                                     break;
                                 case 232: // get settings
-                                    sys.anslq25Board.system.processSettingsAsync(msg, response);
+                                    sys.anslq25Board.system.processSettingsAsync(msg);
                                     break;
                                 case 253: // get sw version
                                     logger.info(`Mock EasyTouch OCP - Packet ${msg.toShortPacket()} request not programmed yet.`)
@@ -132,8 +132,11 @@ export class MessagesMock {
                                 case 17:
                                 case 145: // ScheduleMessage.process(this);
                                 case 18:  // IntellichemMessage.process(this);
+                                    break;
                                 case 24:
                                 case 27:
+
+                                    break;
                                 case 152:
                                 case 155: // PumpMessage.process(this);
                                 case 30:
@@ -183,34 +186,33 @@ export class MessagesMock {
             break;
             case Protocol.IntelliChem:
             IntelliChemStateMessage.process(outboundMsg);
-            break; * /
-            case Protocol.Pump:
-            if ((outboundMsg.source >= 96 && outboundMsg.source <= 111) || (outboundMsg.dest >= 96 && outboundMsg.dest <= 111))
-            return mockPump.convertOutbound(outboundMsg);
-            else
-            MockSystemBoard.convertOutbound(outboundMsg);
+            break; */
+            // case Protocol.Pump:
+            // if ((msg.source >= 96 && msg.source <= 111) || (msg.dest >= 96 && msg.dest <= 111))
+            // mockPump.process(msg);
+            // else
+            // MockSystemBoard.convertOutbound(msg);
             /* case Protocol.Heater:
             HeaterStateMessage.process(outboundMsg);
             break;*/
             case Protocol.Chlorinator:
-                return mockChlor.process(msg);
+                mockChlor.process(msg);
             /*
             case Protocol.Hayward:
                 PumpStateMessage.processHayward(msg);
                 break; */
             default:
                 logger.debug(`Unprocessed Message ${msg.toPacket()}`)
-                return new Outbound(Protocol.Broadcast, 0, 0, 0, []);
+                // return new Outbound(Protocol.Broadcast, 0, 0, 0, []);
         }
     }
 
-    public processOutbound(outboundMsg: Outbound) {
-        // outbound mock messages will be sent here instead of to the comms port
-        let inbound = Message.convertOutboundToInbound(outboundMsg);
-        let newOut = MessagesMock.processInbound(inbound);
-        if (newOut.payload.length > 0) return newOut.toPacket()
-        else return [];
+    // public static processOutbound(outboundMsg: Outbound) {
+    //     // outbound mock messages will be sent here instead of to the comms port
+    //     let inbound = Message.convertOutboundToInbound(outboundMsg);
+    //     let newOut = MessagesMock.processInbound(inbound);
+    //     return newOut;
 
-    }
+    // }
 }
 export var messagesMock = new MessagesMock();

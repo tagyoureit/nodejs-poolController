@@ -44,10 +44,12 @@ export class MockSystemBoard {
   public heaters: MockHeaterCommands = new MockHeaterCommands(this);
   public valves: MockValveCommands = new MockValveCommands(this);
   public remotes: MockRemoteCommands = new MockRemoteCommands(this);
+  public pumps: MockPumpCommands = new MockPumpCommands(this);
   public static convertOutbound(outboundMsg: Outbound) { };
   public async sendAsync(msg: Outbound){
+    return await msg.sendAsync();
     // is the controller on a real/physical port or a mock port?
-    let port = conn.findPortById(sys.anslq25.portId);
+/*     let port = conn.findPortById(sys.anslq25.portId);
     if (port.mockPort) {
       let inbound = new Inbound();
       inbound.protocol = msg.protocol;
@@ -61,7 +63,7 @@ export class MockSystemBoard {
     }
     else {
       return await msg.sendAsync();
-    }
+    } */
   }
   public process(msg: Inbound): Outbound { return new Outbound(Protocol.Broadcast,0,0,0,[]); }
   protected killStatusCheck() {
@@ -90,9 +92,13 @@ export class MockSystemBoard {
       let portId = parseInt(data.anslq25portId, 10);
       let port = conn.findPortById(portId);
       if (typeof port === 'undefined') return Promise.reject(new Error(`Mock System Board: Invalid portId provided.`));
+      if (portId === 0) return Promise.reject(new Error(`Please choose a port other than the primary port.`));
       let mockControllerType = data.anslq25ControllerType;
       let model = parseInt(data.anslq25model, 10);
+      let broadcastComms = data.broadcastComms;
+      if (typeof broadcastComms === 'undefined') return Promise.reject(new Error(`A value for broadcast comms must be provided.`));
       sys.anslq25.portId = portId;
+      sys.anslq25.broadcastComms = broadcastComms;
       switch (mockControllerType) {
         case ControllerType.EasyTouch:{
           sys.anslq25ControllerType = ControllerType.EasyTouch;
@@ -178,30 +184,34 @@ export class MockBoardCommands {
   constructor(parent: MockSystemBoard) { this.mockBoard = parent; }
 }
 export class MockSystemCommands extends MockBoardCommands {
-  public sendAck(inbound:Inbound, response: Outbound) { return response;  };
-  public async processDateTimeAsync(msg: Inbound, response: Outbound){  };
-  public async processCustomNameAsync(msg: Inbound, response: Outbound){  };
-  public async processSettingsAsync(msg: Inbound, response: Outbound){  };
+  public sendAck(msg:Inbound) {  };
+  public async processDateTimeAsync(msg: Inbound){  };
+  public async processCustomNameAsync(msg: Inbound){  };
+  public async processSettingsAsync(msg: Inbound){  };
   public async sendStatusAsync() { };
 }
 
 export class MockCircuitCommands extends MockBoardCommands {
-  public async processCircuitAsync( msg: Inbound, response: Outbound) { };
-  public async processLightGroupAsync( msg: Inbound, response: Outbound) { };
+  public async processCircuitAsync( msg: Inbound) { };
+  public async processLightGroupAsync( msg: Inbound) { };
 }
 export class MockScheduleCommands extends MockBoardCommands {
-  public async processScheduleAsync( msg: Inbound, response: Outbound) { };
+  public async processScheduleAsync( msg: Inbound) { };
 }
 export class MockHeaterCommands extends MockBoardCommands {
-  public async processHeatModesAsync(msg: Inbound, response: Outbound) { };
-  public async processHeaterConfigAsync(msg: Inbound, response: Outbound) { };
+  public async processHeatModesAsync(msg: Inbound) { };
+  public async processHeaterConfigAsync(msg: Inbound) { };
 }
 export class MockValveCommands extends MockBoardCommands {
-  public async processValveOptionsAsync(msg: Inbound, response: Outbound) { };
-  public async processValveAssignmentsAsync(msg: Inbound, response: Outbound) { };
+  public async processValveOptionsAsync(msg: Inbound) { };
+  public async processValveAssignmentsAsync(msg: Inbound) { };
 }
 export class MockRemoteCommands extends MockBoardCommands {
-  public async processIS4IS10RemoteAsync(msg: Inbound, response: Outbound) { };
-  public async processQuickTouchRemoteAsync(msg: Inbound, response: Outbound) { };
-  public async processSpaCommandRemoteAsync(msg: Inbound, response: Outbound) { };
+  public async processIS4IS10RemoteAsync(msg: Inbound) { };
+  public async processQuickTouchRemoteAsync(msg: Inbound) { };
+  public async processSpaCommandRemoteAsync(msg: Inbound) { };
+}
+export class MockPumpCommands extends MockBoardCommands {
+  public async processPumpConfigAsync(msg: Inbound) { };
+  public async processHighSpeedCircuitsAsync(msg: Inbound) { };
 }

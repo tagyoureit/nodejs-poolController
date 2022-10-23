@@ -73,7 +73,10 @@ export class Message {
     private _id: number = -1;
     // Fields
     private static _messageId: number = 0;
-    public static get nextMessageId(): number { return this._messageId < 80000 ? ++this._messageId : this._messageId = 0; }
+    public static get nextMessageId(): number { 
+        let i = this._messageId < 80000 ? ++this._messageId : this._messageId = 0;
+        logger.debug(`Assigning message id ${i}`)
+        return i; }
     public portId = 0; // This will be the target or source port for the message.  If this is from or to an Aux RS485 port the value will be > 0.
     public timestamp: Date = new Date();
     public direction: Direction = Direction.In;
@@ -88,6 +91,7 @@ export class Message {
     public set id(val: number) { this._id = val; }
     public isValid: boolean = true;
     public scope: string;
+    public isClone: boolean;
     // Properties
     public get isComplete(): boolean { return this._complete; }
     public get sub(): number { return this.header.length > 1 ? this.header[1] : -1; }
@@ -168,25 +172,23 @@ export class Message {
         return pkt;
     }
     public toLog(): string {
-        return `{"port":${this.portId},"id":${ this.id },"valid":${ this.isValid },"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)}, ${JSON.stringify(this.header)}, ${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts":"${Timestamp.toISOLocal(this.timestamp)}"}`;
+        return `{"port":${this.portId},"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)}, ${JSON.stringify(this.header)}, ${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts":"${Timestamp.toISOLocal(this.timestamp)}"}`;
     }
-    public static convertOutboundToInbound(out: Outbound): Inbound{
+    public static convertOutboundToInbound(out: Outbound): Inbound {
         let inbound = new Inbound();
-        out.portId = inbound.portId;
-        out.id = inbound.id;
-        out.protocol = inbound.protocol;
-        out.scope = inbound.scope;
-        out.preamble = inbound.preamble; 
-        out.padding = inbound.padding;
-        out.action = inbound.action;
-        out.dest = inbound.dest;
-        out.source = inbound.source;
-        out.header = inbound.header;
-        out.payload = inbound.payload;
-        out.term = inbound.term;
+        inbound.portId = out.portId;
+        // inbound.id = Message.nextMessageId;
+        inbound.protocol = out.protocol;
+        inbound.scope = out.scope;
+        inbound.preamble = out.preamble;
+        inbound.padding = out.padding;
+        inbound.header = out.header;
+        inbound.payload = [...out.payload];
+        inbound.term = out.term;
+        inbound.portId = out.portId;
         return inbound;
     }
-    public static convertInboundToOutbound(inbound: Inbound): Outbound{
+    public static convertInboundToOutbound(inbound: Inbound): Outbound {
         let out = new Outbound(
             inbound.protocol,
             inbound.source,
@@ -194,13 +196,35 @@ export class Message {
             inbound.action,
             inbound.payload,
         );
-        inbound.id = out.id;
-        inbound.scope = out.scope;
-        inbound.preamble = out.preamble; 
-        inbound.padding = out.padding;
-        inbound.header = out.header;
-        inbound.term = out.term;
+        out.scope = inbound.scope;
+        out.preamble = inbound.preamble;
+        out.padding = inbound.padding;
+        out.header = inbound.header;
+        out.term = inbound.term;
+        out.portId = inbound.portId;
         return out;
+    }
+    public clone(): Inbound | Outbound {
+        let msg;
+        if (this instanceof Inbound) {
+            msg = new Inbound();
+            msg.id = Message.nextMessageId;
+            msg.scope = this.scope;
+            msg.preamble = this.preamble;
+            msg.padding = this.padding;
+            msg.payload = [...this.payload];
+            msg.header = this.header;
+            msg.term = this.term;
+            msg.portId = this.portId;
+        }
+        else {
+            msg = new Outbound(
+                this.protocol, this.source, this.dest, this.action, [...this.payload], 
+            );
+            msg.portId = this.portId;
+            msg.scope = this.scope;
+        }
+        return msg;
     }
 }
 export class Inbound extends Message {
@@ -230,7 +254,7 @@ export class Inbound extends Message {
     }
     public toLog() {
         if (this.responseFor.length > 0)
-            return `{"port":${this.portId || 0},"id":${this.id},"valid":${this.isValid},"dir":"${ this.direction }","proto":"${ this.protocol }","for":${JSON.stringify(this.responseFor)},"pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${ Timestamp.toISOLocal(this.timestamp) }"}`;
+            return `{"port":${this.portId || 0},"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","for":${JSON.stringify(this.responseFor)},"pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${Timestamp.toISOLocal(this.timestamp)}"}`;
         return `{"port":${this.portId || 0},"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${Timestamp.toISOLocal(this.timestamp)}"}`;
     }
     private testChlorHeader(bytes: number[], ndx: number): boolean {
@@ -754,8 +778,12 @@ export class Inbound extends Message {
         }
     }
     public process() {
-        if (this. portId === sys.anslq25.portId) {
-            return MessagesMock.processInbound(this);
+        let port = conn.findPortById(this.portId);
+        if (this.portId === sys.anslq25.portId) {
+            return MessagesMock.process(this);
+        }
+        if (port.mockPort && port.hasAssignedEquipment()){
+            return MessagesMock.process(this);
         }
         switch (this.protocol) {
             case Protocol.Broadcast:
@@ -1036,6 +1064,20 @@ export class Outbound extends OutboundCommon {
         pkt.push.apply(pkt, this.payload);
         pkt.push.apply(pkt, this.term);
         return pkt;
+    }
+    public processMock(){
+        // When the port is a mock port, we are no longer sending an
+        // outbound message but converting it to an inbound and
+        // skipping the actual send/receive part of the comms.
+        let inbound = Message.convertOutboundToInbound(this);
+        let port = conn.findPortById(this.portId);
+        if (port.hasAssignedEquipment() || this.portId === sys.anslq25.portId){
+            MessagesMock.process(inbound);
+        }
+        else {
+            inbound.process();
+        }
+    
     }
 }
 export class Ack extends Outbound {

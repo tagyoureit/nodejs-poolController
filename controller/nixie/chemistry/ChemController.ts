@@ -582,7 +582,7 @@ export class NixieChemController extends NixieChemControllerBase {
             await this.orp.setORPAsync(schem.orp, data.orp);
             // Ph Settings
             await this.ph.setPhAsync(schem.ph, data.ph);
-            await this.processAlarms(schem);
+            this.processAlarms(schem);
         }
         catch (err) { logger.error(`setControllerAsync: ${err.message}`); return Promise.reject(err); }
         finally { this.suspendPolling = false; }

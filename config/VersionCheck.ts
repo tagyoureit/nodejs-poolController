@@ -125,7 +125,7 @@ class VersionCheck {
         if (this.redirects >= 20) return Promise.reject(`Too many redirects.`)
         return new Promise<string>((resolve, reject) => {
             try {
-                https.request(url, options, async res => {
+                let req = https.request(url, options, async res => {
                     if (res.statusCode > 300 && res.statusCode < 400 && res.headers.location) await this.getLatestRelease(res.headers.location);
                     let data = '';
                     res.on('data', d => { data += d; });
@@ -138,6 +138,9 @@ class VersionCheck {
                     })
                 })
                     .end();
+                req.on('error', (err) => {
+                    logger.error(`Error getting Github API latest release.  ${err.message}`)
+                })
             }
             catch (err) {
                 logger.error('Error contacting Github for latest published release: ' + err);

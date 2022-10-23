@@ -15,20 +15,19 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { EventEmitter } from 'events';
-import { SerialPort, SerialPortMock, SerialPortOpenOptions } from 'serialport'
 import { AutoDetectTypes } from '@serialport/bindings-cpp';
+import { EventEmitter } from 'events';
+import * as net from 'net';
+import { SerialPort, SerialPortMock, SerialPortOpenOptions } from 'serialport';
+import { setTimeout } from 'timers';
 import { config } from '../../config/Config';
 import { logger } from '../../logger/Logger';
-import * as net from 'net';
-import { setTimeout } from 'timers';
-import { Message, Outbound, Inbound, Response } from './messages/Messages';
-import { InvalidEquipmentDataError, InvalidOperationError, OutboundMessageError } from '../Errors';
+import { webApp } from "../../web/Server";
 import { utils } from "../Constants";
 import { sys } from "../Equipment";
+import { InvalidEquipmentDataError, InvalidOperationError, OutboundMessageError } from '../Errors';
 import { state } from "../State";
-import { webApp } from "../../web/Server";
-import { messagesMock } from '../../anslq25/MessagesMock'
+import { Inbound, Message, Outbound, Response } from './messages/Messages';
 const extend = require("extend");
 export class Connection {
     constructor() { }
@@ -191,34 +190,186 @@ export class Connection {
         } catch (err) { logger.error(`Error listing installed RS485 ports ${err.message}`); }
 
     }
+    private getBroadcastPorts(currPort: RS485Port) {
+        // if an ANSLQ25 controller is present, broadcast outbound writes to all other ports that are not mock or dedicated for a pump or chlor
+        let anslq25port = sys.anslq25.portId;
+        let duplicateTo: number[] = [];
+        if (anslq25port >= 0) {
+            let ports = this.rs485Ports;
+            for (let i = 0; i < ports.length; i++) {
+                // if (ports[i].mockPort) continue;
+                if (ports[i].portId === currPort.portId) continue;
+                if (ports[i].portId === anslq25port) continue; // don't resend
+                if (!ports[i].isOpen) continue;
+                duplicateTo.push(ports[i].portId);
+            }
+            let pumps = sys.pumps.get();
+            for (let i = 0; i < pumps.length; i++) {
+                if (pumps[i].portId === currPort.portId ||
+                    pumps[i].portId === anslq25port) {
+                    if (duplicateTo.includes(pumps[i].portId)) duplicateTo.splice(duplicateTo.indexOf(pumps[i].portId, 1));
+                }
+            }
+            let chlors = sys.chlorinators.get();
+            for (let i = 0; i < chlors.length; i++) {
+                if (chlors[i].portId === currPort.portId ||
+                    chlors[i].portId === anslq25port) {
+                    if (duplicateTo.includes(chlors[i].portId)) duplicateTo.splice(duplicateTo.indexOf(chlors[i].portId, 1));
+                }
+            }
+        }
+        // send to the ansql25 port first, where possible 
+        if (currPort.portId !== anslq25port) duplicateTo.unshift(anslq25port);
+        return duplicateTo;
+    }
+/*     public queueInboundToAnslq25(_msg: Inbound) {
+        // if we have a valid inbound packet on any port (besides dedicated pump/chlor) then also send to anslq25
+        if (!sys.anslq25.isActive || sys.anslq25.portId < 0 || !sys.anslq25.broadcastComms) return;
+        if (typeof _msg.isClone !== 'undefined' && _msg.isClone) return;
+        let anslq25port = sys.anslq25.portId;
+        if (anslq25port === _msg.portId) return;
+        let port = this.findPortById(anslq25port);
+        let msg = _msg.clone();
+        msg.portId = port.portId;
+        msg.isClone = true;
+        msg.id = Message.nextMessageId;
+        (msg as Inbound).process();
+    } */
+
+
+/*     public queueInboundToBroadcast(_msg: Outbound) {
+        // if we have a valid inbound packet on any port (besides dedicated pump/chlor) then also send to anslq25
+        if (!sys.anslq25.isActive || sys.anslq25.portId < 0 || !sys.anslq25.broadcastComms) return;
+        if (typeof _msg.isClone !== 'undefined' && _msg.isClone) return;
+        let anslq25port = sys.anslq25.portId;
+        if (anslq25port === _msg.portId) return;
+        let port = this.findPortById(anslq25port);
+        let msg = _msg.clone();
+        msg.portId = port.portId;
+        msg.isClone = true;
+        msg.id = Message.nextMessageId;
+        (msg as Inbound).process();
+    } */
+
+/*     public queueOutboundToAnslq25(_msg: Outbound) {
+        // if we have a valid inbound packet on any port (besides dedicated pump/chlor) then also send to anslq25
+        if (!sys.anslq25.isActive || sys.anslq25.portId < 0 || !sys.anslq25.broadcastComms) return;
+        if (typeof _msg.isClone !== 'undefined' && _msg.isClone) return;
+        let anslq25port = sys.anslq25.portId;
+        let _ports = this.getBroadcastPorts(this.findPortById(_msg.portId));
+        let msgs: Outbound[] = [];
+        for (let i = 0; i < _ports.length; i++) {
+            let port = this.findPortById(_ports[i]);
+            if (port.portId === _msg.portId) continue;
+            let msg = _msg.clone() as Outbound;
+            msg.isClone = true;
+            msg.portId = port.portId;
+            msg.response = _msg.response;
+            msgs.push(msg);
+        }
+        return msgs;
+    } */
+    public queueOutboundToBroadcast(_msg: Outbound) {
+        // if we have a valid inbound packet on any port (besides dedicated pump/chlor) then also send to anslq25
+        if (!sys.anslq25.isActive || sys.anslq25.portId < 0 || !sys.anslq25.broadcastComms) return;
+        if (typeof _msg.isClone !== 'undefined' && _msg.isClone) return;
+        let anslq25port = sys.anslq25.portId;
+        let _ports = this.getBroadcastPorts(this.findPortById(_msg.portId));
+        let msgs: Inbound[] = [];
+        for (let i = 0; i < _ports.length; i++) {
+            let port = this.findPortById(_ports[i]);
+            if (port.portId === _msg.portId) continue;
+            // // let msg = _msg.clone() as Inbound;
+            // let msg = Message.convertOutboundToInbound(_msg);
+            // msg.isClone = true;
+            // msg.portId = port.portId;
+
+            //     msg.process();
+                setTimeout(()=>{port.pushIn(Buffer.from(_msg.toPacket()))}, 100);
+                logger.silly(`mock inbound write bytes port:${_msg.portId} id:${_msg.id} bytes:${_msg.toShortPacket()}`)
+                // logger.packet()
+            // (msg as Inbound).process();
+            // msgs.push(msg);
+        }
+        // return msgs;
+    }
     public queueSendMessage(msg: Outbound) {
         let port = this.findPortById(msg.portId);
-        if (typeof port !== 'undefined')
+        if (typeof port !== 'undefined') {
             port.emitter.emit('messagewrite', msg);
+        }
         else
             logger.error(`queueSendMessage: Message was targeted for undefined port ${msg.portId || 0}`);
     }
+
     public async queueSendMessageAsync(msg: Outbound): Promise<boolean> {
-        return new Promise((resolve, reject) => {
-            let port = this.findPortById(msg.portId);
-            if (typeof port !== 'undefined') {
-                msg.onComplete = (err) => {
-                    if (err) {
-                        reject(err);
-                    }
-                    else resolve(true);
+        return new Promise(async (resolve, reject) => {
+
+
+                let port = this.findPortById(msg.portId);
+
+                if (typeof port === 'undefined') {
+                    logger.error(`queueSendMessage: Message was targeted for undefined port ${msg.portId || 0}`);
+                    return;
                 }
-                port.emitter.emit('messagewrite', msg);
-            }
-            else
-                logger.error(`queueSendMessage: Message was targeted for undefined port ${msg.portId || 0}`);
+                // also send to other broadcast ports
+                // let msgs = conn.queueOutboundToAnslq25(msg);
+                let msgs = [];
+                // conn.queueInboundToBroadcast(msg);
+                conn.queueOutboundToBroadcast(msg);
+                /* if (msgs.length > 0) {
+                    msgs.push(msg);
+                    let promises: Promise<boolean>[] = [];
+                    for (let i = 0; i < msgs.length; i++) {
+                        let p: Promise<boolean> = new Promise((_resolve, _reject) => {
+                            msgs[i].onComplete = (err) => {
+                                if (err) {
+                                    console.log(`rejecting ${msg.id} ${msg.portId} ${msg.action}`);
+                                    _reject(err);
+                                }
+                                else 
+                                {
+                                    console.log(`resolving id:${msg.id} portid:${msg.portId} dir:${msg.direction} action:${msg.action}`);
+                                    _resolve(true);
+                                }
+                            }
+                            let _port = this.findPortById(msgs[i].portId);
+                            _port.emitter.emit('messagewrite', msgs[i]);
+                        });
+                        promises.push(p);
+                    }
+                    let res = false;
+                    await Promise.allSettled(promises).
+                        then((results) => {
+
+                            results.forEach((result) => {
+                                console.log(result.status);
+                                if (result.status === 'fulfilled') {res = true;}
+                            });
+                        });
+                        if (res) resolve(true); else reject(`No packets had responses.`);
+                }
+                else { */
+                    msg.onComplete = (err) => {
+                        if (err) {
+                            reject(err);
+                        }
+                        else resolve(true);
+                    }
+                    port.emitter.emit('messagewrite', msg);
+                    // let ports = this.getBroadcastPorts(port);
+                //}
+
+
+
+
         })
     }
 
-    public sendMockPacket(msg: Inbound) {
-        let port = this.findPortById(msg.portId);
-        port.emitter.emit('mockmessagewrite', msg);
-    }
+    // public sendMockPacket(msg: Inbound) {
+    //     let port = this.findPortById(msg.portId);
+    //     port.emitter.emit('mockmessagewrite', msg);
+    // }
 
     public pauseAll() {
         for (let i = 0; i < this.rs485Ports.length; i++) {
@@ -376,7 +527,7 @@ export class RS485Port {
                         } catch (err) { }
                     }, this._cfg.inactivityRetry * 1000);
                 }
-                logger.info(`Net connect (socat) ${this._cfg.portId} closed ${p === true ? 'due to error'  : ''}: ${this._cfg.netHost}:${this._cfg.netPort}`);
+                logger.info(`Net connect (socat) ${this._cfg.portId} closed ${p === true ? 'due to error' : ''}: ${this._cfg.netHost}:${this._cfg.netPort}`);
             });
             nc.on('end', () => { // Happens when the other end of the socket closes.
                 this.isOpen = false;
@@ -563,7 +714,7 @@ export class RS485Port {
                                 resfin(true);
                             });
                         });
-                        
+
                         if (typeof this._port !== 'undefined') {
                             logger.info(`Net connect (socat) destroy socket: ${this._cfg.netHost}:${this._cfg.netPort}`);
                             this._port.destroy();
@@ -642,16 +793,11 @@ export class RS485Port {
         }
         else {
             if (this._port instanceof SerialPortMock && this.mockPort === true) {
-                let m = messagesMock.processOutbound(msg);
-                // fail silently if packet is not an array;
-                // packet will be rejected after retries expires
-                if (Array.isArray(m)) {
-                    this._port.port.emitData(Buffer.from(m));
-                }
+                msg.processMock();
                 cb();
             }
             else {
- 
+
                 this.writeTimer = setTimeout(() => {
                     // RSG - I ran into a scenario where the underlying stream
                     // processor was not retuning the CB and comms would 
@@ -679,8 +825,11 @@ export class RS485Port {
 
         }
     }
-    private pushIn(pkt) { this._inBuffer.push.apply(this._inBuffer, pkt.toJSON().data); if (sys.isReady) setImmediate(() => { this.processPackets(); }); }
-    private pushOut(msg) { this._outBuffer.push(msg); setImmediate(() => { this.processPackets(); }); }
+    // make public for now; should enable writing directly to mock port at Conn level...
+    public pushIn(pkt:Buffer) { this._inBuffer.push.apply(this._inBuffer, pkt.toJSON().data); if (sys.isReady) setImmediate(() => { this.processPackets(); }); }
+    private pushOut(msg) {
+        this._outBuffer.push(msg); setImmediate(() => { this.processPackets(); });
+    }
     private clearBuffer() { this._inBuffer.length = 0; this.clearOutboundBuffer(); }
     private closeBuffer() { clearTimeout(this.procTimer); this.clearBuffer(); this._msg = undefined; }
     private clearOutboundBuffer() {
@@ -824,7 +973,7 @@ export class RS485Port {
                         return;
                     }
                     else {
-                        logger.verbose(`Wrote packet[${bytes}].Retries remaining: ${msg.remainingTries} `);
+                        logger.verbose(`Wrote packet [Port ${this.portId} id: ${msg.id}] [${bytes}].Retries remaining: ${msg.remainingTries} `);
                         // We have all the success we are going to get so if the call succeeded then
                         // don't set the waiting packet when we aren't actually waiting for a response.
                         if (!msg.requiresResponse) {
@@ -916,6 +1065,7 @@ export class RS485Port {
         msg.timestamp = new Date();
         msg.portId = this.portId;
         msg.id = Message.nextMessageId;
+        console.log(`msg id ${msg.id} assigned to port${msg.portId} action:${msg.action} ${msg.toShortPacket()}`)
         this.counter.recCollisions += msg.collisions;
         this.counter.recRewinds += msg.rewinds;
         this.emitPortStats();
@@ -923,6 +1073,7 @@ export class RS485Port {
             this.counter.recSuccess++;
             this.counter.updatefailureRate();
             msg.process();
+            //conn.queueInboundToAnslq25(msg);
             this.clearResponses(msg);
         }
         else {
@@ -971,6 +1122,21 @@ export class RS485Port {
 
             } while (ndx < this._inBytes.length);
         }
+    }
+    public hasAssignedEquipment() {
+        let pumps = sys.pumps.get();
+        for (let i = 0; i < pumps.length; i++) {
+            if (pumps[i].portId === this.portId) {
+                return true;
+            }
+        }
+        let chlors = sys.chlorinators.get();
+        for (let i = 0; i < chlors.length; i++) {
+            if (chlors[i].portId === this.portId) {
+                return true;
+            }
+        }
+        return false;
     }
 }
 export var conn: Connection = new Connection();
