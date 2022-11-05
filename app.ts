@@ -27,6 +27,7 @@ import { sys } from "./controller/Equipment";
 import { state } from "./controller/State";
 import { webApp } from "./web/Server";
 import * as readline from 'readline';
+import { sl } from './controller/comms/ScreenLogic'
 
 export async function initAsync() {
     try {
@@ -38,6 +39,7 @@ export async function initAsync() {
         await conn.initAsync();
         await sys.start();
         await webApp.initAutoBackup();
+        await sl.connectAsync();
     } catch (err) { console.log(`Error Initializing nodejs-PoolController ${err.message}`);  }
     //return Promise.resolve()
     //    .then(function () { config.init(); })
