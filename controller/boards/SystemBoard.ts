@@ -821,12 +821,12 @@ export class byteValueMaps {
   ]);
   public eqMessageSeverities: byteValueMap = new byteValueMap([
     [-1, { name: 'unspecified', desc: 'Unspecified' }],
-    [0, { name: 'info', desc: 'Information' }],
-    [1, { name: 'reminder', desc: 'Reminder' }],
-    [2, { name: 'alert', desc: 'Alert' }],
-    [3, { name: 'warning', desc: 'Warning' }],
-    [4, { name: 'error', desc: 'Error' }],
-    [5, { name: 'fatal', desc: 'Fatal' }]
+    [0, { name: 'info', desc: 'Information', icon: 'fas fa-circle-info' }],
+    [1, { name: 'reminder', desc: 'Reminder', icon: 'fas fa-bell' }],
+    [2, { name: 'alert', desc: 'Alert', icon: 'fas fa-circle-exclamation' }],
+    [3, { name: 'warning', desc: 'Warning', icon: 'fas fa-circle-exclamation' }],
+    [4, { name: 'error', desc: 'Error', icon: 'fas fa-triangle-exclamation' }],
+    [5, { name: 'fatal', desc: 'Fatal', icon: 'fas fa-skull-crossbones' }]
   ]);
   // need to validate these...
   public delay: byteValueMap = new byteValueMap([

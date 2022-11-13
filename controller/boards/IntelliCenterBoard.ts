@@ -4067,15 +4067,16 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
             out.setPayloadByte(1, 0);
             out.setPayloadByte(2, chem.id - 1);
             out.setPayloadByte(3, body.val);
-            out.setPayloadByte(4, acidTankLevel + 1);
+            //out.setPayloadByte(4, acidTankLevel + 1);
+            out.setPayloadByte(4, 1);
             out.setPayloadByte(5, address);
             out.setPayloadByte(6, 1);
             out.setPayloadInt(7, Math.round(pHSetpoint * 100), 700);
             out.setPayloadInt(9, orpSetpoint, 400);
-            out.setPayloadByte(11, 1);
-            out.setPayloadByte(12, 1);
-            //out.setPayloadByte(11, acidTankLevel + 1, 1);
-            //out.setPayloadByte(12, orpTankLevel + 1, 1);
+            //out.setPayloadByte(11, 1);
+            //out.setPayloadByte(12, 1);
+            out.setPayloadByte(11, acidTankLevel + 1, 1);
+            out.setPayloadByte(12, orpTankLevel + 1, 1);
 
             out.setPayloadInt(13, calciumHardness, 25);
             out.setPayloadInt(15, cyanuricAcid, 0);

@@ -891,6 +891,8 @@ export class SsdpServer extends ProtoServer {
     }
     public deviceXML(): string {
         let ver = sys.appVersion.split('.');
+        let friendlyName = 'njsPC: unknown model';
+        if (typeof sys !== 'undefined' && typeof sys.equipment !== 'undefined' && typeof sys.equipment.model !== 'undefined') friendlyName = `njsPC: ${sys.equipment.model}`;
         let XML = `<?xml version="1.0"?>
         <root xmlns="urn:schemas-upnp-org:device-1-0">
             <specVersion>
@@ -899,7 +901,7 @@ export class SsdpServer extends ProtoServer {
             </specVersion>
             <device>
                 <deviceType>${this.deviceType}</deviceType>
-                <friendlyName>NodeJS Pool Controller</friendlyName> 
+                <friendlyName>${friendlyName}</friendlyName>
                 <manufacturer>tagyoureit</manufacturer>
                 <manufacturerURL>https://github.com/tagyoureit/nodejs-poolController</manufacturerURL>
                 <presentationURL>http://${webApp.ip()}:${webApp.httpPort()}/state/all</presentationURL>
