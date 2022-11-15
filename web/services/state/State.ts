@@ -22,11 +22,55 @@ import { sys } from "../../../controller/Equipment";
 import { utils } from '../../../controller/Constants';
 import { logger } from "../../../logger/Logger";
 import { DataLogger } from "../../../logger/DataLogger";
+import { conn } from "../../../controller/comms/Comms";
+import { config } from "../../../config/Config";
 
 import { ServiceParameterError } from "../../../controller/Errors";
 
 export class StateRoute {
     public static initRoutes(app: express.Application) {
+        app.get('/state/rs485Port/:id', async (req, res, next) => {
+            try {
+                let portId = parseInt(req.params.id, 10);
+                if (isNaN(portId)) throw new ServiceParameterError(`RS485 port id not supplied`, '/state/rs485Port/:id', 'portId', req.params.id);
+                let cfg = config.getSection(portId === 0 ? 'controller.comms' : `controller.comms${portId}`);
+                if (typeof cfg === 'undefined') throw new ServiceParameterError(`RS485 port id not found`, '/state/rs485Port/:id', 'portId', req.params.id);
+                let port = conn.findPortById(portId);
+                let sport: any = {
+                    portId: portId,
+                    enabled: cfg.enabled || false,
+                    netConnect: cfg.netConnect,
+                    reconnects: 0,
+                    inactivityRetry: cfg.inactivityRetry,
+                    isOpen: false,
+                    mockPort: cfg.mockPort || false
+                }
+                if (cfg.netConnect) sport.network = { host: cfg.netHost, port: cfg.netPort };
+                else sport.settings = extend(true, { name: cfg.rs485Port }, cfg.portSettings);
+                if (typeof port !== 'undefined') {
+                    let stats = port.stats;
+                    sport.reconnects = port.reconnects;
+                    sport.isOpen = port.isOpen;
+                    sport.received = {
+                        bytes: stats.bytesReceived,
+                        success: stats.recSuccess,
+                        failed: stats.recFailed,
+                        collisions: stats.recCollisions,
+                        rewinds: stats.recFRewinds,
+                        failureRate: stats.recFailureRate
+                    };
+                    sport.sent = {
+                        bytes: stats.bytesSent,
+                        success: stats.sndSuccess,
+                        aborted: stats.sndAborted,
+                        retries: stats.sndRetries,
+                        failureRate: stats.sndFailureRate
+                    }
+                }
+                res.status(200).send(sport);
+            }
+            catch (err) { next(err); }
+        });
         app.get('/state/chemController/:id', (req, res) => {
             res.status(200).send(state.chemControllers.getItemById(parseInt(req.params.id, 10)).getExtended());
         });
