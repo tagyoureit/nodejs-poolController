@@ -17,6 +17,11 @@
         "flowControl": false,
         "autoOpen": false,
         "lock": false
+      },
+      "netSettings": {
+        "allowHalfOpen": false,
+        "keepAlive": false,
+        "keepAliveInitialDelay": 5
       }
     },
     "backups": {

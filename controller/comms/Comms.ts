@@ -79,6 +79,7 @@ export class Connection {
                 portId: portId,
                 rs485Port: "/dev/ttyUSB0",
                 portSettings: { baudRate: 9600, dataBits: 8, parity: 'none', stopBits: 1, flowControl: false, autoOpen: false, lock: false },
+                netSettings: { allowHalfOpen: false, keepAlive: false, keepAliveInitialDelay: 1000 },
                 mockPort: false,
                 netConnect: false,
                 netHost: "raspberrypi",
@@ -96,6 +97,9 @@ export class Connection {
             if (typeof data.portSettings !== 'undefined') {
                 pdata.portSettings = extend(true, { baudRate: 9600, dataBits: 8, parity: 'none', stopBits: 1, flowControl: false, autoOpen: false, lock: false }, pdata.portSettings, data.portSettings);
             }
+            if (typeof data.netSettings !== 'undefined') {
+                pdata.netSettings = extend(true, { keepAlive: false, allowHalfOpen: false, keepAliveInitialDelay: 10000 }, pdata.netSettings, data.netSettings);
+            }
             let existing = this.findPortById(portId);
             if (typeof existing !== 'undefined') {
                 if (!await existing.closeAsync()) {
@@ -106,6 +110,7 @@ export class Connection {
             let cfg = config.getSection(section, {
                 rs485Port: "/dev/ttyUSB0",
                 portSettings: { baudRate: 9600, dataBits: 8, parity: 'none', stopBits: 1, flowControl: false, autoOpen: false, lock: false },
+                netSettings: { allowHalfOpen: false, keepAlive: false, keepAliveInitialDelay: 5 },
                 mockPort: false,
                 netConnect: false,
                 netHost: "raspberrypi",
@@ -289,7 +294,6 @@ export class RS485Port {
             return true;
         }
         if (this._cfg.netConnect && !this._cfg.mockPort) {
-            let sock: net.Socket = this._port as net.Socket;
             if (typeof this._port !== 'undefined' && this.isOpen) {
                 // This used to try to reconnect and recreate events even though the socket was already connected.  This resulted in
                 // instances where multiple event processors were present.  Node doesn't give us any indication that the socket is
@@ -306,7 +310,10 @@ export class RS485Port {
                 });
                 port.destroy();
             }
-            let nc: net.Socket = new net.Socket();
+            let opts = extend(true, { keepAliveInitialDelay: 0 }, this._cfg.netSettings);
+            // Convert the initial delay to milliseconds.
+            if (typeof this._cfg.netSettings !== 'undefined' && typeof this._cfg.netSettings.keepAliveInitialDelay === 'number') opts.keepAliveInitialDelay = this._cfg.netSettings.keepAliveInitialDelay * 1000;
+            let nc: net.Socket = new net.Socket(this._cfg.netSettings);
             nc.once('connect', () => { logger.info(`Net connect (socat) ${this._cfg.portId} connected to: ${this._cfg.netHost}:${this._cfg.netPort}`); }); // Socket is opened but not yet ready.
             nc.once('ready', () => {
                 this.isOpen = true;
@@ -319,6 +326,7 @@ export class RS485Port {
                 this.emitPortStats();
                 state.equipment.messages.removeItemByCode(`rs485:${this.portId}:connection`);
             });
+            
             nc.once('close', (p) => {
                 this.isOpen = false;
                 if (typeof this._port !== 'undefined' && !this._port.destroyed) this._port.destroy();
@@ -377,7 +385,6 @@ export class RS485Port {
                     }
                     else logger.error(`Net connect (socat) connection ${this.portId} error: ${err}.  Never retrying -- No retry time set`);
                     state.equipment.messages.setMessageByCode(`rs485:${this.portId}:connection`, 'error', `${this.name} RS485 port disconnected`);
-
                 });
                 nc.connect(this._cfg.netPort, this._cfg.netHost, () => {
                     if (typeof this._port !== 'undefined') logger.warn(`Net connect (socat) ${this.portId} recovered from lost connection.`);
