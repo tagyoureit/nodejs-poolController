@@ -313,7 +313,7 @@ export class RS485Port {
             let opts = extend(true, { keepAliveInitialDelay: 0 }, this._cfg.netSettings);
             // Convert the initial delay to milliseconds.
             if (typeof this._cfg.netSettings !== 'undefined' && typeof this._cfg.netSettings.keepAliveInitialDelay === 'number') opts.keepAliveInitialDelay = this._cfg.netSettings.keepAliveInitialDelay * 1000;
-            let nc: net.Socket = new net.Socket(this._cfg.netSettings);
+            let nc: net.Socket = new net.Socket(opts);
             nc.once('connect', () => { logger.info(`Net connect (socat) ${this._cfg.portId} connected to: ${this._cfg.netHost}:${this._cfg.netPort}`); }); // Socket is opened but not yet ready.
             nc.once('ready', () => {
                 this.isOpen = true;
