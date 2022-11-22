@@ -20,7 +20,7 @@ import * as path from "path";
 import * as express from "express";
 import * as extend from 'extend';
 import * as multer from 'multer';
-import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup, CustomNameCollection, Schedule, Chlorinator, Heater } from "../../../controller/Equipment";
+import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup, CustomNameCollection, Schedule, Chlorinator, Heater, Screenlogic } from "../../../controller/Equipment";
 import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
@@ -30,6 +30,8 @@ import { stopPacketCaptureAsync, startPacketCapture } from '../../../app';
 import { conn } from "../../../controller/comms/Comms";
 import { webApp, BackupFile, RestoreFile } from "../../Server";
 import { release } from "os";
+import { ScreenLogicComms, sl } from "../../../controller/comms/ScreenLogic";
+import { screenlogic } from "node-screenlogic";
 
 export class ConfigRoute {
     public static initRoutes(app: express.Application) {
@@ -77,6 +79,18 @@ export class ConfigRoute {
                 }
                 opts.local = await conn.getLocalPortsAsync() || [];
                 return res.status(200).send(opts);
+            } catch (err) { next(err); }
+        });
+        app.get('/config/options/screenlogic', async (req, res, next) => {
+            try {
+                let localUnit = await ScreenLogicComms.searchAsync();
+                let cfg = config.getSection('controller.screenlogic');
+                let data = {
+                    cfg,
+                    localUnit,
+                    types: [{ val: 'local', name: 'Local', desc: 'Local Screenlogic' }, { val: 'remote', name: 'Remote', desc: 'Remote Screenlogic' }]
+                }
+                return res.status(200).send(data);
             } catch (err) { next(err); }
         });
         app.get('/config/options/circuits', async (req, res, next) => {
@@ -825,6 +839,13 @@ export class ConfigRoute {
             try {
                 let port = await conn.setPortAsync(req.body);
                 return res.status(200).send(port);
+            }
+            catch (err) { next(err); }
+        });
+        app.put('/app/screenlogic', async (req, res, next) => {
+            try {
+                let screenlogic = await sl.setScreenlogicAsync(req.body);
+                return res.status(200).send(screenlogic);
             }
             catch (err) { next(err); }
         });

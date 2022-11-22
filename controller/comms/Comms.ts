@@ -54,6 +54,12 @@ export class Connection {
             return cfg;
         } catch (err) { logger.error(`Error deleting aux port`) }
     }
+    public async setScreenlogicAsync(data: any){
+        let ccfg = config.getSection('controller.screenlogic');
+        if (typeof data.type === 'undefined' || data.type !== 'local' || data.type !== 'remote' ) return Promise.reject(new InvalidEquipmentDataError(`Invalid Screenlogic type (${data.type}). Allowed values are 'local' or 'remote'`, 'Screenlogic', 'screenlogic'));
+        if ((data.address as string).slice(8) !== 'Pentair:') return Promise.reject(new InvalidEquipmentDataError(`Invalid address (${data.address}).  Must start with 'Pentair:'`, 'Screenlogic', 'screenlogic'));
+    }
+
     public async setPortAsync(data: any): Promise<any> {
         try {
             let ccfg = config.getSection('controller');
@@ -826,7 +832,8 @@ export class RS485Port {
         }
     }
     // make public for now; should enable writing directly to mock port at Conn level...
-    public pushIn(pkt:Buffer) { this._inBuffer.push.apply(this._inBuffer, pkt.toJSON().data); if (sys.isReady) setImmediate(() => { this.processPackets(); }); }
+    public pushIn(pkt:Buffer) { 
+        this._inBuffer.push.apply(this._inBuffer, pkt.toJSON().data); if (sys.isReady) setImmediate(() => { this.processPackets(); }); }
     private pushOut(msg) {
         this._outBuffer.push(msg); setImmediate(() => { this.processPackets(); });
     }

@@ -231,8 +231,7 @@ export class WebServer {
             else
                 logger.info(`Auto-backup initialized Last Backup: ${Timestamp.toISOLocal(new Date(this.lastBackup))}`);
             // Lets wait a good 20 seconds before we auto-backup anything.  Now that we are initialized let the OCP have its way with everything.
-            await setTimeout(20000);
-            this.checkAutoBackup(); 
+            setTimeoutSync(()=>{this.checkAutoBackup();}, 20000);
         }
         catch (err) { logger.error(`Error initializing auto-backup: ${err.message}`); }
     }
@@ -657,10 +656,15 @@ export class HttpServer extends ProtoServer {
             if (!sendMessages) sock.leave('msgLogger');
             else sock.join('msgLogger');
         });
-        sock.on('sendRS485PortStats', function (sendPortStatus: boolean) {
-            console.log(`sendRS485PortStats set to ${sendPortStatus}`);
-            if (!sendPortStatus) sock.leave('rs485PortStats');
+        sock.on('sendRS485PortStats', function (sendPortStats: boolean) {
+            console.log(`sendRS485PortStats set to ${sendPortStats}`);
+            if (!sendPortStats) sock.leave('rs485PortStats');
             else sock.join('rs485PortStats');
+        });
+        sock.on('sendScreenlogicStats', function (sendScreenlogicStats: boolean) {
+            console.log(`sendScreenlogicStats set to ${sendScreenlogicStats}`);
+            if (!sendScreenlogicStats) sock.leave('screenlogicStats');
+            else sock.join('screenlogicStats');
         });
         StateSocket.initSockets(sock);
         ConfigSocket.initSockets(sock);

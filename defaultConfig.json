@@ -28,8 +28,13 @@
       "keepCount": 5,
       "njsPC":  true,
       "servers": []
+    },
+    "screenlogic": {
+      "enabled": false,
+      "type": "local",
+      "systemName": "Pentair: 00-00-00",
+      "password": 1234
     }
-
   },
   "web": {
     "servers": {

@@ -1438,7 +1438,7 @@ export class SystemCommands extends BoardCommands {
             catch (err) { reject(err); }
         });
     }
-    public async setCustomNameAsync(data: any): Promise<CustomName> {
+    public async setCustomNameAsync(data: any, send: boolean = false): Promise<CustomName> {
         return new Promise<CustomName>((resolve, reject) => {
             let id = parseInt(data.id, 10);
             if (isNaN(id)) return reject(new InvalidEquipmentIdError('Invalid Custom Name Id', data.id, 'customName'));
@@ -1968,7 +1968,7 @@ export class PumpCommands extends BoardCommands {
       return this.board.valueMaps.pumpUnits.transform(val);
     }
   }
-  public async setPumpAsync(data: any): Promise<Pump> {
+  public async setPumpAsync(data: any, send: boolean = true): Promise<Pump> {
     try {
       let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
       if (id <= 0) id = sys.pumps.filter(elem => elem.master === 1).getMaxId(false, 49) + 1;
@@ -2697,7 +2697,7 @@ export class CircuitCommands extends BoardCommands {
     return cf;
   }
   public getCircuitNames() { return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()]; }
-    public async setCircuitAsync(data: any): Promise<ICircuit> {
+    public async setCircuitAsync(data: any, send: boolean = true): Promise<ICircuit> {
         try {
             let id = parseInt(data.id, 10);
             if (id <= 0 || typeof data.id === 'undefined') {
@@ -2812,7 +2812,7 @@ export class CircuitCommands extends BoardCommands {
     });
 
   }
-  public async setLightGroupAsync(obj: any): Promise<LightGroup> {
+  public async setLightGroupAsync(obj: any, send: boolean = true): Promise<LightGroup> {
     let group: LightGroup = null;
     let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
     if (id <= 0) {
@@ -3377,7 +3377,7 @@ export class ChlorinatorCommands extends BoardCommands {
     } catch (err) { logger.error(`Error validating chlorinators for restore: ${err.message}`); }
   }
 
-  public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
+  public async setChlorAsync(obj: any, send: boolean = true): Promise<ChlorinatorState> {
     try {
       let id = parseInt(obj.id, 10);
       let chlor: Chlorinator;
@@ -3615,7 +3615,7 @@ export class ScheduleCommands extends BoardCommands {
       }
     };
   }
-  public async setScheduleAsync(data: any): Promise<Schedule> {
+  public async setScheduleAsync(data: any, send: boolean = true): Promise<Schedule> {
     let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
     if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
     if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
@@ -3726,7 +3726,7 @@ export class ScheduleCommands extends BoardCommands {
       }
     } catch (err) { logger.error(`Error synchronizing schedule states`); }
   }
-  public async setEggTimerAsync(data?: any): Promise<EggTimer> { return Promise.resolve(sys.eggTimers.getItemByIndex(1)); }
+  public async setEggTimerAsync(data?: any, send: boolean = true): Promise<EggTimer> { return Promise.resolve(sys.eggTimers.getItemByIndex(1)); }
   public async deleteEggTimerAsync(data?: any): Promise<EggTimer> { return Promise.resolve(sys.eggTimers.getItemByIndex(1)); }
   public includesCircuit(sched: Schedule, circuit: number) {
     let bIncludes = false;
@@ -4008,7 +4008,7 @@ export class HeaterCommands extends BoardCommands {
                 heater[s] = obj[s];
         }
     }
-    public async setHeaterAsync(obj: any): Promise<Heater> {
+    public async setHeaterAsync(obj: any, send: boolean = true): Promise<Heater> {
         try {
             let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
@@ -4547,7 +4547,7 @@ export class ValveCommands extends BoardCommands {
     else
       vstate.isDiverted = isDiverted;
   }
-  public async setValveAsync(obj: any): Promise<Valve> {
+  public async setValveAsync(obj: any, send: boolean = true): Promise<Valve> {
     try {
       let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
       obj.master = 1;
@@ -4989,7 +4989,7 @@ export class ChemControllerCommands extends BoardCommands {
     if (!isNaN(id)) return sys.chemControllers.find(x => x.id === id);
     else if (!isNaN(address)) return sys.chemControllers.find(x => x.address === address);
   }
-  public async setChemControllerAsync(data: any): Promise<ChemController> {
+  public async setChemControllerAsync(data: any, send: boolean = true): Promise<ChemController> {
     // The following are the rules related to when an OCP is present.
     // ==============================================================
     // 1. IntelliChem cannot be controlled/polled via Nixie, since there is no enable/disable from the OCP at this point we don't know who is in control of polling.
@@ -5000,8 +5000,9 @@ export class ChemControllerCommands extends BoardCommands {
     // =============================================================
     // 1. All chemControllers will be controlled via Nixie (IntelliChem, REM Chem).
     try {
+      let c1 = sys.chemControllers.getItemById(1);
       let chem = sys.board.chemControllers.findChemController(data);
-      let isAdd = typeof chem === 'undefined';
+      let isAdd = typeof chem === 'undefined' || typeof chem.isActive === 'undefined';
       let type = sys.board.valueMaps.chemControllerTypes.encode(isAdd ? data.type : chem.type);
       if (typeof type === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`The chem controller type could not be determined ${data.type || type}`, 'chemController', type));
       if (isAdd && sys.equipment.maxChemControllers <= sys.chemControllers.length) return Promise.reject(new InvalidEquipmentDataError(`The maximum number of chem controllers have been added to your controller`, 'chemController', sys.equipment.maxChemControllers));

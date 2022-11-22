@@ -966,7 +966,7 @@ export class PumpState extends EqState {
             this.hasChanged = true;
         }
     }
-    public get virtualControllerStatus(): number {
+/*     public get virtualControllerStatus(): number {
         return typeof (this.data.virtualControllerStatus) !== 'undefined' ? this.data.virtualControllerStatus.val : -1;
     }
     public set virtualControllerStatus(val: number) {
@@ -974,7 +974,7 @@ export class PumpState extends EqState {
             this.data.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.transform(val);
             this.hasChanged = true;
         }
-    }
+    } */
     public get targetSpeed(): number { return this.data.targetSpeed; } // used for virtual controller
     public set targetSpeed(val: number) { this.setDataVal('targetSpeed', val); }
     public get type() { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : -1; }

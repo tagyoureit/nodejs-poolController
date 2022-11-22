@@ -34,6 +34,7 @@ import { NixieControlPanel } from "./nixie/Nixie";
 import { NixieBoard } from 'controller/boards/NixieBoard';
 import { MockSystemBoard } from "../anslq25/boards/MockSystemBoard";
 import { MockBoardFactory } from "../anslq25/boards/MockBoardFactory";
+import { ScreenLogicComms } from "./comms/ScreenLogic";
 
 interface IPoolSystem {
     cfgPath: string;
@@ -335,6 +336,7 @@ export class PoolSystem implements IPoolSystem {
     public chemControllers: ChemControllerCollection;
     public chemDosers: ChemDoserCollection;
     public filters: FilterCollection;
+    public screenlogic: ScreenLogicComms;
     public appVersion: string;
     public get dirty(): boolean { return this._isDirty; }
     public set dirty(val) {
@@ -819,17 +821,6 @@ export class Options extends EqItem {
     public set cleanerSolarDelay(val: boolean) { this.setDataVal('cleanerSolarDelay', val); }
     public get cleanerSolarDelayTime(): number { return this.data.cleanerSolarDelayTime; }
     public set cleanerSolarDelayTime(val: number) { this.setDataVal('cleanerSolarDelayTime', val); }
-
-    //public get airTempAdj(): number { return typeof this.data.airTempAdj === 'undefined' ? 0 : this.data.airTempAdj; }
-    //public set airTempAdj(val: number) { this.setDataVal('airTempAdj', val); }
-    //public get waterTempAdj1(): number { return typeof this.data.waterTempAdj1 === 'undefined' ? 0 : this.data.waterTempAdj1; }
-    //public set waterTempAdj1(val: number) { this.setDataVal('waterTempAdj1', val); }
-    //public get solarTempAdj1(): number { return typeof this.data.solarTempAdj1 === 'undefined' ? 0 : this.data.solarTempAdj1; }
-    //public set solarTempAdj1(val: number) { this.setDataVal('solarTempAdj1', val); }
-    //public get waterTempAdj2(): number { return typeof this.data.waterTempAdj2 === 'undefined' ? 0 : this.data.waterTempAdj2; }
-    //public set waterTempAdj2(val: number) { this.setDataVal('waterTempAdj2', val); }
-    //public get solarTempAdj2(): number { return typeof this.data.solarTempAdj2 === 'undefined' ? 0 : this.data.solarTempAdj2; }
-    //public set solarTempAdj2(val: number) { this.setDataVal('solarTempAd2', val); }
 }
 export class VacationOptions extends ChildEqItem {
     public initData() {
@@ -2651,5 +2642,22 @@ export class AlarmSetting extends ChildEqItem {
     public set low(val: number) { this.setDataVal('low', val); }
     public get high(): number { return this.data.high; }
     public set high(val: number) { this.setDataVal('high', val); }
+}
+export class Screenlogic extends EqItem {
+    ctor(data: any, name?: any): General { return new General(data, name || 'pool'); }
+    public get enabled(): boolean { return this.data.enabled; }
+    public set enabled(val: boolean) { this.setDataVal('enabled', val); }
+    public get type(): 'local'|'remote' { return this.data.type; }
+    public set type(val: 'local'|'remote') { this.setDataVal('type', val); }
+    public get systemName(): string { return this.data.systemName; }
+    public set systemName(val: string) { this.setDataVal('systemName', val); }
+    public get password(): string { return this.data.password; }
+    public set password(val: string) { this.setDataVal('password', val); }
+
+    public clear(master: number = -1) {
+        if (master === -1)
+            super.clear();
+    }
+
 }
 export let sys = new PoolSystem();

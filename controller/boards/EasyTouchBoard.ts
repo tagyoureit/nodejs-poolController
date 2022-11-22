@@ -16,16 +16,17 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+import { sl } from '../../controller/comms/ScreenLogic';
 import * as extend from 'extend';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { Message, Outbound, Protocol, Response } from '../comms/messages/Messages';
 import { Timestamp, utils } from '../Constants';
-import { Body, ChemController, ConfigVersion, CustomName, EggTimer, Feature, Heater, ICircuit, LightGroup, LightGroupCircuit, Options, PoolSystem, Pump, Schedule, sys } from '../Equipment';
+import { Body, ChemController, ConfigVersion, CustomName, EggTimer, Feature, Heater, ICircuit, LightGroup, LightGroupCircuit, Options, PoolSystem, Pump, Schedule, sys, Valve } from '../Equipment';
 import { InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError } from '../Errors';
 import { ncp } from "../nixie/Nixie";
 import { BodyTempState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, state } from '../State';
-import { BodyCommands, byteValueMap, ChemControllerCommands, ChlorinatorCommands, CircuitCommands, ConfigQueue, ConfigRequest, EquipmentIdRange, FeatureCommands, HeaterCommands, PumpCommands, ScheduleCommands, SystemBoard, SystemCommands } from './SystemBoard';
+import { BodyCommands, byteValueMap, ChemControllerCommands, ChlorinatorCommands, CircuitCommands, ConfigQueue, ConfigRequest, EquipmentIdRange, FeatureCommands, HeaterCommands, PumpCommands, ScheduleCommands, SystemBoard, SystemCommands, ValveCommands } from './SystemBoard';
 
 export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
@@ -93,7 +94,7 @@ export class EasyTouchBoard extends SystemBoard {
             [30, { name: 'fiberoptic', desc: 'Fiber Optic' }],
             [31, { name: 'fiberworks', desc: 'Fiber Works' }],
             [32, { name: 'fillline', desc: 'Fill Line' }],
-            [33, { name: 'floorclnr', desc: 'Floor CLeaner' }],
+            [33, { name: 'floorclnr', desc: 'Floor Cleaner' }],
             [34, { name: 'fogger', desc: 'Fogger' }],
             [35, { name: 'fountain', desc: 'Fountain' }],
             [36, { name: 'fountain1', desc: 'Fountain 1' }],
@@ -409,6 +410,7 @@ export class EasyTouchBoard extends SystemBoard {
         eq.maxFeatures = md.features = typeof mt.features !== 'undefined' ? mt.features : 8;
         eq.maxValves = md.valves = typeof mt.valves !== 'undefined' ? mt.valves : mt.shared ? 4 : 2;
         eq.maxPumps = md.maxPumps = typeof mt.pumps !== 'undefined' ? mt.pumps : 2;
+        eq.maxHeaters = md.maxHeaters = typeof mt.heaters !== 'undefined' ? mt.heaters : 2;
         eq.shared = mt.shared;
         eq.single = typeof mt.single !== 'undefined' ? mt.single : false;
         eq.dual = false;
@@ -468,6 +470,7 @@ export class EasyTouchBoard extends SystemBoard {
     public schedules: TouchScheduleCommands = new TouchScheduleCommands(this);
     public heaters: TouchHeaterCommands = new TouchHeaterCommands(this);
     public chemControllers: TouchChemControllerCommands = new TouchChemControllerCommands(this);
+    public valves: TouchValveCommands = new TouchValveCommands(this);
     protected _configQueue: TouchConfigQueue = new TouchConfigQueue();
     public reloadConfig() {
         //sys.resetSystem();
@@ -615,7 +618,7 @@ export class TouchConfigQueue extends ConfigQueue {
                 .catch((err) => {
                     logger.error(`Error sending configuration request message on port ${out.portId}: ${err.message};`);
                 })
-                .finally(()=>{
+                .finally(() => {
                     setTimeout(() => { self.processNext(out); }, 50);
                 })
 
@@ -636,7 +639,7 @@ export class TouchConfigQueue extends ConfigQueue {
     }
 }
 export class TouchScheduleCommands extends ScheduleCommands {
-    public async setScheduleAsync(data: any): Promise<Schedule> {
+    public async setScheduleAsync(data: any, send: boolean = true): Promise<Schedule> {
         try {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
             if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
@@ -709,20 +712,22 @@ export class TouchScheduleCommands extends ScheduleCommands {
                 else if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) endTime = sunset;
             }
 
-            let out = Outbound.create({
-                action: 145,
-                payload: [
-                    id,
-                    circuit,
-                    Math.floor(startTime / 60),
-                    startTime - (Math.floor(startTime / 60) * 60),
-                    schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce') ? sys.board.valueMaps.scheduleTypes.getValue('runonce') : Math.floor(endTime / 60),
-                    endTime - (Math.floor(endTime / 60) * 60),
-                    schedDays],
-                retries: 2
-                // ,response: Response.create({ action: 1, payload: [145] })
-            });
-            await out.sendAsync();
+            if (send) {
+                let out = Outbound.create({
+                    action: 145,
+                    payload: [
+                        id,
+                        circuit,
+                        Math.floor(startTime / 60),
+                        startTime - (Math.floor(startTime / 60) * 60),
+                        schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce') ? sys.board.valueMaps.scheduleTypes.getValue('runonce') : Math.floor(endTime / 60),
+                        endTime - (Math.floor(endTime / 60) * 60),
+                        schedDays],
+                    retries: 2
+                    // ,response: Response.create({ action: 1, payload: [145] })
+                });
+                await out.sendAsync();
+            }
             sched.circuit = ssched.circuit = circuit;
             sched.scheduleDays = ssched.scheduleDays = schedDays;
             sched.scheduleType = ssched.scheduleType = schedType;
@@ -739,8 +744,10 @@ export class TouchScheduleCommands extends ScheduleCommands {
             // For good measure russ is sending out a config request for
             // the schedule in question.  If there was a failure on the
             // OCP side this will resolve it.
-            let req = Outbound.create({ action: 209, payload: [sched.id], retries: 2 });
-            await req.sendAsync();
+            if (send) {
+                let req = Outbound.create({ action: 209, payload: [sched.id], retries: 2 });
+                await req.sendAsync();
+            }
             state.schedules.sortById();
             return sched;
         }
@@ -780,27 +787,29 @@ export class TouchScheduleCommands extends ScheduleCommands {
             return Promise.reject(err);
         }
     }
-    public async setEggTimerAsync(data?: any): Promise<EggTimer> {
+    public async setEggTimerAsync(data?: any, send: boolean = true): Promise<EggTimer> {
         let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
         if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule/eggTimer id: ${data.id} or all schedule/eggTimer ids filled (${sys.eggTimers.length + sys.schedules.length} used out of ${sys.equipment.maxSchedules})`, data.id, 'Schedule'));
         let circuit = sys.circuits.getInterfaceById(data.circuit);
         if (typeof circuit === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.circuit} for schedule id ${data.id}`, data.id, 'Schedule'));
 
-        let out = Outbound.create({
-            action: 145,
-            payload: [
-                id,
-                circuit.id,
-                25,
-                0,
-                utils.makeBool(data.dontStop) ? 27 : Math.floor(parseInt(data.runTime, 10) / 60),
-                utils.makeBool(data.dontStop) ? 0 : data.runTime - (Math.floor(parseInt(data.runTime, 10) / 60) * 60),
-                0],
-            retries: 2
-        });
         try {
-            await out.sendAsync();
+            if (send) {
+                let out = Outbound.create({
+                    action: 145,
+                    payload: [
+                        id,
+                        circuit.id,
+                        25,
+                        0,
+                        utils.makeBool(data.dontStop) ? 27 : Math.floor(parseInt(data.runTime, 10) / 60),
+                        utils.makeBool(data.dontStop) ? 0 : data.runTime - (Math.floor(parseInt(data.runTime, 10) / 60) * 60),
+                        0],
+                    retries: 2
+                });
+                await out.sendAsync();
+            }
             let eggTimer = sys.eggTimers.getItemById(id, true);
             eggTimer.circuit = circuit.id;
             eggTimer.runTime = circuit.eggTimer = typeof data.runTime !== 'undefined' ? data.runTime : circuit.eggTimer || 720;
@@ -809,8 +818,10 @@ export class TouchScheduleCommands extends ScheduleCommands {
             // For good measure russ is sending out a config request for
             // the schedule in question.  If there was a failure on the
             // OCP side this will resolve it.
-            let req = Outbound.create({ action: 209, payload: [eggTimer.id], retries: 2 });
-            await req.sendAsync();
+            if (send) {
+                let req = Outbound.create({ action: 209, payload: [eggTimer.id], retries: 2 });
+                await req.sendAsync();
+            }
             return eggTimer;
         }
         catch (err) {
@@ -1000,22 +1011,24 @@ class TouchSystemCommands extends SystemCommands {
             return Promise.reject(err);
         }
     }
-    public async setCustomNameAsync(data: any): Promise<CustomName> {
+    public async setCustomNameAsync(data: any, send: boolean = true): Promise<CustomName> {
         let id = parseInt(data.id, 10);
         if (isNaN(id)) throw new InvalidEquipmentIdError('Invalid Custom Name Id', data.id, 'customName');
         if (id > sys.equipment.maxCustomNames) throw new InvalidEquipmentIdError('Custom Name Id out of range', data.id, 'customName');
         let cname = sys.customNames.getItemById(id);
         // No need to make any changes. Just return.
         if (cname.name === data.name) return cname;
-        let out = Outbound.create({
-            action: 138,
-            payload: [data.id],
-            response: true,
-            retries: 3
-        });
-        out.appendPayloadString(data.name, 11);
         try {
-            await out.sendAsync();
+            if (send) {
+                let out = Outbound.create({
+                    action: 138,
+                    payload: [data.id],
+                    response: true,
+                    retries: 3
+                });
+                out.appendPayloadString(data.name, 11);
+                await out.sendAsync();
+            }
 
             let c = sys.customNames.getItemById(id, true);
             c.name = data.name;
@@ -1349,7 +1362,7 @@ export class TouchCircuitCommands extends CircuitCommands {
     //            return [];
     //    }
     //}
-    public async setCircuitAsync(data: any): Promise<ICircuit> {
+    public async setCircuitAsync(data: any, send: boolean = true): Promise<ICircuit> {
         try {
             // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]
             // set circuit 17 to function 14 and name 209
@@ -1368,15 +1381,17 @@ export class TouchCircuitCommands extends CircuitCommands {
             let nameByte = 3; // set default `Aux 1`
             if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
             else if (typeof circuit.name !== 'undefined') nameByte = circuit.nameId;
-            let out = Outbound.create({
-                action: 139,
-                payload: [parseInt(data.id, 10), typeByte | (utils.makeBool(data.freeze) ? 64 : 0), nameByte, 0, 0],
-                retries: 3,
-                response: true
-            });
-            await out.sendAsync();
-            circuit = sys.circuits.getInterfaceById(data.id);
-            let cstate = state.circuits.getInterfaceById(data.id);
+            if (send) {
+                let out = Outbound.create({
+                    action: 139,
+                    payload: [parseInt(data.id, 10), typeByte | (utils.makeBool(data.freeze) ? 64 : 0), nameByte, 0, 0],
+                    retries: 3,
+                    response: true
+                });
+                await out.sendAsync();
+            }
+            circuit = sys.circuits.getInterfaceById(data.id, true);
+            let cstate = state.circuits.getInterfaceById(data.id, true);
             circuit.nameId = cstate.nameId = nameByte;
             circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
             circuit.showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures;
@@ -1392,7 +1407,7 @@ export class TouchCircuitCommands extends CircuitCommands {
                     if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
                 }
                 else {
-                    await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: circuit.eggTimer, dontStop: circuit.dontStop, circuit: circuit.id });
+                    await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: circuit.eggTimer, dontStop: circuit.dontStop, circuit: circuit.id }, false);
                 }
             }
             catch (err) {
@@ -1429,6 +1444,7 @@ export class TouchCircuitCommands extends CircuitCommands {
             val = false;
         }
         let cstate = state.circuits.getInterfaceById(id);
+        await sl.circuits.setCircuitStateAsync(id, val);
         let out = Outbound.create({
             action: 134,
             payload: [id, val ? 1 : 0],
@@ -1451,7 +1467,7 @@ export class TouchCircuitCommands extends CircuitCommands {
         return await this.setCircuitStateAsync(id, !cstate.isOn);
     }
 
-    public async setLightGroupAsync(obj: any): Promise<LightGroup> {
+    public async setLightGroupAsync(obj: any, send: boolean = true): Promise<LightGroup> {
         try {
             let group: LightGroup = null;
             let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
@@ -1485,69 +1501,73 @@ export class TouchCircuitCommands extends CircuitCommands {
             if (sys.equipment.maxIntelliBrites === 8) {
                 // Easytouch
 
-                let out = Outbound.create({
-                    action: 167,
-                    retries: 3,
-                    response: true
-                });
-                const lgcircuits = group.circuits.get();
-                for (let circ = 0; circ < 8; circ++) {
-                    const lgcirc = lgcircuits[circ];
-                    if (typeof lgcirc === 'undefined') out.payload.push(0, 0, 0, 0);
-                    else {
-                        out.payload.push(lgcirc.circuit);
-                        out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
-                        out.payload.push(lgcirc.swimDelay << 1);
-                        out.payload.push(0);
+                if (send) {
+                    let out = Outbound.create({
+                        action: 167,
+                        retries: 3,
+                        response: true
+                    });
+                    const lgcircuits = group.circuits.get();
+                    for (let circ = 0; circ < 8; circ++) {
+                        const lgcirc = lgcircuits[circ];
+                        if (typeof lgcirc === 'undefined') out.payload.push(0, 0, 0, 0);
+                        else {
+                            out.payload.push(lgcirc.circuit);
+                            out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
+                            out.payload.push(lgcirc.swimDelay << 1);
+                            out.payload.push(0);
+                        }
                     }
+                    await out.sendAsync();
                 }
-                await out.sendAsync();
             }
             else {
                 // Intellitouch
                 const lgcircuits = group.circuits.get();
+                if (send) {
 
-                let out = Outbound.create({
-                    action: 167,
-                    retries: 3,
-                    payload: [1],
-                    response: true
-                });
-                for (let circ = 0; circ < 5; circ++) {
-                    const lgcirc = lgcircuits[circ];
-                    if (typeof lgcirc === 'undefined') out.payload.push.apply([0, 0, 0, 0]);
-                    else {
-                        out.payload.push(lgcirc.id);
-                        out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
-                        out.payload.push(lgcirc.swimDelay << 1);
-                        out.payload.push(0);
+                    let out = Outbound.create({
+                        action: 167,
+                        retries: 3,
+                        payload: [1],
+                        response: true
+                    });
+                    for (let circ = 0; circ < 5; circ++) {
+                        const lgcirc = lgcircuits[circ];
+                        if (typeof lgcirc === 'undefined') out.payload.push.apply([0, 0, 0, 0]);
+                        else {
+                            out.payload.push(lgcirc.id);
+                            out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
+                            out.payload.push(lgcirc.swimDelay << 1);
+                            out.payload.push(0);
+                        }
                     }
-                }
-                await out.sendAsync();
+                    if (send) await out.sendAsync();
 
-                out = Outbound.create({
-                    action: 167,
-                    retries: 3,
-                    payload: [2],
-                    response: true
-                });
-                for (let circ = 5; circ < 10; circ++) {
-                    const lgcirc = lgcircuits[circ];
-                    if (typeof lgcirc === 'undefined') out.payload.push.apply([0, 0, 0, 0]);
-                    else {
-                        out.payload.push(lgcirc.id);
-                        out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
-                        out.payload.push(lgcirc.swimDelay << 1);
-                        out.payload.push(0);
+                    out = Outbound.create({
+                        action: 167,
+                        retries: 3,
+                        payload: [2],
+                        response: true
+                    });
+                    for (let circ = 5; circ < 10; circ++) {
+                        const lgcirc = lgcircuits[circ];
+                        if (typeof lgcirc === 'undefined') out.payload.push.apply([0, 0, 0, 0]);
+                        else {
+                            out.payload.push(lgcirc.id);
+                            out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
+                            out.payload.push(lgcirc.swimDelay << 1);
+                            out.payload.push(0);
+                        }
                     }
-                }
-                await out.sendAsync();
+                    if (send) await out.sendAsync();
 
-                out = Outbound.create({
-                    action: 231,
-                    payload: [0]
-                });
-                await out.sendAsync();
+                    out = Outbound.create({
+                        action: 231,
+                        payload: [0]
+                    });
+                    await out.sendAsync();
+                }
                 sys.emitData('lightGroupConfig', group.get(true));
                 return group;
             }
@@ -1750,7 +1770,7 @@ class TouchFeatureCommands extends FeatureCommands {
 
 }
 class TouchChlorinatorCommands extends ChlorinatorCommands {
-    public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
+    public async setChlorAsync(obj: any, send: boolean = true): Promise<ChlorinatorState> {
         try {
             let id = parseInt(obj.id, 10);
             // Bail out right away if this is not controlled by the OCP.
@@ -1762,7 +1782,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
                 id = 1;
                 isAdd = true;
             }
-            let chlor = sys.chlorinators.getItemById(id);
+            let chlor = sys.chlorinators.getItemById(id, isAdd);
             if (chlor.master !== 0 && !isAdd) return super.setChlorAsync(obj);
             // RKS: I am not even sure this can be done with Touch as the master on the RS485 bus.
             if (typeof chlor.master === 'undefined') chlor.master = 0;
@@ -1806,17 +1826,20 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             if (typeof obj.ignoreSaltReading !== 'undefined') chlor.ignoreSaltReading = utils.makeBool(obj.ignoreSaltReading);
 
 
-            let out = Outbound.create({
-                dest: 16,
-                action: 153,
-                // removed disable ? 0 : (spaSetpoint << 1) + 1 because only deleteChlorAsync should remove it from the OCP
-                payload: [(disabled ? 0 : isDosing ? 100 << 1 : spaSetpoint << 1) + 1, disabled ? 0 : isDosing ? 100 : poolSetpoint,
-                utils.makeBool(superChlorinate) && superChlorHours > 0 ? superChlorHours + 128 : 0,  // We only want to set the superChlor when the user sends superChlor = true
-                    0, 0, 0, 0, 0, 0, 0],
-                retries: 3,
-                response: true,
-            });
-            await out.sendAsync();
+            if (send) {
+
+                let out = Outbound.create({
+                    dest: 16,
+                    action: 153,
+                    // removed disable ? 0 : (spaSetpoint << 1) + 1 because only deleteChlorAsync should remove it from the OCP
+                    payload: [(disabled ? 0 : isDosing ? 100 << 1 : spaSetpoint << 1) + 1, disabled ? 0 : isDosing ? 100 : poolSetpoint,
+                    utils.makeBool(superChlorinate) && superChlorHours > 0 ? superChlorHours + 128 : 0,  // We only want to set the superChlor when the user sends superChlor = true
+                        0, 0, 0, 0, 0, 0, 0],
+                    retries: 3,
+                    response: true,
+                });
+                await out.sendAsync();
+            };
             let schlor = state.chlorinators.getItemById(id, true);
             chlor.disabled = disabled;
             schlor.isActive = chlor.isActive = true;
@@ -1832,14 +1855,16 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             chlor.isDosing = isDosing;
             chlor.portId = portId;
             chlor.saltTarget = saltTarget;
-            out = Outbound.create({
-                dest: 16,
-                action: 217,
-                payload: [0],
-                retries: 3,
-                response: true,
-            })
-            await out.sendAsync();
+            if (send) {
+                let out = Outbound.create({
+                    dest: 16,
+                    action: 217,
+                    payload: [0],
+                    retries: 3,
+                    response: true,
+                })
+                await out.sendAsync();
+            }
             state.emitEquipmentChanges();
             return state.chlorinators.getItemById(id);
         } catch (err) {
@@ -1914,7 +1939,7 @@ class TouchPumpCommands extends PumpCommands {
         }
     }
 
-    public async setPumpAsync(data: any): Promise<Pump> {
+    public async setPumpAsync(data: any, send: boolean = true): Promise<Pump> {
         // Rules regarding Pumps in *Touch
         // In *Touch there are basically three classifications of pumps. These include those under control of RS485, Dual Speed, and Single Speed.
         // 485 Controlled pumps - Any of the IntelliFlo pumps.  These are managed by the control panel.
@@ -2063,155 +2088,157 @@ class TouchPumpCommands extends PumpCommands {
             }
             else {
                 let arr = [];
-                let outc = Outbound.create({
-                    action: 155,
-                    payload: [id, ntype],
-                    retries: 2,
-                    response: Response.create({ action: 1, payload: [155] })
-                });
-                data.address = id + 95;
-                outc.appendPayloadBytes(0, 44);
-                if (type.val === 128) {
-                    outc.setPayloadByte(3, 2);
-                    data.model = 0;
-                }
-                if (typeof type.maxPrimingTime !== 'undefined' && type.maxPrimingTime > 0 && type.val >= 64) {
-                    // We need to set all of this back to data since later pump.set is called to set the data after success.
-                    data.primingTime = typeof data.primingTime !== 'undefined' ? isNaN(parseInt(data.primingTime, 10)) ? pump.primingTime || 0 : 0 : pump.primingTime;
-                    data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || type.minSpeed;
-                    outc.setPayloadByte(2, data.primingTime);
-                    outc.setPayloadByte(21, Math.floor(data.primingSpeed / 256));
-                    outc.setPayloadByte(30, data.primingSpeed % 256);
-                }
-                if (type.val === 1) { // Any VF pump.
-                    // We need to set all of this back to data since later pump.set is called to set the data after success.
-                    data.backgroundCircuit = typeof data.backgroundCircuit !== 'undefined' ? parseInt(data.backgroundCircuit, 10) : pump.backgroundCircuit || 6;
-                    data.filterSize = typeof data.filterSize !== 'undefined' ? parseInt(data.filterSize, 10) : pump.filterSize || 15000;
-                    data.turnovers = typeof data.turnovers !== 'undefined' ? parseInt(data.turnovers, 10) : pump.turnovers || 2;
-                    data.manualFilterGPM = typeof data.manualFilterGPM !== 'undefined' ? parseInt(data.manualFilterGPM, 10) : pump.manualFilterGPM || 30;
-                    data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || 55;
-                    data.primingTime = typeof data.primingTime !== 'undefined' ? parseInt(data.primingTime, 10) : pump.primingTime || 0;
-                    data.maxSystemTime = typeof data.maxSystemTime !== 'undefined' ? parseInt(data.maxSystemTime, 10) : pump.maxSystemTime || 0;
-                    data.maxPressureIncrease = typeof data.maxPressureIncrease != 'undefined' ? parseInt(data.maxPressureIncrease, 10) : pump.maxPressureIncrease || 0;
-                    data.backwashFlow = typeof data.backwashFlow !== 'undefined' ? parseInt(data.backwashFlow, 10) : pump.backwashFlow || 60;
-                    data.backwashTime = typeof data.backwashTime !== 'undefined' ? parseInt(data.bacwashTime, 10) : pump.backwashTime || 5;
-                    data.rinseTime = typeof data.rinseTime !== 'undefined' ? parseInt(data.rinseTime, 10) : pump.rinseTime || 1;
-                    data.vacuumFlow = typeof data.vacuumFlow !== 'undefined' ? parseInt(data.vacuumFlow, 10) : pump.vacuumFlow || 50;
-                    data.vacuumTime = typeof data.vacuumTime !== 'undefined' ? parseInt(data.vacuumTime, 10) : pump.vacuumTime || 10;
-                    data.model = 0;
-                    outc.setPayloadByte(1, data.backgroundCircuit);
-                    outc.setPayloadByte(2, data.filterSize);
-                    outc.setPayloadByte(3, data.turnovers);
-                    outc.setPayloadByte(21, data.manualFilterGPM);
-                    outc.setPayloadByte(22, data.primingSpeed);
-                    outc.setPayloadByte(23, data.primingTime | data.maxSystemTime << 4, 5);
-                    outc.setPayloadByte(24, data.maxPressureIncrease);
-                    outc.setPayloadByte(25, data.backwashFlow);
-                    outc.setPayloadByte(26, data.backwashTime);
-                    outc.setPayloadByte(27, data.rinseTime);
-                    outc.setPayloadByte(28, data.vacuumFlow);
-                    outc.setPayloadByte(30, data.vacuumTime);
-                }
-                if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
-                    // Do some validation to make sure we don't have a condition where a circuit is declared twice.
-                    let arrCircuits = [];
-                    // Below is a very strange mess that goofs up the circuit settings.
-                    //{id:1, circuits:[{speed:1750, units:{val:0}, id:1, circuit:6}, {speed:2100, units:{val:0}, id:2, circuit:6}]}
-                    let ubyte = 0;
-                    for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
-                        // RKS: This notion of always returning the max number of circuits was misguided.  It leaves gaps in the circuit definitions and makes the pump
-                        // layouts difficult when there are a variety of supported circuits.  For instance with SF pumps you only get 4.
-                        let c = i > data.circuits.length ? { speed: type.minSpeed || 0, flow: type.minFlow || 0, circuit: 0 } : data.circuits[i - 1];
-                        //{speed:1750, units:{val:0}, id:1, circuit:6}
-                        let speed = parseInt(c.speed, 10);
-                        let flow = parseInt(c.flow, 10);
-                        let circuit = parseInt(c.circuit, 10);
-                        if (isNaN(circuit)) return Promise.reject(new InvalidEquipmentDataError(`An invalid pump circuit was supplied for pump ${pump.name}. ${JSON.stringify(c)}`, 'Pump', data))
-                        if (isNaN(speed)) speed = type.minSpeed;
-                        if (isNaN(flow)) flow = type.minFlow;
-                        outc.setPayloadByte((i * 2) + 3, circuit, 0);
-                        let units;
-                        if (type.name === 'vf') units = sys.board.valueMaps.pumpUnits.getValue('gpm');
-                        else if (type.name === 'vs') units = sys.board.valueMaps.pumpUnits.getValue('rpm');
-                        else units = sys.board.valueMaps.pumpUnits.encode(c.units);
-                        c.units = units;
-                        if (isNaN(units)) units = sys.board.valueMaps.pumpUnits.getValue('rpm');
-                        if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
-                            outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
-                            outc.setPayloadByte(i + 21, speed % 256);
-                            c.speed = speed;
-                            ubyte |= (1 << (i - 1));
-                        }
-                        else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
-                            outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
-                            c.flow = flow;
-                        }
-                        c.id = i;
-                        c.circuit = circuit;
-                        if (arrCircuits.includes(c.circuit)) return Promise.reject(new InvalidEquipmentDataError(`Configuration for pump ${pump.name} is not correct circuit #${c.circuit} as included more than once. ${JSON.stringify(c)}`, 'Pump', data))
-                        arrCircuits.push(c.circuit);
+                if (send) {
+                    let outc = Outbound.create({
+                        action: 155,
+                        payload: [id, ntype],
+                        retries: 2,
+                        response: Response.create({ action: 1, payload: [155] })
+                    });
+                    data.address = id + 95;
+                    outc.appendPayloadBytes(0, 44);
+                    if (type.val === 128) {
+                        outc.setPayloadByte(3, 2);
+                        data.model = 0;
                     }
-                    if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
-                }
-                else if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits === 'undefined') { // This pump type supports circuits and the payload did not contain them.
-                    // Copy the data from the circuits array.  That way when we call pump.set to set the data back it will be persisted correctly.
-                    data.circuits = extend(true, {}, pump.circuits.get());
-                    let ubyte = 0;
-                    for (let i = 1; i <= data.circuits.length; i++) data.circuits[i].id = i;
-                    for (let i = 1; i <= pump.circuits.length && i <= type.maxCircuits; i++) {
-                        let c = pump.circuits.getItemByIndex(i - 1);
-                        let speed = c.speed;
-                        let flow = c.flow;
-                        let circuit = c.circuit;
-                        if (isNaN(speed)) speed = type.minSpeed;
-                        if (isNaN(flow)) flow = type.minFlow;
-                        outc.setPayloadByte((i * 2) + 3, circuit, 0);
-                        let units;
-                        if (type.name === 'vf') units = sys.board.valueMaps.pumpUnits.getValue('gpm');
-                        else if (type.name === 'vs') units = sys.board.valueMaps.pumpUnits.getValue('rpm');
-                        else units = c.units;
-                        if (isNaN(units)) units = sys.board.valueMaps.pumpUnits.getValue('rpm');
-                        c.units = units;
-                        if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
-                            outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
-                            outc.setPayloadByte(i + 21, speed % 256);
-                            ubyte |= (1 << (i - 1));
-                        }
-                        else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
-                            outc.setPayloadByte((i * 2) + 4, flow); // Set to gpm
-                        }
+                    if (typeof type.maxPrimingTime !== 'undefined' && type.maxPrimingTime > 0 && type.val >= 64) {
+                        // We need to set all of this back to data since later pump.set is called to set the data after success.
+                        data.primingTime = typeof data.primingTime !== 'undefined' ? isNaN(parseInt(data.primingTime, 10)) ? pump.primingTime || 0 : 0 : pump.primingTime;
+                        data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || type.minSpeed;
+                        outc.setPayloadByte(2, data.primingTime);
+                        outc.setPayloadByte(21, Math.floor(data.primingSpeed / 256));
+                        outc.setPayloadByte(30, data.primingSpeed % 256);
                     }
-                    if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
+                    if (type.val === 1) { // Any VF pump.
+                        // We need to set all of this back to data since later pump.set is called to set the data after success.
+                        data.backgroundCircuit = typeof data.backgroundCircuit !== 'undefined' ? parseInt(data.backgroundCircuit, 10) : pump.backgroundCircuit || 6;
+                        data.filterSize = typeof data.filterSize !== 'undefined' ? parseInt(data.filterSize, 10) : pump.filterSize || 15000;
+                        data.turnovers = typeof data.turnovers !== 'undefined' ? parseInt(data.turnovers, 10) : pump.turnovers || 2;
+                        data.manualFilterGPM = typeof data.manualFilterGPM !== 'undefined' ? parseInt(data.manualFilterGPM, 10) : pump.manualFilterGPM || 30;
+                        data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || 55;
+                        data.primingTime = typeof data.primingTime !== 'undefined' ? parseInt(data.primingTime, 10) : pump.primingTime || 0;
+                        data.maxSystemTime = typeof data.maxSystemTime !== 'undefined' ? parseInt(data.maxSystemTime, 10) : pump.maxSystemTime || 0;
+                        data.maxPressureIncrease = typeof data.maxPressureIncrease != 'undefined' ? parseInt(data.maxPressureIncrease, 10) : pump.maxPressureIncrease || 0;
+                        data.backwashFlow = typeof data.backwashFlow !== 'undefined' ? parseInt(data.backwashFlow, 10) : pump.backwashFlow || 60;
+                        data.backwashTime = typeof data.backwashTime !== 'undefined' ? parseInt(data.bacwashTime, 10) : pump.backwashTime || 5;
+                        data.rinseTime = typeof data.rinseTime !== 'undefined' ? parseInt(data.rinseTime, 10) : pump.rinseTime || 1;
+                        data.vacuumFlow = typeof data.vacuumFlow !== 'undefined' ? parseInt(data.vacuumFlow, 10) : pump.vacuumFlow || 50;
+                        data.vacuumTime = typeof data.vacuumTime !== 'undefined' ? parseInt(data.vacuumTime, 10) : pump.vacuumTime || 10;
+                        data.model = 0;
+                        outc.setPayloadByte(1, data.backgroundCircuit);
+                        outc.setPayloadByte(2, data.filterSize);
+                        outc.setPayloadByte(3, data.turnovers);
+                        outc.setPayloadByte(21, data.manualFilterGPM);
+                        outc.setPayloadByte(22, data.primingSpeed);
+                        outc.setPayloadByte(23, data.primingTime | data.maxSystemTime << 4, 5);
+                        outc.setPayloadByte(24, data.maxPressureIncrease);
+                        outc.setPayloadByte(25, data.backwashFlow);
+                        outc.setPayloadByte(26, data.backwashTime);
+                        outc.setPayloadByte(27, data.rinseTime);
+                        outc.setPayloadByte(28, data.vacuumFlow);
+                        outc.setPayloadByte(30, data.vacuumTime);
+                    }
+                    if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
+                        // Do some validation to make sure we don't have a condition where a circuit is declared twice.
+                        let arrCircuits = [];
+                        // Below is a very strange mess that goofs up the circuit settings.
+                        //{id:1, circuits:[{speed:1750, units:{val:0}, id:1, circuit:6}, {speed:2100, units:{val:0}, id:2, circuit:6}]}
+                        let ubyte = 0;
+                        for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
+                            // RKS: This notion of always returning the max number of circuits was misguided.  It leaves gaps in the circuit definitions and makes the pump
+                            // layouts difficult when there are a variety of supported circuits.  For instance with SF pumps you only get 4.
+                            let c = i > data.circuits.length ? { speed: type.minSpeed || 0, flow: type.minFlow || 0, circuit: 0 } : data.circuits[i - 1];
+                            //{speed:1750, units:{val:0}, id:1, circuit:6}
+                            let speed = parseInt(c.speed, 10);
+                            let flow = parseInt(c.flow, 10);
+                            let circuit = parseInt(c.circuit, 10);
+                            if (isNaN(circuit)) return Promise.reject(new InvalidEquipmentDataError(`An invalid pump circuit was supplied for pump ${pump.name}. ${JSON.stringify(c)}`, 'Pump', data))
+                            if (isNaN(speed)) speed = type.minSpeed;
+                            if (isNaN(flow)) flow = type.minFlow;
+                            outc.setPayloadByte((i * 2) + 3, circuit, 0);
+                            let units;
+                            if (type.name === 'vf') units = sys.board.valueMaps.pumpUnits.getValue('gpm');
+                            else if (type.name === 'vs') units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                            else units = sys.board.valueMaps.pumpUnits.encode(c.units);
+                            c.units = units;
+                            if (isNaN(units)) units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                            if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
+                                outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
+                                outc.setPayloadByte(i + 21, speed % 256);
+                                c.speed = speed;
+                                ubyte |= (1 << (i - 1));
+                            }
+                            else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
+                                outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
+                                c.flow = flow;
+                            }
+                            c.id = i;
+                            c.circuit = circuit;
+                            if (arrCircuits.includes(c.circuit)) return Promise.reject(new InvalidEquipmentDataError(`Configuration for pump ${pump.name} is not correct circuit #${c.circuit} as included more than once. ${JSON.stringify(c)}`, 'Pump', data))
+                            arrCircuits.push(c.circuit);
+                        }
+                        if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
+                    }
+                    else if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits === 'undefined') { // This pump type supports circuits and the payload did not contain them.
+                        // Copy the data from the circuits array.  That way when we call pump.set to set the data back it will be persisted correctly.
+                        data.circuits = extend(true, {}, pump.circuits.get());
+                        let ubyte = 0;
+                        for (let i = 1; i <= data.circuits.length; i++) data.circuits[i].id = i;
+                        for (let i = 1; i <= pump.circuits.length && i <= type.maxCircuits; i++) {
+                            let c = pump.circuits.getItemByIndex(i - 1);
+                            let speed = c.speed;
+                            let flow = c.flow;
+                            let circuit = c.circuit;
+                            if (isNaN(speed)) speed = type.minSpeed;
+                            if (isNaN(flow)) flow = type.minFlow;
+                            outc.setPayloadByte((i * 2) + 3, circuit, 0);
+                            let units;
+                            if (type.name === 'vf') units = sys.board.valueMaps.pumpUnits.getValue('gpm');
+                            else if (type.name === 'vs') units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                            else units = c.units;
+                            if (isNaN(units)) units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                            c.units = units;
+                            if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
+                                outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
+                                outc.setPayloadByte(i + 21, speed % 256);
+                                ubyte |= (1 << (i - 1));
+                            }
+                            else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
+                                outc.setPayloadByte((i * 2) + 4, flow); // Set to gpm
+                            }
+                        }
+                        if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
 
+                    }
+                    /*             return new Promise<Pump>((resolve, reject) => {
+                                    outc.onComplete = (err, msg) => {
+                                        if (err) reject(err);
+                                        else {
+                                            pump = sys.pumps.getItemById(id, true);
+                                            // RKS: 05-20-22 Boooh to this if the payload does not include its
+                                            // circuits we have just destroyed the pump definition.  So I added code to
+                                            // make sure that the data is complete.
+                                            pump.set(data); // Sets all the data back to the pump.
+                                            let spump = state.pumps.getItemById(id, true);
+                                            spump.name = pump.name;
+                                            spump.type = pump.type;
+                                            spump.emitEquipmentChange();
+                                            resolve(pump);
+                                            const pumpConfigRequest = Outbound.create({
+                                                action: 216,
+                                                payload: [pump.id],
+                                                retries: 2,
+                                                response: true
+                                            });
+                                            conn.queueSendMessage(pumpConfigRequest);
+                                        }
+                                    };
+                                    conn.queueSendMessage(outc);
+                                }); */
+
+
+                    await outc.sendAsync();
                 }
-                /*             return new Promise<Pump>((resolve, reject) => {
-                                outc.onComplete = (err, msg) => {
-                                    if (err) reject(err);
-                                    else {
-                                        pump = sys.pumps.getItemById(id, true);
-                                        // RKS: 05-20-22 Boooh to this if the payload does not include its
-                                        // circuits we have just destroyed the pump definition.  So I added code to
-                                        // make sure that the data is complete.
-                                        pump.set(data); // Sets all the data back to the pump.
-                                        let spump = state.pumps.getItemById(id, true);
-                                        spump.name = pump.name;
-                                        spump.type = pump.type;
-                                        spump.emitEquipmentChange();
-                                        resolve(pump);
-                                        const pumpConfigRequest = Outbound.create({
-                                            action: 216,
-                                            payload: [pump.id],
-                                            retries: 2,
-                                            response: true
-                                        });
-                                        conn.queueSendMessage(pumpConfigRequest);
-                                    }
-                                };
-                                conn.queueSendMessage(outc);
-                            }); */
-
-
-                await outc.sendAsync();
                 pump = sys.pumps.getItemById(id, true);
                 // RKS: 05-20-22 Boooh to this if the payload does not include its
                 // circuits we have just destroyed the pump definition.  So I added code to
@@ -2221,13 +2248,15 @@ class TouchPumpCommands extends PumpCommands {
                 spump.name = pump.name;
                 spump.type = pump.type;
                 spump.emitEquipmentChange();
-                const pumpConfigRequest = Outbound.create({
-                    action: 216,
-                    payload: [pump.id],
-                    retries: 2,
-                    response: true
-                });
-                await pumpConfigRequest.sendAsync();;
+                if (send){
+                    const pumpConfigRequest = Outbound.create({
+                        action: 216,
+                        payload: [pump.id],
+                        retries: 2,
+                        response: true
+                    });
+                    await pumpConfigRequest.sendAsync();
+                }
                 return pump;
             }
         }
@@ -2325,12 +2354,14 @@ class TouchHeaterCommands extends HeaterCommands {
         }
     }
     // RKS: Not sure what to do with this as the heater data for Touch isn't actually processed anywhere.
-    public async setHeaterAsync(obj: any): Promise<Heater> {
+    public async setHeaterAsync(obj: any, send: boolean = true): Promise<Heater> {
         if (obj.master === 1 || parseInt(obj.id, 10) > 255) return super.setHeaterAsync(obj);
         let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
         let heater: Heater;
         let address: number;
+        let htype;
+
         let out = Outbound.create({
             action: 162,
             payload: [5, 0, 0],
@@ -2339,7 +2370,6 @@ class TouchHeaterCommands extends HeaterCommands {
             // data.
             response: Response.create({ dest: -1, action: 34 })
         });
-        let htype;
         if (id <= 0) {
             // Touch only supports two installed heaters.  So the type determines the id.
             if (sys.heaters.length > sys.equipment.maxHeaters) return Promise.reject(new InvalidEquipmentDataError('The maximum number of heaters are already installed.', 'Heater', sys.heaters.length));
@@ -2443,8 +2473,9 @@ class TouchHeaterCommands extends HeaterCommands {
                     break;
             }
         }
-
-        await out.sendAsync();
+        if (send) {
+            await out.sendAsync();
+        }
         heater = sys.heaters.getItemById(id, true);
         let sheater = state.heaters.getItemById(id, true);
         for (var s in obj) {
@@ -2547,13 +2578,20 @@ class TouchHeaterCommands extends HeaterCommands {
             }
         }
         sys.board.valueMaps.heatSources.set(32, { name: 'nochange', desc: 'No Change' });
+        // Now set the body data.
+        for (let i = 0; i < sys.bodies.length; i++) {
+            let body = sys.bodies.getItemByIndex(i);
+            let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
+            let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
+            btemp.heaterOptions = opts;
+        }
         this.setActiveTempSensors();
     }
 }
 class TouchChemControllerCommands extends ChemControllerCommands {
     // This method is not meant to be called directly.  The setChemControllerAsync method does some routing to set IntelliChem correctly
     // if an OCP is involved.  This is the reason that the method is protected.
-    protected async setIntelliChemAsync(data: any): Promise<ChemController> {
+    protected async setIntelliChemAsync(data: any, send: boolean = true): Promise<ChemController> {
         try {
 
             let chem = sys.board.chemControllers.findChemController(data);
@@ -2625,28 +2663,30 @@ class TouchChemControllerCommands extends ChemControllerCommands {
             let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' && typeof data.orp.tank.level !== 'undefined' ? parseInt(data.orp.tank.level, 10) : schem.orp.tank.level;
             // OCP needs to set the IntelliChem as active so it knows that it exists
 
-            let out = Outbound.create({
-                action: 211,
-                payload: [],
-                retries: 3, // We are going to try 4 times.
-                response: Response.create({ protocol: Protocol.IntelliChem, action: 1, payload: [211] }),
-                onAbort: () => { }
-            });
-            out.insertPayloadBytes(0, 0, 22);
-            out.setPayloadByte(0, address - 144);
-            out.setPayloadByte(1, Math.floor((pHSetpoint * 100) / 256) || 0);
-            out.setPayloadByte(2, Math.round((pHSetpoint * 100) % 256) || 0);
-            out.setPayloadByte(3, Math.floor(orpSetpoint / 256) || 0);
-            out.setPayloadByte(4, Math.round(orpSetpoint % 256) || 0);
-            out.setPayloadByte(5, phEnabled ? acidTankLevel + 1 : 0);
-            out.setPayloadByte(6, orpEnabled ? orpTankLevel + 1 : 0);
-            out.setPayloadByte(7, Math.floor(calciumHardness / 256) || 0);
-            out.setPayloadByte(8, Math.round(calciumHardness % 256) || 0);
-            out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid || 0);
-            out.setPayloadByte(11, Math.floor(alkalinity / 256) || 0);
-            out.setPayloadByte(12, Math.round(alkalinity % 256) || 0);
-            out.setPayloadByte(13, Math.round(saltLevel / 50) || 20);
-            await out.sendAsync();
+            if (send) {
+                let out = Outbound.create({
+                    action: 211,
+                    payload: [],
+                    retries: 3, // We are going to try 4 times.
+                    response: Response.create({ protocol: Protocol.IntelliChem, action: 1, payload: [211] }),
+                    onAbort: () => { }
+                });
+                out.insertPayloadBytes(0, 0, 22);
+                out.setPayloadByte(0, address - 144);
+                out.setPayloadByte(1, Math.floor((pHSetpoint * 100) / 256) || 0);
+                out.setPayloadByte(2, Math.round((pHSetpoint * 100) % 256) || 0);
+                out.setPayloadByte(3, Math.floor(orpSetpoint / 256) || 0);
+                out.setPayloadByte(4, Math.round(orpSetpoint % 256) || 0);
+                out.setPayloadByte(5, phEnabled ? acidTankLevel + 1 : 0);
+                out.setPayloadByte(6, orpEnabled ? orpTankLevel + 1 : 0);
+                out.setPayloadByte(7, Math.floor(calciumHardness / 256) || 0);
+                out.setPayloadByte(8, Math.round(calciumHardness % 256) || 0);
+                out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid || 0);
+                out.setPayloadByte(11, Math.floor(alkalinity / 256) || 0);
+                out.setPayloadByte(12, Math.round(alkalinity % 256) || 0);
+                out.setPayloadByte(13, Math.round(saltLevel / 50) || 20);
+                await out.sendAsync();
+            }
             chem = sys.chemControllers.getItemById(data.id, true);
             schem = state.chemControllers.getItemById(data.id, true);
             chem.master = 0;
@@ -2725,5 +2765,25 @@ class TouchChemControllerCommands extends ChemControllerCommands {
             logger.error(`Error deleting chem controller: ${err.message}`);
             return Promise.reject(err);
         }
+    }
+}
+class TouchValveCommands extends ValveCommands {
+    public async setValveAsync(obj: any, send: boolean = false): Promise<Valve> {
+        try {
+            let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+            obj.master = 0;
+            if (isNaN(id) || id <= 0) id = Math.max(sys.valves.getMaxId(false, 49) + 1, 50);
+
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`EasyTouch: Valve Id has not been defined ${id}`, obj.id, 'Valve'));
+            let valve = sys.valves.getItemById(id, true);
+            // Set all the valve properies.
+            let vstate = state.valves.getItemById(valve.id, true);
+            valve.isActive = true;
+            valve.circuit = typeof obj.circuit !== 'undefined' ? obj.circuit : valve.circuit;
+            valve.name = typeof obj.name !== 'undefined' ? obj.name : valve.name;
+            valve.connectionId = typeof obj.connectionId ? obj.connectionId : valve.connectionId;
+
+            return valve;
+        } catch (err) { logger.error(`Nixie: Error setting valve definition. ${err.message}`); return Promise.reject(err); }
     }
 }

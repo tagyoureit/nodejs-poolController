@@ -11,7 +11,7 @@ export class MessagesMock {
     constructor() { }
 
     public static process(msg: Inbound) {
-        switch (msg.protocol) {
+        switch (msg. protocol) {
             case Protocol.Broadcast: {
                 switch (sys.controllerType) {
                     case ControllerType.IntelliCenter:

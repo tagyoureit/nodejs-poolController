@@ -100,10 +100,14 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
             writeSuccess: function(lines){
                 logger.silly(`InfluxDB successfully wrote ${lines.length} lines.`)
             },
+            writeRetrySkipped: function(entry){
+                logger.silly(`Influx write retry skipped ${JSON.stringify(entry)}`);
+            },
             maxRetryTime: DEFAULT_WriteOptions.maxRetryTime,
             exponentialBase: DEFAULT_WriteOptions.exponentialBase,
             randomRetry: DEFAULT_WriteOptions.randomRetry,
             maxBatchBytes: 4096
+           
         }
         this.writeApi = influxDB.getWriteApi(org, bucket, 'ms', writeOptions);
 

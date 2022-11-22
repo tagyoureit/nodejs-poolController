@@ -39,16 +39,8 @@ export async function initAsync() {
         await conn.initAsync();
         await sys.start();
         await webApp.initAutoBackup();
-        await sl.connectAsync();
+        await sl.initAsync();
     } catch (err) { console.log(`Error Initializing nodejs-PoolController ${err.message}`);  }
-    //return Promise.resolve()
-    //    .then(function () { config.init(); })
-    //    .then(function () { logger.init(); })
-    //    .then(function () { conn.init(); })
-    //    .then(function () { sys.init(); })
-    //    .then(function () { state.init(); })
-    //    .then(function () { webApp.init(); })
-    //    .then(function () { sys.start(); });
 }
 
 export async function startPacketCapture(bResetLogs: boolean) {
@@ -78,6 +70,7 @@ export async function stopAsync(): Promise<void> {
         await sys.stopAsync();
         await state.stopAsync();
         await conn.stopAsync();
+        await sl.stopAsync();
         await webApp.stopAsync();
         await config.updateAsync();
         await logger.stopAsync();
