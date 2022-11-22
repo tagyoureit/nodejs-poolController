@@ -267,7 +267,8 @@ export class byteValueMaps {
     [134, { name: 'heatEnable', desc: 'Heat Enable', assignableToPumpCircuit: false }],
     [135, { name: 'pumpSpeedUp', desc: 'Pump Speed +', assignableToPumpCircuit: false }],
     [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -', assignableToPumpCircuit: false }],
-    [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true }]
+    [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true }],
+    [258, { name: 'anyHeater', desc: 'Any Heater' }],
   ]);
   public lightThemes: byteValueMap = new byteValueMap([
     [0, { name: 'off', desc: 'Off' }],
@@ -2266,7 +2267,7 @@ export class CircuitCommands extends BoardCommands {
                         break;
                     case 'heater':
                         // If heater is on for any body
-                        // RSG 5-3-22: Heater will now refer to any poolHeat6er or spaHeater but not solar or other types.  anyHeater now takes that role.
+                        // RSG 5-3-22: Heater will now refer to any poolHeater or spaHeater but not solar or other types.  anyHeater now takes that role.
                         remove = true;
                         for (let j = 0; j < poolStates.length; j++) {
                             if (poolStates[j].heaterOptions.solar + poolStates[j].heaterOptions.heatpump > 0) remove = false;

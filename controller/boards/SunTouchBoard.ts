@@ -78,6 +78,7 @@ export class SunTouchBoard extends EasyTouchBoard {
             [130, { name: 'poolHeater', desc: 'Pool Heater', assignableToPumpCircuit: true }],
             [131, { name: 'spaHeater', desc: 'Spa Heater', assignableToPumpCircuit: true }],
             [132, { name: 'freeze', desc: 'Freeze', assignableToPumpCircuit: true }],
+            [258, { name: 'anyHeater', desc: 'Any Heater' }]
         ]);
         this.valueMaps.circuitNames = new byteValueMap([
             [3, { name: 'aux1', desc: 'AUX 1' }],

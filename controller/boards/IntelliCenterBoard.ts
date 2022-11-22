@@ -155,7 +155,8 @@ export class IntelliCenterBoard extends SystemBoard {
             [248, { name: 'solarHeat', desc: 'Solar Heat' }],
             [251, { name: 'heater', desc: 'Heater' }],
             [252, { name: 'solar', desc: 'Solar' }],
-            [255, { name: 'poolHeatEnable', desc: 'Pool Heat Enable' }]
+            [255, { name: 'poolHeatEnable', desc: 'Pool Heat Enable' }],
+            [258, { name: 'anyHeater', desc: 'Any Heater' }]
         ]);
         this.valueMaps.msgBroadcastActions.merge([
             [1, { name: 'ack', desc: 'Command Ack' }],

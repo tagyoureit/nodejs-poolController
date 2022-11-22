@@ -60,7 +60,8 @@ export class IntelliTouchBoard extends EasyTouchBoard {
             [160, { name: 'heatEnable', desc: 'Heat Enable', assignableToPumpCircuit: false }],
             [161, { name: 'pumpSpeedUp', desc: 'Pump Speed +', assignableToPumpCircuit: false }],
             [162, { name: 'pumpSpeedDown', desc: 'Pump Speed -', assignableToPumpCircuit: false }],
-            [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true }]
+            [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true }],
+            [258, { name: 'anyHeater', desc: 'Any Heater' }]
         ]);
 
     }

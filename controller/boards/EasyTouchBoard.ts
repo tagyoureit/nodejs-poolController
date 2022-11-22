@@ -377,6 +377,13 @@ export class EasyTouchBoard extends SystemBoard {
                 let bt = sys.board.valueMaps.bodyTypes.transform(cbody.type);
                 tbody.name = cbody.name = bt.desc;
             }
+            if (tbody.id === 1) {
+                tbody.circuit = cbody.circuit = 6;
+            }
+            else if (tbody.id === 2) {
+                tbody.circuit = cbody.circuit = 1;
+            }
+
         }
         if (!sys.equipment.shared && !sys.equipment.dual && state.equipment.controllerType !== 'intellitouch') {
             sys.bodies.removeItemById(2);
@@ -1186,7 +1193,12 @@ class TouchBodyCommands extends BodyCommands {
             response: true
         });
         try {
-            await out.sendAsync();
+            if (sl.enabled) {
+                await sl.bodies.setHeatModeAsync(body, mode);
+            }
+            else {
+                await out.sendAsync();
+            }
             body.heatMode = mode;
             let bstate = state.temps.bodies.getItemById(body.id);
             bstate.heatMode = mode;
@@ -1195,6 +1207,7 @@ class TouchBodyCommands extends BodyCommands {
         } catch (err) {
             return Promise.reject(err);
         }
+
     }
     public async setSetpoints(body: Body, obj: any): Promise<BodyTempState> {
         let setPoint = typeof obj.setPoint !== 'undefined' ? parseInt(obj.setPoint, 10) : parseInt(obj.heatSetpoint, 10);
@@ -1444,7 +1457,7 @@ export class TouchCircuitCommands extends CircuitCommands {
             val = false;
         }
         let cstate = state.circuits.getInterfaceById(id);
-        await sl.circuits.setCircuitStateAsync(id, val);
+        if (sl.enabled) await sl.circuits.setCircuitStateAsync(id, val);
         let out = Outbound.create({
             action: 134,
             payload: [id, val ? 1 : 0],
@@ -2248,7 +2261,7 @@ class TouchPumpCommands extends PumpCommands {
                 spump.name = pump.name;
                 spump.type = pump.type;
                 spump.emitEquipmentChange();
-                if (send){
+                if (send) {
                     const pumpConfigRequest = Outbound.create({
                         action: 216,
                         payload: [pump.id],
