@@ -246,7 +246,7 @@ export class IntelliCenterBoard extends SystemBoard {
             [2, { name: 'solar', desc: 'Solar' }],
             [3, { name: 'cooling', desc: 'Cooling' }],
             [4, { name: 'hpheat', desc: 'Heating' }],
-            [5, { name: 'hybheat', desc: 'Heating'}],
+            [5, { name: 'hybheat', desc: 'Heating' }],
             [6, { name: 'mtheat', desc: 'Heater' }],
             [8, { name: 'hpcool', desc: 'Cooling' }]
         ]);
@@ -673,22 +673,23 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             // as both boards are processing at the same time and sending an outbound ack.
             let out = Outbound.create({
                 action: 222, payload: [this.curr.category, itm], retries: 5,
-                response: Response.create({ dest: -1, action: 30, payload: [this.curr.category, itm]
+                response: Response.create({
+                    dest: -1, action: 30, payload: [this.curr.category, itm]
                     // , callback: () => { self.processNext(out); } 
                 })
             });
             logger.verbose(`Requesting config for: ${ConfigCategories[this.curr.category]} - Item: ${itm}`);
             setTimeout(() => { conn.queueSendMessage(out) }, 50);
             out.sendAsync()
-            .then(() => {
-                //logger.debug(`msg ${out.toShortPacket()} sent successfully`);
-            })
-            .catch((err) => {
-                logger.error(`Error sending configuration request message on port ${out.portId}: ${err.message};`);
-            })
-            .finally(()=>{
-                setTimeout(()=>{self.processNext(out);}, 10);
-            })
+                .then(() => {
+                    //logger.debug(`msg ${out.toShortPacket()} sent successfully`);
+                })
+                .catch((err) => {
+                    logger.error(`Error sending configuration request message on port ${out.portId}: ${err.message};`);
+                })
+                .finally(() => {
+                    setTimeout(() => { self.processNext(out); }, 10);
+                })
         } else {
             // Now that we are done check the configuration a final time.  If we have anything outstanding
             // it will get picked up.
@@ -3636,15 +3637,16 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
         out.setPayloadByte(1, 0);
         out.setPayloadByte(2, chem.id - 1);
         out.setPayloadByte(3, body.val);
-        out.setPayloadByte(4, acidTankLevel + 1);
+        //out.setPayloadByte(4, acidTankLevel + 1);
+        out.setPayloadByte(4, 1);
         out.setPayloadByte(5, address);
         out.setPayloadByte(6, 1);
         out.setPayloadInt(7, Math.round(pHSetpoint * 100), 700);
         out.setPayloadInt(9, orpSetpoint, 400);
-        out.setPayloadByte(11, 1);
-        out.setPayloadByte(12, 1);
-        //out.setPayloadByte(11, acidTankLevel + 1, 1);
-        //out.setPayloadByte(12, orpTankLevel + 1, 1);
+        //out.setPayloadByte(11, 1);
+        //out.setPayloadByte(12, 1);
+        out.setPayloadByte(11, acidTankLevel + 1, 1);
+        out.setPayloadByte(12, orpTankLevel + 1, 1);
 
         out.setPayloadInt(13, calciumHardness, 25);
         out.setPayloadInt(15, cyanuricAcid, 0);
