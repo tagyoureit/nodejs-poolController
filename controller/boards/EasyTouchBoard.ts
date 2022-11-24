@@ -871,27 +871,34 @@ export class TouchScheduleCommands extends ScheduleCommands {
         if (isNaN(id) || id < 0) throw new InvalidEquipmentIdError(`Invalid eggTimer id: ${data.id}`, data.id, 'Schedule');
         let eggTimer = sys.eggTimers.getItemById(id);
         // RKS: Assuming you just send 0s for the schedule and it will delete it.
-        let out = Outbound.create({
-            action: 145,
-            payload: [
-                id,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0],
-            retries: 3
-        });
         try {
-            await out.sendAsync();
+            if (sl.enabled) {
+
+            }
+            else {
+                let out = Outbound.create({
+                    action: 145,
+                    payload: [
+                        id,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0],
+                    retries: 3
+                });
+                await out.sendAsync();
+            }
             const circuit = sys.circuits.getInterfaceById(data.circuit);
             circuit.eggTimer = 720;
             circuit.dontStop = circuit.eggTimer === 1620;
             sys.eggTimers.removeItemById(id);
             eggTimer.isActive = false;
-            let req = Outbound.create({ action: 209, payload: [eggTimer.id], retries: 2 });
-            await req.sendAsync();
+            if (!sl.enabled) {
+                let req = Outbound.create({ action: 209, payload: [eggTimer.id], retries: 2 });
+                await req.sendAsync();
+            }
             return eggTimer;
         }
         catch (err) {
@@ -1441,7 +1448,7 @@ export class TouchCircuitCommands extends CircuitCommands {
             if (send) {
                 if (sl.enabled) {
                     // SL show in features = 0 = pool; 1 = spa; 2 = features; 4 = lights; 5 = hide
-                    await sl.circuits.setCircuitAsync(parseInt(data.id, 10), nameByte, showInFeatures ? 2 : 0, typeByte, freeze)
+                    await sl.circuits.setCircuitAsync(parseInt(data.id, 10), nameByte, typeByte, showInFeatures ? 2 : 0, freeze)
                 }
                 else {
                     let out = Outbound.create({
@@ -1469,7 +1476,7 @@ export class TouchCircuitCommands extends CircuitCommands {
                     if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
                 }
                 else {
-                    await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: circuit.eggTimer, dontStop: circuit.dontStop, circuit: circuit.id }, false);
+                    await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: circuit.eggTimer, dontStop: circuit.dontStop, circuit: circuit.id });
                 }
             }
             catch (err) {
@@ -1800,7 +1807,7 @@ class TouchFeatureCommands extends FeatureCommands {
         // [165,23,16,34,139,5],[17,0,1,0,0],[1,144]
         if (sl.enabled) {
             // SL show in features = 0 = pool; 1 = spa; 2 = features; 4 = lights; 5 = hide
-            await sl.circuits.setCircuitAsync(id, nameByte, showInFeatures ? 2 : 0, typeByte, freeze);
+            await sl.circuits.setCircuitAsync(id, nameByte, typeByte, showInFeatures ? 2 : 0, freeze);
         }
         else {
             let out = Outbound.create({
@@ -1825,12 +1832,7 @@ class TouchFeatureCommands extends FeatureCommands {
         let eggTimer = sys.eggTimers.find(elem => elem.circuit === id);
         try {
             if (feature.eggTimer === 720) {
-                if (sl.enabled) {
-                    await sl.schedules.deleteEggTimerAsync(eggTimer.id);
-                }
-                else {
-                    if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
-                }
+                if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
             }
             else {
                 if (sl.enabled) {
