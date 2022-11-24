@@ -27,6 +27,7 @@ import { InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationErr
 import { ncp } from "../nixie/Nixie";
 import { BodyTempState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, state } from '../State';
 import { BodyCommands, byteValueMap, ChemControllerCommands, ChlorinatorCommands, CircuitCommands, ConfigQueue, ConfigRequest, EquipmentIdRange, FeatureCommands, HeaterCommands, PumpCommands, ScheduleCommands, SystemBoard, SystemCommands, ValveCommands } from './SystemBoard';
+import { start } from 'repl';
 
 export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
@@ -649,6 +650,7 @@ export class TouchScheduleCommands extends ScheduleCommands {
     public async setScheduleAsync(data: any, send: boolean = true): Promise<Schedule> {
         try {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+            let slSchedId = id;
             if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
             let sched = sys.schedules.getItemById(id, id > 0);
@@ -719,21 +721,35 @@ export class TouchScheduleCommands extends ScheduleCommands {
                 else if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) endTime = sunset;
             }
 
+
             if (send) {
-                let out = Outbound.create({
-                    action: 145,
-                    payload: [
-                        id,
-                        circuit,
-                        Math.floor(startTime / 60),
-                        startTime - (Math.floor(startTime / 60) * 60),
-                        schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce') ? sys.board.valueMaps.scheduleTypes.getValue('runonce') : Math.floor(endTime / 60),
-                        endTime - (Math.floor(endTime / 60) * 60),
-                        schedDays],
-                    retries: 2
-                    // ,response: Response.create({ action: 1, payload: [145] })
-                });
-                await out.sendAsync();
+                if (sl.enabled) {
+                    let slId = await sl.schedules.setScheduleAsync(slSchedId, circuit, startTime, endTime, schedDays, schedType, changeHeatSetpoint, heatSource, heatSetpoint);
+                    // if SL adds this as a new schedule id different from what we expect.
+                    if (slId !== id) {
+                        sys.schedules.removeItemById(id);
+                        state.schedules.removeItemById(id);
+                        id = slId;
+                        sched = sys.schedules.getItemById(id, id > 0);
+                        ssched = state.schedules.getItemById(id, id > 0);
+                    }
+                }
+                else {
+                    let out = Outbound.create({
+                        action: 145,
+                        payload: [
+                            id,
+                            circuit,
+                            Math.floor(startTime / 60),
+                            startTime - (Math.floor(startTime / 60) * 60),
+                            schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce') ? sys.board.valueMaps.scheduleTypes.getValue('runonce') : Math.floor(endTime / 60),
+                            endTime - (Math.floor(endTime / 60) * 60),
+                            schedDays],
+                        retries: 2
+                        // ,response: Response.create({ action: 1, payload: [145] })
+                    });
+                    await out.sendAsync();
+                }
             }
             sched.circuit = ssched.circuit = circuit;
             sched.scheduleDays = ssched.scheduleDays = schedDays;
@@ -751,7 +767,7 @@ export class TouchScheduleCommands extends ScheduleCommands {
             // For good measure russ is sending out a config request for
             // the schedule in question.  If there was a failure on the
             // OCP side this will resolve it.
-            if (send) {
+            if (send && !sl.enabled) {
                 let req = Outbound.create({ action: 209, payload: [sched.id], retries: 2 });
                 await req.sendAsync();
             }
@@ -768,26 +784,34 @@ export class TouchScheduleCommands extends ScheduleCommands {
         let sched = sys.schedules.getItemById(id);
         let ssched = state.schedules.getItemById(id);
         // RKS: Assuming you just send 0s for the schedule and it will delete it.
-        let out = Outbound.create({
-            action: 145,
-            payload: [
-                id,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0],
-            retries: 3
-        });
         try {
-            await out.sendAsync();
+            if (sl.enabled) {
+                await sl.schedules.deleteScheduleAsync(id);
+            }
+            else {
+
+                let out = Outbound.create({
+                    action: 145,
+                    payload: [
+                        id,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0],
+                    retries: 3
+                });
+                await out.sendAsync();
+            }
             sys.schedules.removeItemById(id);
             state.schedules.removeItemById(id);
             ssched.emitEquipmentChange();
             sched.isActive = false;
-            let req = Outbound.create({ action: 209, payload: [sched.id], retries: 2 });
-            await req.sendAsync();
+            if (!sl.enabled) {
+                let req = Outbound.create({ action: 209, payload: [sched.id], retries: 2 });
+                await req.sendAsync();
+            }
             return sched;
         }
         catch (err) {
@@ -803,19 +827,25 @@ export class TouchScheduleCommands extends ScheduleCommands {
 
         try {
             if (send) {
-                let out = Outbound.create({
-                    action: 145,
-                    payload: [
-                        id,
-                        circuit.id,
-                        25,
-                        0,
-                        utils.makeBool(data.dontStop) ? 27 : Math.floor(parseInt(data.runTime, 10) / 60),
-                        utils.makeBool(data.dontStop) ? 0 : data.runTime - (Math.floor(parseInt(data.runTime, 10) / 60) * 60),
-                        0],
-                    retries: 2
-                });
-                await out.sendAsync();
+                if (sl.enabled) {
+                    await sl.schedules.setEggTimerAsync(circuit.id, parseInt(data.runTime, 10));
+                }
+                else {
+
+                    let out = Outbound.create({
+                        action: 145,
+                        payload: [
+                            id,
+                            circuit.id,
+                            25,
+                            0,
+                            utils.makeBool(data.dontStop) ? 27 : Math.floor(parseInt(data.runTime, 10) / 60),
+                            utils.makeBool(data.dontStop) ? 0 : data.runTime - (Math.floor(parseInt(data.runTime, 10) / 60) * 60),
+                            0],
+                        retries: 2
+                    });
+                    await out.sendAsync();
+                }
             }
             let eggTimer = sys.eggTimers.getItemById(id, true);
             eggTimer.circuit = circuit.id;
@@ -949,14 +979,19 @@ export enum GetTouchConfigCategories {
 }
 class TouchSystemCommands extends SystemCommands {
     public async cancelDelay() {
-        let out = Outbound.create({
-            action: 131,
-            payload: [0],
-            retries: 0,
-            response: true
-        });
         try {
-            await out.sendAsync();
+            if (sl.enabled) {
+                await sl.bodies.cancelDalayAsync();
+            }
+            else {
+                let out = Outbound.create({
+                    action: 131,
+                    payload: [0],
+                    retries: 0,
+                    response: true
+                });
+                await out.sendAsync();
+            }
             state.delay = sys.board.valueMaps.delay.getValue('nodelay');
             return state.data.delay;
         }
@@ -1135,17 +1170,19 @@ class TouchBodyCommands extends BodyCommands {
             if (typeof obj.manualPriority !== 'undefined') manualPriority = utils.makeBool(obj.manualPriority);
             let body = sys.bodies.getItemById(obj.id, false);
             let intellichemInstalled = sys.chemControllers.getItemByAddress(144, false).isActive;
-            let out = Outbound.create({
-                dest: 16,
-                action: 168,
-                retries: 3,
-                response: true,
-            });
-            out.insertPayloadBytes(0, 0, 9);
-            out.setPayloadByte(3, intellichemInstalled ? 255 : 254);
-            out.setPayloadByte(4, manualHeat ? 1 : 0);
-            out.setPayloadByte(5, manualPriority ? 1 : 0);
-            await out.sendAsync();
+            if (!sl.enabled) {
+                let out = Outbound.create({
+                    dest: 16,
+                    action: 168,
+                    retries: 3,
+                    response: true,
+                });
+                out.insertPayloadBytes(0, 0, 9);
+                out.setPayloadByte(3, intellichemInstalled ? 255 : 254);
+                out.setPayloadByte(4, manualHeat ? 1 : 0);
+                out.setPayloadByte(5, manualPriority ? 1 : 0);
+                await out.sendAsync();
+            }
             sys.general.options.manualHeat = manualHeat;
             sys.general.options.manualPriority = manualPriority;
             let sbody = state.temps.bodies.getItemById(body.id, true);
@@ -1309,7 +1346,12 @@ class TouchBodyCommands extends BodyCommands {
             response: true
         });
         try {
-            await out.sendAsync();
+            if (sl.enabled) {
+                await sl.bodies.setHeatSetpointAsync(body, setPoint);
+            }
+            else {
+                await out.sendAsync();
+            }
             body.setPoint = setPoint;
             let bstate = state.temps.bodies.getItemById(body.id);
             bstate.setPoint = setPoint;
@@ -1389,26 +1431,33 @@ export class TouchCircuitCommands extends CircuitCommands {
                 let circ = await super.setCircuitAsync(data);
                 return circ;
             }
-
-            let typeByte = parseInt(data.type, 10) || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
+            let cstate = state.circuits.getInterfaceById(data.id, true);
+            let showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures;
+            let typeByte = parseInt(data.type, 10) === 0 ? 0 : parseInt(data.type, 10) || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
+            let freeze = typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze;
             let nameByte = 3; // set default `Aux 1`
             if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
             else if (typeof circuit.name !== 'undefined') nameByte = circuit.nameId;
             if (send) {
-                let out = Outbound.create({
-                    action: 139,
-                    payload: [parseInt(data.id, 10), typeByte | (utils.makeBool(data.freeze) ? 64 : 0), nameByte, 0, 0],
-                    retries: 3,
-                    response: true
-                });
-                await out.sendAsync();
+                if (sl.enabled) {
+                    // SL show in features = 0 = pool; 1 = spa; 2 = features; 4 = lights; 5 = hide
+                    await sl.circuits.setCircuitAsync(parseInt(data.id, 10), nameByte, showInFeatures ? 2 : 0, typeByte, freeze)
+                }
+                else {
+                    let out = Outbound.create({
+                        action: 139,
+                        payload: [parseInt(data.id, 10), typeByte | (utils.makeBool(data.freeze) ? 64 : 0), nameByte, 0, 0],
+                        retries: 3,
+                        response: true
+                    });
+                    await out.sendAsync();
+                }
             }
             circuit = sys.circuits.getInterfaceById(data.id, true);
-            let cstate = state.circuits.getInterfaceById(data.id, true);
             circuit.nameId = cstate.nameId = nameByte;
             circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
-            circuit.showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures;
-            circuit.freeze = typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze;
+            circuit.showInFeatures = showInFeatures;
+            circuit.freeze = freeze;
             circuit.type = cstate.type = typeByte;
             circuit.eggTimer = typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer || 720;
             circuit.dontStop = (typeof data.dontStop !== 'undefined') ? utils.makeBool(data.dontStop) : circuit.eggTimer === 1620;
@@ -1457,7 +1506,6 @@ export class TouchCircuitCommands extends CircuitCommands {
             val = false;
         }
         let cstate = state.circuits.getInterfaceById(id);
-        if (sl.enabled) await sl.circuits.setCircuitStateAsync(id, val);
         let out = Outbound.create({
             action: 134,
             payload: [id, val ? 1 : 0],
@@ -1465,7 +1513,12 @@ export class TouchCircuitCommands extends CircuitCommands {
             response: true,
             scope: `circuitState${id}`
         });
-        await out.sendAsync();
+        if (sl.enabled) {
+            await sl.circuits.setCircuitStateAsync(id, val);
+        }
+        else {
+            await out.sendAsync();
+        }
         sys.board.circuits.setEndTime(c, cstate, val);
         cstate.isOn = val;
         state.emitEquipmentChanges();
@@ -1496,6 +1549,7 @@ export class TouchCircuitCommands extends CircuitCommands {
             if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440); // this isn't an *Touch thing, so need to figure out if we can handle it some other way
             group.dontStop = (group.eggTimer === 1440);
             group.isActive = true;
+            group.type = 3; // intellibrite
             if (typeof obj.circuits !== 'undefined') {
                 for (let i = 0; i < obj.circuits.length; i++) {
                     let cobj = obj.circuits[i];
@@ -1511,10 +1565,10 @@ export class TouchCircuitCommands extends CircuitCommands {
                 }
                 // group.circuits.length = obj.circuits.length;
             }
-            if (sys.equipment.maxIntelliBrites === 8) {
-                // Easytouch
+            if (send) {
+                if (sys.equipment.maxIntelliBrites === 8) {
+                    // Easytouch
 
-                if (send) {
                     let out = Outbound.create({
                         action: 167,
                         retries: 3,
@@ -1533,57 +1587,57 @@ export class TouchCircuitCommands extends CircuitCommands {
                     }
                     await out.sendAsync();
                 }
-            }
-            else {
-                // Intellitouch
-                const lgcircuits = group.circuits.get();
-                if (send) {
+                else {
+                    // Intellitouch
+                    const lgcircuits = group.circuits.get();
+                    if (send) {
 
-                    let out = Outbound.create({
-                        action: 167,
-                        retries: 3,
-                        payload: [1],
-                        response: true
-                    });
-                    for (let circ = 0; circ < 5; circ++) {
-                        const lgcirc = lgcircuits[circ];
-                        if (typeof lgcirc === 'undefined') out.payload.push.apply([0, 0, 0, 0]);
-                        else {
-                            out.payload.push(lgcirc.id);
-                            out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
-                            out.payload.push(lgcirc.swimDelay << 1);
-                            out.payload.push(0);
+                        let out = Outbound.create({
+                            action: 167,
+                            retries: 3,
+                            payload: [1],
+                            response: true
+                        });
+                        for (let circ = 0; circ < 5; circ++) {
+                            const lgcirc = lgcircuits[circ];
+                            if (typeof lgcirc === 'undefined') out.payload.push.apply([0, 0, 0, 0]);
+                            else {
+                                out.payload.push(lgcirc.id);
+                                out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
+                                out.payload.push(lgcirc.swimDelay << 1);
+                                out.payload.push(0);
+                            }
                         }
-                    }
-                    if (send) await out.sendAsync();
+                        await out.sendAsync();
 
-                    out = Outbound.create({
-                        action: 167,
-                        retries: 3,
-                        payload: [2],
-                        response: true
-                    });
-                    for (let circ = 5; circ < 10; circ++) {
-                        const lgcirc = lgcircuits[circ];
-                        if (typeof lgcirc === 'undefined') out.payload.push.apply([0, 0, 0, 0]);
-                        else {
-                            out.payload.push(lgcirc.id);
-                            out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
-                            out.payload.push(lgcirc.swimDelay << 1);
-                            out.payload.push(0);
+                        out = Outbound.create({
+                            action: 167,
+                            retries: 3,
+                            payload: [2],
+                            response: true
+                        });
+                        for (let circ = 5; circ < 10; circ++) {
+                            const lgcirc = lgcircuits[circ];
+                            if (typeof lgcirc === 'undefined') out.payload.push.apply([0, 0, 0, 0]);
+                            else {
+                                out.payload.push(lgcirc.id);
+                                out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
+                                out.payload.push(lgcirc.swimDelay << 1);
+                                out.payload.push(0);
+                            }
                         }
-                    }
-                    if (send) await out.sendAsync();
+                        out.sendAsync();
 
-                    out = Outbound.create({
-                        action: 231,
-                        payload: [0]
-                    });
-                    await out.sendAsync();
+                    }
                 }
-                sys.emitData('lightGroupConfig', group.get(true));
-                return group;
+                let out = Outbound.create({
+                    action: 231,
+                    payload: [0]
+                });
+                await out.sendAsync();
             }
+            sys.emitData('lightGroupConfig', group.get(true));
+            return group;
         }
         catch (err) { return Promise.reject(err); }
     }
@@ -1655,14 +1709,19 @@ export class TouchCircuitCommands extends CircuitCommands {
             grp.lightingTheme = sgrp.lightingTheme = theme;
             sgrp.action = sys.board.valueMaps.circuitActions.getValue('lighttheme');
             sgrp.emitEquipmentChange();
-            let out = Outbound.create({
-                action: 96,
-                payload: [theme, 0],
-                retries: 3,
-                response: true,
-                scope: `lightGroupTheme${id}`
-            });
-            await out.sendAsync();
+            if (sl.enabled) {
+                await sl.circuits.setLightGroupThemeAsync(theme);
+            }
+            else {
+                let out = Outbound.create({
+                    action: 96,
+                    payload: [theme, 0],
+                    retries: 3,
+                    response: true,
+                    scope: `lightGroupTheme${id}`
+                });
+                await out.sendAsync();
+            }
             // Let everyone know we turned these on.  The theme messages will come later.
             for (let i = 0; i < grp.circuits.length; i++) {
                 let c = grp.circuits.getItemByIndex(i);
@@ -1693,7 +1752,7 @@ export class TouchCircuitCommands extends CircuitCommands {
                     setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'other'); });
                     break;
                 default:
-                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'color'); });
+                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'lighttheme'); });
                 // other themes for magicstream?
             }
             sgrp.action = 0;
@@ -1732,18 +1791,26 @@ class TouchFeatureCommands extends FeatureCommands {
             feature = sys.features.getItemById(id, false);
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('feature Id has not been defined', data.id, 'Feature'));
         if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`feature Id ${id}: is out of range.`, id, 'Feature'));
-        let typeByte = data.type || feature.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
+        let typeByte = data.type === 0 ? data.type : data.type || feature.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
         let nameByte = 3; // set default `Aux 1`
         if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
         else if (typeof feature.name !== 'undefined') nameByte = feature.nameId;
+        let freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : feature.freeze);
+        let showInFeatures = feature.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : feature.showInFeatures);
         // [165,23,16,34,139,5],[17,0,1,0,0],[1,144]
-        let out = Outbound.create({
-            action: 139,
-            payload: [id, typeByte | (utils.makeBool(data.freeze) ? 64 : 0), nameByte, 0, 0],
-            retries: 3,
-            response: true
-        });
-        await out.sendAsync();
+        if (sl.enabled) {
+            // SL show in features = 0 = pool; 1 = spa; 2 = features; 4 = lights; 5 = hide
+            await sl.circuits.setCircuitAsync(id, nameByte, showInFeatures ? 2 : 0, typeByte, freeze);
+        }
+        else {
+            let out = Outbound.create({
+                action: 139,
+                payload: [id, typeByte | (utils.makeBool(data.freeze) ? 64 : 0), nameByte, 0, 0],
+                retries: 3,
+                response: true
+            });
+            await out.sendAsync();
+        }
         feature = sys.features.getItemById(id);
         let fstate = state.features.getItemById(data.id);
         feature.nameId = fstate.nameId = nameByte;
@@ -1751,17 +1818,27 @@ class TouchFeatureCommands extends FeatureCommands {
         feature.name = fstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
         feature.type = fstate.type = typeByte;
 
-        feature.freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : feature.freeze);
-        fstate.showInFeatures = feature.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : feature.showInFeatures);
+        feature.freeze = freeze;
+        fstate.showInFeatures = showInFeatures;
         feature.eggTimer = typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : feature.eggTimer || 720;
         feature.dontStop = (typeof data.dontStop !== 'undefined') ? utils.makeBool(data.dontStop) : feature.eggTimer === 1620;
         let eggTimer = sys.eggTimers.find(elem => elem.circuit === id);
         try {
             if (feature.eggTimer === 720) {
-                if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
+                if (sl.enabled) {
+                    await sl.schedules.deleteEggTimerAsync(eggTimer.id);
+                }
+                else {
+                    if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
+                }
             }
             else {
-                await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: feature.eggTimer, dontStop: feature.dontStop, circuit: feature.id });
+                if (sl.enabled) {
+                    await sl.schedules.setEggTimerAsync(feature.id, feature.eggTimer);
+                }
+                else {
+                    await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: feature.eggTimer, dontStop: feature.dontStop, circuit: feature.id });
+                }
             }
         }
         catch (err) {
@@ -1828,7 +1905,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             if (typeof obj.disabled !== 'undefined') chlor.disabled = utils.makeBool(obj.disabled);
             if (typeof chlor.body === 'undefined') chlor.body = parseInt(obj.body, 10) || 32;
             // Verify the data.
-            let body = sys.board.bodies.mapBodyAssociation(chlor.body);
+            let body = sys.board.bodies.mapBodyAssociation(chlor.body).val;
             if (typeof body === 'undefined') {
                 if (sys.equipment.shared) body = 32;
                 else if (!sys.equipment.dual) body = 0;
@@ -1840,18 +1917,22 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
 
 
             if (send) {
-
-                let out = Outbound.create({
-                    dest: 16,
-                    action: 153,
-                    // removed disable ? 0 : (spaSetpoint << 1) + 1 because only deleteChlorAsync should remove it from the OCP
-                    payload: [(disabled ? 0 : isDosing ? 100 << 1 : spaSetpoint << 1) + 1, disabled ? 0 : isDosing ? 100 : poolSetpoint,
-                    utils.makeBool(superChlorinate) && superChlorHours > 0 ? superChlorHours + 128 : 0,  // We only want to set the superChlor when the user sends superChlor = true
-                        0, 0, 0, 0, 0, 0, 0],
-                    retries: 3,
-                    response: true,
-                });
-                await out.sendAsync();
+                if (sl.enabled) {
+                    await sl.chlor.setChlorAsync(poolSetpoint, spaSetpoint);
+                }
+                else {
+                    let out = Outbound.create({
+                        dest: 16,
+                        action: 153,
+                        // removed disable ? 0 : (spaSetpoint << 1) + 1 because only deleteChlorAsync should remove it from the OCP
+                        payload: [(disabled ? 0 : isDosing ? 100 << 1 : spaSetpoint << 1) + 1, disabled ? 0 : isDosing ? 100 : poolSetpoint,
+                        utils.makeBool(superChlorinate) && superChlorHours > 0 ? superChlorHours + 128 : 0,  // We only want to set the superChlor when the user sends superChlor = true
+                            0, 0, 0, 0, 0, 0, 0],
+                        retries: 3,
+                        response: true,
+                    });
+                    await out.sendAsync();
+                }
             };
             let schlor = state.chlorinators.getItemById(id, true);
             chlor.disabled = disabled;
@@ -1868,7 +1949,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             chlor.isDosing = isDosing;
             chlor.portId = portId;
             chlor.saltTarget = saltTarget;
-            if (send) {
+            if (send && !sl.enabled) {
                 let out = Outbound.create({
                     dest: 16,
                     action: 217,
@@ -2260,6 +2341,7 @@ class TouchPumpCommands extends PumpCommands {
                 let spump = state.pumps.getItemById(id, true);
                 spump.name = pump.name;
                 spump.type = pump.type;
+                spump.isActive = pump.isActive = true;
                 spump.emitEquipmentChange();
                 if (send) {
                     const pumpConfigRequest = Outbound.create({
@@ -2676,7 +2758,7 @@ class TouchChemControllerCommands extends ChemControllerCommands {
             let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' && typeof data.orp.tank.level !== 'undefined' ? parseInt(data.orp.tank.level, 10) : schem.orp.tank.level;
             // OCP needs to set the IntelliChem as active so it knows that it exists
 
-            if (send) {
+            if (send && !sl.enabled) {
                 let out = Outbound.create({
                     action: 211,
                     payload: [],

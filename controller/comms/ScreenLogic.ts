@@ -20,7 +20,10 @@ import extend = require('extend');
 
 
 // Todo - service, timeout?  
-// virtual circuits = heater not showing up
+// 
+// Done
+// all equipment, heat mode, heat setpoint, circuit state, set/add/delete schedules, cancel delay, set circuit, set circuit runtime
+// issues - not catching all pipe, econnreset errors ==> Us PM2 to monitor process for now
 
 export class ScreenLogicComms {
   constructor() {
@@ -32,16 +35,26 @@ export class ScreenLogicComms {
   private _pollTimer: NodeJS.Timeout;
   public circuits: SLCircuits;
   public bodies: SLBodies;
+  public chlor: SLChlor;
+  public schedules: SLSchedule;
   private _pollCountError: number = 0;
   public isOpen: boolean = false;
   private _cfg: any;
+  private _configData: { pumpsReported: number[], intellichemPresent: boolean };
   private pollingInterval = 10000;
   public enabled: boolean = false;
 
   public async initAsync() {
     let self = this;
+    process.stdout.on('error', function (err) {
+      if (err.code == "EPIPE") {
+        process.exit(0);
+      }
+    });
     this.circuits = new SLCircuits(this._client);
     this.bodies = new SLBodies(this._client);
+    this.chlor = new SLChlor(this._client);
+    this.schedules = new SLSchedule(this._client);
     let cfg = config.getSection('controller.screenlogic');
     if (typeof cfg !== 'undefined') this._cfg = cfg;
     this.enabled = this._cfg.enabled;
@@ -75,55 +88,118 @@ export class ScreenLogicComms {
     state.emitControllerChange();
 
     try {
-      this._client.init(unit.ipAddr, unit.port, password, Math.min(Math.max(1, Math.trunc(Math.random() * 10000)), 10000));  // fix - can remove senderid with next push - will be assigned randomly
-      await this._client.connectAsync();
-      let ver = await this._client.getVersionAsync();
-      logger.info(`Screenlogic: connect to ${systemName} ${ver} at ${unit.ipAddr}:${unit.port}`);
-      let addClient = await this._client.addClientAsync();
-      console.log(`Add client result: ${addClient}`);
+      try {
+        this._client.init(unit.ipAddr, unit.port, password);
+        await this._client.connectAsync();
+        let ver = await this._client.getVersionAsync();
+        logger.info(`Screenlogic: connect to ${systemName} ${ver} at ${unit.ipAddr}:${unit.port}`);
 
-      let customNames = await this._client.equipment.getCustomNamesAsync();
-      console.log(customNames);
-      let equipConfig = await this._client.equipment.getEquipmentConfigurationAsync();
-      console.log(`Equipment config: ${JSON.stringify(equipConfig, null, 2)}`);
-      await Controller.decodeEquipment(equipConfig);
-      let controller = await this._client.equipment.getControllerConfigAsync();
-      await Controller.decodeCustomNames(customNames);
-      console.log(`Controller: ${JSON.stringify(controller, null, 2)}`);
-      await Controller.decodeController(controller);
-      let systemTime = await this._client.equipment.getSystemTimeAsync();
-      // console.log(`System Time: ${JSON.stringify(systemTime)}`)
-      Controller.decodeDateTime(systemTime);
-      // PUMPS
-      let pumpArr = sys.pumps.get();
-      for (let i = 0; i < pumpArr.length; i++) {
-        let pumpStatus = await this._client.pump.getPumpStatusAsync(i);
-        console.log(`Pump ${i + 1}: ${JSON.stringify(pumpStatus)}`);
-        await Controller.decodePump(i + 1, pumpStatus);
+        let addClient = await this._client.addClientAsync();
+        console.log(`Add client result: ${addClient}`);
+      } catch (err) {
+        throw err;
       }
-      // pumpStatus = await client.pump.getPumpStatus(1);
-      // console.log(`Pump 21 ${JSON.stringify(pumpStatus)}`);
+
+      state.status = sys.board.valueMaps.controllerStatus.transform(2, 12);
+      state.emitControllerChange();
+      try {
+        let equipConfig = await this._client.equipment.getEquipmentConfigurationAsync();
+        console.log(`Equipment config: ${JSON.stringify(equipConfig, null, 2)}`);
+        await Controller.decodeEquipment(equipConfig);
+      } catch (err) {
+        logger.error(`Screenlogic: Error getting equipment configuration. ${err.message}`);
+      }
+
+      state.status = sys.board.valueMaps.controllerStatus.transform(2, 24);
+      state.emitControllerChange();
+      try {
+
+        let customNames = await this._client.equipment.getCustomNamesAsync();
+        console.log(customNames);
+        await Controller.decodeCustomNames(customNames);
+      } catch (err) {
+        logger.error(`Screenlogic: Error getting custom names. ${err.message}`);
+      }
+
+    state.status = sys.board.valueMaps.controllerStatus.transform(2, 36);
+    state.emitControllerChange();
+      try {
+        let controller = await this._client.equipment.getControllerConfigAsync();
+        console.log(`Controller: ${JSON.stringify(controller, null, 2)}`);
+        this._configData = await Controller.decodeController(controller);
+      } catch (err) {
+        logger.error(`Screenlogic: Error getting controller configuration. ${err.message}`);
+      }
+
+    state.status = sys.board.valueMaps.controllerStatus.transform(2, 48);
+    state.emitControllerChange();
+      try {
+        let systemTime = await this._client.equipment.getSystemTimeAsync();
+        // console.log(`System Time: ${JSON.stringify(systemTime)}`)
+        Controller.decodeDateTime(systemTime);
+      } catch (err) {
+        logger.error(`Screenlogic: Error getting system time. ${err.message}`);
+      }
+
+      // PUMPS
+      
+    state.status = sys.board.valueMaps.controllerStatus.transform(2, 60);
+    state.emitControllerChange();
+      this._configData.pumpsReported.forEach(async pumpNum => {
+        try {
+          let pumpStatus = await this._client.pump.getPumpStatusAsync(pumpNum - 1);
+          console.log(`Pump ${pumpNum}: ${JSON.stringify(pumpStatus)}`);
+          await Controller.decodePump(pumpNum, pumpStatus);
+        } catch (err) {
+          logger.error(`Screenlogic: Error getting pump configuration. ${err.message}`);
+        }
+      })
+
+    state.status = sys.board.valueMaps.controllerStatus.transform(2, 72);
+    state.emitControllerChange();
+      try {
       let recurringSched = await this._client.schedule.getScheduleDataAsync(0);
       console.log(`reccuring schedules: ${JSON.stringify(recurringSched)}`);
-
       let runOnceSched = await this._client.schedule.getScheduleDataAsync(1);
       console.log(`Run once schedules: ${JSON.stringify(runOnceSched)}`);
       await Controller.decodeSchedules(recurringSched, runOnceSched);
+    } catch (err) {
+      logger.error(`Screenlogic: Error getting schedules. ${err.message}`);
+    }
 
+    state.status = sys.board.valueMaps.controllerStatus.transform(2, 84);
+      state.emitControllerChange();
+    try {
       let intellichlor = await this._client.chlor.getIntellichlorConfigAsync();
       // console.log(`Intellichlor: ${JSON.stringify(intellichlor)}`);
       await Controller.decodeIntellichlor(intellichlor);
-      let chem = await this._client.chem.getChemicalDataAsync();
-      console.log(`Chem data: ${JSON.stringify(chem)}`);
-      await Controller.decodeChemController(chem);
+    } catch (err) {
+      logger.error(`Screenlogic: Error getting Intellichlor. ${err.message}`);
+    }
 
+    state.status = sys.board.valueMaps.controllerStatus.transform(2, 95);
+      state.emitControllerChange();
+    try {
+      if (this._configData.intellichemPresent){
+        let chem = await this._client.chem.getChemicalDataAsync();
+        console.log(`Chem data: ${JSON.stringify(chem)}`);
+        await Controller.decodeChemController(chem);
+      }
+    } catch (err) {
+      logger.error(`Screenlogic: Error getting Intellichem. ${err.message}`);
+    }
+
+    state.status = sys.board.valueMaps.controllerStatus.transform(2, 98);
+      state.emitControllerChange();
+    try {
       let equipmentState = await this._client.equipment.getEquipmentStateAsync();
       console.log(equipmentState);
       await Controller.decodeEquipmentState(equipmentState);
-      // state.mode = 0;
-      // webApp.emitToClients('panelMode', { mode: state.mode, remaining: 0 });
-      state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
-      sys.board.circuits.syncVirtualCircuitStates()
+    } catch (err) {
+      logger.error(`Screenlogic: Error getting equipment state. ${err.message}`);
+    }
+    sys.board.circuits.syncVirtualCircuitStates()
+    state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
       state.emitControllerChange();
 
       this._client.on('equipmentState', async function (data) { await Controller.decodeEquipmentState(data); })
@@ -131,7 +207,7 @@ export class ScreenLogicComms {
         await Controller.decodeIntellichlor(data);
       });
       this._client.on('equipmentConfig', async function (data) {
-        await Controller.decodeEquipment(data);
+        await Controller.decodeController(data);
       });
       this._client.on('chemicalData', async function (data) {
         await Controller.decodeChemController(data);
@@ -140,7 +216,8 @@ export class ScreenLogicComms {
       this._client.on('getSystemTime', async function (data) {
         Controller.decodeDateTime(data);
       });
-      //client.on('getScheduleData', async function(){await Controller.decodeSchedules(recurringSched, runOnceSched);});  // how do we know if this is recurring or runonce?  Investigate.
+      // client.on('getScheduleData', async function(){
+      // await Controller.decodeSchedules(recurringSched, runOnceSched);});  // how do we know if this is recurring or runonce?  Investigate.
       this._client.on('cancelDelay', async function (data) {
         console.log(`cancelDelay: ${data}`)
       }) // not programmed yet});
@@ -176,12 +253,16 @@ export class ScreenLogicComms {
       // No data comes through... maybe need to request weather data again?
       this._client.on('scheduleChanged', async function (data) {
         console.log(`schedule changed: ${JSON.stringify(data)}`);
-        let recurringSched = await this._client.schedule.getScheduleData(0);
+        let recurringSched = await self._client.schedule.getScheduleDataAsync(0);
         console.log(`reccuring schedules: ${JSON.stringify(recurringSched)}`);
 
-        let runOnceSched = await this._client.schedule.getScheduleData(1);
+        let runOnceSched = await self._client.schedule.getScheduleDataAsync(1);
         console.log(`Run once schedules: ${JSON.stringify(runOnceSched)}`);
         await Controller.decodeSchedules(recurringSched, runOnceSched);
+      });
+      this._client.on('setCircuitRuntimebyId', async (data) => {
+        console.log(`Set Circuit By Runtime event ${data}`);
+        await self._client.equipment.getControllerConfigAsync();
       });
       this._client.on('error', async (e) => {
         // if the error event from the net.socket isn't caught, it sometimes crashes the app.
@@ -220,48 +301,29 @@ export class ScreenLogicComms {
       /* // EQUIPMENT
       
       
-      let cancelDelay = await client.equipment.cancelDelay();
-      console.log(`Cancel delay: ${cancelDelay}`);
+
       let weatherForecast = await client.equipment.getWeatherForecast();
       console.log(`Weather: ${JSON.stringify(weatherForecast)}`); 
       let sysTime = await screenlogic.equipment.setSystemTime(dt, true);
       console.log(`set time result: ${sysTime}`);
       let hist = await screenlogic.equipment.getHistoryData()
       console.log(`history data: ${JSON.stringify(hist)}`)
-      
-      // CHLOR
-      let chlorOutput = await client.chlor.setIntellichlorOutput(12,0);
-      console.log(`Chlor output: ${JSON.stringify(chlorOutput)}`)
+    
       
       // CHEM
       let chemHist = await screenlogic.chem.getChemHistoryData()
       console.log(`history data: ${JSON.stringify(chemHist)}`)
       
-      // SCHEDULES
-      
-      let addSched = await client.schedule.addNewScheduleEvent(SchedTypes.RECURRING);
-      console.log(`Add sched response: ${addSched}`);
-      let setSched = await client.schedule.setScheduleEventById(10, 2,500,1200,127,0,1,99);
-      console.log(`Set sched result: ${setSched}`);
-      let delSched = await client.schedule.deleteScheduleEventById(10);
-      console.log(`Deleted sched result: ${delSched}`);
+ 
 
       // PUMPS
       // let pumpRes = await client.pump.setPumpSpeed(0,1,2000,true);
       // console.log(`Pump speed response: ${pumpRes}`)
       
-      // BODIES
-      let setPointChanged = await client.bodies.setSetPoint(1, 101)
-      console.log(`set point changed: ${setPointChanged}`);
-      let heatModeRes = await client.bodies.setHeatMode(1, HeatModes.HEAT_MODE_HEATPUMP);
-      console.log(`heat mode result: ${heatModeRes}`);
+
       
-      // CIRCUITS
-      let lightRes = await client.circuits.sendLightCommand(LightCommands.LIGHT_CMD_COLOR_MODE_PARTY);
-      console.log(`Light result: ${lightRes}`);
-      //     
-      let circRun = await client.circuits.setCircuitRuntimebyId(4, 5);
-      console.log(`circ run res: ${circRun}`);
+
+
    */
       // setTimeout(async () => {
       //   console.log(`closing connection after 60s`);
@@ -321,10 +383,13 @@ export class ScreenLogicComms {
         console.log(`Pump ${i}: ${JSON.stringify(pumpStatus)}`);
         await Controller.decodePump(i, pumpStatus);
       }
+      sys.board.heaters.syncHeaterStates();
+      sys.board.schedules.syncScheduleStates();
+      sys.board.circuits.syncVirtualCircuitStates();
     }
     catch (err) {
       logger.error(`Error polling screenlogic (${this._pollCountError} errors)- ${err}`); this._pollCountError++;
-      if (this._pollCountError > 10) {
+      if (this._pollCountError > 3) {
         await this.initAsync();
       }
     }
@@ -359,27 +424,70 @@ class Controller {
     let lgCircId = 1;
     for (let i = 0; i < config.circuitArray.length; i++) {
       let _circ = config.circuitArray[i];
+      let circuit = sys.circuits.getInterfaceById(_circ.circuitId);
       let data: any = {
         id: _circ.circuitId,
         type: _circ.function,
-        nameId: _circ.nameIndex < 101 ? _circ.nameIndex + 1 : _circ.nameIndex + 99, // custom names are 100 off from the rs485 packets
-        // name: _circ.name,  // determined from id
-        // cstate.isActive = circuit.isActive = true, // added by setCircuitAsync
+        nameId: _circ.nameIndex,
         freeze: _circ.freeze,
         eggTimer: _circ.eggTimer,
-        showInFeatures: _circ.interface !== 4 && _circ.interface !== 5,  // 0 = pool; 1 = spa; 2 = features; 4 = lights; 5 = hide
+        // 0 = pool; 1 = spa; 2 = features; 4 = lights; 5 = hide
+        showInFeatures: typeof circuit.showInFeatures !== 'undefined' ? circuit.showInFeatures : _circ.function === 16 ? true : _circ.interface !== 4 && _circ.interface !== 5,
 
       }
-      if (_circ.function === 5) {
+      // errr.... something is wrong.  Why do I have circuit function = 5 here?
+      // why does it look like function/interface are reversed??
+      /*
+          {
+      "circuitId": 4,
+      "name": "Pool Light",
+      "nameIndex": 63,
+      "function": 2,
+      "interface": 16,
+      "freeze": 0,
+      "colorSet": 2,
+      "colorPos": 0,
+      "colorStagger": 20,
+      "deviceId": 4,
+      "eggTimer": 720
+    },
+      */
+
+      /*
+      SL Circuits
+     POOLCIRCUIT_CLEANER = 5;
+     POOLCIRCUIT_CLEANER_SECOND = 6;
+     POOLCIRCUIT_COLOR_WHEEL = 12;
+     POOLCIRCUIT_DIMMER = 8;
+     POOLCIRCUIT_DIMMER_25 = 18;
+     POOLCIRCUIT_FLOORCLEANER = 15;
+     POOLCIRCUIT_GENERIC = 0;
+     POOLCIRCUIT_INTELLIBRITE = 16;
+     POOLCIRCUIT_LAST_ID = 19;
+     POOLCIRCUIT_LIGHT = 7;
+     POOLCIRCUIT_MAGICSTREAM = 17;
+     POOLCIRCUIT_PHOTON = 11;
+     POOLCIRCUIT_POOL = 2;
+     POOLCIRCUIT_POOL_SECOND = 4;
+     POOLCIRCUIT_SAL = 10;
+     POOLCIRCUIT_SAM = 9;
+     POOLCIRCUIT_SPA = 1;
+     POOLCIRCUIT_SPA_SECOND = 3;
+     POOLCIRCUIT_SPILLWAY = 14;
+     POOLCIRCUIT_UNUSED = 19;
+     POOLCIRCUIT_VALVE = 13;
+      */
+      if (_circ.function === 16) {
         let lgCirc = {
           color: _circ.colorSet,
           swimDelay: _circ.colorStagger,
           position: _circ.colorPos,
+          circuit: _circ.circuitId,
+          ...data,
           id: lgCircId,
-          ...data
         }
         lgCircId++;
-        lightGroup.circuits.push(lgCirc, false);
+        lightGroup.circuits.push(lgCirc);
       }
       await sys.board.circuits.setCircuitAsync(data, false);
     }
@@ -388,8 +496,14 @@ class Controller {
       state.lightGroups.removeItemById(192);
     }
     else {
-      lightGroup.id = 192;
+      let grp = sys.lightGroups.getItemById(192);
+      lightGroup.name = typeof grp.name === 'undefined' ? 'Intellibrite' : grp.name;
+      lightGroup.id === grp.isActive ? grp.id : undefined;
       await sys.board.circuits.setLightGroupAsync(lightGroup, false);
+      let sgroup = state.lightGroups.getItemById(192, true);
+      sgroup.isActive = true;
+      sgroup.name = lightGroup.name;
+      sgroup.type = 3;
     }
 
     // now go back through and remove and circuits that aren't in the received list
@@ -421,77 +535,30 @@ class Controller {
           sys.chlorinators.removeItemById(1);
           state.chlorinators.removeItemById(1);
         };  */
+    let pumpsReported: number[] = [];
     if (config.equipment.POOL_IFLOWPRESENT0) {
-      let pump = sys.pumps.getItemById(1, true);
-      let sPump = state.pumps.getItemById(1, true);
-      sPump.isActive = pump.isActive = true;
-    }
-    else {
-      sys.pumps.removeItemById(1);
-      state.pumps.removeItemById(1);
+      pumpsReported.push(1);
     };
     if (config.equipment.POOL_IFLOWPRESENT1) {
-      let pump = sys.pumps.getItemById(2, true);
-      let sPump = state.pumps.getItemById(2, true);
-      sPump.isActive = pump.isActive = true;
-    }
-    else {
-      sys.pumps.removeItemById(2);
-      state.pumps.removeItemById(2);
+      pumpsReported.push(2);
     };
     if (config.equipment.POOL_IFLOWPRESENT2) {
-      let pump = sys.pumps.getItemById(3, true);
-      let sPump = state.pumps.getItemById(3, true);
-      sPump.isActive = pump.isActive = true;
-    }
-    else {
-      sys.pumps.removeItemById(3);
-      state.pumps.removeItemById(3);
+      pumpsReported.push(3);
     };
     if (config.equipment.POOL_IFLOWPRESENT3) {
-      let pump = sys.pumps.getItemById(4, true);
-      let sPump = state.pumps.getItemById(4, true);
-      sPump.isActive = pump.isActive = true;
-    }
-    else {
-      sys.pumps.removeItemById(4);
-      state.pumps.removeItemById(4);
+      pumpsReported.push(4);
     };
     if (config.equipment.POOL_IFLOWPRESENT4) {
-      let pump = sys.pumps.getItemById(5, true);
-      let sPump = state.pumps.getItemById(5, true);
-      sPump.isActive = pump.isActive = true;
-    }
-    else {
-      sys.pumps.removeItemById(5);
-      state.pumps.removeItemById(5);
+      pumpsReported.push(5);
     };
     if (config.equipment.POOL_IFLOWPRESENT5) {
-      let pump = sys.pumps.getItemById(6, true);
-      let sPump = state.pumps.getItemById(6, true);
-      sPump.isActive = pump.isActive = true;
-    }
-    else {
-      sys.pumps.removeItemById(6);
-      state.pumps.removeItemById(6);
+      pumpsReported.push(6);
     };
     if (config.equipment.POOL_IFLOWPRESENT6) {
-      let pump = sys.pumps.getItemById(7, true);
-      let sPump = state.pumps.getItemById(7, true);
-      sPump.isActive = pump.isActive = true;
-    }
-    else {
-      sys.pumps.removeItemById(7);
-      state.pumps.removeItemById(7);
+      pumpsReported.push(7);
     };
     if (config.equipment.POOL_IFLOWPRESENT7) {
-      let pump = sys.pumps.getItemById(8, true);
-      let sPump = state.pumps.getItemById(8, true);
-      sPump.isActive = pump.isActive = true;
-    }
-    else {
-      sys.pumps.removeItemById(8);
-      state.pumps.removeItemById(8);
+      pumpsReported.push(8);
     };
 
     /* // deal with these in other places
@@ -501,8 +568,13 @@ class Controller {
     // set in equip message
     if (config.equipment.POOL_SOLARPRESENT) { };
     if (config.equipment.POOL_SOLARHEATPUMP) { };
-    if (config.equipment.POOL_HEATPUMPHASCOOL) { };
-    if (config.equipment.POOL_ICHEMPRESENT) { };  */
+    if (config.equipment.POOL_HEATPUMPHASCOOL) { };  
+    */
+   let intellichemPresent: boolean = false;
+    if (config.equipment.POOL_ICHEMPRESENT) {
+      intellichemPresent = true;
+     };  
+    return { pumpsReported, intellichemPresent };
   }
   public static async decodeEquipmentState(eqstate: SLEquipmentStateData) {
     /*
@@ -600,8 +672,9 @@ class Controller {
       for (let i = 0; i < eqstate.bodies.length; i++) {
         let slbody = eqstate.bodies[i];
         let tbody = state.temps.bodies.getItemById(i + 1);
-        tbody.setPoint = slbody.setPoint;
-        tbody.heatMode = slbody.heatMode === 3 ? 1 : slbody.heatMode;  // 0=off; 3=heater
+        let body = sys.bodies.getItemById(i + 1);
+        body.setPoint = tbody.setPoint = slbody.setPoint;
+        body.heatMode = tbody.heatMode = slbody.heatMode === 3 ? 1 : slbody.heatMode;  // 0=off; 3=heater
         tbody.heatStatus = slbody.heatStatus === 2 ? 1 : slbody.heatStatus;  // 2=heater active
         tbody.coolSetpoint = slbody.coolSetPoint;
         tbody.temp = slbody.currentTemp;
@@ -622,8 +695,10 @@ class Controller {
           // ??
         }
       }
-      let schem = state.chemControllers.getItemById(1);
-      if (schem.isActive) {
+      let address = 144;
+      let chem = sys.chemControllers.getItemByAddress(address);
+      if (chem.isActive) {
+        let schem = state.chemControllers.getItemById(chem.id, true);
         /* pH: 0, 
         orp: 0,
         saturation: 0,
@@ -631,9 +706,6 @@ class Controller {
         pHTank: 0,
         orpTank: 0,
         alarms: 0 */
-        let address = 144;
-        let chem = sys.chemControllers.getItemByAddress(address, true);
-        let schem = state.chemControllers.getItemById(chem.id, true);
         schem.orp.level = eqstate.orp;
         schem.saturationIndex = eqstate.saturation;
         schem.ph.tank.level = eqstate.pHTank;
@@ -684,15 +756,15 @@ class Controller {
       }
     }
 
-    if (equip.misc.intelliChem) {
-      let chem = sys.chemControllers.getItemById(1, true);
-      let schem = state.chemControllers.getItemById(1, true);
-      schem.isActive = chem.isActive = true;
-    }
-    else {
-      sys.chemControllers.removeItemById(1);
-      state.chemControllers.removeItemById(1);
-    }
+    // if (equip.misc.intelliChem) {
+    //   let chem = sys.chemControllers.getItemByAddress(144, true);
+    //   let schem = state.chemControllers.getItemById(1, true);
+    //   schem.isActive = chem.isActive = true;
+    // }
+    // else {
+    //   sys.chemControllers.removeItemById(1);
+    //   state.chemControllers.removeItemById(1);
+    // }
     sys.equipment.controllerFirmware = `${Math.floor(equip.version / 1000).toString()}.${(equip.version % 1000).toString()}`;
   }
   public static async decodeHeaters(heaterConfig: HeaterConfig) {
@@ -793,10 +865,14 @@ class Controller {
         superChlorHours: slchlor.superChlorTimer,
         poolSetpoint: slchlor.poolSetPoint,
         spaSetpoint: slchlor.spaSetPoint,
+        model: chlor.model || 0,
+        body: 32
       }
       await sys.board.chlorinator.setChlorAsync(data, false);
       let chlorState = state.chlorinators.getItemById(1, true);
       chlorState.saltLevel = slchlor.salt;
+      chlorState.poolSetpoint = slchlor.poolSetPoint;
+      chlorState.spaSetpoint = slchlor.spaSetPoint;
       state.emitEquipmentChanges();
     }
     else {
@@ -807,12 +883,13 @@ class Controller {
   }
   public static async decodeChemController(slchem: SLChemData) {
     // Chem data: {"isValid":true,"pH":0,"orp":0,"pHSetPoint":0,"orpSetPoint":0,"pHTankLevel":0,"orpTankLevel":0,"saturation":0,"calcium":0,"cyanuricAcid":0,"alkalinity":0,"saltPPM":0,"temperature":0,"balance":0,"corrosive":false,"scaling":false,"error":false}
+    let chem = sys.chemControllers.getItemByAddress(144);
     let data: any = {
-      id: 1,
+      id: chem.isActive ? chem.id : undefined,
       address: 144,
       calciumHardness: slchem.calcium,
       cyanuricAcid: slchem.cyanuricAcid,
-      alkalanity: slchem.alkalinity,
+      alkalinity: slchem.alkalinity,
       body: 32,
       ph: {
         setpoint: slchem.pHSetPoint,
@@ -825,17 +902,17 @@ class Controller {
         tank: slchem.orpTankLevel
       },
       type: 2
+
     }
-    let chem = sys.chemControllers.getItemById(1);
-    if (chem.isActive) {
-      let schem = state.chemControllers.getItemById(1);
-      await sys.board.chemControllers.setChemControllerAsync(data, false);
-      schem.ph.level = slchem.pH;
-      schem.orp.level = slchem.orp;
-      schem.saturationIndex = slchem.saturation;
-      schem.alarms.bodyFault = slchem.error ? 1 : 0; // maybe a better place to assign the error? 
-      state.emitEquipmentChanges();
-    }
+
+    await sys.board.chemControllers.setChemControllerAsync(data, false);
+    let schem = state.chemControllers.getItemById(1);
+    schem.ph.level = slchem.pH;
+    schem.orp.level = slchem.orp;
+    schem.saturationIndex = slchem.saturation;
+    schem.alarms.bodyFault = slchem.error ? 1 : 0; // maybe a better place to assign the error? 
+    state.emitEquipmentChanges();
+
   }
   public static async decodePump(id: number, slpump: SLPumpStatusData) {
     /*      Pump 0: {"pumpCircuits":[
@@ -854,7 +931,7 @@ class Controller {
         "pumpUnknown1":0,
         "pumpGPMs":255,
         "pumpUnknown2":255} */
-    let pump = sys.pumps.getItemById(id, true);
+    let pump = sys.pumps.getItemById(id);
     let ptype = 0;
     switch (slpump.pumpType as any) {
       case 2:
@@ -871,9 +948,11 @@ class Controller {
     let data = {
       type: ptype,
       name: pump.name || `Pump ${id}`,
-      circuits: []
+      circuits: [],
+      id: pump.isActive ? pump.id : undefined
     };
     for (let i = 0; i < slpump.pumpCircuits.length; i++) {
+      if (slpump.pumpCircuits[i].circuitId === 0) continue;
       let pumpCirc = {
         circuit: slpump.pumpCircuits[i].circuitId,
         speed: slpump.pumpCircuits[i].isRPMs ? slpump.pumpCircuits[i].speed : undefined,
@@ -883,8 +962,8 @@ class Controller {
     }
     data.type = ptype;
     data.name = typeof pump.name !== 'undefined' ? pump.name : `Pump ${id}`
-    pump.set(data);
-    // await sys.board.pumps.setPumpAsync(data, false);
+    // pump.set(data);
+    await sys.board.pumps.setPumpAsync(data, false);
     let pstate = state.pumps.getItemById(id, true);
     pstate.type = data.type;
     pstate.name = data.name;
@@ -994,16 +1073,154 @@ export class SLCommands {
   protected _unit: ScreenLogic.UnitConnection;
 }
 export class SLCircuits extends SLCommands {
+  public async setCircuitAsync(circuitId: number, nameIndex: number, circuitFunction: number, circuitInterface: number, freeze: boolean = false, colorPos: number = 0) {
+    try {
+
+      let lg: LightGroup = sys.lightGroups.getItemById(1);
+      for (let i = 0; i < lg.circuits.length; i++) {
+        let cg: LightGroupCircuit = lg.circuits[i];
+        if (cg.circuit === circuitId) colorPos = cg.position;
+      }
+      await this._unit.circuits.setCircuitAsync(circuitId, nameIndex, circuitFunction, circuitInterface, freeze, colorPos);
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
+
   public async setCircuitStateAsync(id: number, val: boolean) {
-    if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit or Feature id not valid', id, 'Circuit'));
-    let c = sys.circuits.getInterfaceById(id);
-    // if (id === 192 || c.type === 3) return await sys.board.circuits.setLightGroupThemeAsync(id - 191, val ? 1 : 0);
-    // if (id >= 192) return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
-    await this._unit.circuits.setCircuitStateAsync(id, val);
-    let cstate = state.circuits.getInterfaceById(id);
-    cstate.isOn = val;
-    state.emitEquipmentChanges();
-    return cstate;
+    try {
+      if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit or Feature id not valid', id, 'Circuit'));
+      let c = sys.circuits.getInterfaceById(id);
+      // if (id === 192 || c.type === 3) return await sys.board.circuits.setLightGroupThemeAsync(id - 191, val ? 1 : 0);
+      // if (id >= 192) return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
+      await this._unit.circuits.setCircuitStateAsync(id, val);
+      // let cstate = state.circuits.getInterfaceById(id);
+      // cstate.isOn = val;
+      // state.emitEquipmentChanges();
+      // return cstate;
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
+
+  public async setLightGroupThemeAsync(lightTheme: number) {
+    try {
+      // SL Light Themes
+      const ALLOFF = 0;
+      const ALLON = 1;
+      const SET = 2;
+      const SYNC = 3;
+      const SWIM = 4;
+      const PARTY = 5;
+      const ROMANCE = 6;
+      const CARIBBEAN = 7;
+      const AMERICAN = 8;
+      const SUNSET = 9;
+      const ROYALTY = 10;
+      const SAVE = 11;
+      const RECALL = 12;
+      const BLUE = 13;
+      const GREEN = 14;
+      const RED = 15;
+      const WHITE = 16;
+      const MAGENTA = 17;
+      const MS_THUMPER = 18;
+      const MS_NEXT_MODE = 19;
+      const MS_RESET = 20;
+      const MS_HOLD = 21;
+
+      // Convert njsPC to SL themes
+      switch (lightTheme) {
+        //       [0, { name: 'off', desc: 'Off' }],
+        //       [1, { name: 'on', desc: 'On' }],
+        case 0:
+        case 1:
+          break;
+        // [128, { name: 'colorsync', desc: 'Color Sync' }],
+        case 128:
+          lightTheme = SYNC;
+          break;
+        // [144, { name: 'colorswim', desc: 'Color Swim' }],
+        case 144:
+          lightTheme = SWIM;
+        // [160, { name: 'colorset', desc: 'Color Set' }],
+        case 160:
+          lightTheme = SET;
+        // [177, { name: 'party', desc: 'Party', types: ['intellibrite'], sequence: 2 }],
+        case 177:
+          lightTheme = PARTY;
+        // [178, { name: 'romance', desc: 'Romance', types: ['intellibrite'], sequence: 3 }],
+        case 178:
+          lightTheme = ROMANCE;
+          break;
+        // [179, { name: 'caribbean', desc: 'Caribbean', types: ['intellibrite'], sequence: 4 }],
+        case 179:
+          lightTheme = CARIBBEAN;
+          break;
+        // [180, { name: 'american', desc: 'American', types: ['intellibrite'], sequence: 5 }],
+        case 180:
+          lightTheme = AMERICAN;
+          break;
+        // [181, { name: 'sunset', desc: 'Sunset', types: ['intellibrite'], sequence: 6 }],
+        case 181:
+          lightTheme = SUNSET;
+          break;
+        // [182, { name: 'royal', desc: 'Royal', types: ['intellibrite'], sequence: 7 }],
+        case 182:
+          lightTheme = ROYALTY;
+          break;
+        // [190, { name: 'save', desc: 'Save', types: ['intellibrite'], sequence: 13 }],
+        case 190:
+          lightTheme = SAVE;
+          break;
+        // [191, { name: 'recall', desc: 'Recall', types: ['intellibrite'], sequence: 14 }],
+        case 191:
+          lightTheme = RECALL;
+          break;
+        // [193, { name: 'blue', desc: 'Blue', types: ['intellibrite'], sequence: 8 }],
+        case 192:
+          lightTheme = BLUE;
+          break;
+        // [194, { name: 'green', desc: 'Green', types: ['intellibrite'], sequence: 9 }],
+        case 194:
+          lightTheme = GREEN;
+          break;
+        // [195, { name: 'red', desc: 'Red', types: ['intellibrite'], sequence: 10 }],
+        case 195:
+          lightTheme = RED;
+          break;
+        // [196, { name: 'white', desc: 'White', types: ['intellibrite'], sequence: 11 }],
+        case 196:
+          lightTheme = WHITE;
+          break
+        // [197, { name: 'magenta', desc: 'Magenta', types: ['intellibrite'], sequence: 12 }],
+        case 197:
+          lightTheme = MAGENTA;
+          break
+        // [208, { name: 'thumper', desc: 'Thumper', types: ['magicstream'] }],
+        case 208:
+          lightTheme = MS_THUMPER;
+          break
+        // [209, { name: 'hold', desc: 'Hold', types: ['magicstream'] }],
+        case 209:
+          lightTheme = MS_HOLD;
+          break
+        // [210, { name: 'reset', desc: 'Reset', types: ['magicstream'] }],
+        case 210:
+          lightTheme = MS_RESET;
+          break
+        // [211, { name: 'mode', desc: 'Mode', types: ['magicstream'] }],
+        // [254, { name: 'unknown', desc: 'unknow
+        default:
+          return Promise.reject(`Screenlogic: Unknown light theme ${lightTheme}.`);
+      }
+
+
+      let lightRes = await this._unit.circuits.sendLightCommandAsync(lightTheme);
+      console.log(`lightRes: ${lightRes}`);
+    } catch (err) {
+      return Promise.reject(err);
+    }
   }
 }
 export class SLBodies extends SLCommands {
@@ -1032,8 +1249,8 @@ export class SLBodies extends SLCommands {
         else if (solarInstalled) slHeatMode = ScreenLogic.HeatModes.HEAT_MODE_SOLAR;
         break;
       case 16:
-      // ?? Should be Dual heat mode; maybe not supported on SL?
-      break;
+        // ?? Should be Dual heat mode; maybe not supported on SL?
+        break;
       default:
         logger.warn(`Screenlogic: No valid heat mode passed for ${body.name}: Mode=${mode}. `);
         return Promise.reject(`Screenlogic: No valid heat mode passed for ${body.name}: Mode=${mode}. `);
@@ -1042,7 +1259,22 @@ export class SLBodies extends SLCommands {
     try {
       await this._unit.bodies.setHeatModeAsync(body.id - 1, slHeatMode);
     }
-    catch(err){
+    catch (err) {
+      return Promise.reject(err);
+    }
+  }
+  public async setHeatSetpointAsync(body: Body, setPoint: number) {
+    try {
+      await this._unit.bodies.setSetPointAsync(body.id - 1, setPoint);
+    }
+    catch (err) {
+      return Promise.reject(err);
+    }
+  }
+  public async cancelDalayAsync() {
+    try {
+      await this._unit.equipment.cancelDelayAsync();
+    } catch (err) {
       return Promise.reject(err);
     }
   }
@@ -1058,5 +1290,125 @@ export class SLCounter {
     return `{ "bytesReceived": ${this.bytesReceived}, "bytesSent": ${this.bytesSent} }`;
   }
 }
+export class SLChlor extends SLCommands {
+  public async setChlorAsync(poolSetpoint: number, spaSetpoint: number) {
+    try {
+      let res = await this._unit.chlor.setIntellichlorOutputAsync(poolSetpoint, spaSetpoint);
+      if (!res) return Promise.reject(`Screenlogic: Unable to add schedule.`)
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
+}
+export class SLSchedule extends SLCommands {
+  public async addScheduleAsync(type: number) {
+    // Passed as an argument to the emitted addNewScheduleEvent event. Adds a new event to the specified schedule type, either 0 for regular events or 1 for one-time events.
+    let id = this._unit.schedule.addNewScheduleEventAsync(0);
+    return id;
+  }
+  // SCHEDULES
 
+  //  let addSched = await client.schedule.addNewScheduleEvent(SchedTypes.RECURRING);
+  //  console.log(`Add sched response: ${addSched}`);
+  //  let setSched = await client.schedule.setScheduleEventById(10, 2,500,1200,127,0,1,99);
+  //  console.log(`Set sched result: ${setSched}`);
+  //  let delSched = await client.schedule.deleteScheduleEventById(10);
+  //  console.log(`Deleted sched result: ${delSched}`);
+  public async setScheduleAsync(id: number, circuit: number, startTime: number, endTime: number, schedDays: number, schedType: number, changeHeatSetPoint: boolean, heatSource?: number, setPoint?: number): Promise<number> {
+    /*
+  scheduleId - id of a schedule previously created, see SLAddNewScheduleEvent
+  circuitId - id of the circuit to which this event applies
+  startTime - the start time of the event, specified as minutes since midnight (see conversion functions)
+  example: 6:00am would be 360
+  example: 6:15am would be 375
+  stopTime - the stop time of the event, specified as minutes since midnight (see conversion functions)
+  dayMask
+  7-bit mask that determines which days the schedule is active for, MSB is always 0, valid numbers 1-127
+  flags
+  bit 0 is the schedule type, if 0 then regular event, if 1 its a run-once
+  bit 1 indicates whether heat setPoint should be changed
+  heatCmd - integer indicating the desired heater mode. Valid values are:
+  ScreenLogic.HEAT_MODE_OFF
+  ScreenLogic.HEAT_MODE_SOLAR
+  ScreenLogic.HEAT_MODE_SOLARPREFERRED
+  ScreenLogic.HEAT_MODE_HEATPUMP
+  ScreenLogic.HEAT_MODE_DONTCHANGE
+  heatSetPoint - the temperature set point if heat is to be changed (ignored if bit 1 of flags is 0)
+    */
+    try {
+
+      // if the id doesn't exist - we need to add a new schedule and then edit it;
+      // this may not match our assigned id and we need to override it.
+      let flags = 0;
+      if (schedType === 26) {
+        // 0 = repeat; 26 = run once
+        flags = 1;
+      }
+      if (id <= 0) {
+        id = await this.addScheduleAsync(flags);
+      }
+
+      let SLheatSource = 0;
+      if (changeHeatSetPoint) {
+        flags = flags | (1 << 1);
+        let htypes = sys.board.heaters.getInstalledHeaterTypes();
+        let solarInstalled = htypes.solar > 0;
+        let heatPumpInstalled = htypes.heatpump > 0;
+        let ultratempInstalled = htypes.ultratemp > 0;
+        let gasHeaterInstalled = htypes.gas > 0;
+        let hybridInstalled = htypes.hybrid > 0;
+        switch (heatSource) {
+          case 0:
+            SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_OFF;
+            break;
+          case 3:
+            if (hybridInstalled) SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_HEATPUMP;
+            SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_HEATER;
+            break;
+          case 5:
+            if (hybridInstalled) SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_SOLARPREFERRED; // ?? Should be heatpumppref but maybe this is the same?
+            else if (solarInstalled) SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_SOLAR;
+            break;
+          case 21:
+            if (hybridInstalled) SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_HEATER;
+            else if (solarInstalled) SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_SOLARPREFERRED;
+            break;
+          case 32:
+            // No change
+            SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_DONTCHANGE;
+            break;
+          default:
+            logger.warn(`Screenlogic: No valid heat source passed for schedule: ${id}, heat source: ${heatSource}. `);
+            SLheatSource = 0;
+            flags = 1;
+        }
+      }
+      await this._unit.schedule.setScheduleEventByIdAsync(id, circuit, startTime, endTime, schedDays, flags, SLheatSource, setPoint);
+      return id;
+    } catch (err) {
+      logger.error(`Screenlogic: Error setting schedule ${id}`)
+    }
+  }
+  public async deleteScheduleAsync(id: number) {
+    try {
+      await this._unit.schedule.deleteScheduleEventByIdAsync(id);
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
+  public async setEggTimerAsync(id: number, runTime: number) {
+    try {
+      await this._unit.circuits.setCircuitRuntimebyIdAsync(id, runTime);
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
+  public async deleteEggTimerAsync(id: number) {
+    try {
+      await this._unit.circuits.setCircuitRuntimebyIdAsync(id, 720);
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
+}
 export let sl = new ScreenLogicComms();

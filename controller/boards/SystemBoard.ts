@@ -5001,7 +5001,7 @@ export class ChemControllerCommands extends BoardCommands {
     // =============================================================
     // 1. All chemControllers will be controlled via Nixie (IntelliChem, REM Chem).
     try {
-      let c1 = sys.chemControllers.getItemById(1);
+      // let c1 = sys.chemControllers.getItemById(1);
       let chem = sys.board.chemControllers.findChemController(data);
       let isAdd = typeof chem === 'undefined' || typeof chem.isActive === 'undefined';
       let type = sys.board.valueMaps.chemControllerTypes.encode(isAdd ? data.type : chem.type);
