@@ -347,7 +347,7 @@ export class ScreenLogicComms {
   public async setScreenlogicAsync(data) {
     let enabled = typeof data.enabled !== 'undefined' ? utils.makeBool(data.enabled) : false;
     let systemName = typeof data.systemName !== 'undefined' ? data.systemName : this._cfg.systemName;
-    let password = typeof data.password !== 'undefined' ? data.password : this._cfg.password;
+    let password = typeof data.password !== 'undefined' ? data.password.toString() : this._cfg.password;
     let regx = /Pentair: (?:(?:\d|[A-Z])(?:\d|[A-Z])-){2}(?:\d|[A-Z])(?:\d|[A-Z])/g;
     let type = typeof data.type !== 'undefined' ? data.type : this._cfg.type;
     if (type !== 'remote' && type !== 'local') return Promise.reject(new InvalidEquipmentDataError(`An invalid type was supplied for Screenlogic ${type}.  Must be remote or local.`, 'Screenlogic', data));
