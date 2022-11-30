@@ -336,9 +336,9 @@ export class EasyTouchBoard extends SystemBoard {
             [7, { name: 'ETPL4', part: 'ET-PL4', desc: 'EasyTouch PL4', circuits: 4, features: 2, schedules: 4, pumps: 1, single: true, shared: false }],
             // EasyTouch 1 models all start at 128.
             [128, { name: 'ET8', part: 'ET-8', desc: 'EasyTouch 8', circuits: 8, shared: true }],
-            [129, { name: 'ET8P', part: 'ET-8P', desc: 'EasyTouch 8', circuits: 8, single: true, shared: false }],
+            [129, { name: 'ET8P', part: 'ET-8P', desc: 'EasyTouch 8P', circuits: 8, single: true, shared: false }],
             [130, { name: 'ET4', part: 'ET-4', desc: 'EasyTouch 4', circuits: 4, shared: true }],
-            [129, { name: 'ET4P', part: 'ET-4P', desc: 'EasyTouch 4P', circuits: 4, single: true, shared: false }]
+            [131, { name: 'ET4P', part: 'ET-4P', desc: 'EasyTouch 4P', circuits: 4, single: true, shared: false }]
         ]);
     }
     public initHeaterDefaults() {
