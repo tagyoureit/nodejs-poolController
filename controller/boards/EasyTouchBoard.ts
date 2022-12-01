@@ -524,6 +524,7 @@ export class TouchConfigQueue extends ConfigQueue {
         } else {
             logger.info(`Requesting ${sys.controllerType} configuration`);
             this.queueItems(GetTouchConfigCategories.dateTime);
+            this.queueItems(GetTouchConfigCategories.version);
             this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1);
             this.queueRange(GetTouchConfigCategories.circuits, 1, sys.board.equipmentIds.features.end);
             this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
@@ -539,6 +540,7 @@ export class TouchConfigQueue extends ConfigQueue {
             this.queueItems(GetTouchConfigCategories.lightGroupPositions);
             this.queueItems(GetTouchConfigCategories.highSpeedCircuits);
             this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);
+            this.queueItems(GetTouchConfigCategories.intellichlor);
             // todo: add chlor or other commands not asked for by screenlogic if there is no remote/indoor panel present
         }
         if (this.remainingItems > 0) {
@@ -598,6 +600,8 @@ export class TouchConfigQueue extends ConfigQueue {
                 // response: true,
                 // onResponseProcessed: function () { self.processNext(out); }
             });
+            // RKS: 12-1-22 the unfortunate part of the response: true setting is that there is mapping in the isResponse that should translate the exceptions
+            // Unfortunately somewhere along the line we quit asking for the firmware version.
             setTimeout(() => conn.queueSendMessage(out), 50);
         } else {
             // Now that we are done check the configuration a final time.  If we have anything outstanding
