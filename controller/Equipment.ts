@@ -89,7 +89,7 @@ export class PoolSystem implements IPoolSystem {
                 { val: 128, name: 'ET8', part: 'ET-8', desc: 'EasyTouch 8', circuits: 8, bodies: 2, shared: true },
                 { val: 129, name: 'ET8P', part: 'ET-8P', desc: 'EasyTouch 8', circuits: 8, bodies: 1, shared: false },
                 { val: 130, name: 'ET4', part: 'ET-4', desc: 'EasyTouch 4', circuits: 4, bodies: 2, shared: true },
-                { val: 129, name: 'ET4P', part: 'ET-4P', desc: 'EasyTouch 4P', circuits: 4, bodies: 1, shared: false }
+                { val: 131, name: 'ET4P', part: 'ET-4P', desc: 'EasyTouch 4P', circuits: 4, bodies: 1, shared: false }
             ]
         });
         arr.push({
