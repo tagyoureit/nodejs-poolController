@@ -2332,7 +2332,7 @@ class TouchPumpCommands extends PumpCommands {
                 // If we do not have any circuits to define we should use the circuits from the existing pump.
                 if (typeof data.circuits === 'undefined') data.circuits = pump.circuits.toArray();
                 for (let i = 0; i < 4; i++) {
-                    let c = i < data.circuits.length ? { speed: 0, circuit: 0 } : data.circuits[i];
+                    let c = i < data.circuits.length ? data.circuits[i] : {id: i + 1, master: 0, speed: 0, circuit: 0, units: 0 };
                     let byte = (i * 3) + 1;
                     c.units = 0;
                     c.master = 0;

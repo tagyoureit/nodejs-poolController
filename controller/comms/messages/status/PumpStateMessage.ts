@@ -74,7 +74,6 @@ export class PumpStateMessage {
         switch (msg.action) {
             case 1:
                 if (msg.source === 96 && sys.controllerType === ControllerType.EasyTouch) {
-                    console.log('Processing Pump message');
                     if (sys.equipment.modules.getItemByIndex(0, false).type >= 128) {
                         // EasyTouch Version 1 controllers do not request the current information about rpms or wattage from the pump.  We need to ask in
                         // its stead.
