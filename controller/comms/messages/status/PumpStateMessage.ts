@@ -15,9 +15,12 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { Inbound } from "../Messages";
+import { Inbound, Outbound, Protocol } from "../Messages";
 import { state } from "../../../State";
 import { sys, ControllerType } from "../../../Equipment";
+import { conn } from "../../Comms";
+import { logger } from "../../../../logger/Logger";
+
 export class PumpStateMessage {
     private static detectPumpType(msg: Inbound) {
         let pumpType = -1;
@@ -70,6 +73,29 @@ export class PumpStateMessage {
         let ptype = sys.board.valueMaps.pumpTypes.transform(pumpCfg.type);
         let pump = state.pumps.getItemById(pumpId, pumpCfg.isActive === true);
         switch (msg.action) {
+            case 1:
+                if (msg.source === 96 && sys.controllerType === ControllerType.EasyTouch) {
+                    if (sys.equipment.modules.getItemByIndex(0, false).type >= 128) {
+                        // EasyTouch Version 1 controllers do not request the current information about rpms or wattage from the pump.  We need to ask in
+                        // its stead.
+                        let out = Outbound.create({
+                                portId: pumpCfg.portId || 0,
+                                protocol: Protocol.Pump,
+                                dest: pumpCfg.address,
+                                action: 7,
+                                payload: [],
+                                retries: 1,
+                                response: true,
+                                onComplete: (err, _) => {
+                                    if (err) {
+                                        logger.error(`EasyTouch 1 request pump status failed for ${pump.name}: ${err.message}`);
+                                    }
+                                }
+                            });
+                        conn.queueSendMessage(out);
+                    }
+                }
+                break;
             case 7:
                 //[165, 63, 15, 16, 2, 29][11, 47, 32, 0, 0, 0, 0, 0, 0, 32, 0, 0, 2, 0, 59, 59, 0, 241, 56, 121, 24, 246, 0, 0, 0, 0, 0, 23, 0][4, 219]
                 //[165, 0, 96, 16, 1, 4][2, 196, 7, 58][2, 33]

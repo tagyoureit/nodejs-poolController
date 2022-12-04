@@ -27,7 +27,7 @@ import { InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationErr
 import { ncp } from "../nixie/Nixie";
 import { BodyTempState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, state } from '../State';
 import { BodyCommands, byteValueMap, ChemControllerCommands, ChlorinatorCommands, CircuitCommands, ConfigQueue, ConfigRequest, EquipmentIdRange, FeatureCommands, HeaterCommands, PumpCommands, ScheduleCommands, SystemBoard, SystemCommands, ValveCommands } from './SystemBoard';
-import { start } from 'repl';
+
 
 export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
@@ -340,9 +340,9 @@ export class EasyTouchBoard extends SystemBoard {
             [7, { name: 'ETPL4', part: 'ET-PL4', desc: 'EasyTouch PL4', circuits: 4, features: 2, schedules: 4, pumps: 1, single: true, shared: false }],
             // EasyTouch 1 models all start at 128.
             [128, { name: 'ET8', part: 'ET-8', desc: 'EasyTouch 8', circuits: 8, shared: true }],
-            [129, { name: 'ET8P', part: 'ET-8P', desc: 'EasyTouch 8', circuits: 8, single: true, shared: false }],
+            [129, { name: 'ET8P', part: 'ET-8P', desc: 'EasyTouch 8P', circuits: 8, single: true, shared: false }],
             [130, { name: 'ET4', part: 'ET-4', desc: 'EasyTouch 4', circuits: 4, shared: true }],
-            [129, { name: 'ET4P', part: 'ET-4P', desc: 'EasyTouch 4P', circuits: 4, single: true, shared: false }]
+            [131, { name: 'ET4P', part: 'ET-4P', desc: 'EasyTouch 4P', circuits: 4, single: true, shared: false }]
         ]);
     }
     public initHeaterDefaults() {
@@ -535,6 +535,7 @@ export class TouchConfigQueue extends ConfigQueue {
         this.reset();
         logger.info(`Requesting ${sys.controllerType} configuration`);
         this.queueItems(GetTouchConfigCategories.dateTime);
+        this.queueItems(GetTouchConfigCategories.version);
         this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1);
         this.queueRange(GetTouchConfigCategories.circuits, 1, sys.board.equipmentIds.features.end);
         this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
@@ -550,6 +551,7 @@ export class TouchConfigQueue extends ConfigQueue {
         this.queueItems(GetTouchConfigCategories.lightGroupPositions);
         this.queueItems(GetTouchConfigCategories.highSpeedCircuits);
         this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);
+        this.queueItems(GetTouchConfigCategories.intellichlor);
         // todo: add chlor or other commands not asked for by screenlogic if there is no remote/indoor panel present
         if (this.remainingItems > 0) {
             var self = this;
@@ -617,6 +619,8 @@ export class TouchConfigQueue extends ConfigQueue {
                 // response: true,
                 // onResponseProcessed: function () { self.processNext(out); }
             });
+            // RKS: 12-1-22 the unfortunate part of the response: true setting is that there is mapping in the isResponse that should translate the exceptions
+            // Unfortunately somewhere along the line we quit asking for the firmware version.  RG 12-4-22 Not sure where this is lost, but it is added back.
             //out.timeout = 5000;
             // setTimeout(() => conn.queueSendMessage(out), 50);
             out.sendAsync()
@@ -2154,6 +2158,9 @@ class TouchPumpCommands extends PumpCommands {
             if (!isAdd && bClearPumpCircuits) data.circuits = [];
             data.name = data.name || pump.name || type.desc;
             data.portId = 0;
+            // RKS: 12-02-22 -- The EasyTouch 1 OCPs only support 1 pump and this pump must be an IntelliFlo VS.  Do some checks here to make sure we are
+            // sending the right messages to the right controller.  At this point I only know of 1 EasyTouch v1 panel and it is a 4.
+            let isVersion1 = sys.equipment.modules.getItemByIndex(0, false).type >= 128;
             // We will not be sending message for ss type pumps.
             if (type.name === 'ss') {
                 // The OCP doesn't deal with single speed pumps.  Simply add it to the config.
@@ -2183,214 +2190,325 @@ class TouchPumpCommands extends PumpCommands {
                 return Promise.resolve(pump);
             }
             else {
-                let arr = [];
                 if (send) {
-                    let outc = Outbound.create({
-                        action: 155,
-                        payload: [id, ntype],
-                        retries: 2,
-                        response: Response.create({ action: 1, payload: [155] })
-                    });
+                    let arrCircuits = [];
                     data.address = id + 95;
-                    outc.appendPayloadBytes(0, 44);
-                    if (type.val === 128) {
-                        outc.setPayloadByte(3, 2);
-                        data.model = 0;
-                    }
-                    if (typeof type.maxPrimingTime !== 'undefined' && type.maxPrimingTime > 0 && type.val >= 64) {
-                        // We need to set all of this back to data since later pump.set is called to set the data after success.
+                    if (isVersion1) {
+                        if (data.address !== 96) return Promise.reject(new InvalidEquipmentDataError(`EasyTouch Version 1 controllers only support VS pumps at the first address`, 'Pump', data));
+                        if (type.name !== 'vs') return Promise.reject(new InvalidEquipmentDataError(`EasyTouch Version 1 controllers only support VS pump types. ${type.desc} pumps are not supported`, 'Pump', data));
+                        let outc = Outbound.create({
+                            action: 150,
+                            retries: 2,
+                            response: Response.create({ action: 1, payload: [150] })
+                        });
+                        outc.appendPayloadBytes(0, 13);
                         data.primingTime = typeof data.primingTime !== 'undefined' ? isNaN(parseInt(data.primingTime, 10)) ? pump.primingTime || 0 : 0 : pump.primingTime;
                         data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || type.minSpeed;
-                        outc.setPayloadByte(2, data.primingTime);
-                        outc.setPayloadByte(21, Math.floor(data.primingSpeed / 256));
-                        outc.setPayloadByte(30, data.primingSpeed % 256);
-                    }
-                    if (type.val === 1) { // Any VF pump.
-                        // We need to set all of this back to data since later pump.set is called to set the data after success.
-                        data.backgroundCircuit = typeof data.backgroundCircuit !== 'undefined' ? parseInt(data.backgroundCircuit, 10) : pump.backgroundCircuit || 6;
-                        data.filterSize = typeof data.filterSize !== 'undefined' ? parseInt(data.filterSize, 10) : pump.filterSize || 15000;
-                        data.turnovers = typeof data.turnovers !== 'undefined' ? parseInt(data.turnovers, 10) : pump.turnovers || 2;
-                        data.manualFilterGPM = typeof data.manualFilterGPM !== 'undefined' ? parseInt(data.manualFilterGPM, 10) : pump.manualFilterGPM || 30;
-                        data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || 55;
-                        data.primingTime = typeof data.primingTime !== 'undefined' ? parseInt(data.primingTime, 10) : pump.primingTime || 0;
-                        data.maxSystemTime = typeof data.maxSystemTime !== 'undefined' ? parseInt(data.maxSystemTime, 10) : pump.maxSystemTime || 0;
-                        data.maxPressureIncrease = typeof data.maxPressureIncrease != 'undefined' ? parseInt(data.maxPressureIncrease, 10) : pump.maxPressureIncrease || 0;
-                        data.backwashFlow = typeof data.backwashFlow !== 'undefined' ? parseInt(data.backwashFlow, 10) : pump.backwashFlow || 60;
-                        data.backwashTime = typeof data.backwashTime !== 'undefined' ? parseInt(data.bacwashTime, 10) : pump.backwashTime || 5;
-                        data.rinseTime = typeof data.rinseTime !== 'undefined' ? parseInt(data.rinseTime, 10) : pump.rinseTime || 1;
-                        data.vacuumFlow = typeof data.vacuumFlow !== 'undefined' ? parseInt(data.vacuumFlow, 10) : pump.vacuumFlow || 50;
-                        data.vacuumTime = typeof data.vacuumTime !== 'undefined' ? parseInt(data.vacuumTime, 10) : pump.vacuumTime || 10;
-                        data.model = 0;
-                        outc.setPayloadByte(1, data.backgroundCircuit);
-                        outc.setPayloadByte(2, data.filterSize);
-                        outc.setPayloadByte(3, data.turnovers);
-                        outc.setPayloadByte(21, data.manualFilterGPM);
-                        outc.setPayloadByte(22, data.primingSpeed);
-                        outc.setPayloadByte(23, data.primingTime | data.maxSystemTime << 4, 5);
-                        outc.setPayloadByte(24, data.maxPressureIncrease);
-                        outc.setPayloadByte(25, data.backwashFlow);
-                        outc.setPayloadByte(26, data.backwashTime);
-                        outc.setPayloadByte(27, data.rinseTime);
-                        outc.setPayloadByte(28, data.vacuumFlow);
-                        outc.setPayloadByte(30, data.vacuumTime);
-                    }
-                    if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
-                        // Do some validation to make sure we don't have a condition where a circuit is declared twice.
-                        let arrCircuits = [];
-                        // Below is a very strange mess that goofs up the circuit settings.
-                        //{id:1, circuits:[{speed:1750, units:{val:0}, id:1, circuit:6}, {speed:2100, units:{val:0}, id:2, circuit:6}]}
-                        let ubyte = 0;
-                        for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
-                            // RKS: This notion of always returning the max number of circuits was misguided.  It leaves gaps in the circuit definitions and makes the pump
-                            // layouts difficult when there are a variety of supported circuits.  For instance with SF pumps you only get 4.
-                            let c = i > data.circuits.length ? { speed: type.minSpeed || 0, flow: type.minFlow || 0, circuit: 0 } : data.circuits[i - 1];
-                            //{speed:1750, units:{val:0}, id:1, circuit:6}
-                            let speed = parseInt(c.speed, 10);
-                            let flow = parseInt(c.flow, 10);
-                            let circuit = parseInt(c.circuit, 10);
-                            if (isNaN(circuit)) return Promise.reject(new InvalidEquipmentDataError(`An invalid pump circuit was supplied for pump ${pump.name}. ${JSON.stringify(c)}`, 'Pump', data))
-                            if (isNaN(speed)) speed = type.minSpeed;
-                            if (isNaN(flow)) flow = type.minFlow;
-                            outc.setPayloadByte((i * 2) + 3, circuit, 0);
-                            let units;
-                            if (type.name === 'vf') units = sys.board.valueMaps.pumpUnits.getValue('gpm');
-                            else if (type.name === 'vs') units = sys.board.valueMaps.pumpUnits.getValue('rpm');
-                            else units = sys.board.valueMaps.pumpUnits.encode(c.units);
-                            c.units = units;
-                            if (isNaN(units)) units = sys.board.valueMaps.pumpUnits.getValue('rpm');
-                            if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
-                                outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
-                                outc.setPayloadByte(i + 21, speed % 256);
-                                c.speed = speed;
-                                ubyte |= (1 << (i - 1));
-                            }
-                            else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
-                                outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
-                                c.flow = flow;
-                            }
-                            c.id = i;
-                            c.circuit = circuit;
-                            if (arrCircuits.includes(c.circuit)) return Promise.reject(new InvalidEquipmentDataError(`Configuration for pump ${pump.name} is not correct circuit #${c.circuit} as included more than once. ${JSON.stringify(c)}`, 'Pump', data))
-                            arrCircuits.push(c.circuit);
-                        }
-                        if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
-                    }
-                    else if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits === 'undefined') { // This pump type supports circuits and the payload did not contain them.
-                        // Copy the data from the circuits array.  That way when we call pump.set to set the data back it will be persisted correctly.
-                        data.circuits = extend(true, {}, pump.circuits.get());
-                        let ubyte = 0;
-                        for (let i = 1; i <= data.circuits.length; i++) data.circuits[i].id = i;
-                        for (let i = 1; i <= pump.circuits.length && i <= type.maxCircuits; i++) {
-                            let c = pump.circuits.getItemByIndex(i - 1);
-                            let speed = c.speed;
-                            let flow = c.flow;
-                            let circuit = c.circuit;
-                            if (isNaN(speed)) speed = type.minSpeed;
-                            if (isNaN(flow)) flow = type.minFlow;
-                            outc.setPayloadByte((i * 2) + 3, circuit, 0);
-                            let units;
-                            if (type.name === 'vf') units = sys.board.valueMaps.pumpUnits.getValue('gpm');
-                            else if (type.name === 'vs') units = sys.board.valueMaps.pumpUnits.getValue('rpm');
-                            else units = c.units;
-                            if (isNaN(units)) units = sys.board.valueMaps.pumpUnits.getValue('rpm');
-                            c.units = units;
-                            if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
-                                outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
-                                outc.setPayloadByte(i + 21, speed % 256);
-                                ubyte |= (1 << (i - 1));
-                            }
-                            else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
-                                outc.setPayloadByte((i * 2) + 4, flow); // Set to gpm
+                        // If we do not have any circuits to define we should use the circuits from the existing pump.
+                        if (typeof data.circuits === 'undefined') data.circuits = pump.circuits.toArray();
+                        for (let i = 0; i < 4; i++) {
+                            let c = i < data.circuits.length ? data.circuits[i] : { id: i + 1, master: 0, speed: 0, circuit: 0, units: 0 };
+                            let byte = (i * 3) + 1;
+                            c.units = 0;
+                            c.master = 0;
+                            c.id = arrCircuits.length + 1;
+                            outc.setPayloadByte(byte, c.circuit);
+                            outc.setPayloadByte(byte + 1, Math.floor(c.speed / 256));
+                            outc.setPayloadByte(byte + 2, c.speed % 256);
+                            if (c.circuit > 0) {
+                                // Check to see if the circuit was already included.
+                                if (typeof arrCircuits.find(x => x.circuit === c.cuircuit) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Configuration for pump ${pump.name} is not correct circuit #${c.circuit} as included more than once. ${JSON.stringify(c)}`, 'Pump', data));
+                                arrCircuits.push(c);
                             }
                         }
-                        if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
-
+                        data.circuits = arrCircuits;
+                        return new Promise<Pump>((resolve, reject) => {
+                            outc.onComplete = (err, msg) => {
+                                if (err) reject(err);
+                                else {
+                                    pump = sys.pumps.getItemById(id, true);
+                                    pump.set(data);
+                                    let spump = state.pumps.getItemById(id, true);
+                                    spump.name = pump.name;
+                                    spump.type = pump.type;
+                                    spump.emitEquipmentChange();
+                                    resolve(pump);
+                                    const pumpConfigRequest = Outbound.create({
+                                        action: 214,
+                                        payload: [0],
+                                        retries: 2,
+                                        response: true
+                                    });
+                                    conn.queueSendMessage(pumpConfigRequest);
+                                }
+                            };
+                            conn.queueSendMessage(outc);
+                        });
                     }
-                    /*             return new Promise<Pump>((resolve, reject) => {
-                                    outc.onComplete = (err, msg) => {
-                                        if (err) reject(err);
-                                        else {
-                                            pump = sys.pumps.getItemById(id, true);
-                                            // RKS: 05-20-22 Boooh to this if the payload does not include its
-                                            // circuits we have just destroyed the pump definition.  So I added code to
-                                            // make sure that the data is complete.
-                                            pump.set(data); // Sets all the data back to the pump.
-                                            let spump = state.pumps.getItemById(id, true);
-                                            spump.name = pump.name;
-                                            spump.type = pump.type;
-                                            spump.emitEquipmentChange();
-                                            resolve(pump);
-                                            const pumpConfigRequest = Outbound.create({
-                                                action: 216,
-                                                payload: [pump.id],
-                                                retries: 2,
-                                                response: true
-                                            });
-                                            conn.queueSendMessage(pumpConfigRequest);
-                                        }
-                                    };
-                                    conn.queueSendMessage(outc);
-                                }); */
+                    else {
+                        let outc = Outbound.create({
+                            action: 155,
+                            payload: [id, ntype],
+                            retries: 2,
+                            response: Response.create({ action: 1, payload: [155] })
+                        });
+                        outc.appendPayloadBytes(0, 44);
+                        if (type.val === 128) {
+                            outc.setPayloadByte(3, 2);
+                            data.model = 0;
+                        }
+                        if (typeof type.maxPrimingTime !== 'undefined' && type.maxPrimingTime > 0 && type.val >= 64) {
+                            // We need to set all of this back to data since later pump.set is called to set the data after success.
+                            data.primingTime = typeof data.primingTime !== 'undefined' ? isNaN(parseInt(data.primingTime, 10)) ? pump.primingTime || 0 : 0 : pump.primingTime;
+                            data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || type.minSpeed;
+                            outc.setPayloadByte(2, data.primingTime);
+                            outc.setPayloadByte(21, Math.floor(data.primingSpeed / 256));
+                            outc.setPayloadByte(30, data.primingSpeed % 256);
+                        }
+                        if (type.val === 1) { // Any VF pump.
+                            // We need to set all of this back to data since later pump.set is called to set the data after success.
+                            data.backgroundCircuit = typeof data.backgroundCircuit !== 'undefined' ? parseInt(data.backgroundCircuit, 10) : pump.backgroundCircuit || 6;
+                            data.filterSize = typeof data.filterSize !== 'undefined' ? parseInt(data.filterSize, 10) : pump.filterSize || 15000;
+                            data.turnovers = typeof data.turnovers !== 'undefined' ? parseInt(data.turnovers, 10) : pump.turnovers || 2;
+                            data.manualFilterGPM = typeof data.manualFilterGPM !== 'undefined' ? parseInt(data.manualFilterGPM, 10) : pump.manualFilterGPM || 30;
+                            data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || 55;
+                            data.primingTime = typeof data.primingTime !== 'undefined' ? parseInt(data.primingTime, 10) : pump.primingTime || 0;
+                            data.maxSystemTime = typeof data.maxSystemTime !== 'undefined' ? parseInt(data.maxSystemTime, 10) : pump.maxSystemTime || 0;
+                            data.maxPressureIncrease = typeof data.maxPressureIncrease != 'undefined' ? parseInt(data.maxPressureIncrease, 10) : pump.maxPressureIncrease || 0;
+                            data.backwashFlow = typeof data.backwashFlow !== 'undefined' ? parseInt(data.backwashFlow, 10) : pump.backwashFlow || 60;
+                            data.backwashTime = typeof data.backwashTime !== 'undefined' ? parseInt(data.bacwashTime, 10) : pump.backwashTime || 5;
+                            data.rinseTime = typeof data.rinseTime !== 'undefined' ? parseInt(data.rinseTime, 10) : pump.rinseTime || 1;
+                            data.vacuumFlow = typeof data.vacuumFlow !== 'undefined' ? parseInt(data.vacuumFlow, 10) : pump.vacuumFlow || 50;
+                            data.vacuumTime = typeof data.vacuumTime !== 'undefined' ? parseInt(data.vacuumTime, 10) : pump.vacuumTime || 10;
+                            data.model = 0;
+                            outc.setPayloadByte(1, data.backgroundCircuit);
+                            outc.setPayloadByte(2, data.filterSize);
+                            outc.setPayloadByte(3, data.turnovers);
+                            outc.setPayloadByte(21, data.manualFilterGPM);
+                            outc.setPayloadByte(22, data.primingSpeed);
+                            outc.setPayloadByte(23, data.primingTime | data.maxSystemTime << 4, 5);
+                            outc.setPayloadByte(24, data.maxPressureIncrease);
+                            outc.setPayloadByte(25, data.backwashFlow);
+                            outc.setPayloadByte(26, data.backwashTime);
+                            outc.setPayloadByte(27, data.rinseTime);
+                            outc.setPayloadByte(28, data.vacuumFlow);
+                            outc.setPayloadByte(30, data.vacuumTime);
+                        }
+                        if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
+                            // Do some validation to make sure we don't have a condition where a circuit is declared twice.
+                            let arrCircuits = [];
+                            // Below is a very strange mess that goofs up the circuit settings.
+                            //{id:1, circuits:[{speed:1750, units:{val:0}, id:1, circuit:6}, {speed:2100, units:{val:0}, id:2, circuit:6}]}
+                            let ubyte = 0;
+                            for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
+                                // RKS: This notion of always returning the max number of circuits was misguided.  It leaves gaps in the circuit definitions and makes the pump
+                                // layouts difficult when there are a variety of supported circuits.  For instance with SF pumps you only get 4.
+                                let c = i > data.circuits.length ? { speed: type.minSpeed || 0, flow: type.minFlow || 0, circuit: 0 } : data.circuits[i - 1];
+                                //{speed:1750, units:{val:0}, id:1, circuit:6}
+                                let speed = parseInt(c.speed, 10);
+                                let flow = parseInt(c.flow, 10);
+                                let circuit = parseInt(c.circuit, 10);
+                                if (isNaN(circuit)) return Promise.reject(new InvalidEquipmentDataError(`An invalid pump circuit was supplied for pump ${pump.name}. ${JSON.stringify(c)}`, 'Pump', data))
+                                if (isNaN(speed)) speed = type.minSpeed;
+                                if (isNaN(flow)) flow = type.minFlow;
+                                outc.setPayloadByte((i * 2) + 3, circuit, 0);
+                                let units;
+                                if (type.name === 'vf') units = sys.board.valueMaps.pumpUnits.getValue('gpm');
+                                else if (type.name === 'vs') units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                                else units = sys.board.valueMaps.pumpUnits.encode(c.units);
+                                c.units = units;
+                                if (isNaN(units)) units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                                if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
+                                    outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
+                                    outc.setPayloadByte(i + 21, speed % 256);
+                                    c.speed = speed;
+                                    ubyte |= (1 << (i - 1));
+                                }
+                                else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
+                                    outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
+                                    c.flow = flow;
+                                }
+                                c.id = i;
+                                c.circuit = circuit;
+                                if (arrCircuits.includes(c.circuit)) return Promise.reject(new InvalidEquipmentDataError(`Configuration for pump ${pump.name} is not correct circuit #${c.circuit} as included more than once. ${JSON.stringify(c)}`, 'Pump', data))
+                                arrCircuits.push(c.circuit);
+                            }
+                            if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
+                        }
+                        else if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits === 'undefined') { // This pump type supports circuits and the payload did not contain them.
+                            // Copy the data from the circuits array.  That way when we call pump.set to set the data back it will be persisted correctly.
+                            data.circuits = extend(true, {}, pump.circuits.get());
+                            let ubyte = 0;
+                            for (let i = 1; i <= data.circuits.length; i++) data.circuits[i].id = i;
+                            for (let i = 1; i <= pump.circuits.length && i <= type.maxCircuits; i++) {
+                                let c = pump.circuits.getItemByIndex(i - 1);
+                                let speed = c.speed;
+                                let flow = c.flow;
+                                let circuit = c.circuit;
+                                if (isNaN(speed)) speed = type.minSpeed;
+                                if (isNaN(flow)) flow = type.minFlow;
+                                outc.setPayloadByte((i * 2) + 3, circuit, 0);
+                                let units;
+                                if (type.name === 'vf') units = sys.board.valueMaps.pumpUnits.getValue('gpm');
+                                else if (type.name === 'vs') units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                                else units = c.units;
+                                if (isNaN(units)) units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                                c.units = units;
+                                if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
+                                    outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
+                                    outc.setPayloadByte(i + 21, speed % 256);
+                                    ubyte |= (1 << (i - 1));
+                                }
+                                else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
+                                    outc.setPayloadByte((i * 2) + 4, flow); // Set to gpm
+                                }
+                            }
+                            if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
 
-
-                    await outc.sendAsync();
+                        }
+                        return new Promise<Pump>(async (resolve, reject) => {
+                            outc.onComplete = (err, msg) => {
+                                if (err) reject(err);
+                                else {
+                                    pump = sys.pumps.getItemById(id, true);
+                                    // RKS: 05-20-22 Boooh to this if the payload does not include its
+                                    // circuits we have just destroyed the pump definition.  So I added code to
+                                    // make sure that the data is complete.
+                                    pump.set(data); // Sets all the data back to the pump.
+                                    let spump = state.pumps.getItemById(id, true);
+                                    spump.name = pump.name;
+                                    spump.type = pump.type;
+                                    spump.emitEquipmentChange();
+                                    resolve(pump);
+                                    const pumpConfigRequest = Outbound.create({
+                                        action: 216,
+                                        payload: [pump.id],
+                                        retries: 2,
+                                        response: true
+                                    });
+                                    conn.queueSendMessage(pumpConfigRequest);
+                                }
+                            };
+                            await outc.sendAsync();
+                        });
+                    }
                 }
-                pump = sys.pumps.getItemById(id, true);
-                // RKS: 05-20-22 Boooh to this if the payload does not include its
-                // circuits we have just destroyed the pump definition.  So I added code to
-                // make sure that the data is complete.
-                pump.set(data); // Sets all the data back to the pump.
-                let spump = state.pumps.getItemById(id, true);
-                spump.name = pump.name;
-                spump.type = pump.type;
-                spump.isActive = pump.isActive = true;
-                spump.emitEquipmentChange();
-                if (send) {
-                    const pumpConfigRequest = Outbound.create({
-                        action: 216,
-                        payload: [pump.id],
-                        retries: 2,
-                        response: true
-                    });
-                    await pumpConfigRequest.sendAsync();
-                }
-                return pump;
             }
         }
-
         catch (err) {
             logger.error(`Error setting pump: ${err.message}`);
             return Promise.reject(err);
         }
     }
+    //private createPumpConfigMessages(pump: Pump): Outbound[] {
+    //    // [165,33,16,34,155,46],[1,128,0,2,0,16,12,6,7,1,9,4,11,11,3,128,8,0,2,18,2,3,128,8,196,184,232,152,188,238,232,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[9,75]
+    //    const setPumpConfig = Outbound.create({
+    //        action: 155,
+    //        payload: [pump.id, pump.type, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    //        retries: 2,
+    //        response: true
+    //    });
+    //    if (pump.type === 128) {
+    //        // vs
+    //        //[165, 1, 16, 33, 155, 47]
+    //        //[1, 128, 0, 0, 0, 6, 10, 1, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3, 190, 134, 0, 0, 0, 0, 0, 0, 232, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+    //        //[4, 109]
+    //        setPumpConfig.payload[2] = pump.primingTime || 0;
+    //        setPumpConfig.payload[21] = Math.floor(pump.primingSpeed / 256) || 3;
+    //        setPumpConfig.payload[30] =
+    //            pump.primingSpeed - Math.floor(pump.primingSpeed / 256) * 256 || 232;
+    //        for (let i = 1; i <= 8; i++) {
+    //            let circ = pump.circuits.getItemById(i);
+    //            setPumpConfig.payload[i * 2 + 3] = circ.circuit || 0;
+    //            setPumpConfig.payload[i * 2 + 4] = Math.floor(circ.speed / 256) || 3;
+    //            setPumpConfig.payload[i + 21] =
+    //                (circ.speed - (setPumpConfig.payload[i * 2 + 4] * 256)) || 232;
+    //        }
+    //    }
+    //    else if (pump.type === 64)
+    //        // vsf
+    //        for (let i = 1; i <= 8; i++) {
+    //            let circ = pump.circuits.getItemById(i);
+    //            setPumpConfig.payload[i * 2 + 3] = circ.circuit || 0;
+    //            if (circ.units === 0)
+    //                // gpm
+    //                setPumpConfig.payload[i * 2 + 4] = circ.flow || 30;
+    //            else {
+    //                // rpm
+    //                setPumpConfig.payload[4] =
+    //                    setPumpConfig.payload[4] << i - 1; // set rpm/gpm flag
+    //                setPumpConfig.payload[i * 2 + 4] = Math.floor(circ.speed / 256) || 3;
+    //                setPumpConfig.payload[i + 21] =
+    //                    circ.speed - ((setPumpConfig.payload[i * 2 + 4] * 256)) || 232;
+    //            }
+    //        }
+    //    else if (pump.type >= 1 && pump.type < 64) {
+    //        // vf
+    //        setPumpConfig.payload[1] = pump.backgroundCircuit || 6;
+    //        setPumpConfig.payload[3] = pump.turnovers || 2;
+    //        const body = sys.bodies.getItemById(1, sys.equipment.maxBodies >= 1);
+    //        setPumpConfig.payload[2] = body.capacity / 1000 || 15;
+    //        setPumpConfig.payload[21] = pump.manualFilterGPM || 30;
+    //        setPumpConfig.payload[22] = pump.primingSpeed || 55;
+    //        setPumpConfig.payload[23] =
+    //            pump.primingTime | pump.maxSystemTime << 4 || 5;
+    //        setPumpConfig.payload[24] = pump.maxPressureIncrease || 10;
+    //        setPumpConfig.payload[25] = pump.backwashFlow || 60;
+    //        setPumpConfig.payload[26] = pump.backwashTime || 5;
+    //        setPumpConfig.payload[27] = pump.rinseTime || 1;
+    //        setPumpConfig.payload[28] = pump.vacuumFlow || 50;
+    //        setPumpConfig.payload[30] = pump.vacuumTime || 10;
+    //        for (let i = 1; i <= 8; i++) {
+    //            let circ = pump.circuits.getItemById(i);
+    //            setPumpConfig.payload[i * 2 + 3] = circ.circuit || 0;
+    //            setPumpConfig.payload[i * 2 + 4] = circ.flow || 15;
+    //        }
+    //    }
+    //    const pumpConfigRequest = Outbound.create({
+    //        action: 216,
+    //        payload: [pump.id],
+    //        retries: 2,
+    //        response: true
+    //    });
+    //    return [setPumpConfig, pumpConfigRequest];
+    //}
+    //public setType(pump: Pump, pumpType: number) {
+    //    pump.type = pumpType;
+    //    // pump.circuits.clear(); // reset circuits
+    //    this.setPump(pump);
+    //    let spump = state.pumps.getItemById(pump.id, true);
+    //    spump.type = pump.type;
+    //    spump.status = 0;
+    //}
     public async deletePumpAsync(data: any): Promise<Pump> {
-        try {
-            let id = parseInt(data.id, 10);
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`deletePumpAsync: Pump ${id} is not valid.`, 0, `pump`));
-            let pump = sys.pumps.getItemById(id, false);
-            if (pump.master === 1) return super.deletePumpAsync(data);
-            const outc = Outbound.create({
-                action: 155,
-                payload: [id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                retries: 2,
-                response: true
-            });
+        let id = parseInt(data.id, 10);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`deletePumpAsync: Pump ${id} is not valid.`, 0, `pump`));
+        let pump = sys.pumps.getItemById(id, false);
+        if (pump.master === 1) return super.deletePumpAsync(data);
+        const outc = Outbound.create({
+            action: 155,
+            payload: [id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            retries: 2,
+            response: true
+        });
+        return new Promise<Pump>(async (resolve, reject) => {
+            outc.onComplete = (err, msg) => {
+                if (err) reject(err);
+                else {
+                    sys.pumps.removeItemById(id);
+                    state.pumps.removeItemById(id);
+                    resolve(sys.pumps.getItemById(id, false));
+                    const pumpConfigRequest = Outbound.create({
+                        action: 216,
+                        payload: [id],
+                        retries: 2,
+                        response: true
+                    });
+                    conn.queueSendMessage(pumpConfigRequest);
+                }
+            };
             await outc.sendAsync();
-            sys.pumps.removeItemById(id);
-            state.pumps.removeItemById(id);
-            const pumpConfigRequest = Outbound.create({
-                action: 216,
-                payload: [id],
-                retries: 2,
-                response: true
-            });
-            await pumpConfigRequest.sendAsync();;
-            return sys.pumps.getItemById(id, false);
-
-        } catch (err) {
-            logger.error(`Error deleting pump: ${err.message}`);
-            return Promise.reject(err);
-        }
+        });
     }
 }
 class TouchHeaterCommands extends HeaterCommands {

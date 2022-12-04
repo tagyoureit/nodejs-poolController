@@ -93,7 +93,7 @@ export class PoolSystem implements IPoolSystem {
                 { val: 128, name: 'ET8', part: 'ET-8', desc: 'EasyTouch 8', circuits: 8, bodies: 2, shared: true },
                 { val: 129, name: 'ET8P', part: 'ET-8P', desc: 'EasyTouch 8', circuits: 8, bodies: 1, shared: false },
                 { val: 130, name: 'ET4', part: 'ET-4', desc: 'EasyTouch 4', circuits: 4, bodies: 2, shared: true },
-                { val: 129, name: 'ET4P', part: 'ET-4P', desc: 'EasyTouch 4P', circuits: 4, bodies: 1, shared: false }
+                { val: 131, name: 'ET4P', part: 'ET-4P', desc: 'EasyTouch 4P', circuits: 4, bodies: 1, shared: false }
             ]
         });
         if (include.indexOf('intellitouch')>=0) arr.push({
@@ -648,8 +648,9 @@ class EqItemCollection<T> implements IEqItemCollection {
     }
     public sort(fn: (a, b) => number) { this.data.sort(fn); }
     public count(fn: (value: T, index?: any, array?: any[]) => boolean): number { return this.data.filter(fn).length; }
-    public getNextEquipmentId(range: EquipmentIdRange, exclude?: number[]): number {
-        for (let i = range.start; i <= range.end; i++) {
+    public getNextEquipmentId(range?: EquipmentIdRange, exclude?: number[]): number {
+        let r = extend(true, { start: 1, end: 255 }, range);
+        for (let i = r.start; i <= r.end; i++) {
             let eq = this.data.find(elem => elem.id === i);
             if (typeof eq === 'undefined') {
                 if (typeof exclude !== 'undefined' && exclude.indexOf(i) !== -1) continue;

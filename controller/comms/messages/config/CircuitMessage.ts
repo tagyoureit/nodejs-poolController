@@ -348,11 +348,28 @@ export class CircuitMessage {
                 sys.lightGroups.removeItemById(sys.board.equipmentIds.circuitGroups.start);
                 state.lightGroups.removeItemById(sys.board.equipmentIds.circuitGroups.start);
             }
-            sys.features.removeItemById(id);
-            state.features.removeItemById(id);
-            sys.circuits.removeItemById(id);
-            state.circuits.removeItemById(id);
+            if (!sys.board.equipmentIds.circuits.isInRange(id)) {
+                sys.circuits.removeItemById(id);
+                state.circuits.removeItemById(id);
+            }
+            else {
+                let circuit = sys.circuits.getItemById(id, true);
+                let cstate = sys.circuits.getItemById(id, true);
+                cstate.showInFeatures = circuit.showInFeatures = false;
+                cstate.type = circuit.type = functionId & 63;
+                cstate.name = circuit.name = sys.board.circuits.getNameById(nameId || id);
+                cstate.nameId = circuit.nameId = nameId || id;
+                cstate.isActive = circuit.isActive = true;
+            }
+            if (!sys.board.equipmentIds.features.isInRange(id)) {
+                sys.features.removeItemById(id);
+                state.features.removeItemById(id);
+            }
             sys.circuitGroups.removeItemById(id);
+            //sys.features.removeItemById(id);
+            //state.features.removeItemById(id);
+            //sys.circuits.removeItemById(id);
+            //state.circuits.removeItemById(id);
         }
         msg.isProcessed = true;
     }
