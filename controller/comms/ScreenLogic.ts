@@ -95,7 +95,7 @@ export class ScreenLogicComms {
         logger.info(`Screenlogic: connect to ${systemName} ${ver} at ${unit.ipAddr}:${unit.port}`);
 
         let addClient = await this._client.addClientAsync();
-        console.log(`Add client result: ${addClient}`);
+        logger.silly(`Screenlogic:Add client result: ${addClient}`);
       } catch (err) {
         throw err;
       }
@@ -104,7 +104,7 @@ export class ScreenLogicComms {
       state.emitControllerChange();
       try {
         let equipConfig = await this._client.equipment.getEquipmentConfigurationAsync();
-        console.log(`Equipment config: ${JSON.stringify(equipConfig, null, 2)}`);
+        logger.silly(`Screenlogic:Equipment config: ${JSON.stringify(equipConfig, null, 2)}`);
         await Controller.decodeEquipment(equipConfig);
       } catch (err) {
         logger.error(`Screenlogic: Error getting equipment configuration. ${err.message}`);
@@ -115,7 +115,7 @@ export class ScreenLogicComms {
       try {
 
         let customNames = await this._client.equipment.getCustomNamesAsync();
-        console.log(customNames);
+        logger.silly(`Screenlogic: custom names ${customNames}`);
         await Controller.decodeCustomNames(customNames);
       } catch (err) {
         logger.error(`Screenlogic: Error getting custom names. ${err.message}`);
@@ -125,7 +125,7 @@ export class ScreenLogicComms {
     state.emitControllerChange();
       try {
         let controller = await this._client.equipment.getControllerConfigAsync();
-        console.log(`Controller: ${JSON.stringify(controller, null, 2)}`);
+        logger.silly(`Screenlogic:Controller: ${JSON.stringify(controller, null, 2)}`);
         this._configData = await Controller.decodeController(controller);
       } catch (err) {
         logger.error(`Screenlogic: Error getting controller configuration. ${err.message}`);
@@ -135,7 +135,7 @@ export class ScreenLogicComms {
     state.emitControllerChange();
       try {
         let systemTime = await this._client.equipment.getSystemTimeAsync();
-        // console.log(`System Time: ${JSON.stringify(systemTime)}`)
+        // logger.silly(`Screenlogic:System Time: ${JSON.stringify(systemTime)}`)
         Controller.decodeDateTime(systemTime);
       } catch (err) {
         logger.error(`Screenlogic: Error getting system time. ${err.message}`);
@@ -148,7 +148,7 @@ export class ScreenLogicComms {
       this._configData.pumpsReported.forEach(async pumpNum => {
         try {
           let pumpStatus = await this._client.pump.getPumpStatusAsync(pumpNum - 1);
-          console.log(`Pump ${pumpNum}: ${JSON.stringify(pumpStatus)}`);
+          logger.silly(`Screenlogic:Pump ${pumpNum}: ${JSON.stringify(pumpStatus)}`);
           await Controller.decodePump(pumpNum, pumpStatus);
         } catch (err) {
           logger.error(`Screenlogic: Error getting pump configuration. ${err.message}`);
@@ -159,9 +159,9 @@ export class ScreenLogicComms {
     state.emitControllerChange();
       try {
       let recurringSched = await this._client.schedule.getScheduleDataAsync(0);
-      console.log(`reccuring schedules: ${JSON.stringify(recurringSched)}`);
+      logger.silly(`Screenlogic:reccuring schedules: ${JSON.stringify(recurringSched)}`);
       let runOnceSched = await this._client.schedule.getScheduleDataAsync(1);
-      console.log(`Run once schedules: ${JSON.stringify(runOnceSched)}`);
+      logger.silly(`Screenlogic:Run once schedules: ${JSON.stringify(runOnceSched)}`);
       await Controller.decodeSchedules(recurringSched, runOnceSched);
     } catch (err) {
       logger.error(`Screenlogic: Error getting schedules. ${err.message}`);
@@ -171,7 +171,7 @@ export class ScreenLogicComms {
       state.emitControllerChange();
     try {
       let intellichlor = await this._client.chlor.getIntellichlorConfigAsync();
-      // console.log(`Intellichlor: ${JSON.stringify(intellichlor)}`);
+      // logger.silly(`Screenlogic:Intellichlor: ${JSON.stringify(intellichlor)}`);
       await Controller.decodeIntellichlor(intellichlor);
     } catch (err) {
       logger.error(`Screenlogic: Error getting Intellichlor. ${err.message}`);
@@ -182,7 +182,7 @@ export class ScreenLogicComms {
     try {
       if (this._configData.intellichemPresent){
         let chem = await this._client.chem.getChemicalDataAsync();
-        console.log(`Chem data: ${JSON.stringify(chem)}`);
+        logger.silly(`Screenlogic:Chem data: ${JSON.stringify(chem)}`);
         await Controller.decodeChemController(chem);
       }
     } catch (err) {
@@ -193,7 +193,7 @@ export class ScreenLogicComms {
       state.emitControllerChange();
     try {
       let equipmentState = await this._client.equipment.getEquipmentStateAsync();
-      console.log(equipmentState);
+      logger.silly(`Screenlogic: equipment state: ${equipmentState}`);
       await Controller.decodeEquipmentState(equipmentState);
     } catch (err) {
       logger.error(`Screenlogic: Error getting equipment state. ${err.message}`);
@@ -219,49 +219,49 @@ export class ScreenLogicComms {
       // client.on('getScheduleData', async function(){
       // await Controller.decodeSchedules(recurringSched, runOnceSched);});  // how do we know if this is recurring or runonce?  Investigate.
       this._client.on('cancelDelay', async function (data) {
-        console.log(`cancelDelay: ${data}`)
+        logger.silly(`Screenlogic:cancelDelay: ${data}`)
       }) // not programmed yet});
       this._client.on('equipmentConfiguration', async function (data) {
-        console.log(`equipConfig ${data}`)
+        logger.silly(`Screenlogic:equipConfig ${data}`)
       })// which one?});
       this._client.on('getPumpStatus', async function (data) {
-        console.log(`getPumpStatus: ${JSON.stringify(data)}`);
+        logger.silly(`Screenlogic:getPumpStatus: ${JSON.stringify(data)}`);
         // await Controller.decodePump(1, pumpStatus);
       });  // how do we know which pump id?  Investigate.
       this._client.on('weatherForecast', async function (data) {
-        console.log(`weatherforecast: ${JSON.stringify(data)}`)
+        logger.silly(`Screenlogic:weatherforecast: ${JSON.stringify(data)}`)
       });
       this._client.on('circuitStateChanged', async function (data) {
-        console.log(`circuitstatechanged: ${JSON.stringify(data)}`)
+        logger.silly(`Screenlogic:circuitstatechanged: ${JSON.stringify(data)}`)
       });
       this._client.on('setPointChanged', async function (data) {
-        console.log(`setpointchanged: ${JSON.stringify(data)}`)
+        logger.silly(`Screenlogic:setpointchanged: ${JSON.stringify(data)}`)
       });
 
       // not working
 
       this._client.on('heatModeChanged', async function (data) {
-        console.log(`heat mode changed: ${JSON.stringify(data)}`);
+        logger.silly(`Screenlogic:heat mode changed: ${JSON.stringify(data)}`);
       });
       this._client.on('intellibriteDelay', async function (data) {
-        console.log(`intellibrite delay: ${JSON.stringify(data)}`)
+        logger.silly(`Screenlogic:intellibrite delay: ${JSON.stringify(data)}`)
       });
       this._client.on('weatherForecastChanged', async function () {
-        console.log(`weather forecast changed}`);
+        logger.silly(`Screenlogic:weather forecast changed}`);
         // found - no data returned; need to request data
       });
       // No data comes through... maybe need to request weather data again?
       this._client.on('scheduleChanged', async function (data) {
-        console.log(`schedule changed: ${JSON.stringify(data)}`);
+        logger.silly(`Screenlogic:schedule changed: ${JSON.stringify(data)}`);
         let recurringSched = await self._client.schedule.getScheduleDataAsync(0);
-        console.log(`reccuring schedules: ${JSON.stringify(recurringSched)}`);
+        logger.silly(`Screenlogic:reccuring schedules: ${JSON.stringify(recurringSched)}`);
 
         let runOnceSched = await self._client.schedule.getScheduleDataAsync(1);
-        console.log(`Run once schedules: ${JSON.stringify(runOnceSched)}`);
+        logger.silly(`Screenlogic:Run once schedules: ${JSON.stringify(runOnceSched)}`);
         await Controller.decodeSchedules(recurringSched, runOnceSched);
       });
       this._client.on('setCircuitRuntimebyId', async (data) => {
-        console.log(`Set Circuit By Runtime event ${data}`);
+        logger.silly(`Screenlogic:Set Circuit By Runtime event ${data}`);
         await self._client.equipment.getControllerConfigAsync();
       });
       this._client.on('error', async (e) => {
@@ -287,38 +287,38 @@ export class ScreenLogicComms {
         this.isOpen = false;
       })
       this._client.on('bytesRead', (bytes) => {
-        console.log(`SL Bytes Read: ${bytes}`);
+        logger.silly(`Screenlogic:SL Bytes Read: ${bytes}`);
         this.counter.bytesReceived += bytes;
         this.emitScreenlogicStats();
       });
       this._client.on('bytesWritten', (bytes) => {
-        console.log(`SL Bytes written: ${bytes}`);
+        logger.silly(`Screenlogic:SL Bytes written: ${bytes}`);
         this.counter.bytesSent += bytes;
         this.emitScreenlogicStats();
       });
       this.pollAsync();
-      // console.log(`Equipment State: ${JSON.stringify(equipmentState, null, 2)}`);
+      // logger.silly(`Screenlogic:Equipment State: ${JSON.stringify(equipmentState, null, 2)}`);
       /* // EQUIPMENT
       
       
 
       let weatherForecast = await client.equipment.getWeatherForecast();
-      console.log(`Weather: ${JSON.stringify(weatherForecast)}`); 
+      logger.silly(`Screenlogic:Weather: ${JSON.stringify(weatherForecast)}`); 
       let sysTime = await screenlogic.equipment.setSystemTime(dt, true);
-      console.log(`set time result: ${sysTime}`);
+      logger.silly(`Screenlogic:set time result: ${sysTime}`);
       let hist = await screenlogic.equipment.getHistoryData()
-      console.log(`history data: ${JSON.stringify(hist)}`)
+      logger.silly(`Screenlogic:history data: ${JSON.stringify(hist)}`)
     
       
       // CHEM
       let chemHist = await screenlogic.chem.getChemHistoryData()
-      console.log(`history data: ${JSON.stringify(chemHist)}`)
+      logger.silly(`Screenlogic:history data: ${JSON.stringify(chemHist)}`)
       
  
 
       // PUMPS
       // let pumpRes = await client.pump.setPumpSpeed(0,1,2000,true);
-      // console.log(`Pump speed response: ${pumpRes}`)
+      // logger.silly(`Screenlogic:Pump speed response: ${pumpRes}`)
       
 
       
@@ -326,11 +326,11 @@ export class ScreenLogicComms {
 
    */
       // setTimeout(async () => {
-      //   console.log(`closing connection after 60s`);
+      //   logger.silly(`Screenlogic:closing connection after 60s`);
       //   await client.closeAsync();
       // }, 120 * 1000)
       // let close = await client.closeAsync();
-      // console.log(`client closed: ${close}`);
+      // logger.silly(`Screenlogic:client closed: ${close}`);
     } catch (error) {
       logger.error(`Screenlogic error: ${error.message}`);
       await this._client.closeAsync();
@@ -380,7 +380,7 @@ export class ScreenLogicComms {
       let numPumps = sys.pumps.get().length;
       for (let i = 1; i < numPumps + 1; i++) {
         let pumpStatus = await self._client.pump.getPumpStatusAsync(i - 1);
-        console.log(`Pump ${i}: ${JSON.stringify(pumpStatus)}`);
+        logger.silly(`Screenlogic:Pump ${i}: ${JSON.stringify(pumpStatus)}`);
         await Controller.decodePump(i, pumpStatus);
       }
       sys.board.heaters.syncHeaterStates();
@@ -777,6 +777,7 @@ class Controller {
     // if no hybrid, we do have a gas heater;  
     // it may not be possible to set a Hybrid heater from SL... 
     // will go with that until we learn otherwise 
+    // also todo - how to add heaters to dual bodies?
     let data: any = {
       address,
       id,
@@ -1217,7 +1218,7 @@ export class SLCircuits extends SLCommands {
 
 
       let lightRes = await this._unit.circuits.sendLightCommandAsync(lightTheme);
-      console.log(`lightRes: ${lightRes}`);
+      logger.silly(`Screenlogic:lightRes: ${lightRes}`);
     } catch (err) {
       return Promise.reject(err);
     }
@@ -1309,11 +1310,11 @@ export class SLSchedule extends SLCommands {
   // SCHEDULES
 
   //  let addSched = await client.schedule.addNewScheduleEvent(SchedTypes.RECURRING);
-  //  console.log(`Add sched response: ${addSched}`);
+  //  logger.silly(`Screenlogic:Add sched response: ${addSched}`);
   //  let setSched = await client.schedule.setScheduleEventById(10, 2,500,1200,127,0,1,99);
-  //  console.log(`Set sched result: ${setSched}`);
+  //  logger.silly(`Screenlogic:Set sched result: ${setSched}`);
   //  let delSched = await client.schedule.deleteScheduleEventById(10);
-  //  console.log(`Deleted sched result: ${delSched}`);
+  //  logger.silly(`Screenlogic:Deleted sched result: ${delSched}`);
   public async setScheduleAsync(id: number, circuit: number, startTime: number, endTime: number, schedDays: number, schedType: number, changeHeatSetPoint: boolean, heatSource?: number, setPoint?: number): Promise<number> {
     /*
   scheduleId - id of a schedule previously created, see SLAddNewScheduleEvent
