@@ -1,5 +1,5 @@
 import { ControllerType, utils } from '../../controller/Constants';
-import { LightGroup, LightGroupCircuit, sys, Valve, Body } from '../../controller/Equipment';
+import { LightGroup, LightGroupCircuit, sys, Valve, Body, Pump, PumpCircuit } from '../../controller/Equipment';
 import { CircuitState, state, ValveState } from '../../controller/State';
 import * as ScreenLogic from 'node-screenlogic';
 import { SLControllerConfigData, SLEquipmentConfigurationData, Valves, type HeaterConfig } from 'node-screenlogic/dist/messages/state/EquipmentConfig';
@@ -37,6 +37,7 @@ export class ScreenLogicComms {
   public bodies: SLBodies;
   public chlor: SLChlor;
   public schedules: SLSchedule;
+  public pumps: SLPump;
   private _pollCountError: number = 0;
   public isOpen: boolean = false;
   private _cfg: any;
@@ -55,6 +56,7 @@ export class ScreenLogicComms {
     this.bodies = new SLBodies(this._client);
     this.chlor = new SLChlor(this._client);
     this.schedules = new SLSchedule(this._client);
+    this.pumps = new SLPump(this._client);
     let cfg = config.getSection('controller.screenlogic');
     if (typeof cfg !== 'undefined') this._cfg = cfg;
     this.enabled = this._cfg.enabled;
@@ -318,7 +320,7 @@ export class ScreenLogicComms {
 
       // PUMPS
       // let pumpRes = await client.pump.setPumpSpeed(0,1,2000,true);
-      // logger.silly(`Screenlogic:Pump speed response: ${pumpRes}`)
+      // console.log(`Pump speed response: ${pumpRes}`)
       
 
       
@@ -1411,5 +1413,20 @@ export class SLSchedule extends SLCommands {
       return Promise.reject(err);
     }
   }
+}
+export class SLPump extends SLCommands{
+    public async setPumpCircuitAsync(pump: Pump, circuit: PumpCircuit){
+
+      // PUMPS
+      // let pumpRes = await client.pump.setPumpSpeed(0,1,2000,true);
+      // Currently, this only sets the circuit array.  Need to figure out adding/removing pump at some point.
+      try {
+        await this._unit.pump.setPumpSpeedAsync(pump.id - 1, circuit.id, circuit.speed, sys.board.valueMaps.pumpUnits.get(circuit.units).name === 'rpm' ? true : false);
+      }
+      catch (err){
+        return Promise.reject(err);
+      }
+    
+    }
 }
 export let sl = new ScreenLogicComms();
