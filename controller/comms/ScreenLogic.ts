@@ -143,13 +143,12 @@ export class ScreenLogicComms {
         logger.error(`Screenlogic: Error getting system time. ${err.message}`);
       }
 
-      // PUMPS
-      
+    // PUMPS 
     state.status = sys.board.valueMaps.controllerStatus.transform(2, 60);
     state.emitControllerChange();
       this._configData.pumpsReported.forEach(async pumpNum => {
         try {
-          let pumpStatus = await this._client.pump.getPumpStatusAsync(pumpNum - 1);
+          let pumpStatus = await this._client.pump.getPumpStatusAsync(pumpNum);
           logger.silly(`Screenlogic:Pump ${pumpNum}: ${JSON.stringify(pumpStatus)}`);
           await Controller.decodePump(pumpNum, pumpStatus);
         } catch (err) {
@@ -195,7 +194,7 @@ export class ScreenLogicComms {
       state.emitControllerChange();
     try {
       let equipmentState = await this._client.equipment.getEquipmentStateAsync();
-      logger.silly(`Screenlogic: equipment state: ${equipmentState}`);
+      logger.silly(`Screenlogic: equipment state: ${JSON.stringify(equipmentState)}`);
       await Controller.decodeEquipmentState(equipmentState);
     } catch (err) {
       logger.error(`Screenlogic: Error getting equipment state. ${err.message}`);
@@ -315,15 +314,7 @@ export class ScreenLogicComms {
       // CHEM
       let chemHist = await screenlogic.chem.getChemHistoryData()
       logger.silly(`Screenlogic:history data: ${JSON.stringify(chemHist)}`)
-      
- 
-
-      // PUMPS
-      // let pumpRes = await client.pump.setPumpSpeed(0,1,2000,true);
-      // console.log(`Pump speed response: ${pumpRes}`)
-      
-
-      
+    
 
 
    */
@@ -381,7 +372,7 @@ export class ScreenLogicComms {
       if (!this.isOpen) { return; };
       let numPumps = sys.pumps.get().length;
       for (let i = 1; i < numPumps + 1; i++) {
-        let pumpStatus = await self._client.pump.getPumpStatusAsync(i - 1);
+        let pumpStatus = await self._client.pump.getPumpStatusAsync(i);
         logger.silly(`Screenlogic:Pump ${i}: ${JSON.stringify(pumpStatus)}`);
         await Controller.decodePump(i, pumpStatus);
       }
@@ -834,9 +825,8 @@ class Controller {
   public static async decodeValves(valves: Valves[]) {
     for (let i = 0; i < valves.length; i++) {
       let _valve = valves[i];
-      // let valve: Valve = sys.valves.getItemById(_valve.valveIndex + 1);
       let data: any = {
-        id: _valve.valveIndex + 1,
+        id: _valve.valveIndex,
         name: _valve.valveName,
         circuit: _valve.deviceId,
       }
@@ -845,14 +835,14 @@ class Controller {
     /*     "valves": [
           {
             "loadCenterIndex": 0,
-            "valveIndex": 0,
+            "valveIndex": 1,
             "valveName": "A",
             "loadCenterName": "1",
             "deviceId": 0
           },
           {
             "loadCenterIndex": 0,
-            "valveIndex": 1,
+            "valveIndex": 2,
             "valveName": "B",
             "loadCenterName": "1",
             "deviceId": 0
@@ -961,7 +951,7 @@ class Controller {
         speed: slpump.pumpCircuits[i].isRPMs ? slpump.pumpCircuits[i].speed : undefined,
         flow: slpump.pumpCircuits[i].isRPMs ? undefined : slpump.pumpCircuits[i].speed
       }
-      data.circuits[i] = pumpCirc;
+      data.circuits.push(pumpCirc);
     }
     data.type = ptype;
     data.name = typeof pump.name !== 'undefined' ? pump.name : `Pump ${id}`
@@ -1260,7 +1250,7 @@ export class SLBodies extends SLCommands {
 
     }
     try {
-      await this._unit.bodies.setHeatModeAsync(body.id - 1, slHeatMode);
+      await this._unit.bodies.setHeatModeAsync(body.id, slHeatMode);
     }
     catch (err) {
       return Promise.reject(err);
@@ -1268,7 +1258,7 @@ export class SLBodies extends SLCommands {
   }
   public async setHeatSetpointAsync(body: Body, setPoint: number) {
     try {
-      await this._unit.bodies.setSetPointAsync(body.id - 1, setPoint);
+      await this._unit.bodies.setSetPointAsync(body.id, setPoint);
     }
     catch (err) {
       return Promise.reject(err);
@@ -1421,7 +1411,8 @@ export class SLPump extends SLCommands{
       // let pumpRes = await client.pump.setPumpSpeed(0,1,2000,true);
       // Currently, this only sets the circuit array.  Need to figure out adding/removing pump at some point.
       try {
-        await this._unit.pump.setPumpSpeedAsync(pump.id - 1, circuit.id, circuit.speed, sys.board.valueMaps.pumpUnits.get(circuit.units).name === 'rpm' ? true : false);
+        let isRPM = sys.board.valueMaps.pumpUnits.get(circuit.units).name === 'rpm' ? true : false;
+        await this._unit.pump.setPumpSpeedAsync(pump.id, circuit.circuit, isRPM ? circuit.speed : circuit.flow, isRPM);
       }
       catch (err){
         return Promise.reject(err);

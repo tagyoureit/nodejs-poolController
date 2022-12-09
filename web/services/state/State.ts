@@ -427,6 +427,7 @@ export class StateRoute {
             // RKS: 06-24-20 -- Changed this so that users can send in the body id, circuit id, or the name.
             // RKS: 05-14-21 -- Added cooling setpoints for the body.
             try {
+                
                 let body = sys.bodies.findByObject(req.body);
                 if (typeof body === 'undefined') return next(new ServiceParameterError(`Cannot set body setPoint.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', req.body.id));
                 if (typeof req.body.coolSetpoint !== 'undefined' && !isNaN(parseInt(req.body.coolSetpoint, 10)))

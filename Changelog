@@ -1,5 +1,12 @@
 # Changelog
 
+## 8.0.0
+1. Refactor comms code to Async
+2. Update dependencies and Node >16
+3. EasyTouch v1 support
+4. Screenlogic support
+5. Anslq25 (Mock controller)
+
 ## 7.7.0
 1. Aqualink-D MQTT Interface
 2. Manual Priority for Schedules

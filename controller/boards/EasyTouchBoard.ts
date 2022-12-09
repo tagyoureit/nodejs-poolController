@@ -36,8 +36,11 @@ export class EasyTouchBoard extends SystemBoard {
         this._statusInterval = -1;
         this.equipmentIds.circuits = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuits - 1; });
         this.equipmentIds.features = new EquipmentIdRange(() => { return 11; }, () => { return this.equipmentIds.features.start + sys.equipment.maxFeatures + 1; });
-        this.equipmentIds.virtualCircuits = new EquipmentIdRange(128, 136);
-        this.equipmentIds.circuitGroups = new EquipmentIdRange(192, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
+        this.equipmentIds.features.start = 11;
+        this.equipmentIds.virtualCircuits = new EquipmentIdRange(function () { return 128; }, function () { return 136; });
+        this.equipmentIds.virtualCircuits.start = 128;
+        this.equipmentIds.circuitGroups = new EquipmentIdRange(function () { return 192; }, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
+        this.equipmentIds.circuitGroups.start = 192;
         this.equipmentIds.circuits.start = sys.equipment.shared || sys.equipment.dual ? 1 : 2;
         if (typeof sys.configVersion.equipment === 'undefined') { sys.configVersion.equipment = 0; }
         this.valueMaps.heatSources = new byteValueMap([
@@ -2219,7 +2222,7 @@ class TouchPumpCommands extends PumpCommands {
                             if (typeof arrCircuits.find(x => x.circuit === c.cuircuit) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Configuration for pump ${pump.name} is not correct circuit #${c.circuit} as included more than once. ${JSON.stringify(c)}`, 'Pump', data));
                             arrCircuits.push(c);
                         }
-                        if (sl.enabled){
+                        if (sl.enabled && send) {
                             await sl.pumps.setPumpCircuitAsync(pump, c);
                         }
                     }
@@ -2337,11 +2340,11 @@ class TouchPumpCommands extends PumpCommands {
                             c.circuit = circuit;
                             if (arrCircuits.includes(c.circuit)) return Promise.reject(new InvalidEquipmentDataError(`Configuration for pump ${pump.name} is not correct circuit #${c.circuit} as included more than once. ${JSON.stringify(c)}`, 'Pump', data))
                             arrCircuits.push(c.circuit);
-                            if (sl.enabled){
+                            if (sl.enabled && send) {
                                 await sl.pumps.setPumpCircuitAsync(pump, c);
                             }
                         }
-                        data.circuits = arrCircuits;
+                        // data.circuits = arrCircuits;
                         if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
                     }
                     else if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits === 'undefined') { // This pump type supports circuits and the payload did not contain them.
@@ -2371,15 +2374,23 @@ class TouchPumpCommands extends PumpCommands {
                             else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
                                 outc.setPayloadByte((i * 2) + 4, flow); // Set to gpm
                             }
-                            if (sl.enabled){
+                            if (sl.enabled && send) {
                                 await sl.pumps.setPumpCircuitAsync(pump, c);
                             }
                         }
                         if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
 
                     }
-
-                    if (send) {
+                    if (sl.enabled) {
+                        pump = sys.pumps.getItemById(id, true);
+                        pump.set(data); // Sets all the data back to the pump.
+                        let spump = state.pumps.getItemById(id, true);
+                        spump.name = pump.name;
+                        spump.type = pump.type;
+                        spump.emitEquipmentChange();
+                        return Promise.resolve(pump);
+                    }
+                    else if (send) {
                         return new Promise<Pump>(async (resolve, reject) => {
                             outc.onComplete = (err, msg) => {
                                 if (err) reject(err);
