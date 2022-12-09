@@ -2,7 +2,7 @@ import { ControllerType, utils } from '../../controller/Constants';
 import { LightGroup, LightGroupCircuit, sys, Valve, Body, Pump, PumpCircuit } from '../../controller/Equipment';
 import { CircuitState, state, ValveState } from '../../controller/State';
 import * as ScreenLogic from 'node-screenlogic';
-import { SLControllerConfigData, SLEquipmentConfigurationData, Valves, type HeaterConfig } from 'node-screenlogic/dist/messages/state/EquipmentConfig';
+import { SLControllerConfigData, SLEquipmentConfigurationData, Valves, HeaterConfig } from 'node-screenlogic/dist/messages/state/EquipmentConfig';
 import { EasyTouchBoard } from '../../controller/boards/EasyTouchBoard';
 import { IntelliTouchBoard } from '../../controller/boards/IntelliTouchBoard';
 import { logger } from '../../logger/Logger';
