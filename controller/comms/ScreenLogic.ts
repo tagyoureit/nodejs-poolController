@@ -13,17 +13,13 @@ import { SLScheduleData } from 'node-screenlogic/dist/messages/state/ScheduleMes
 import { webApp } from '../../web/Server';
 import { SLPumpStatusData } from 'node-screenlogic/dist/messages/state/PumpMessage';
 import { delayMgr } from '../../controller/Lockouts';
-import { SLEquipmentStateData } from 'node-screenlogic/dist/messages/state/EquipmentState';
+import { EquipmentStateMessage, SLEquipmentStateData } from 'node-screenlogic/dist/messages/state/EquipmentState';
 import { config } from '../../config/Config';
 import { InvalidEquipmentDataError, InvalidEquipmentIdError } from '../../controller/Errors';
 import extend = require('extend');
 
-
-// Todo - service, timeout?  
-// 
-// Done
-// all equipment, heat mode, heat setpoint, circuit state, set/add/delete schedules, cancel delay, set circuit, set circuit runtime
-// issues - not catching all pipe, econnreset errors ==> Us PM2 to monitor process for now
+// issues
+// 1. not catching all pipe, econnreset errors ==> Us PM2 to monitor process for now
 
 export class ScreenLogicComms {
   constructor() {
@@ -202,7 +198,7 @@ export class ScreenLogicComms {
     sys.board.circuits.syncVirtualCircuitStates()
     state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
       state.emitControllerChange();
-
+      this._client.removeAllListeners(); // clear out in case we are initializing again
       this._client.on('equipmentState', async function (data) { await Controller.decodeEquipmentState(data); })
       this._client.on('intellichlorConfig', async function (data) {
         await Controller.decodeIntellichlor(data);
@@ -572,7 +568,7 @@ class Controller {
   public static async decodeEquipmentState(eqstate: SLEquipmentStateData) {
     /*
   {
-    ok: 0,
+    panelMode: 0,
     freezeMode: 0,
     remotes: 32,
     poolDelay: 0,
@@ -620,26 +616,26 @@ class Controller {
     */
     try {
       /*      public boolean isDeviceready() {
-              return this.m_Ok == 1;
+              return this.m_panelMode == 1;
           }
       
           public boolean isDeviceSync() {
-              return this.m_Ok == 2;
+              return this.m_panelMode == 2;
           }
       
           public boolean isDeviceServiceMode() {
-              return this.m_Ok == 3;
+              return this.m_panelMode == 3;
           } */
-      if (eqstate.ok === 1) {
+      if (eqstate.panelMode === 1) {
         state.mode = 0; // ready
         state.status = sys.board.valueMaps.controllerStatus.transform(1);
       }
-      else if (eqstate.ok === 2) {
+      else if (eqstate.panelMode === 2) {
         // syncronizing... 
         state.mode = 0;
         state.status = sys.board.valueMaps.controllerStatus.transform(2);
       }
-      else if (eqstate.ok === 3) {
+      else if (eqstate.panelMode === 3) {
         // service mode
         state.mode = 1;
         state.status = sys.board.valueMaps.controllerStatus.transform(1);
@@ -942,7 +938,7 @@ class Controller {
       type: ptype,
       name: pump.name || `Pump ${id}`,
       circuits: [],
-      id: pump.isActive ? pump.id : undefined
+      id: typeof pump.isActive !== 'undefined' &&  pump.isActive ? pump.id : undefined
     };
     for (let i = 0; i < slpump.pumpCircuits.length; i++) {
       if (slpump.pumpCircuits[i].circuitId === 0) continue;
@@ -1409,8 +1405,10 @@ export class SLPump extends SLCommands{
 
       // PUMPS
       // let pumpRes = await client.pump.setPumpSpeed(0,1,2000,true);
-      // Currently, this only sets the circuit array.  Need to figure out adding/removing pump at some point.
+      // Currently, this only sets the circuit array.  Adding/removing pump needs to be
+      // done through the equipment configuration message.
       try {
+        return Promise.reject(new InvalidEquipmentDataError('Not implemented yet.', 'Pump', pump));
         let isRPM = sys.board.valueMaps.pumpUnits.get(circuit.units).name === 'rpm' ? true : false;
         await this._unit.pump.setPumpSpeedAsync(pump.id, circuit.circuit, isRPM ? circuit.speed : circuit.flow, isRPM);
       }

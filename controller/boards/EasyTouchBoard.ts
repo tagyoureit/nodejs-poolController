@@ -2236,6 +2236,7 @@ class TouchPumpCommands extends PumpCommands {
                                     pump = sys.pumps.getItemById(id, true);
                                     pump.set(data);
                                     let spump = state.pumps.getItemById(id, true);
+                                    spump.isActive = pump.isActive = true; 
                                     spump.name = pump.name;
                                     spump.type = pump.type;
                                     spump.emitEquipmentChange();
@@ -2385,6 +2386,7 @@ class TouchPumpCommands extends PumpCommands {
                         pump = sys.pumps.getItemById(id, true);
                         pump.set(data); // Sets all the data back to the pump.
                         let spump = state.pumps.getItemById(id, true);
+                        spump.isActive = pump.isActive = true;
                         spump.name = pump.name;
                         spump.type = pump.type;
                         spump.emitEquipmentChange();
@@ -2401,6 +2403,7 @@ class TouchPumpCommands extends PumpCommands {
                                     // make sure that the data is complete.
                                     pump.set(data); // Sets all the data back to the pump.
                                     let spump = state.pumps.getItemById(id, true);
+                                    spump.isActive = pump.isActive = true;
                                     spump.name = pump.name;
                                     spump.type = pump.type;
                                     spump.emitEquipmentChange();
