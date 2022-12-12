@@ -70,7 +70,7 @@ export class ScreenLogicComms {
       await this._gateway.closeAsync();
       return Promise.resolve(false);
     })
-    let unit = await this._gateway.connect();
+    let unit = await this._gateway.connectAsync();
 
     if (!unit || !unit.gatewayFound || unit.ipAddr === '') {
       logger.error(`Screenlogic: No unit found called ${systemName}`);
@@ -386,7 +386,6 @@ export class ScreenLogicComms {
   }
   public static async searchAsync() {
     try {
-      ``
       let finder = new ScreenLogic.FindUnits();
       let localUnit = await finder.searchAsync();
       return Promise.resolve(localUnit);
