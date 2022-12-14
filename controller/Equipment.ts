@@ -625,7 +625,7 @@ class EqItemCollection<T> implements IEqItemCollection {
     public sort(fn: (a, b) => number) { this.data.sort(fn); }
     public count(fn: (value: T, index?: any, array?: any[]) => boolean): number { return this.data.filter(fn).length; }
     public getNextEquipmentId(range?: EquipmentIdRange, exclude?: number[]): number {
-        let r = extend(true, { start: 1, end: 255 }, range);
+        let r = typeof range !== 'undefined' ? range : { start: 1, end: 255 };
         for (let i = r.start; i <= r.end; i++) {
             let eq = this.data.find(elem => elem.id === i);
             if (typeof eq === 'undefined') {
