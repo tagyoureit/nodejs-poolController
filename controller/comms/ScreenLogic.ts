@@ -261,24 +261,24 @@ export class ScreenLogicComms {
         logger.silly(`Screenlogic:Set Circuit By Runtime event ${data}`);
         await self._client.equipment.getControllerConfigAsync();
       });
-      this._client.on('error', async (e) => {
-        // if the error event from the net.socket isn't caught, it sometimes crashes the app.
-        logger.error(`Screenlogic error (net.socket): ${e.message}`);
-        if (e.code === 'ECONNRESET') {
-          try {
-            logger.info(`Screenlogic net.socket timeout.  Restarting.`)
-            await self.stopAsync();
-            await self.initAsync();
-          }
-          catch (err) {
-            logger.error(`Error trying to reset Screenlogic comms. ${err.message}`);
-          };
-        }
-      })
-      this._client.on('clientError', (e) => {
-        // if the error event from the net.socket isn't caught, it sometimes crashes the app.
-        logger.error(`Screenlogic client error (net.socket): ${e.message}`);
-      })
+      // this._client.on('error', async (e) => {
+      //   // if the error event from the net.socket isn't caught, it sometimes crashes the app.
+      //   logger.error(`Screenlogic error (net.socket): ${e.message}`);
+      //   if (e.code === 'ECONNRESET') {
+      //     try {
+      //       logger.info(`Screenlogic net.socket timeout.  Restarting.`)
+      //       await self.stopAsync();
+      //       await self.initAsync();
+      //     }
+      //     catch (err) {
+      //       logger.error(`Error trying to reset Screenlogic comms. ${err.message}`);
+      //     };
+      //   }
+      // })
+      // this._client.on('clientError', (e) => {
+      //   // if the error event from the net.socket isn't caught, it sometimes crashes the app.
+      //   logger.error(`Screenlogic client error (net.socket): ${e.message}`);
+      // })
       this._client.on('loginFailed', (data) => {
         logger.error(`Screenlogic login failed.  Invalid password.`);
         this.isOpen = false;
