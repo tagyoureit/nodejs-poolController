@@ -106,7 +106,7 @@ export class Connection {
 
             pdata.enabled = typeof data.enabled !== 'undefined' ? utils.makeBool(data.enabled) : utils.makeBool(pdata.enabled);
             pdata.type = data.type;
-            pdata.netConnect = data.type === 'network'; // typeof data.netConnect !== 'undefined' ? utils.makeBool(data.netConnect) : utils.makeBool(pdata.netConnect);
+            pdata.netConnect = data.type === 'network' || data.type === 'netConnect'; // typeof data.netConnect !== 'undefined' ? utils.makeBool(data.netConnect) : utils.makeBool(pdata.netConnect);
             pdata.rs485Port = typeof data.rs485Port !== 'undefined' ? data.rs485Port : pdata.rs485Port;
             pdata.inactivityRetry = typeof data.inactivityRetry === 'number' ? data.inactivityRetry : pdata.inactivityRetry;
             pdata.mock = data.mock; // typeof data.mockPort !== 'undefined' ? utils.makeBool(data.mockPort) : utils.makeBool(pdata.mockPort);
@@ -196,7 +196,7 @@ export class Connection {
                 if (section.startsWith('comms')) {
                     let c = cfg[section];
                     if (typeof c.type === 'undefined') {
-                        c.type = c.netConnect ? 'network' : 'local';
+                        c.type = c.netConnect ? 'netConnect' : 'local';
                         config.setSection(`controller.${section}`, c);
                         console.log(section);
                         console.log(c);
