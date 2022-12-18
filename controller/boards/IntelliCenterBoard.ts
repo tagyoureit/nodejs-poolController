@@ -284,7 +284,7 @@ export class IntelliCenterBoard extends SystemBoard {
         this.modulesAcquired = false;
     }
     public checkConfiguration() {
-        if (!conn.mockPort) {
+        if (!conn.mock) {
             (sys.board as IntelliCenterBoard).needsConfigChanges = true;
             // Send out a message to the outdoor panel that we need info about
             // our current configuration.

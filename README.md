@@ -1,4 +1,4 @@
-# nodejs-poolController - Version 7.7
+# nodejs-poolController - Version 8.0
 
 ## What is nodejs-poolController
 
@@ -11,8 +11,8 @@ nodejs-poolController is an application to communicate and control your Pentair 
  * Want to control your pumps or chlorinator without a pool controller?
 
 Equipment supported
-1. Controllers:  IntelliCenter, Intellitouch, EasyTouch, No controller (standalone equimpent) 
-1. Pumps: Intelliflow VS/VSF/VF, older models
+1. Controllers:  IntelliCenter, Intellitouch, EasyTouch, Nixie (standalone equimpent), Aqualink
+1. Pumps: Intelliflow VS/VSF/VF, older models, relay controlled pumps, Whisperflo
 1. Chlorinators: Intellichlor, Aqua-Rite and OEM brands
 1. Heaters: Gas, solar, heatpump
 1. Intellichem and Relay Equipment Manager (REM) chemical controllers
@@ -22,6 +22,10 @@ Equipment supported
 
 ## Latest Changes
 See [Changelog](https://github.com/tagyoureit/nodejs-poolController/blob/master/Changelog)
+
+## What's new in 8.0?
+
+Screenlogic can now be used as a direct connection point.  If you feel that integrating an RS-485 adapter is a bit too much, then this is an option for you.  The preferred method is still RS-485 as it is more fully featured.
 
 ## What's new in 7.0?
 

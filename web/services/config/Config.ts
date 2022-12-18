@@ -67,30 +67,46 @@ export class ConfigRoute {
         });
         app.get('/config/options/rs485', async (req, res, next) => {
             try {
-                let opts = { ports: [], local: [] }
+                let opts = { ports: [], local: [], screenlogic: {} }
                 let cfg = config.getSection('controller');
                 for (let section in cfg) {
                     if (section.startsWith('comms')) {
-                        let cport = extend(true, { enabled: false, netConnect: false, mockPort: false }, cfg[section]);
+                        let cport = extend(true, { enabled: false, netConnect: false, mock: false }, cfg[section]);
                         let port = conn.findPortById(cport.portId || 0);
+                        if (typeof cport.type === 'undefined'){
+                            cport.type = cport.netConnect ? 'netConnect' : cport.mockPort || cport.mock ? 'mock' : 'local'
+                        }
                         if (typeof port !== 'undefined') cport.stats = port.stats;
+                        if (port.portId === 0 && port.type === 'screenlogic') {
+                            cport.screenlogic.stats = sl.stats;
+                        }
                         opts.ports.push(cport);
                     }
+                    // if (section.startsWith('screenlogic')){
+                    //     let screenlogic = cfg[section];
+                    //     screenlogic.types =  [{ val: 'local', name: 'Local', desc: 'Local Screenlogic' }, { val: 'remote', name: 'Remote', desc: 'Remote Screenlogic' }];
+                    //     screenlogic.stats = sl.stats;
+                    //     opts.screenlogic = screenlogic;
+                    // }
                 }
                 opts.local = await conn.getLocalPortsAsync() || [];
                 return res.status(200).send(opts);
             } catch (err) { next(err); }
         });
-        app.get('/config/options/screenlogic', async (req, res, next) => {
+        // app.get('/config/options/screenlogic', async (req, res, next) => {
+        //     try {
+        //         let cfg = config.getSection('controller.screenlogic');
+        //         let data = {
+        //             cfg,
+        //             types: [{ val: 'local', name: 'Local', desc: 'Local Screenlogic' }, { val: 'remote', name: 'Remote', desc: 'Remote Screenlogic' }]
+        //         }
+        //         return res.status(200).send(data);
+        //     } catch (err) { next(err); }
+        // });
+        app.get('/config/options/screenlogic/search', async (req, res, next) => {
             try {
-                let localUnit = await ScreenLogicComms.searchAsync();
-                let cfg = config.getSection('controller.screenlogic');
-                let data = {
-                    cfg,
-                    localUnit,
-                    types: [{ val: 'local', name: 'Local', desc: 'Local Screenlogic' }, { val: 'remote', name: 'Remote', desc: 'Remote Screenlogic' }]
-                }
-                return res.status(200).send(data);
+                let localUnits = await ScreenLogicComms.searchAsync();
+                return res.status(200).send(localUnits);
             } catch (err) { next(err); }
         });
         app.get('/config/options/circuits', async (req, res, next) => {
@@ -842,13 +858,13 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
-        app.put('/app/screenlogic', async (req, res, next) => {
-            try {
-                let screenlogic = await sl.setScreenlogicAsync(req.body);
-                return res.status(200).send(screenlogic);
-            }
-            catch (err) { next(err); }
-        });
+        // app.put('/app/screenlogic', async (req, res, next) => {
+        //     try {
+        //         let screenlogic = await sl.setScreenlogicAsync(req.body);
+        //         return res.status(200).send(screenlogic);
+        //     }
+        //     catch (err) { next(err); }
+        // });
         app.delete('/app/rs485Port', async (req, res, next) => {
             try {
                 let port = await conn.deleteAuxPort(req.body);

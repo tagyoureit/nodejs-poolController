@@ -44,11 +44,14 @@ export class StateRoute {
                     reconnects: 0,
                     inactivityRetry: cfg.inactivityRetry,
                     isOpen: false,
-                    mockPort: cfg.mockPort || false
+                    mock: cfg.mock || false
                 }
-                if (cfg.netConnect) sport.network = { host: cfg.netHost, port: cfg.netPort };
+                if (cfg.netConnect) sport.netConnect = { host: cfg.netHost, port: cfg.netPort }
+                else if (typeof cfg.type !== 'undefined' && cfg.type === 'screenlogic'){
+                    sport.screenlogic = cfg.screenlogic;
+                }
                 else sport.settings = extend(true, { name: cfg.rs485Port }, cfg.portSettings);
-                if (typeof port !== 'undefined') {
+                if (typeof port !== 'undefined' && port.type !== 'screenlogic') {
                     let stats = port.stats;
                     sport.reconnects = port.reconnects;
                     sport.isOpen = port.isOpen;

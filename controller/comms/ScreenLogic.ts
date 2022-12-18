@@ -41,27 +41,22 @@ export class ScreenLogicComms {
   private pollingInterval = 10000;
   public enabled: boolean = false;
 
-  public async initAsync() {
+  public async openAsync() {
     let self = this;
-    process.stdout.on('error', function (err) {
-      if (err.code == "EPIPE") {
-        process.exit(0);
-      }
-    });
     this.circuits = new SLCircuits(this._client);
     this.bodies = new SLBodies(this._client);
     this.chlor = new SLChlor(this._client);
     this.schedules = new SLSchedule(this._client);
     this.pumps = new SLPump(this._client);
-    let cfg = config.getSection('controller.screenlogic');
+    let cfg = config.getSection('controller.comms');
     if (typeof cfg !== 'undefined') this._cfg = cfg;
     this.enabled = this._cfg.enabled;
-    if (!this._cfg.enabled) {
+    if (!this._cfg.enabled || this._cfg.type !== 'screenlogic') {
       return;
     }
 
-    let systemName = this._cfg.systemName; // 'Pentair: 00-00-00';
-    let password = this._cfg.password; // '1111';
+    let systemName = this._cfg.screenlogic.systemName; // 'Pentair: 00-00-00';
+    let password = this._cfg.screenlogic.password.toString(); // '1111';
 
     this._gateway = new ScreenLogic.RemoteLogin(systemName);
     this._gateway.on('error', async (err) => {
@@ -326,25 +321,25 @@ export class ScreenLogicComms {
       return Promise.resolve(error);
     }
   }
-  public async stopAsync() {
+  public async closeAsync() {
     await this._client.closeAsync();
     this._client.removeAllListeners();
     this.isOpen = false;
     if (typeof this._pollTimer !== 'undefined') clearTimeout(this._pollTimer);
     this._pollTimer = null;
   }
-  public async setScreenlogicAsync(data) {
+  /* public async setScreenlogicAsync(data) {
     let enabled = typeof data.enabled !== 'undefined' ? utils.makeBool(data.enabled) : false;
     let systemName = typeof data.systemName !== 'undefined' ? data.systemName : this._cfg.systemName;
     let password = typeof data.password !== 'undefined' ? data.password.toString() : this._cfg.password;
     let regx = /Pentair: (?:(?:\d|[A-Z])(?:\d|[A-Z])-){2}(?:\d|[A-Z])(?:\d|[A-Z])/g;
-    let type = typeof data.type !== 'undefined' ? data.type : this._cfg.type;
+    let type = typeof data.connectionType !== 'undefined' ? data.connectionType : this._cfg.connectionType;
     if (type !== 'remote' && type !== 'local') return Promise.reject(new InvalidEquipmentDataError(`An invalid type was supplied for Screenlogic ${type}.  Must be remote or local.`, 'Screenlogic', data));
     if (systemName.match(regx) === null) return Promise.reject(new InvalidEquipmentDataError(`An invalid system name was supplied for Screenlogic ${systemName}}.  Must be in the format 'Pentair: xx-xx-xx'.`, 'Screenlogic', data));
     if (password.length > 4) return Promise.reject(new InvalidEquipmentDataError(`An invalid password was supplied for Screenlogic ${password}. (Length must be <= 4)}`, 'Screenlogic', data));
     this.enabled = enabled;
     if (this._cfg.enabled && !enabled || this._cfg.systemName !== systemName || this._cfg.password !== password || this._cfg.cype !== type) {
-      await this.stopAsync();
+      await this.closeAsync();
     }
     let obj = {
       enabled,
@@ -355,11 +350,11 @@ export class ScreenLogicComms {
     config.setSection('controller.screenlogic', obj);
     this._cfg = config.getSection('controller.screenlogic');
     if (this._cfg.enabled) {
-      let error = await this.initAsync();
+      let error = await this.openAsync();
       if (typeof error !== 'undefined') return Promise.reject(error);
     }
 
-  }
+  } */
   public async pollAsync() {
     let self = this;
     try {
@@ -378,17 +373,18 @@ export class ScreenLogicComms {
     }
     catch (err) {
       logger.error(`Error polling screenlogic (${this._pollCountError} errors)- ${err}`); this._pollCountError++;
-      if (this._pollCountError > 3) {
+      /* if (this._pollCountError > 3) {
         await this.initAsync();
-      }
+      } */
     }
     finally { this._pollTimer = setTimeout(async () => await self.pollAsync(), this.pollingInterval || 10000); }
   }
   public static async searchAsync() {
     try {
       let finder = new ScreenLogic.FindUnits();
-      let localUnit = await finder.searchAsync();
-      return Promise.resolve(localUnit);
+      let localUnits = await finder.searchAsync();
+      finder.close();
+      return Promise.resolve(localUnits);
     }
     catch (err) {
       logger.error(`Screenlogic: Error searching for units: ${err.message}`);

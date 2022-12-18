@@ -28,13 +28,14 @@ import { sys } from "../Equipment";
 import { InvalidEquipmentDataError, InvalidOperationError, OutboundMessageError } from '../Errors';
 import { state } from "../State";
 import { Inbound, Message, Outbound, Response } from './messages/Messages';
+import { sl } from './ScreenLogic';
 const extend = require("extend");
 export class Connection {
     constructor() { }
     public rs485Ports: RS485Port[] = [];
-    public get mockPort(): boolean {
+    public get mock(): boolean {
         let port = this.findPortById(0);
-        return typeof port !== 'undefined' && port.mockPort ? true : false;
+        return typeof port !== 'undefined' && port.mock ? true : false;
     }
     public isPortEnabled(portId: number) {
         let port: RS485Port = this.findPortById(portId);
@@ -54,14 +55,15 @@ export class Connection {
             return cfg;
         } catch (err) { logger.error(`Error deleting aux port`) }
     }
-    public async setScreenlogicAsync(data: any){
+    public async setScreenlogicAsync(data: any) {
         let ccfg = config.getSection('controller.screenlogic');
-        if (typeof data.type === 'undefined' || data.type !== 'local' || data.type !== 'remote' ) return Promise.reject(new InvalidEquipmentDataError(`Invalid Screenlogic type (${data.type}). Allowed values are 'local' or 'remote'`, 'Screenlogic', 'screenlogic'));
+        if (typeof data.type === 'undefined' || data.type !== 'local' || data.type !== 'remote') return Promise.reject(new InvalidEquipmentDataError(`Invalid Screenlogic type (${data.type}). Allowed values are 'local' or 'remote'`, 'Screenlogic', 'screenlogic'));
         if ((data.address as string).slice(8) !== 'Pentair:') return Promise.reject(new InvalidEquipmentDataError(`Invalid address (${data.address}).  Must start with 'Pentair:'`, 'Screenlogic', 'screenlogic'));
     }
 
     public async setPortAsync(data: any): Promise<any> {
         try {
+
             let ccfg = config.getSection('controller');
             let pConfig;
             let portId;
@@ -84,22 +86,32 @@ export class Connection {
             // Lets set the config data.
             let pdata = config.getSection(section, {
                 portId: portId,
+                type: 'local',
                 rs485Port: "/dev/ttyUSB0",
                 portSettings: { baudRate: 9600, dataBits: 8, parity: 'none', stopBits: 1, flowControl: false, autoOpen: false, lock: false },
                 netSettings: { allowHalfOpen: false, keepAlive: false, keepAliveInitialDelay: 1000 },
-                mockPort: false,
+                mock: false,
                 netConnect: false,
                 netHost: "raspberrypi",
                 netPort: 9801,
                 inactivityRetry: 10
             });
+            if (portId === 0) {
+                pdata.screenlogic = {
+                    connectionType: "local",
+                    systemName: "Pentair: 00-00-00",
+                    password: 1234
+                }
+            }
+
             pdata.enabled = typeof data.enabled !== 'undefined' ? utils.makeBool(data.enabled) : utils.makeBool(pdata.enabled);
-            pdata.netConnect = typeof data.netConnect !== 'undefined' ? utils.makeBool(data.netConnect) : utils.makeBool(pdata.netConnect);
+            pdata.type = data.type;
+            pdata.netConnect = data.type === 'netConnect'; // typeof data.netConnect !== 'undefined' ? utils.makeBool(data.netConnect) : utils.makeBool(pdata.netConnect);
             pdata.rs485Port = typeof data.rs485Port !== 'undefined' ? data.rs485Port : pdata.rs485Port;
             pdata.inactivityRetry = typeof data.inactivityRetry === 'number' ? data.inactivityRetry : pdata.inactivityRetry;
-            pdata.mockPort = typeof data.mockPort !== 'undefined' ? utils.makeBool(data.mockPort) : utils.makeBool(pdata.mockPort);
-            if (pdata.mockPort) { pdata.rs485Port = 'MOCK_PORT'; }
-            if (pdata.netConnect) {
+            pdata.mock = data.mock; // typeof data.mockPort !== 'undefined' ? utils.makeBool(data.mockPort) : utils.makeBool(pdata.mockPort);
+            if (pdata.mock) { pdata.rs485Port = 'MOCK_PORT'; }
+            if (pdata.type === 'netConnect') { // (pdata.netConnect) {
                 pdata.netHost = typeof data.netHost !== 'undefined' ? data.netHost : pdata.netHost;
                 pdata.netPort = typeof data.netPort === 'number' ? data.netPort : pdata.netPort;
             }
@@ -109,31 +121,58 @@ export class Connection {
             if (typeof data.netSettings !== 'undefined') {
                 pdata.netSettings = extend(true, { keepAlive: false, allowHalfOpen: false, keepAliveInitialDelay: 10000 }, pdata.netSettings, data.netSettings);
             }
-            let existing = this.findPortById(portId);
-            if (typeof existing !== 'undefined') {
-                if (!await existing.closeAsync()) {
-                    existing.closing = false;  // if closing fails, reset flag so user can try again
-                    return Promise.reject(new InvalidOperationError(`Unable to close the current RS485 port`, 'setPortAsync'));
-                }
+            if (pdata.type === 'screenlogic') {
+                let password = data.screenlogic.password.toString();
+                let regx = /Pentair: (?:(?:\d|[A-Z])(?:\d|[A-Z])-){2}(?:\d|[A-Z])(?:\d|[A-Z])/g;
+                let type = data.screenlogic.connectionType;
+                let systemName = data.screenlogic.systemName;
+                if (type !== 'remote' && type !== 'local') return Promise.reject(new InvalidEquipmentDataError(`An invalid type was supplied for Screenlogic ${type}.  Must be remote or local.`, 'Screenlogic', data));
+                if (systemName.match(regx) === null) return Promise.reject(new InvalidEquipmentDataError(`An invalid system name was supplied for Screenlogic ${systemName}}.  Must be in the format 'Pentair: xx-xx-xx'.`, 'Screenlogic', data));
+                if (password.length !== 4) return Promise.reject(new InvalidEquipmentDataError(`An invalid password was supplied for Screenlogic ${password}. (Length must be <= 4)}`, 'Screenlogic', data));
+                pdata.screenlogic = data.screenlogic;
             }
+            let existing = this.findPortById(portId);
+            if (typeof existing !== 'undefined')
+                if (existing.type === 'screenlogic') {
+                    await sl.closeAsync();
+                }
+                else {
+                    if (!await existing.closeAsync()) {
+                        existing.closing = false;  // if closing fails, reset flag so user can try again
+                        return Promise.reject(new InvalidOperationError(`Unable to close the current RS485 port`, 'setPortAsync'));
+                    }
+                }
             config.setSection(section, pdata);
             let cfg = config.getSection(section, {
+                type: 'local',
                 rs485Port: "/dev/ttyUSB0",
                 portSettings: { baudRate: 9600, dataBits: 8, parity: 'none', stopBits: 1, flowControl: false, autoOpen: false, lock: false },
                 netSettings: { allowHalfOpen: false, keepAlive: false, keepAliveInitialDelay: 5 },
-                mockPort: false,
+                mock: false,
                 netConnect: false,
                 netHost: "raspberrypi",
                 netPort: 9801,
                 inactivityRetry: 10
             });
+            if (portId === 0) {
+                cfg.screenlogic = {
+                    connectionType: "local",
+                    systemName: "Pentair: 00-00-00",
+                    password: 1234
+                }
+            }
             existing = this.getPortByCfg(cfg);
             if (typeof existing !== 'undefined') {
-                existing.reconnects = 0;
-                //existing.emitPortStats();
-                if (!await existing.openAsync(cfg)) {
-                    if (cfg.netConnect) return Promise.reject(new InvalidOperationError(`Unable to open Socat Connection to ${pdata.netHost}`, 'setPortAsync'));
-                    return Promise.reject(new InvalidOperationError(`Unable to open RS485 port ${pdata.rs485Port}`, 'setPortAsync'));
+                if (pdata.type === 'screenlogic') {
+                    await sl.openAsync();
+                }
+                else {
+                    existing.reconnects = 0;
+                    //existing.emitPortStats();
+                    if (!await existing.openAsync(cfg)) {
+                        if (cfg.netConnect) return Promise.reject(new InvalidOperationError(`Unable to open Socat Connection to ${pdata.netHost}`, 'setPortAsync'));
+                        return Promise.reject(new InvalidOperationError(`Unable to open RS485 port ${pdata.rs485Port}`, 'setPortAsync'));
+                    }
                 }
             }
             return cfg;
@@ -173,7 +212,8 @@ export class Connection {
             }
         }
     }
-    public getPortByCfg(cfg: any) {
+    public 
+    getPortByCfg(cfg: any) {
         let port = this.findPortById(cfg.portId || 0);
         if (typeof port === 'undefined') {
             port = new RS485Port(cfg);
@@ -233,53 +273,53 @@ export class Connection {
         if (currPort.portId !== anslq25port) duplicateTo.unshift(anslq25port);
         return duplicateTo;
     }
-/*     public queueInboundToAnslq25(_msg: Inbound) {
-        // if we have a valid inbound packet on any port (besides dedicated pump/chlor) then also send to anslq25
-        if (!sys.anslq25.isActive || sys.anslq25.portId < 0 || !sys.anslq25.broadcastComms) return;
-        if (typeof _msg.isClone !== 'undefined' && _msg.isClone) return;
-        let anslq25port = sys.anslq25.portId;
-        if (anslq25port === _msg.portId) return;
-        let port = this.findPortById(anslq25port);
-        let msg = _msg.clone();
-        msg.portId = port.portId;
-        msg.isClone = true;
-        msg.id = Message.nextMessageId;
-        (msg as Inbound).process();
-    } */
-
-
-/*     public queueInboundToBroadcast(_msg: Outbound) {
-        // if we have a valid inbound packet on any port (besides dedicated pump/chlor) then also send to anslq25
-        if (!sys.anslq25.isActive || sys.anslq25.portId < 0 || !sys.anslq25.broadcastComms) return;
-        if (typeof _msg.isClone !== 'undefined' && _msg.isClone) return;
-        let anslq25port = sys.anslq25.portId;
-        if (anslq25port === _msg.portId) return;
-        let port = this.findPortById(anslq25port);
-        let msg = _msg.clone();
-        msg.portId = port.portId;
-        msg.isClone = true;
-        msg.id = Message.nextMessageId;
-        (msg as Inbound).process();
-    } */
-
-/*     public queueOutboundToAnslq25(_msg: Outbound) {
-        // if we have a valid inbound packet on any port (besides dedicated pump/chlor) then also send to anslq25
-        if (!sys.anslq25.isActive || sys.anslq25.portId < 0 || !sys.anslq25.broadcastComms) return;
-        if (typeof _msg.isClone !== 'undefined' && _msg.isClone) return;
-        let anslq25port = sys.anslq25.portId;
-        let _ports = this.getBroadcastPorts(this.findPortById(_msg.portId));
-        let msgs: Outbound[] = [];
-        for (let i = 0; i < _ports.length; i++) {
-            let port = this.findPortById(_ports[i]);
-            if (port.portId === _msg.portId) continue;
-            let msg = _msg.clone() as Outbound;
-            msg.isClone = true;
+    /*     public queueInboundToAnslq25(_msg: Inbound) {
+            // if we have a valid inbound packet on any port (besides dedicated pump/chlor) then also send to anslq25
+            if (!sys.anslq25.isActive || sys.anslq25.portId < 0 || !sys.anslq25.broadcastComms) return;
+            if (typeof _msg.isClone !== 'undefined' && _msg.isClone) return;
+            let anslq25port = sys.anslq25.portId;
+            if (anslq25port === _msg.portId) return;
+            let port = this.findPortById(anslq25port);
+            let msg = _msg.clone();
             msg.portId = port.portId;
-            msg.response = _msg.response;
-            msgs.push(msg);
-        }
-        return msgs;
-    } */
+            msg.isClone = true;
+            msg.id = Message.nextMessageId;
+            (msg as Inbound).process();
+        } */
+
+
+    /*     public queueInboundToBroadcast(_msg: Outbound) {
+            // if we have a valid inbound packet on any port (besides dedicated pump/chlor) then also send to anslq25
+            if (!sys.anslq25.isActive || sys.anslq25.portId < 0 || !sys.anslq25.broadcastComms) return;
+            if (typeof _msg.isClone !== 'undefined' && _msg.isClone) return;
+            let anslq25port = sys.anslq25.portId;
+            if (anslq25port === _msg.portId) return;
+            let port = this.findPortById(anslq25port);
+            let msg = _msg.clone();
+            msg.portId = port.portId;
+            msg.isClone = true;
+            msg.id = Message.nextMessageId;
+            (msg as Inbound).process();
+        } */
+
+    /*     public queueOutboundToAnslq25(_msg: Outbound) {
+            // if we have a valid inbound packet on any port (besides dedicated pump/chlor) then also send to anslq25
+            if (!sys.anslq25.isActive || sys.anslq25.portId < 0 || !sys.anslq25.broadcastComms) return;
+            if (typeof _msg.isClone !== 'undefined' && _msg.isClone) return;
+            let anslq25port = sys.anslq25.portId;
+            let _ports = this.getBroadcastPorts(this.findPortById(_msg.portId));
+            let msgs: Outbound[] = [];
+            for (let i = 0; i < _ports.length; i++) {
+                let port = this.findPortById(_ports[i]);
+                if (port.portId === _msg.portId) continue;
+                let msg = _msg.clone() as Outbound;
+                msg.isClone = true;
+                msg.portId = port.portId;
+                msg.response = _msg.response;
+                msgs.push(msg);
+            }
+            return msgs;
+        } */
     public queueOutboundToBroadcast(_msg: Outbound) {
         // if we have a valid inbound packet on any port (besides dedicated pump/chlor) then also send to anslq25
         if (!sys.anslq25.isActive || sys.anslq25.portId < 0 || !sys.anslq25.broadcastComms) return;
@@ -296,9 +336,9 @@ export class Connection {
             // msg.portId = port.portId;
 
             //     msg.process();
-                setTimeout(()=>{port.pushIn(Buffer.from(_msg.toPacket()))}, 100);
-                logger.silly(`mock inbound write bytes port:${_msg.portId} id:${_msg.id} bytes:${_msg.toShortPacket()}`)
-                // logger.packet()
+            setTimeout(() => { port.pushIn(Buffer.from(_msg.toPacket())) }, 100);
+            logger.silly(`mock inbound write bytes port:${_msg.portId} id:${_msg.id} bytes:${_msg.toShortPacket()}`)
+            // logger.packet()
             // (msg as Inbound).process();
             // msgs.push(msg);
         }
@@ -317,59 +357,59 @@ export class Connection {
         return new Promise(async (resolve, reject) => {
 
 
-                let port = this.findPortById(msg.portId);
+            let port = this.findPortById(msg.portId);
 
-                if (typeof port === 'undefined') {
-                    logger.error(`queueSendMessage: Message was targeted for undefined port ${msg.portId || 0}`);
-                    return;
-                }
-                // also send to other broadcast ports
-                // let msgs = conn.queueOutboundToAnslq25(msg);
-                let msgs = [];
-                // conn.queueInboundToBroadcast(msg);
-                conn.queueOutboundToBroadcast(msg);
-                /* if (msgs.length > 0) {
-                    msgs.push(msg);
-                    let promises: Promise<boolean>[] = [];
-                    for (let i = 0; i < msgs.length; i++) {
-                        let p: Promise<boolean> = new Promise((_resolve, _reject) => {
-                            msgs[i].onComplete = (err) => {
-                                if (err) {
-                                    console.log(`rejecting ${msg.id} ${msg.portId} ${msg.action}`);
-                                    _reject(err);
-                                }
-                                else 
-                                {
-                                    console.log(`resolving id:${msg.id} portid:${msg.portId} dir:${msg.direction} action:${msg.action}`);
-                                    _resolve(true);
-                                }
+            if (typeof port === 'undefined') {
+                logger.error(`queueSendMessage: Message was targeted for undefined port ${msg.portId || 0}`);
+                return;
+            }
+            // also send to other broadcast ports
+            // let msgs = conn.queueOutboundToAnslq25(msg);
+            let msgs = [];
+            // conn.queueInboundToBroadcast(msg);
+            conn.queueOutboundToBroadcast(msg);
+            /* if (msgs.length > 0) {
+                msgs.push(msg);
+                let promises: Promise<boolean>[] = [];
+                for (let i = 0; i < msgs.length; i++) {
+                    let p: Promise<boolean> = new Promise((_resolve, _reject) => {
+                        msgs[i].onComplete = (err) => {
+                            if (err) {
+                                console.log(`rejecting ${msg.id} ${msg.portId} ${msg.action}`);
+                                _reject(err);
                             }
-                            let _port = this.findPortById(msgs[i].portId);
-                            _port.emitter.emit('messagewrite', msgs[i]);
-                        });
-                        promises.push(p);
-                    }
-                    let res = false;
-                    await Promise.allSettled(promises).
-                        then((results) => {
-
-                            results.forEach((result) => {
-                                console.log(result.status);
-                                if (result.status === 'fulfilled') {res = true;}
-                            });
-                        });
-                        if (res) resolve(true); else reject(`No packets had responses.`);
-                }
-                else { */
-                    msg.onComplete = (err) => {
-                        if (err) {
-                            reject(err);
+                            else 
+                            {
+                                console.log(`resolving id:${msg.id} portid:${msg.portId} dir:${msg.direction} action:${msg.action}`);
+                                _resolve(true);
+                            }
                         }
-                        else resolve(true);
-                    }
-                    port.emitter.emit('messagewrite', msg);
-                    // let ports = this.getBroadcastPorts(port);
-                //}
+                        let _port = this.findPortById(msgs[i].portId);
+                        _port.emitter.emit('messagewrite', msgs[i]);
+                    });
+                    promises.push(p);
+                }
+                let res = false;
+                await Promise.allSettled(promises).
+                    then((results) => {
+
+                        results.forEach((result) => {
+                            console.log(result.status);
+                            if (result.status === 'fulfilled') {res = true;}
+                        });
+                    });
+                    if (res) resolve(true); else reject(`No packets had responses.`);
+            }
+            else { */
+            msg.onComplete = (err) => {
+                if (err) {
+                    reject(err);
+                }
+                else resolve(true);
+            }
+            port.emitter.emit('messagewrite', msg);
+            // let ports = this.getBroadcastPorts(port);
+            //}
 
 
 
@@ -459,11 +499,12 @@ export class RS485Port {
     public reconnects: number = 0;
     public emitter: EventEmitter;
     public get portId() { return typeof this._cfg !== 'undefined' && typeof this._cfg.portId !== 'undefined' ? this._cfg.portId : 0; }
+    public get type() { return typeof this._cfg.type !== 'undefined' ? this._cfg.type : this._cfg.netConnect ? 'netConnect' : this._cfg.mockPort || this._cfg.mock ? 'mock' : 'local' };
     public isOpen: boolean = false;
     public closing: boolean = false;
     private _cfg: any;
     private _port: SerialPort | SerialPortMock | net.Socket;
-    public mockPort: boolean = false;
+    public mock: boolean = false;
     private isPaused: boolean = false;
     private connTimer: NodeJS.Timeout;
     //public buffer: SendRecieveBuffer;
@@ -486,7 +527,7 @@ export class RS485Port {
             state.equipment.messages.removeItemByCode(`rs485:${this.portId}:connection`);
             return true;
         }
-        if (this._cfg.netConnect && !this._cfg.mockPort) {
+        if (this._cfg.netConnect && !this._cfg.mock) {
             if (typeof this._port !== 'undefined' && this.isOpen) {
                 // This used to try to reconnect and recreate events even though the socket was already connected.  This resulted in
                 // instances where multiple event processors were present.  Node doesn't give us any indication that the socket is
@@ -520,7 +561,7 @@ export class RS485Port {
                 this.processPackets(); // if any new packets have been added to queue, process them.
                 state.equipment.messages.removeItemByCode(`rs485:${this.portId}:connection`);
             });
-            
+
             nc.once('close', (p) => {
                 this.isOpen = false;
                 if (typeof this._port !== 'undefined' && !this._port.destroyed) this._port.destroy();
@@ -606,8 +647,8 @@ export class RS485Port {
                 return true;
             }
             let sp: SerialPort | SerialPortMock = null;
-            if (this._cfg.mockPort) {
-                this.mockPort = true;
+            if (this._cfg.mock) {
+                this.mock = true;
                 let portPath = 'MOCK_PORT';
                 SerialPortMock.binding.createPort(portPath)
                 // SerialPortMock.binding = SerialPortMock;
@@ -616,7 +657,7 @@ export class RS485Port {
                 sp = new SerialPortMock(opts);
             }
             else {
-                this.mockPort = false;
+                this.mock = false;
                 let opts: SerialPortOpenOptions<AutoDetectTypes> = extend(true, { path: this._cfg.rs485Port }, this._cfg.portSettings);
                 sp = new SerialPort(opts);
             }
@@ -628,7 +669,7 @@ export class RS485Port {
                     if (err) {
                         this.resetConnTimer();
                         this.isOpen = false;
-                        logger.error(`Error opening port ${this.portId}: ${err.message}. ${this._cfg.inactivityRetry > 0 && !this.mockPort ? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; (fwiw, inactivityRetry set to ${this._cfg.inactivityRetry})`}`);
+                        logger.error(`Error opening port ${this.portId}: ${err.message}. ${this._cfg.inactivityRetry > 0 && !this.mock ? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; (fwiw, inactivityRetry set to ${this._cfg.inactivityRetry})`}`);
                         resolve(false);
                         state.equipment.messages.setMessageByCode(`rs485:${this.portId}:connection`, 'error', `${this.name} RS485 port disconnected`);
                     }
@@ -653,7 +694,7 @@ export class RS485Port {
                     this.closing = false;
                     this._processing = false;
                     sp.on('data', (data) => {
-                        if (!this.mockPort && !this.isPaused) this.resetConnTimer();
+                        if (!this.mock && !this.isPaused) this.resetConnTimer();
                         this.pushIn(data);
                     });
                     this.resetConnTimer();
@@ -805,7 +846,7 @@ export class RS485Port {
                 (this._port as net.Socket).write(bytes, 'binary', cb);
         }
         else {
-            if (this._port instanceof SerialPortMock && this.mockPort === true) {
+            if (this._port instanceof SerialPortMock && this.mock === true) {
                 msg.processMock();
                 cb();
             }
@@ -839,8 +880,9 @@ export class RS485Port {
         }
     }
     // make public for now; should enable writing directly to mock port at Conn level...
-    public pushIn(pkt:Buffer) { 
-        this._inBuffer.push.apply(this._inBuffer, pkt.toJSON().data); if (sys.isReady) setImmediate(() => { this.processPackets(); }); }
+    public pushIn(pkt: Buffer) {
+        this._inBuffer.push.apply(this._inBuffer, pkt.toJSON().data); if (sys.isReady) setImmediate(() => { this.processPackets(); });
+    }
     private pushOut(msg) {
         this._outBuffer.push(msg); setImmediate(() => { this.processPackets(); });
     }

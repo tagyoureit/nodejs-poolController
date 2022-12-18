@@ -782,7 +782,7 @@ export class Inbound extends Message {
         if (this.portId === sys.anslq25.portId) {
             return MessagesMock.process(this);
         }
-        if (port.mockPort && port.hasAssignedEquipment()){
+        if (port.mock && port.hasAssignedEquipment()){
             return MessagesMock.process(this);
         }
         switch (this.protocol) {

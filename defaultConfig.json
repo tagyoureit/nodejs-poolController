@@ -1,10 +1,11 @@
 ﻿{
   "controller": {
     "comms": {
+      "type": "local",
       "portId": 0,
       "enabled": true,
       "rs485Port": "/dev/ttyUSB0",
-      "mockPort": false,
+      "mock": false,
       "netConnect": false,
       "netHost": "raspberrypi",
       "netPort": 9801,
@@ -22,6 +23,11 @@
         "allowHalfOpen": false,
         "keepAlive": false,
         "keepAliveInitialDelay": 5
+      },
+      "screenlogic": {
+        "connectionType": "local",
+        "systemName": "Pentair: 00-00-00",
+        "password": 1234
       }
     },
     "backups": {
@@ -33,12 +39,6 @@
       "keepCount": 5,
       "njsPC":  true,
       "servers": []
-    },
-    "screenlogic": {
-      "enabled": false,
-      "type": "local",
-      "systemName": "Pentair: 00-00-00",
-      "password": 1234
     }
   },
   "web": {

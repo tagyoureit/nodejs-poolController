@@ -39,7 +39,7 @@ export async function initAsync() {
         await conn.initAsync();
         await sys.start();
         await webApp.initAutoBackup();
-        await sl.initAsync();
+        await sl.openAsync();
     } catch (err) { console.log(`Error Initializing nodejs-PoolController ${err.message}`);  }
 }
 
@@ -70,7 +70,7 @@ export async function stopAsync(): Promise<void> {
         await sys.stopAsync();
         await state.stopAsync();
         await conn.stopAsync();
-        await sl.stopAsync();
+        await sl.closeAsync();
         await webApp.stopAsync();
         await config.updateAsync();
         await logger.stopAsync();
