@@ -2875,6 +2875,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 body2.heatSetpoint = sbody2.heatSetpoint = bhs.body2.heatSetpoint;
                 body2.coolSetpoint = sbody2.coolSetpoint = bhs.body2.coolSetpoint;
             }
+            bhs.processing = false;
             state.emitEquipmentChanges();
             return true;
         }
