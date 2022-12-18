@@ -1121,7 +1121,7 @@ export class RS485Port {
         msg.timestamp = new Date();
         msg.portId = this.portId;
         msg.id = Message.nextMessageId;
-        console.log(`msg id ${msg.id} assigned to port${msg.portId} action:${msg.action} ${msg.toShortPacket()}`)
+        //console.log(`msg id ${msg.id} assigned to port${msg.portId} action:${msg.action} ${msg.toShortPacket()}`)
         this.counter.recCollisions += msg.collisions;
         this.counter.recRewinds += msg.rewinds;
         this.emitPortStats();
