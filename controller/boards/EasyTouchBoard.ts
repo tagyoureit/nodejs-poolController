@@ -2223,7 +2223,15 @@ class TouchPumpCommands extends PumpCommands {
                             arrCircuits.push(c);
                         }
                         if (sl.enabled && send) {
-                            await sl.pumps.setPumpCircuitAsync(pump, c);
+                            // this is a shortcut for only updating a single pump
+                            // speed at a time; for full config we need a different API
+                            for (let i = 0; i < pump.circuits.length; i++){
+                                let pc = pump.circuits.getItemByIndex(i);
+                                if (pc.circuit === c.id && (pc.speed !== c.speed || pc.flow !== c.flow)){
+
+                                  await sl.pumps.setPumpSpeedAsync(pump, c);
+                                }
+                            }
                         }
                     }
                     data.circuits = arrCircuits;
@@ -2342,7 +2350,14 @@ class TouchPumpCommands extends PumpCommands {
                             if (arrCircuits.includes(c.circuit)) return Promise.reject(new InvalidEquipmentDataError(`Configuration for pump ${pump.name} is not correct circuit #${c.circuit} as included more than once. ${JSON.stringify(c)}`, 'Pump', data))
                             arrCircuits.push(c.circuit);
                             if (sl.enabled && send) {
-                                await sl.pumps.setPumpCircuitAsync(pump, c);
+                                // this is a shortcut for only updating a single pump
+                                // speed at a time; for full config we need a different API
+                                for (let i = 0; i < pump.circuits.length; i++){
+                                    let pc = pump.circuits.getItemByIndex(i);
+                                    if (pc.circuit === c.circuit && (pc.speed !== c.speed || pc.flow !== c.flow)){
+                                      await sl.pumps.setPumpSpeedAsync(pump, c);
+                                    }
+                                }
                             }
                         }
                         // data.circuits = arrCircuits;
@@ -2376,7 +2391,7 @@ class TouchPumpCommands extends PumpCommands {
                                 outc.setPayloadByte((i * 2) + 4, flow); // Set to gpm
                             }
                             if (sl.enabled && send) {
-                                await sl.pumps.setPumpCircuitAsync(pump, c);
+                                await sl.pumps.setPumpSpeedAsync(pump, c);
                             }
                         }
                         if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
@@ -2877,8 +2892,8 @@ class TouchChemControllerCommands extends ChemControllerCommands {
                 if (typeof data.lsiRange.low === 'number') lsiRange.low = parseFloat(data.lsiRange.low);
                 if (typeof data.lsiRange.high === 'number') lsiRange.high = parseFloat(data.lsiRange.high);
             }
-            if (isNaN(pHSetpoint) || pHSetpoint > type.ph.max || pHSetpoint < type.ph.min) Promise.reject(new InvalidEquipmentDataError(`Invalid pH setpoint`, 'ph.setpoint', pHSetpoint));
-            if (isNaN(orpSetpoint) || orpSetpoint > type.orp.max || orpSetpoint < type.orp.min) Promise.reject(new InvalidEquipmentDataError(`Invalid orp setpoint`, 'orp.setpoint', orpSetpoint));
+            if (isNaN(pHSetpoint) || pHSetpoint > type.ph.max || pHSetpoint < type.ph.min) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH setpoint`, 'ph.setpoint', pHSetpoint));
+            if (isNaN(orpSetpoint) || orpSetpoint > type.orp.max || orpSetpoint < type.orp.min) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp setpoint`, 'orp.setpoint', orpSetpoint));
             let phTolerance = typeof data.ph.tolerance !== 'undefined' ? data.ph.tolerance : chem.ph.tolerance;
             let orpTolerance = typeof data.orp.tolerance !== 'undefined' ? data.orp.tolerance : chem.orp.tolerance;
             if (typeof data.ph.tolerance !== 'undefined') {

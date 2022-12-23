@@ -1,4 +1,4 @@
-import { ControllerType, utils } from '../../controller/Constants';
+import { ControllerType, Timestamp, utils } from '../../controller/Constants';
 import { LightGroup, LightGroupCircuit, sys, Valve, Body, Pump, PumpCircuit } from '../../controller/Equipment';
 import { CircuitState, state, ValveState } from '../../controller/State';
 import * as ScreenLogic from 'node-screenlogic';
@@ -17,6 +17,7 @@ import { EquipmentStateMessage, SLEquipmentStateData } from 'node-screenlogic/di
 import { config } from '../../config/Config';
 import { InvalidEquipmentDataError, InvalidEquipmentIdError } from '../../controller/Errors';
 import extend = require('extend');
+import { Message } from './messages/Messages';
 
 // issues
 // 1. not catching all pipe, econnreset errors ==> Us PM2 to monitor process for now
@@ -82,8 +83,14 @@ export class ScreenLogicComms {
 
     try {
       try {
-        this._client.init(unit.ipAddr, unit.port, password);
+        this._client.init(systemName, unit.ipAddr, unit.port, password);
         await this._client.connectAsync();
+        this._client.removeAllListeners(); // clear out in case we are initializing again
+        this._client.on('slLogMessage',(msg)=>{
+          let _id = Message.nextMessageId;
+          msg = {...msg, _id};
+          logger.screenlogic(msg);
+        })
         let ver = await this._client.getVersionAsync();
         logger.info(`Screenlogic: connect to ${systemName} ${ver} at ${unit.ipAddr}:${unit.port}`);
 
@@ -114,8 +121,8 @@ export class ScreenLogicComms {
         logger.error(`Screenlogic: Error getting custom names. ${err.message}`);
       }
 
-    state.status = sys.board.valueMaps.controllerStatus.transform(2, 36);
-    state.emitControllerChange();
+      state.status = sys.board.valueMaps.controllerStatus.transform(2, 36);
+      state.emitControllerChange();
       try {
         let controller = await this._client.equipment.getControllerConfigAsync();
         logger.silly(`Screenlogic:Controller: ${JSON.stringify(controller, null, 2)}`);
@@ -124,8 +131,8 @@ export class ScreenLogicComms {
         logger.error(`Screenlogic: Error getting controller configuration. ${err.message}`);
       }
 
-    state.status = sys.board.valueMaps.controllerStatus.transform(2, 48);
-    state.emitControllerChange();
+      state.status = sys.board.valueMaps.controllerStatus.transform(2, 48);
+      state.emitControllerChange();
       try {
         let systemTime = await this._client.equipment.getSystemTimeAsync();
         // logger.silly(`Screenlogic:System Time: ${JSON.stringify(systemTime)}`)
@@ -134,9 +141,9 @@ export class ScreenLogicComms {
         logger.error(`Screenlogic: Error getting system time. ${err.message}`);
       }
 
-    // PUMPS 
-    state.status = sys.board.valueMaps.controllerStatus.transform(2, 60);
-    state.emitControllerChange();
+      // PUMPS 
+      state.status = sys.board.valueMaps.controllerStatus.transform(2, 60);
+      state.emitControllerChange();
       this._configData.pumpsReported.forEach(async pumpNum => {
         try {
           let pumpStatus = await this._client.pump.getPumpStatusAsync(pumpNum);
@@ -147,53 +154,53 @@ export class ScreenLogicComms {
         }
       })
 
-    state.status = sys.board.valueMaps.controllerStatus.transform(2, 72);
-    state.emitControllerChange();
+      state.status = sys.board.valueMaps.controllerStatus.transform(2, 72);
+      state.emitControllerChange();
       try {
-      let recurringSched = await this._client.schedule.getScheduleDataAsync(0);
-      logger.silly(`Screenlogic:reccuring schedules: ${JSON.stringify(recurringSched)}`);
-      let runOnceSched = await this._client.schedule.getScheduleDataAsync(1);
-      logger.silly(`Screenlogic:Run once schedules: ${JSON.stringify(runOnceSched)}`);
-      await Controller.decodeSchedules(recurringSched, runOnceSched);
-    } catch (err) {
-      logger.error(`Screenlogic: Error getting schedules. ${err.message}`);
-    }
-
-    state.status = sys.board.valueMaps.controllerStatus.transform(2, 84);
-      state.emitControllerChange();
-    try {
-      let intellichlor = await this._client.chlor.getIntellichlorConfigAsync();
-      // logger.silly(`Screenlogic:Intellichlor: ${JSON.stringify(intellichlor)}`);
-      await Controller.decodeIntellichlor(intellichlor);
-    } catch (err) {
-      logger.error(`Screenlogic: Error getting Intellichlor. ${err.message}`);
-    }
-
-    state.status = sys.board.valueMaps.controllerStatus.transform(2, 95);
-      state.emitControllerChange();
-    try {
-      if (this._configData.intellichemPresent){
-        let chem = await this._client.chem.getChemicalDataAsync();
-        logger.silly(`Screenlogic:Chem data: ${JSON.stringify(chem)}`);
-        await Controller.decodeChemController(chem);
+        let recurringSched = await this._client.schedule.getScheduleDataAsync(0);
+        logger.silly(`Screenlogic:reccuring schedules: ${JSON.stringify(recurringSched)}`);
+        let runOnceSched = await this._client.schedule.getScheduleDataAsync(1);
+        logger.silly(`Screenlogic:Run once schedules: ${JSON.stringify(runOnceSched)}`);
+        await Controller.decodeSchedules(recurringSched, runOnceSched);
+      } catch (err) {
+        logger.error(`Screenlogic: Error getting schedules. ${err.message}`);
       }
-    } catch (err) {
-      logger.error(`Screenlogic: Error getting Intellichem. ${err.message}`);
-    }
 
-    state.status = sys.board.valueMaps.controllerStatus.transform(2, 98);
+      state.status = sys.board.valueMaps.controllerStatus.transform(2, 84);
       state.emitControllerChange();
-    try {
-      let equipmentState = await this._client.equipment.getEquipmentStateAsync();
-      logger.silly(`Screenlogic: equipment state: ${JSON.stringify(equipmentState)}`);
-      await Controller.decodeEquipmentState(equipmentState);
-    } catch (err) {
-      logger.error(`Screenlogic: Error getting equipment state. ${err.message}`);
-    }
-    sys.board.circuits.syncVirtualCircuitStates()
-    state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
+      try {
+        let intellichlor = await this._client.chlor.getIntellichlorConfigAsync();
+        // logger.silly(`Screenlogic:Intellichlor: ${JSON.stringify(intellichlor)}`);
+        await Controller.decodeIntellichlor(intellichlor);
+      } catch (err) {
+        logger.error(`Screenlogic: Error getting Intellichlor. ${err.message}`);
+      }
+
+      state.status = sys.board.valueMaps.controllerStatus.transform(2, 95);
       state.emitControllerChange();
-      this._client.removeAllListeners(); // clear out in case we are initializing again
+      try {
+        if (this._configData.intellichemPresent) {
+          let chem = await this._client.chem.getChemicalDataAsync();
+          logger.silly(`Screenlogic:Chem data: ${JSON.stringify(chem)}`);
+          await Controller.decodeChemController(chem);
+        }
+      } catch (err) {
+        logger.error(`Screenlogic: Error getting Intellichem. ${err.message}`);
+      }
+
+      state.status = sys.board.valueMaps.controllerStatus.transform(2, 98);
+      state.emitControllerChange();
+      try {
+        let equipmentState = await this._client.equipment.getEquipmentStateAsync();
+        logger.silly(`Screenlogic: equipment state: ${JSON.stringify(equipmentState)}`);
+        await Controller.decodeEquipmentState(equipmentState);
+      } catch (err) {
+        logger.error(`Screenlogic: Error getting equipment state. ${err.message}`);
+      }
+      sys.board.circuits.syncVirtualCircuitStates()
+      state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
+      state.emitControllerChange();
+      
       this._client.on('equipmentState', async function (data) { await Controller.decodeEquipmentState(data); })
       this._client.on('intellichlorConfig', async function (data) {
         await Controller.decodeIntellichlor(data);
@@ -399,6 +406,9 @@ export class ScreenLogicComms {
   public emitScreenlogicStats() {
     webApp.emitToChannel('screenlogicStats', 'screenlogicStats', this.stats);
   }
+  public toLog(msg): string {
+    return `{"systemName":"${msg.systemName}","dir":"${msg.dir}","protocol":"${msg.protocol}", "_id": ${msg.id}, "action": ${msg.action}, "payload":[${JSON.stringify(msg.data)}],"ts":"${Timestamp.toISOLocal(new Date())}"}`;
+  }
 }
 
 class Controller {
@@ -554,10 +564,10 @@ class Controller {
     if (config.equipment.POOL_SOLARHEATPUMP) { };
     if (config.equipment.POOL_HEATPUMPHASCOOL) { };  
     */
-   let intellichemPresent: boolean = false;
+    let intellichemPresent: boolean = false;
     if (config.equipment.POOL_ICHEMPRESENT) {
       intellichemPresent = true;
-     };  
+    };
     return { pumpsReported, intellichemPresent };
   }
   public static async decodeEquipmentState(eqstate: SLEquipmentStateData) {
@@ -888,14 +898,19 @@ class Controller {
       type: 2
 
     }
+    try {
 
-    await sys.board.chemControllers.setChemControllerAsync(data, false);
-    let schem = state.chemControllers.getItemById(1);
-    schem.ph.level = slchem.pH;
-    schem.orp.level = slchem.orp;
-    schem.saturationIndex = slchem.saturation;
-    schem.alarms.bodyFault = slchem.error ? 1 : 0; // maybe a better place to assign the error? 
-    state.emitEquipmentChanges();
+      await sys.board.chemControllers.setChemControllerAsync(data, false);
+      let schem = state.chemControllers.getItemById(1);
+      schem.ph.level = slchem.pH;
+      schem.orp.level = slchem.orp;
+      schem.saturationIndex = slchem.saturation;
+      schem.alarms.bodyFault = slchem.error ? 1 : 0; // maybe a better place to assign the error? 
+      state.emitEquipmentChanges();
+    }
+    catch (err) {
+        return Promise.reject(err);
+    }
 
   }
   public static async decodePump(id: number, slpump: SLPumpStatusData) {
@@ -933,7 +948,7 @@ class Controller {
       type: ptype,
       name: pump.name || `Pump ${id}`,
       circuits: [],
-      id: typeof pump.isActive !== 'undefined' &&  pump.isActive ? pump.id : undefined
+      id: typeof pump.isActive !== 'undefined' && pump.isActive ? pump.id : undefined
     };
     for (let i = 0; i < slpump.pumpCircuits.length; i++) {
       if (slpump.pumpCircuits[i].circuitId === 0) continue;
@@ -1395,22 +1410,32 @@ export class SLSchedule extends SLCommands {
     }
   }
 }
-export class SLPump extends SLCommands{
-    public async setPumpCircuitAsync(pump: Pump, circuit: PumpCircuit){
+export class SLPump extends SLCommands {
+  public async setPumpSpeedAsync(pump: Pump, circuit: PumpCircuit) {
 
-      // PUMPS
-      // let pumpRes = await client.pump.setPumpSpeed(0,1,2000,true);
-      // Currently, this only sets the circuit array.  Adding/removing pump needs to be
-      // done through the equipment configuration message.
-      try {
-        return Promise.reject(new InvalidEquipmentDataError('Not implemented yet.', 'Pump', pump));
-        let isRPM = sys.board.valueMaps.pumpUnits.get(circuit.units).name === 'rpm' ? true : false;
-        await this._unit.pump.setPumpSpeedAsync(pump.id, circuit.circuit, isRPM ? circuit.speed : circuit.flow, isRPM);
+    // PUMPS
+    // let pumpRes = await client.pump.setPumpSpeed(0,1,2000,true);
+    // Currently, this only sets the pump circuit speed.  Adding/removing pump needs to be
+    // done through the equipment configuration message.
+  
+      // This API call is indexed based.
+      let pumpCircuits = pump.circuits.get();
+      for (let i = 0; i < pumpCircuits.length; i++){
+        if (pumpCircuits[i].circuit === circuit.circuit){
+          let res = await this._unit.pump.setPumpSpeedAsync(pump.id, i, circuit.speed || circuit.flow, (circuit.speed || circuit.flow) > 400);
+          if (res) {
+            let pc = pump.circuits.getItemByIndex(i);
+            pc.speed = typeof circuit.speed !== 'undefined' ? circuit.speed : pc.speed;
+            pc.flow = typeof circuit.flow !== 'undefined' ? circuit.flow : pc.flow; 
+            return Promise.resolve(pump);
+          } 
+          else {
+            return Promise.reject(new InvalidEquipmentDataError('Unable to set pump speed', 'pump', pump))
+          };
+        }
       }
-      catch (err){
-        return Promise.reject(err);
-      }
-    
-    }
+     return Promise.reject(new InvalidEquipmentDataError('Unable to set pump speed.  Circuit not found', 'pump', pump));
+
+  }
 }
 export let sl = new ScreenLogicComms();

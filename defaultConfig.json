@@ -257,10 +257,15 @@
     }
   },
   "log": {
-    "packet": {
+    "screenlogic": {
       "enabled": false,
       "logToConsole": false,
+      "logToFile": false
+    },
+    "packet": {
+      "logToConsole": false,
       "logToFile": false,
+      "enabled": false,
       "filename": "packetLog",
       "invalid": true,
       "broadcast": {
