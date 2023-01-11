@@ -729,34 +729,33 @@ export class TouchScheduleCommands extends ScheduleCommands {
             }
 
 
-            if (send) {
-                if (sl.enabled) {
-                    let slId = await sl.schedules.setScheduleAsync(slSchedId, circuit, startTime, endTime, schedDays, schedType, changeHeatSetpoint, heatSource, heatSetpoint);
-                    // if SL adds this as a new schedule id different from what we expect.
-                    if (slId !== id) {
-                        sys.schedules.removeItemById(id);
-                        state.schedules.removeItemById(id);
-                        id = slId;
-                        sched = sys.schedules.getItemById(id, id > 0);
-                        ssched = state.schedules.getItemById(id, id > 0);
-                    }
+
+            if (sl.enabled && send) {
+                let slId = await sl.schedules.setScheduleAsync(slSchedId, circuit, startTime, endTime, schedDays, schedType, changeHeatSetpoint, heatSource, heatSetpoint);
+                // if SL adds this as a new schedule id different from what we expect.
+                if (slId !== id) {
+                    sys.schedules.removeItemById(id);
+                    state.schedules.removeItemById(id);
+                    id = slId;
+                    sched = sys.schedules.getItemById(id, id > 0);
+                    ssched = state.schedules.getItemById(id, id > 0);
                 }
-                else {
-                    let out = Outbound.create({
-                        action: 145,
-                        payload: [
-                            id,
-                            circuit,
-                            Math.floor(startTime / 60),
-                            startTime - (Math.floor(startTime / 60) * 60),
-                            schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce') ? sys.board.valueMaps.scheduleTypes.getValue('runonce') : Math.floor(endTime / 60),
-                            endTime - (Math.floor(endTime / 60) * 60),
-                            schedDays],
-                        retries: 2
-                        // ,response: Response.create({ action: 1, payload: [145] })
-                    });
-                    await out.sendAsync();
-                }
+            }
+            else if (send) {
+                let out = Outbound.create({
+                    action: 145,
+                    payload: [
+                        id,
+                        circuit,
+                        Math.floor(startTime / 60),
+                        startTime - (Math.floor(startTime / 60) * 60),
+                        schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce') ? sys.board.valueMaps.scheduleTypes.getValue('runonce') : Math.floor(endTime / 60),
+                        endTime - (Math.floor(endTime / 60) * 60),
+                        schedDays],
+                    retries: 2
+                    // ,response: Response.create({ action: 1, payload: [145] })
+                });
+                await out.sendAsync();
             }
             sched.circuit = ssched.circuit = circuit;
             sched.scheduleDays = ssched.scheduleDays = schedDays;
@@ -880,7 +879,7 @@ export class TouchScheduleCommands extends ScheduleCommands {
         // RKS: Assuming you just send 0s for the schedule and it will delete it.
         try {
             if (sl.enabled) {
-
+                await sl.schedules.setEggTimerAsync(data.circuit, 720);
             }
             else {
                 let out = Outbound.create({
@@ -1013,7 +1012,7 @@ class TouchSystemCommands extends SystemCommands {
             return Promise.reject(err);
         }
     }
-    public async setDateTimeAsync(obj: any): Promise<any> {
+    public async setDateTimeAsync(obj: any, send: boolean = true): Promise<any> {
 
         let dst = sys.general.options.adjustDST ? 1 : 0;
         if (typeof obj.dst !== 'undefined') utils.makeBool(obj.dst) ? dst = 1 : dst = 0;
@@ -1049,7 +1048,10 @@ class TouchSystemCommands extends SystemCommands {
             response: true
         });
         try {
-            await out.sendAsync();
+            if (sl.enabled && send) {
+                await sl.controller.setSystemTime();
+            }
+            else if (send) await out.sendAsync();
             state.time.hours = hour;
             state.time.minutes = min;
             state.time.date = date;
@@ -1075,7 +1077,10 @@ class TouchSystemCommands extends SystemCommands {
         // No need to make any changes. Just return.
         if (cname.name === data.name) return cname;
         try {
-            if (send) {
+            if (sl.enabled && send) {
+                await sl.controller.setCustomName(id, data.name);
+            }
+            else if (send) {
                 let out = Outbound.create({
                     action: 138,
                     payload: [data.id],
@@ -1184,7 +1189,10 @@ class TouchBodyCommands extends BodyCommands {
             if (typeof obj.manualPriority !== 'undefined') manualPriority = utils.makeBool(obj.manualPriority);
             let body = sys.bodies.getItemById(obj.id, false);
             let intellichemInstalled = sys.chemControllers.getItemByAddress(144, false).isActive;
-            if (!sl.enabled) {
+            if (sl.enabled) {              
+                await sl.controller.setEquipmentAsync({manualHeat, intellichem: intellichemInstalled}, 'misc');
+            }
+            else {
                 let out = Outbound.create({
                     dest: 16,
                     action: 168,
@@ -1260,7 +1268,7 @@ class TouchBodyCommands extends BodyCommands {
         }
 
     }
-    public async setSetpoints(body: Body, obj: any): Promise<BodyTempState> {
+    public async setSetpoints(body: Body, obj: any, send: boolean = true): Promise<BodyTempState> {
         let setPoint = typeof obj.setPoint !== 'undefined' ? parseInt(obj.setPoint, 10) : parseInt(obj.heatSetpoint, 10);
         let coolSetPoint = typeof obj.coolSetPoint !== 'undefined' ? parseInt(obj.coolSetPoint, 10) : 0;
         if (isNaN(setPoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid ${body.name} setpoint ${obj.setPoint || obj.heatSetpoint}`, 'body', obj));
@@ -1312,7 +1320,12 @@ class TouchBodyCommands extends BodyCommands {
             response: true
         });
         try {
-            await out.sendAsync();
+            if (sl.enabled && send) {
+                await sl.bodies.setHeatSetpointAsync(body, setPoint);
+            }
+            else if (send) {
+                await out.sendAsync();
+            }
             body.setPoint = setPoint;
             let bstate = state.temps.bodies.getItemById(body.id);
             bstate.setPoint = setPoint;
@@ -1409,7 +1422,12 @@ class TouchBodyCommands extends BodyCommands {
             retries: 3,
             response: true
         });
-        await out.sendAsync();
+        if (sl.enabled) {
+            await sl.bodies.setCoolSetpointAsync(body, setPoint);
+        }
+        else {
+            await out.sendAsync();
+        }
         let bstate = state.temps.bodies.getItemById(body.id);
         body.coolSetpoint = bstate.coolSetpoint = setPoint;
         state.temps.emitEquipmentChange();
@@ -1417,20 +1435,6 @@ class TouchBodyCommands extends BodyCommands {
     }
 }
 export class TouchCircuitCommands extends CircuitCommands {
-    // RKS: 12-01-2021 This has been deprecated we are now driving this through metadata on the valuemaps.  This allows
-    // for multiple types of standardized on/off sequences with nixie controllers.
-    //public getLightThemes(type?: number): any[] {
-    //    let themes = sys.board.valueMaps.lightThemes.toArray();
-    //    if (typeof type === 'undefined') return themes;
-    //    switch (type) {
-    //        case 8: // Magicstream
-    //            return themes.filter(theme => theme.types.includes('magicstream'));
-    //        case 16: // Intellibrite
-    //            return themes.filter(theme => theme.types.includes('intellibrite'));
-    //        default:
-    //            return [];
-    //    }
-    //}
     public async setCircuitAsync(data: any, send: boolean = true): Promise<ICircuit> {
         try {
             // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]
@@ -1579,7 +1583,10 @@ export class TouchCircuitCommands extends CircuitCommands {
                 }
                 // group.circuits.length = obj.circuits.length;
             }
-            if (send) {
+            if (sl.enabled && send) {
+                await sl.controller.setEquipmentAsync(obj,'lightGroup');
+            }
+            else if (send) {
                 if (sys.equipment.maxIntelliBrites === 8) {
                     // Easytouch
 
@@ -1927,7 +1934,8 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
 
             if (send) {
                 if (sl.enabled) {
-                    await sl.chlor.setChlorAsync(poolSetpoint, spaSetpoint);
+                    if (!chlor.isActive) {await sl.chlor.setChlorEnabledAsync(true);}
+                    await sl.chlor.setChlorOutputAsync(poolSetpoint, spaSetpoint);
                 }
                 else {
                     let out = Outbound.create({
@@ -1981,14 +1989,19 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator id is not valid: ${obj.id}`, 'chlorinator', obj.id));
             let chlor = sys.chlorinators.getItemById(id);
             if (chlor.master === 1) return await super.deleteChlorAsync(obj);
-            let out = Outbound.create({
-                dest: 16,
-                action: 153,
-                payload: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                retries: 3,
-                response: true
-            });
-            await out.sendAsync();
+            if (sl.enabled) {
+                await sl.chlor.setChlorEnabledAsync(false);
+            }
+            else {
+                let out = Outbound.create({
+                    dest: 16,
+                    action: 153,
+                    payload: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    retries: 3,
+                    response: true
+                });
+                await out.sendAsync();
+            }
             ncp.chlorinators.deleteChlorinatorAsync(id).then(() => { });
             let cstate = state.chlorinators.getItemById(id, true);
             chlor = sys.chlorinators.getItemById(id, true);
@@ -2225,11 +2238,11 @@ class TouchPumpCommands extends PumpCommands {
                         if (sl.enabled && send) {
                             // this is a shortcut for only updating a single pump
                             // speed at a time; for full config we need a different API
-                            for (let i = 0; i < pump.circuits.length; i++){
+                            for (let i = 0; i < pump.circuits.length; i++) {
                                 let pc = pump.circuits.getItemByIndex(i);
-                                if (pc.circuit === c.id && (pc.speed !== c.speed || pc.flow !== c.flow)){
+                                if (pc.circuit === c.id && (pc.speed !== c.speed || pc.flow !== c.flow)) {
 
-                                  await sl.pumps.setPumpSpeedAsync(pump, c);
+                                    await sl.pumps.setPumpSpeedAsync(pump, c);
                                 }
                             }
                         }
@@ -2244,7 +2257,7 @@ class TouchPumpCommands extends PumpCommands {
                                     pump = sys.pumps.getItemById(id, true);
                                     pump.set(data);
                                     let spump = state.pumps.getItemById(id, true);
-                                    spump.isActive = pump.isActive = true; 
+                                    spump.isActive = pump.isActive = true;
                                     spump.name = pump.name;
                                     spump.type = pump.type;
                                     spump.emitEquipmentChange();
@@ -2352,10 +2365,13 @@ class TouchPumpCommands extends PumpCommands {
                             if (sl.enabled && send) {
                                 // this is a shortcut for only updating a single pump
                                 // speed at a time; for full config we need a different API
-                                for (let i = 0; i < pump.circuits.length; i++){
+                                for (let i = 0; i < pump.circuits.length; i++) {
                                     let pc = pump.circuits.getItemByIndex(i);
-                                    if (pc.circuit === c.circuit && (pc.speed !== c.speed || pc.flow !== c.flow)){
-                                      await sl.pumps.setPumpSpeedAsync(pump, c);
+                                    if (pc.circuit === c.circuit && (pc.speed !== c.speed || pc.flow !== c.flow)) {
+                                        // todo: now that equipconfig is functional for pumps, this is really
+                                        // only needed when changing speeds on the home page
+                                        // (not config).  
+                                        await sl.pumps.setPumpSpeedAsync(pump, c);
                                     }
                                 }
                             }
@@ -2398,6 +2414,10 @@ class TouchPumpCommands extends PumpCommands {
 
                     }
                     if (sl.enabled) {
+                        if (send) {
+                            // set Equip Config with pumps
+                            await sl.controller.setEquipmentAsync(data, 'pump');
+                        }
                         pump = sys.pumps.getItemById(id, true);
                         pump.set(data); // Sets all the data back to the pump.
                         let spump = state.pumps.getItemById(id, true);
@@ -2619,7 +2639,6 @@ class TouchHeaterCommands extends HeaterCommands {
         let heater: Heater;
         let address: number;
         let htype;
-
         let out = Outbound.create({
             action: 162,
             payload: [5, 0, 0],
@@ -2731,7 +2750,10 @@ class TouchHeaterCommands extends HeaterCommands {
                     break;
             }
         }
-        if (send) {
+        if (sl.enabled && send) {
+            await sl.controller.setEquipmentAsync(obj, 'heater');
+        }
+        else if (send) {
             await out.sendAsync();
         }
         heater = sys.heaters.getItemById(id, true);
@@ -2920,8 +2942,13 @@ class TouchChemControllerCommands extends ChemControllerCommands {
             let acidTankLevel = typeof data.ph !== 'undefined' && typeof data.ph.tank !== 'undefined' && typeof data.ph.tank.level !== 'undefined' ? parseInt(data.ph.tank.level, 10) : schem.ph.tank.level;
             let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' && typeof data.orp.tank.level !== 'undefined' ? parseInt(data.orp.tank.level, 10) : schem.orp.tank.level;
             // OCP needs to set the IntelliChem as active so it knows that it exists
-
-            if (send && !sl.enabled) {
+            if (sl.enabled && send) {
+                if (!schem.isActive) {
+                    await sl.controller.setEquipmentAsync({intellichem: true}, 'misc');
+                }
+                // todo: need to add chem controller logic for setting ph/orp/etc
+            }
+            else if (send) {
                 let out = Outbound.create({
                     action: 211,
                     payload: [],
@@ -3008,7 +3035,12 @@ class TouchChemControllerCommands extends ChemControllerCommands {
             out.setPayloadByte(11, Math.floor(chem.alkalinity / 256) || 0);
             out.setPayloadByte(12, Math.round(chem.alkalinity % 256) || 0);
             out.setPayloadByte(13, 20);
-            await out.sendAsync();
+            if (sl.enabled) {
+                await sl.controller.setEquipmentAsync({intellichem: false}, 'misc');
+            }
+            else {
+                await out.sendAsync();
+            }
             let schem = state.chemControllers.getItemById(id);
             chem.isActive = false;
             chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
@@ -3026,7 +3058,7 @@ class TouchChemControllerCommands extends ChemControllerCommands {
     }
 }
 class TouchValveCommands extends ValveCommands {
-    public async setValveAsync(obj: any, send: boolean = false): Promise<Valve> {
+    public async setValveAsync(obj: any, send: boolean = true): Promise<Valve> {
         try {
             let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
             obj.master = 0;

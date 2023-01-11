@@ -190,8 +190,8 @@ export class Timestamp {
     private _isUpdating: boolean = false;
     public static get now(): Timestamp { return new Timestamp(); }
     public toDate() { return this._dt; }
-    public set isUpdating(val:boolean) {this._isUpdating = val;}
-    public get isUpdating(): boolean { return this._isUpdating;}
+    public set isUpdating(val: boolean) { this._isUpdating = val; }
+    public get isUpdating(): boolean { return this._isUpdating; }
     public get hours(): number { return this._dt.getHours(); }
     public set hours(val: number) {
         if (this.hours !== val) {
@@ -264,8 +264,8 @@ export class Timestamp {
             dt.getFullYear() !== this._dt.getFullYear())
             this.emitter.emit('change');
     }
-    public calcTZOffset(): {tzOffset:number, adjustDST:boolean}{
-        let obj = {tzOffset: 0, adjustDST: false};
+    public calcTZOffset(): { tzOffset: number, adjustDST: boolean } {
+        let obj = { tzOffset: 0, adjustDST: false };
         let dateJan = new Date(this._dt.getFullYear(), 0, 1, 2);
         let dateJul = new Date(this._dt.getFullYear(), 6, 1, 2);
         obj.tzOffset = dateJan.getTimezoneOffset() / 60 * -1;
@@ -318,23 +318,6 @@ export enum ControllerType {
     SunTouch = 'suntouch',
     None = 'none'
 }
-// export enum VirtualDeviceType {
-//     Pump = 'pump',
-//     Chlorinator = 'chlorinator'
-// }
-//export class Enums {
-//    public static Addresses = {
-//        2: { val: 2, name: 'chlorinator', desc: 'Chlorinator' },
-//        15: { val: 15, name: 'outdoor', desc: 'Main outdoor panel' },
-//        16: { val: 16, name: 'broadcast', desc: 'Broadcast' },
-//        33: { val: 33, name: 'intellitouch', desc: 'Intellitouch Plugin' },
-//        34: { val: 34, name: 'mobi', desc: 'Wireless controller' },
-//        36: { val: 36, name: 'intellicenter', desc: 'Intellicenter Plugin' },
-//        37: { val: 37, name: 'indoor2', desc: 'Indoor panel #2' },
-//        144: { val: 144, name: 'intellichem', desc: 'Intellichem' },
-//        transform: function (byte) { return extend(true, {}, this[byte] || this[0]); }
-//    }
-//}
 
 export class Utils {
     public makeBool(val) {
@@ -714,10 +697,13 @@ export class Utils {
     private random(bounds: number, onlyPositive: boolean = false) {
         let rand = Math.random() * bounds;
         if (!onlyPositive) {
-          if (Math.random() <= .5) rand = rand * -1;
+            if (Math.random() <= .5) rand = rand * -1;
         }
         return rand;
-      }
+    }
+    public dec2bin(dec) {
+        return (dec >>> 0).toString(2).padStart(8, '0');
+    }
 }
 
 export const utils = new Utils();

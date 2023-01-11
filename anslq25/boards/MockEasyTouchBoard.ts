@@ -617,8 +617,8 @@ export class EasyTouchMockPumpCommands extends MockPumpCommands {
               response.setPayloadByte(3, pump.turnovers, 0);
               response.setPayloadByte(21, pump.manualFilterGPM, 0);
               response.setPayloadByte(22, pump.primingSpeed, 0);
-              response.setPayloadByte(23, pump.primingTime, 0);
-              response.setPayloadByte(23, pump.maxSystemTime << 4, 0);
+              // response.setPayloadByte(23, pump.primingTime, 0);
+              response.setPayloadByte(23, pump.primingTime | (pump.maxSystemTime << 4), 0);
               response.setPayloadByte(24, pump.maxPressureIncrease, 0);
               response.setPayloadByte(25, pump.backwashFlow, 0);
               response.setPayloadByte(26, pump.backwashTime, 0);

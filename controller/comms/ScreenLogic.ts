@@ -1,26 +1,22 @@
-import { ControllerType, Timestamp, utils } from '../../controller/Constants';
-import { LightGroup, LightGroupCircuit, sys, Valve, Body, Pump, PumpCircuit } from '../../controller/Equipment';
+import { ControllerType, Timestamp, Utils, utils } from '../../controller/Constants';
+import { LightGroup, LightGroupCircuit, sys, Valve, Body, Pump, PumpCircuit, Remote } from '../../controller/Equipment';
 import { CircuitState, state, ValveState } from '../../controller/State';
 import * as ScreenLogic from 'node-screenlogic';
-import { SLControllerConfigData, SLEquipmentConfigurationData, Valves, HeaterConfig } from 'node-screenlogic/dist/messages/state/EquipmentConfig';
+import { SLControllerConfigData, SLEquipmentConfigurationData, Valves, HeaterConfig } from 'node-screenlogic/dist/messages/config/EquipmentConfig';
 import { EasyTouchBoard } from '../../controller/boards/EasyTouchBoard';
 import { IntelliTouchBoard } from '../../controller/boards/IntelliTouchBoard';
 import { logger } from '../../logger/Logger';
-import { SLSystemTimeData } from 'node-screenlogic/dist/messages/state/EquipmentConfig';
 import { SLIntellichlorData } from 'node-screenlogic/dist/messages/state/ChlorMessage';
 import { SLChemData } from 'node-screenlogic/dist/messages/state/ChemMessage';
-import { SLScheduleData } from 'node-screenlogic/dist/messages/state/ScheduleMessage';
+import { SLScheduleData } from 'node-screenlogic/dist/messages/config/ScheduleMessage';
 import { webApp } from '../../web/Server';
 import { SLPumpStatusData } from 'node-screenlogic/dist/messages/state/PumpMessage';
 import { delayMgr } from '../../controller/Lockouts';
-import { EquipmentStateMessage, SLEquipmentStateData } from 'node-screenlogic/dist/messages/state/EquipmentState';
+import { EquipmentStateMessage, SLEquipmentStateData, SLSystemTimeData } from 'node-screenlogic/dist/messages/state/EquipmentState';
 import { config } from '../../config/Config';
-import { InvalidEquipmentDataError, InvalidEquipmentIdError } from '../../controller/Errors';
+import { InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError } from '../../controller/Errors';
 import extend = require('extend');
 import { Message } from './messages/Messages';
-
-// issues
-// 1. not catching all pipe, econnreset errors ==> Us PM2 to monitor process for now
 
 export class ScreenLogicComms {
   constructor() {
@@ -35,12 +31,15 @@ export class ScreenLogicComms {
   public chlor: SLChlor;
   public schedules: SLSchedule;
   public pumps: SLPump;
+  public controller: SLController;
   private _pollCountError: number = 0;
   public isOpen: boolean = false;
   private _cfg: any;
   private _configData: { pumpsReported: number[], intellichemPresent: boolean };
   private pollingInterval = 10000;
   public enabled: boolean = false;
+
+  public eqConfig: any;  // testing purposes
 
   public async openAsync() {
     let self = this;
@@ -49,6 +48,7 @@ export class ScreenLogicComms {
     this.chlor = new SLChlor(this._client);
     this.schedules = new SLSchedule(this._client);
     this.pumps = new SLPump(this._client);
+    this.controller = new SLController(this._client);
     let cfg = config.getSection('controller.comms');
     if (typeof cfg !== 'undefined') this._cfg = cfg;
     this.enabled = this._cfg.enabled;
@@ -86,9 +86,9 @@ export class ScreenLogicComms {
         this._client.init(systemName, unit.ipAddr, unit.port, password);
         await this._client.connectAsync();
         this._client.removeAllListeners(); // clear out in case we are initializing again
-        this._client.on('slLogMessage',(msg)=>{
+        this._client.on('slLogMessage', (msg) => {
           let _id = Message.nextMessageId;
-          msg = {...msg, _id};
+          msg = { ...msg, _id };
           logger.screenlogic(msg);
         })
         let ver = await this._client.getVersionAsync();
@@ -104,8 +104,8 @@ export class ScreenLogicComms {
       state.emitControllerChange();
       try {
         let equipConfig = await this._client.equipment.getEquipmentConfigurationAsync();
-        logger.silly(`Screenlogic:Equipment config: ${JSON.stringify(equipConfig, null, 2)}`);
-        await Controller.decodeEquipment(equipConfig);
+        logger.silly(`Screenlogic: Equipment config: ${JSON.stringify(equipConfig, null, 2)}`);
+        await Controller.decodeEquipmentAsync(equipConfig);
       } catch (err) {
         logger.error(`Screenlogic: Error getting equipment configuration. ${err.message}`);
       }
@@ -148,7 +148,7 @@ export class ScreenLogicComms {
         try {
           let pumpStatus = await this._client.pump.getPumpStatusAsync(pumpNum);
           logger.silly(`Screenlogic:Pump ${pumpNum}: ${JSON.stringify(pumpStatus)}`);
-          await Controller.decodePump(pumpNum, pumpStatus);
+          await Controller.decodePumpStatusAsync(pumpNum, pumpStatus);
         } catch (err) {
           logger.error(`Screenlogic: Error getting pump configuration. ${err.message}`);
         }
@@ -171,7 +171,7 @@ export class ScreenLogicComms {
       try {
         let intellichlor = await this._client.chlor.getIntellichlorConfigAsync();
         // logger.silly(`Screenlogic:Intellichlor: ${JSON.stringify(intellichlor)}`);
-        await Controller.decodeIntellichlor(intellichlor);
+        await Controller.decodeIntellichlorAsync(intellichlor);
       } catch (err) {
         logger.error(`Screenlogic: Error getting Intellichlor. ${err.message}`);
       }
@@ -200,10 +200,10 @@ export class ScreenLogicComms {
       sys.board.circuits.syncVirtualCircuitStates()
       state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
       state.emitControllerChange();
-      
+
       this._client.on('equipmentState', async function (data) { await Controller.decodeEquipmentState(data); })
       this._client.on('intellichlorConfig', async function (data) {
-        await Controller.decodeIntellichlor(data);
+        await Controller.decodeIntellichlorAsync(data);
       });
       this._client.on('equipmentConfig', async function (data) {
         await Controller.decodeController(data);
@@ -221,7 +221,7 @@ export class ScreenLogicComms {
         logger.silly(`Screenlogic:cancelDelay: ${data}`)
       }) // not programmed yet});
       this._client.on('equipmentConfiguration', async function (data) {
-        logger.silly(`Screenlogic:equipConfig ${data}`)
+        logger.silly(`Screenlogic:equipConfig ${JSON.stringify(data)}`)
       })// which one?});
       this._client.on('getPumpStatus', async function (data) {
         logger.silly(`Screenlogic:getPumpStatus: ${JSON.stringify(data)}`);
@@ -303,8 +303,7 @@ export class ScreenLogicComms {
 
       let weatherForecast = await client.equipment.getWeatherForecast();
       logger.silly(`Screenlogic:Weather: ${JSON.stringify(weatherForecast)}`); 
-      let sysTime = await screenlogic.equipment.setSystemTime(dt, true);
-      logger.silly(`Screenlogic:set time result: ${sysTime}`);
+
       let hist = await screenlogic.equipment.getHistoryData()
       logger.silly(`Screenlogic:history data: ${JSON.stringify(hist)}`)
     
@@ -368,11 +367,35 @@ export class ScreenLogicComms {
       if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
       this._pollTimer = null;
       if (!this.isOpen) { return; };
-      let numPumps = sys.pumps.get().length;
+
+
+      /*
+      // Uncomment this block to do a comparison of the 'getConfig' packets.
+      // RSG used this to recreate the setConfig packet arrays
+      let equipConfig = await this._client.equipment.getEquipmentConfigurationAsync();
+      logger.silly(`Screenlogic: Equipment config: ${JSON.stringify(equipConfig, null, 2)}`);
+
+      if (typeof this.eqConfig === 'undefined') this.eqConfig = equipConfig;
+      // let's compare so we can find differences easily
+      for (const [key, value] of Object.entries(this.eqConfig.rawData)) {
+        console.log(key);
+        for (let i = 0; i < this.eqConfig.rawData[key].length; i++) {
+          if (this.eqConfig.rawData[key][i] !== equipConfig.rawData[key][i]) {
+            console.log(`Difference at ${key}[${i}].  prev: ${this.eqConfig.rawData[key][i]} (${utils.dec2bin(this.eqConfig.rawData[key][i])})-> new: ${equipConfig.rawData[key][i]} (${utils.dec2bin(equipConfig.rawData[key][i])})`)
+          }
+        }
+      }
+
+      this.eqConfig = equipConfig;
+      */
+
+      let pumps = sys.pumps.get();
+      let numPumps = pumps.length;
       for (let i = 1; i < numPumps + 1; i++) {
+        if (pumps[i - 1].id === 10) continue; // skip dual speed
         let pumpStatus = await self._client.pump.getPumpStatusAsync(i);
         logger.silly(`Screenlogic:Pump ${i}: ${JSON.stringify(pumpStatus)}`);
-        await Controller.decodePump(i, pumpStatus);
+        await Controller.decodePumpStatusAsync(i, pumpStatus);
       }
       sys.board.heaters.syncHeaterStates();
       sys.board.schedules.syncScheduleStates();
@@ -407,7 +430,7 @@ export class ScreenLogicComms {
     webApp.emitToChannel('screenlogicStats', 'screenlogicStats', this.stats);
   }
   public toLog(msg): string {
-    return `{"systemName":"${msg.systemName}","dir":"${msg.dir}","protocol":"${msg.protocol}", "_id": ${msg.id}, "action": ${msg.action}, "payload":[${JSON.stringify(msg.data)}],"ts":"${Timestamp.toISOLocal(new Date())}"}`;
+    return `{"systemName":"${msg.systemName}","dir":"${msg.dir}","protocol":"${msg.protocol}", "_id": ${msg._id}, "action": ${msg.action}, "payload":[${JSON.stringify(msg.payload)}],"ts":"${Timestamp.toISOLocal(new Date())}"}`;
   }
 }
 
@@ -532,27 +555,59 @@ class Controller {
     let pumpsReported: number[] = [];
     if (config.equipment.POOL_IFLOWPRESENT0) {
       pumpsReported.push(1);
+    }
+    else {
+      sys.pumps.removeItemById(1);
+      state.pumps.removeItemById(1);
     };
     if (config.equipment.POOL_IFLOWPRESENT1) {
       pumpsReported.push(2);
+    }
+    else {
+      sys.pumps.removeItemById(2);
+      state.pumps.removeItemById(2);
     };
     if (config.equipment.POOL_IFLOWPRESENT2) {
       pumpsReported.push(3);
+    }
+    else {
+      sys.pumps.removeItemById(3);
+      state.pumps.removeItemById(3);
     };
     if (config.equipment.POOL_IFLOWPRESENT3) {
       pumpsReported.push(4);
+    }
+    else {
+      sys.pumps.removeItemById(4);
+      state.pumps.removeItemById(4);
     };
     if (config.equipment.POOL_IFLOWPRESENT4) {
       pumpsReported.push(5);
+    }
+    else {
+      sys.pumps.removeItemById(5);
+      state.pumps.removeItemById(5);
     };
     if (config.equipment.POOL_IFLOWPRESENT5) {
       pumpsReported.push(6);
+    }
+    else {
+      sys.pumps.removeItemById(6);
+      state.pumps.removeItemById(6);
     };
     if (config.equipment.POOL_IFLOWPRESENT6) {
       pumpsReported.push(7);
+    }
+    else {
+      sys.pumps.removeItemById(7);
+      state.pumps.removeItemById(7);
     };
     if (config.equipment.POOL_IFLOWPRESENT7) {
       pumpsReported.push(8);
+    }
+    else {
+      sys.pumps.removeItemById(8);
+      state.pumps.removeItemById(8);
     };
 
     /* // deal with these in other places
@@ -729,7 +784,7 @@ class Controller {
       };
     }
   }
-  public static async decodeEquipment(equip: SLEquipmentConfigurationData) {
+  public static async decodeEquipmentAsync(equip: SLEquipmentConfigurationData) {
     if (sys.controllerType !== ControllerType.EasyTouch && Controller.isEasyTouch(equip.controllerType)) {
       sys.controllerType = ControllerType.EasyTouch;
       (sys.board as EasyTouchBoard).initExpansionModules(equip.controllerType, equip.hardwareType);
@@ -739,16 +794,24 @@ class Controller {
       (sys.board as IntelliTouchBoard).initExpansionModules(equip.controllerType, equip.hardwareType);
     }
 
+    let body = sys.bodies.getItemById(2);
+    sys.general.options.manualHeat = body.manualHeat = equip.misc.manualHeat;
 
-    await Controller.decodeHeaters(equip.heaterConfig);
-    await Controller.decodeValves(equip.valves);
+    await Controller.decodeHeatersAsync(equip.heaterConfig);
+    await Controller.decodeValvesAsync(equip.valves);
+    Controller.decodeHighSpeed(equip.highSpeedCircuits);
+    // delays
     sys.general.options.pumpDelay = equip.delays.pumpOffDuringValveAction;
-    if (equip.delays.poolPumpOnDuringHeaterCooldown) {
-      for (let i = 0; i < sys.bodies.length; i++) {
-        let bs = state.temps.bodies.getItemById(i + 1);
-        bs.heaterCooldownDelay = true;
-      }
+    for (let i = 0; i < sys.bodies.length; i++) {
+      let bs = state.temps.bodies.getItemById(i + 1);
+      if (bs.circuit === 1) bs.heaterCooldownDelay = equip.delays.spaPumpOnDuringHeaterCooldown;
+      else if (bs.circuit === 6) bs.heaterCooldownDelay = equip.delays.poolPumpOnDuringHeaterCooldown;
     }
+
+    Controller.decodeRemote(equip.remotes);
+    Controller.decodePumpAsync(equip.pumps);
+    // lights
+    // packet only lists all-on all-off for intellibrite.
 
     // if (equip.misc.intelliChem) {
     //   let chem = sys.chemControllers.getItemByAddress(144, true);
@@ -761,7 +824,7 @@ class Controller {
     // }
     sys.equipment.controllerFirmware = `${Math.floor(equip.version / 1000).toString()}.${(equip.version % 1000).toString()}`;
   }
-  public static async decodeHeaters(heaterConfig: HeaterConfig) {
+  public static async decodeHeatersAsync(heaterConfig: HeaterConfig) {
     let address: number;
     let id: number;
     let type: number = 1;
@@ -817,13 +880,15 @@ class Controller {
         add = true;
       }
     }
+    // Need to figure out dual body here: body2SolarPresent
     if (add) {
       sys.board.heaters.setHeaterAsync(data, false).catch((err) => {
         logger.error(`Error setting additional heaters: ${err.message}`)
       });
     }
+    if (typeof heaterConfig.units !== 'undefined') state.temps.units = sys.general.options.units = heaterConfig.units;  // 0 = F, 1 = C
   }
-  public static async decodeValves(valves: Valves[]) {
+  public static async decodeValvesAsync(valves: Valves[]) {
     for (let i = 0; i < valves.length; i++) {
       let _valve = valves[i];
       let data: any = {
@@ -850,7 +915,98 @@ class Controller {
           }
         ], */
   }
-  public static async decodeIntellichlor(slchlor: SLIntellichlorData) {
+  public static decodeHighSpeed(highSpeed: number[]) {
+    let maxCircuits = sys.controllerType === ControllerType.IntelliTouch ? 8 : 4;
+    let arrCircuits = [];
+    let pump = sys.pumps.getDualSpeed(true);
+    for (let i = 0; i < maxCircuits && i < highSpeed.length; i++) {
+      let val = highSpeed[i];
+      if (val > 0) arrCircuits.push(val);
+      else pump.circuits.removeItemById(i);
+    }
+    if (arrCircuits.length > 0) {
+      let pump = sys.pumps.getDualSpeed(true);
+      for (let j = 1; j <= arrCircuits.length; j++) pump.circuits.getItemById(j, true).circuit = arrCircuits[j - 1];
+    }
+    else sys.pumps.removeItemById(10);
+  }
+  public static decodeRemote(remoteDataArray) {
+    if (sys.controllerType === ControllerType.EasyTouch) {
+
+      let remote: Remote = sys.remotes.getItemById(5, true);
+      let bActive = false;
+      for (let i = 0; i < 10; i++) {
+        remote["button" + i] = remoteDataArray.fourButton[i];
+        bActive = bActive || remote["button" + i] > 0;
+      }
+      remote.isActive = bActive;
+      remote.type = 1;
+      remote.name = "is4";
+
+      remote = sys.remotes.getItemById(1, true);
+      bActive = false;
+      for (let i = 0; i < 10; i++) {
+        remote["button" + i] = remoteDataArray.tenButton[0][i];
+        bActive = bActive || remote["button" + i] > 0;
+      }
+      remote.isActive = bActive;
+      remote.type = 2;
+      remote.name = "is10";
+    }
+    else if (sys.controllerType === ControllerType.IntelliTouch) {
+      // Intellitouch
+      // 10 button #1
+
+      for (let r = 0; r < 4; r++) {
+        let remote: Remote = sys.remotes.getItemById(r + 1, true);
+        let bActive = false;
+        for (let i = 0; i < 10; i++) {
+          remote["button" + (i + 1)] = remoteDataArray.tenButton[r][i];
+          bActive = bActive || remote["button" + (i + 1)] > 0;
+        }
+        remote.isActive = bActive;
+        remote.type = 2;
+        remote.name = "is10";
+        if (r === 3) {
+          let remote5 = sys.remotes.getItemById(5);
+          let remote6 = sys.remotes.getItemById(6);
+          remote5.name = remote6.name = "is4";
+          remote5.type = remote6.type = 1;
+          if (!remote.button5 && !remote.button10) {
+            remote.isActive = false;
+            remote5.button1 = remote.button1;
+            remote5.button2 = remote.button2;
+            remote5.button3 = remote.button3;
+            remote5.button4 = remote.button4;
+            remote6.button1 = remote.button6;
+            remote6.button2 = remote.button7;
+            remote6.button3 = remote.button8;
+            remote6.button4 = remote.button9;
+            if (!remote5.button1 && !remote5.button2 && !remote5.button3 && !remote5.button4) remote5.isActive = false;
+                    else remote5.isActive = true;
+           
+            if (!remote6.button1 && !remote6.button2 && !remote6.button3 && !remote6.button4) remote6.isActive = false;
+                    else remote6.isActive = true;
+           
+          }
+          else {
+            remote5.isActive = remote6.isActive = false;
+          }
+        }
+      }
+    }
+
+    let remote = sys.remotes.getItemById(7, true);
+    remote.button1 = remoteDataArray.quickTouch[0];
+    remote.button2 = remoteDataArray.quickTouch[1];
+    remote.button3 = remoteDataArray.quickTouch[2];
+    remote.button4 = remoteDataArray.quickTouch[3];
+
+    if (!remote.button1 && !remote.button2 && !remote.button3 && !remote.button4) remote.isActive = false;
+    else remote.isActive = true;
+    remote.name = "QuickTouch";
+  }
+  public static async decodeIntellichlorAsync(slchlor: SLIntellichlorData) {
     // Intellichlor: {"installed":false,"status":1,"poolSetPoint":12,"spaSetPoint":0,"salt":0,"flags":0,"superChlorTimer":0}
     let chlor = sys.chlorinators.getItemById(1);
     if (slchlor.installed) {
@@ -909,69 +1065,43 @@ class Controller {
       state.emitEquipmentChanges();
     }
     catch (err) {
-        return Promise.reject(err);
+      return Promise.reject(err);
     }
 
   }
-  public static async decodePump(id: number, slpump: SLPumpStatusData) {
-    /*      Pump 0: {"pumpCircuits":[
-                {"circuitId":6,"speed":2600,"isRPMs":true},
-                {"circuitId":1,"speed":2000,"isRPMs":true},
-                {"circuitId":2,"speed":2500,"isRPMs":true},
-                {"circuitId":3,"speed":2800,"isRPMs":true},
-                {"circuitId":11,"speed":2890,"isRPMs":true},
-                {"circuitId":14,"speed":1500,"isRPMs":true},
-                {"circuitId":129,"speed":2300,"isRPMs":true},
-                {"circuitId":13,"speed":2860,"isRPMs":true}],
-        "pumpType":2,
-        "isRunning":true,
-        "pumpWatts":0,
-        "pumpRPMs":0,
-        "pumpUnknown1":0,
-        "pumpGPMs":255,
-        "pumpUnknown2":255} */
-    let pump = sys.pumps.getItemById(id);
-    let ptype = 0;
-    switch (slpump.pumpType as any) {
-      case 2:
-      case 3: //ScreenLogic.PumpTypes.PUMP_TYPE_INTELLIFLOVS:
-        ptype = 128;
-        break;
-      case 5: //ScreenLogic.PumpTypes.PUMP_TYPE_INTELLIFLOVF:
-        ptype = 1;
-        break;
-      case 4: //ScreenLogic.PumpTypes.PUMP_TYPE_INTELLIFLOVSF:
-        ptype = 64;
-        break;
-    }
-    let data = {
-      type: ptype,
-      name: pump.name || `Pump ${id}`,
-      circuits: [],
-      id: typeof pump.isActive !== 'undefined' && pump.isActive ? pump.id : undefined
-    };
-    for (let i = 0; i < slpump.pumpCircuits.length; i++) {
-      if (slpump.pumpCircuits[i].circuitId === 0) continue;
-      let pumpCirc = {
-        circuit: slpump.pumpCircuits[i].circuitId,
-        speed: slpump.pumpCircuits[i].isRPMs ? slpump.pumpCircuits[i].speed : undefined,
-        flow: slpump.pumpCircuits[i].isRPMs ? undefined : slpump.pumpCircuits[i].speed
+  public static async decodePumpAsync(pDataArr: any ){
+    pDataArr.forEach(async (pData, idx)=>{
+      await sys.board.pumps.setPumpAsync(pData, false);
+    })
+  }
+  public static async decodePumpStatusAsync(id: number, slpump: SLPumpStatusData) {
+    /*   {
+        pumpCircuits: [
+          { circuitId: 6,speed: 2000,isRPMs: true, },
+          { circuitId: 8, speed:2700,isRPMs: true, },
+          { circuitId: 2,speed: 2710,isRPMs: true, },
+          { circuitId: 2,speed:1000, isRPMs: true,},
+          { circuitId: 5,speed:2830, isRPMs: true,},
+          { circuitId: 0,speed: 30,isRPMs: false,},
+          { circuitId: 0,speed: 30,isRPMs: false,},
+          { circuitId: 0,speed: 30,isRPMs: false,},
+        ],
+        pumpType: 4,
+        isRunning: false,
+        pumpWatts: 0,
+        pumpRPMs: 0,
+        pumpUnknown1: 0,
+        pumpGPMs: 0,
+        pumpUnknown2: 255,
       }
-      data.circuits.push(pumpCirc);
-    }
-    data.type = ptype;
-    data.name = typeof pump.name !== 'undefined' ? pump.name : `Pump ${id}`
-    // pump.set(data);
-    await sys.board.pumps.setPumpAsync(data, false);
-    let pstate = state.pumps.getItemById(id, true);
-    pstate.type = data.type;
-    pstate.name = data.name;
+    */
+  
+    let pstate = state.pumps.getItemById(id);
     pstate.watts = slpump.pumpWatts;
     pstate.rpm = slpump.pumpRPMs;
     pstate.flow = slpump.pumpGPMs === 255 ? 0 : slpump.pumpGPMs;
     pstate.command = (pstate.rpm > 0 || pstate.watts > 0) ? 10 : 0;
     state.emitEquipmentChanges();
-
   }
   public static async decodeSchedules(slrecurring: SLScheduleData[], slrunonce: SLScheduleData[]) {
     /*     reccuring schedules: [{"scheduleId":1,"circuitId":6,"startTime":"1800","stopTime":"0700","dayMask":127,"flags":0,"heatCmd":4,"heatSetPoint":70,"days":["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]},
@@ -1270,6 +1400,14 @@ export class SLBodies extends SLCommands {
       return Promise.reject(err);
     }
   }
+  public async setCoolSetpointAsync(body: Body, setPoint: number) {
+    try {
+      await this._unit.bodies.setCoolSetPointAsync(body.id, setPoint);
+    }
+    catch (err) {
+      return Promise.reject(err);
+    }
+  }
   public async cancelDalayAsync() {
     try {
       await this._unit.equipment.cancelDelayAsync();
@@ -1290,9 +1428,17 @@ export class SLCounter {
   }
 }
 export class SLChlor extends SLCommands {
-  public async setChlorAsync(poolSetpoint: number, spaSetpoint: number) {
+  public async setChlorOutputAsync(poolSetpoint: number, spaSetpoint: number) {
     try {
       let res = await this._unit.chlor.setIntellichlorOutputAsync(poolSetpoint, spaSetpoint);
+      if (!res) return Promise.reject(`Screenlogic: Unable to add schedule.`)
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
+  public async setChlorEnabledAsync(isActive: boolean) {
+    try {
+      let res = await this._unit.chlor.setIntellichlorIsActiveAsync(isActive);
       if (!res) return Promise.reject(`Screenlogic: Unable to add schedule.`)
     } catch (err) {
       return Promise.reject(err);
@@ -1417,25 +1563,102 @@ export class SLPump extends SLCommands {
     // let pumpRes = await client.pump.setPumpSpeed(0,1,2000,true);
     // Currently, this only sets the pump circuit speed.  Adding/removing pump needs to be
     // done through the equipment configuration message.
-  
-      // This API call is indexed based.
-      let pumpCircuits = pump.circuits.get();
-      for (let i = 0; i < pumpCircuits.length; i++){
-        if (pumpCircuits[i].circuit === circuit.circuit){
-          let res = await this._unit.pump.setPumpSpeedAsync(pump.id, i, circuit.speed || circuit.flow, (circuit.speed || circuit.flow) > 400);
-          if (res) {
-            let pc = pump.circuits.getItemByIndex(i);
-            pc.speed = typeof circuit.speed !== 'undefined' ? circuit.speed : pc.speed;
-            pc.flow = typeof circuit.flow !== 'undefined' ? circuit.flow : pc.flow; 
-            return Promise.resolve(pump);
-          } 
-          else {
-            return Promise.reject(new InvalidEquipmentDataError('Unable to set pump speed', 'pump', pump))
-          };
-        }
-      }
-     return Promise.reject(new InvalidEquipmentDataError('Unable to set pump speed.  Circuit not found', 'pump', pump));
 
+    // This API call is indexed based.
+    let pumpCircuits = pump.circuits.get();
+    for (let i = 0; i < pumpCircuits.length; i++) {
+      if (pumpCircuits[i].circuit === circuit.circuit) {
+        let res = await this._unit.pump.setPumpSpeedAsync(pump.id, i, circuit.speed || circuit.flow, (circuit.speed || circuit.flow) > 400);
+        if (res) {
+          let pc = pump.circuits.getItemByIndex(i);
+          pc.speed = typeof circuit.speed !== 'undefined' ? circuit.speed : pc.speed;
+          pc.flow = typeof circuit.flow !== 'undefined' ? circuit.flow : pc.flow;
+          return Promise.resolve(pump);
+        }
+        else {
+          return Promise.reject(new InvalidEquipmentDataError('Unable to set pump speed', 'pump', pump))
+        };
+      }
+    }
+    return Promise.reject(new InvalidEquipmentDataError('Unable to set pump speed.  Circuit not found', 'pump', pump));
+
+  }
+}
+export class SLController extends SLCommands {
+  public async setEquipmentAsync(obj?: any, eq?: string) {
+
+    let poolPumpOnDuringHeaterCooldown = false;
+    let spaPumpOnDuringHeaterCooldown = false;
+    for (let i = 0; i < sys.bodies.length; i++) {
+      let bs = state.temps.bodies.getItemById(i + 1);
+      if (bs.circuit === 1) spaPumpOnDuringHeaterCooldown = bs.heaterCooldownDelay;
+      else if (bs.circuit === 6) poolPumpOnDuringHeaterCooldown = bs.heaterCooldownDelay;
+    }
+
+    let highSpeedCircuits = sys.pumps.getDualSpeed().circuits.toArray();
+    let valves = sys.valves.get(true);
+    let remotes = sys.remotes.get(true);
+    let heaters = sys.heaters.get(true);
+    let misc = { ...sys.general.options.get(), poolPumpOnDuringHeaterCooldown, spaPumpOnDuringHeaterCooldown, intellichem: state.chemControllers.getItemById(1, false).isActive || false };
+    let circuitGroup = sys.circuitGroups.get(true);
+    let lightGroup = sys.lightGroups.get(true)[0];
+    let pumps = sys.pumps.get(true);
+    const spaCommand: Remote = sys.remotes.getItemById(8).get();
+    let alarm = 0;
+
+    switch (eq){
+      case 'misc': {
+          misc = extend({}, true, misc, obj);
+        break;
+      }
+      case 'lightGroup': {
+          lightGroup = extend({}, true, lightGroup, obj);
+        break;
+      }
+      case 'pump':{
+        let idx = pumps.findIndex(el=>{console.log(el.id);return el.id === obj.id;})
+        if (idx >= 0) pumps = extend({}, true, pumps[idx], obj);
+        else return Promise.reject(`Screenlogic: No pump found by that id: ${obj}`);
+        break;
+      }
+      case 'heater': {
+        let idx = heaters.findIndex(el=>{console.log(el.id);return el.id === obj.id;})
+        if (idx >= 0) heaters = extend({}, true, heaters[idx], obj);
+        else return Promise.reject(`Screenlogic: No pump found by that id: ${obj}`);
+        break;
+      }
+    }
+
+    let data = {
+      highSpeedCircuits,
+      valves,
+      remotes,
+      heaters,
+      misc,
+      circuitGroup,
+      lightGroup,
+      pumps,
+      spaCommand,
+      alarm
+    }
+    await this._unit.equipment.setEquipmentConfigurationAsync(data);
+  }
+
+  public async setSystemTime(){
+    try {
+      let sysTime = await this._unit.equipment.setSystemTimeAsync(state.time.toDate(), sys.general.options.adjustDST);
+      logger.silly(`Screenlogic:set time result: ${sysTime}`);
+    } catch (error) {
+      return Promise.reject(new InvalidOperationError('Unable to set system time.', error.message));
+    }
+  }
+  public async setCustomName(idx: number, name: string){
+    try {
+      let ack = await this._unit.equipment.setCustomNameAsync(idx, name);
+      logger.silly(`Screenlogic:set custom name result: ${ack}`);
+    } catch (error) {
+      return Promise.reject(new InvalidOperationError('Unable to set custom name.', error.message));
+    }
   }
 }
 export let sl = new ScreenLogicComms();
