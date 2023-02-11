@@ -1596,7 +1596,7 @@ export class REMInterfaceServer extends ProtoServer {
             });
             this.isRunning = true;
         }
-        catch (err) { logger.error(err); }
+        catch (err) { logger.error(`Error Initializing Sockets: ${err.message}`); }
     }
     private isJSONString(s: string): boolean {
         if (typeof s !== 'string') return false;

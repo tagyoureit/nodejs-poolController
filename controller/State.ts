@@ -98,7 +98,7 @@ export class State implements IState {
                 lines = buff.toString().split('\n');
             }
             return lines;
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error reading log file ${logFile}: ${err.message}`); }
     }
     public async logData(logFile: string, data: any) {
         try {
@@ -115,7 +115,7 @@ export class State implements IState {
             else
                 lines.unshift(data.toString());
             fs.writeFileSync(logPath, lines.join('\n'));
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error reading logData ${logFile}: ${err.message}`); }
     }
     public getState(section?: string): any {
         // todo: getState('time') returns an array of chars.  Needs no be fixed.
