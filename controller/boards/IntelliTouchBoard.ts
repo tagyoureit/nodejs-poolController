@@ -72,6 +72,49 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         // Now that we removed all the virtual circuits that should not be there we need
         // to update them based upon the data.
     }
+    public initValves(eq) {
+        if (typeof sys.valves.find((v) => v.id === 1) === 'undefined') {
+            let valve = sys.valves.getItemById(1, true);
+            valve.isIntake = false;
+            valve.isReturn = false;
+            valve.type = 0;
+            valve.master = 0;
+            valve.isActive = true;
+            valve.name = 'Valve A';
+            logger.info(`Initializing IntelliTouch Valve A`);
+
+        }
+        if (typeof sys.valves.find((v) => v.id === 2) === 'undefined') {
+            let valve = sys.valves.getItemById(1, true);
+            valve.isIntake = false;
+            valve.isReturn = false;
+            valve.type = 0;
+            valve.master = 0;
+            valve.isActive = true;
+            valve.name = 'Valve B';
+            logger.info(`Initializing IntelliTouch Valve B`);
+        }
+        if (eq.intakeReturnValves) {
+            logger.info(`Initializing IntelliTouch Intake/Return Valves`);
+            let valve = sys.valves.getItemById(3, true);
+            valve.isIntake = true;
+            valve.isReturn = false;
+            valve.circuit = 6;
+            valve.type = 0;
+            valve.master = 0;
+            valve.isActive = true;
+            valve.name = 'Intake';
+
+            valve = sys.valves.getItemById(4, true);
+            valve.isIntake = false;
+            valve.isReturn = true;
+            valve.circuit = 6;
+            valve.type = 0;
+            valve.master = 0;
+            valve.isActive = true;
+            valve.name = 'Return';
+        }
+    }
     public initExpansionModules(byte1: number, byte2: number) {
         console.log(`Pentair IntelliTouch System Detected!`);
         // For i9+3S with valve expansion the bytes are 4, 32 the expectation is
@@ -197,6 +240,7 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         }
         eq.setEquipmentIds();
         this.initVirtualCircuits();
+        this.initValves(eq);
         state.equipment.maxBodies = sys.equipment.maxBodies;
         state.equipment.maxCircuitGroups = sys.equipment.maxCircuitGroups;
         state.equipment.maxCircuits = sys.equipment.maxCircuits;
@@ -209,6 +253,7 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         state.equipment.single = sys.equipment.single;
         state.equipment.shared = sys.equipment.shared;
         state.equipment.dual = sys.equipment.dual;
+        
         state.emitControllerChange();
 
     }
