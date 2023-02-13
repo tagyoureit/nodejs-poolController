@@ -2593,10 +2593,22 @@ export class ChemControllerState extends EqState implements IChemControllerState
             this.hasChanged = true;
         }
     }
+    public getEmitData(): any {
+        let chem = sys.chemControllers.getItemById(this.id);
+        let obj = this.get(true);
+        obj.address = chem.address;
+        obj.borates = chem.borates;
+        obj.saturationIndex = this.saturationIndex || 0;
+        obj.alkalinity = chem.alkalinity;
+        obj.calciumHardness = chem.calciumHardness;
+        obj.cyanuricAcid = chem.cyanuricAcid;
+        return obj;
+    }
     public getExtended(): any {
         let chem = sys.chemControllers.getItemById(this.id);
         let obj = this.get(true);
         obj.address = chem.address;
+        obj.borates = chem.borates;
         obj.saturationIndex = this.saturationIndex || 0;
         obj.alkalinity = chem.alkalinity;
         obj.calciumHardness = chem.calciumHardness;
