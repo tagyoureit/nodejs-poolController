@@ -133,7 +133,7 @@ export class Connection {
             }
             let existing = this.findPortById(portId);
             if (typeof existing !== 'undefined')
-                if (existing.type === 'screenlogic') {
+                if (existing.type === 'screenlogic' || sl.enabled) {
                     await sl.closeAsync();
                 }
                 else {

@@ -331,6 +331,7 @@ export class ScreenLogicComms {
     await this._client.closeAsync();
     this._client.removeAllListeners();
     this.isOpen = false;
+    this.enabled = false;
     if (typeof this._pollTimer !== 'undefined') clearTimeout(this._pollTimer);
     this._pollTimer = null;
   }
