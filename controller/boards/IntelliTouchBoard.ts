@@ -50,18 +50,17 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         // 156 = poolheater
         // 157 = spaheater
         this.valueMaps.virtualCircuits = new byteValueMap([
-            [154, { name: 'solar', desc: 'Solar', assignableToPumpCircuit: true }],
+            [154, { name: 'freeze', desc: 'Freeze', assignableToPumpCircuit: true }],
             [155, { name: 'spaHeater', desc: 'Spa Heater', assignableToPumpCircuit: true }],
             [156, { name: 'poolHeater', desc: 'Pool Heater', assignableToPumpCircuit: true }],
             [157, { name: 'heater', desc: 'Either Heater', assignableToPumpCircuit: true }],
-            [158, { name: 'freeze', desc: 'Freeze', assignableToPumpCircuit: true }],
+            [158, { name: 'solar', desc: 'Solar', assignableToPumpCircuit: true }],
             [159, { name: 'heatBoost', desc: 'Heat Boost', assignableToPumpCircuit: false }],
             [160, { name: 'heatEnable', desc: 'Heat Enable', assignableToPumpCircuit: false }],
             [161, { name: 'pumpSpeedUp', desc: 'Pump Speed +', assignableToPumpCircuit: false }],
             [162, { name: 'pumpSpeedDown', desc: 'Pump Speed -', assignableToPumpCircuit: false }],
             [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true }]
         ]);
-
     }
     public initVirtualCircuits() {
         for (let i = state.virtualCircuits.length - 1; i >= 0; i--) {
