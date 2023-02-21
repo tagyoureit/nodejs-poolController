@@ -874,12 +874,11 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
         this._targetSpeed = 0;
         await this.setPumpRPMAsync();
     }
-
+    public async setDriveStateAsync(running: boolean = false) { }
     public async setPumpStateAsync(pstate: PumpState) {
         // Don't poll while we are seting the state.
         this.suspendPolling = true;
         try {
-            let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
             // Since these process are async the closing flag can be set
             // between calls.  We need to check it in between each call.
             try { if (!this.closing) { await this.setPumpRPMAsync(); } } catch (err) { }
@@ -894,7 +893,6 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
     protected async requestPumpStatus() { return Promise.resolve(); };
     protected setPumpFeature(feature?: number) { return Promise.resolve(); }
     protected setPumpToRemoteControl(running: boolean = true) {
-        console.log(`Setting pump to remote control`);
         if (conn.isPortEnabled(this.pump.portId || 0)) {
             // We do nothing on this pump to set it to remote control.  That is unless we are turning it off.
             return new Promise<void>((resolve, reject) => {

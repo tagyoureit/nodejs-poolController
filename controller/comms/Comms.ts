@@ -106,6 +106,10 @@ export class Connection {
                     return Promise.reject(new InvalidOperationError(`Unable to close the current RS485 port`, 'setPortAsync'));
                 }
             }
+            if (pdata.mockPort) pdata.type = 'mock';
+            else if (pdata.netConnect) pdata.type = 'network';
+            else pdata.type = 'local';
+
             config.setSection(section, pdata);
             let cfg = config.getSection(section, {
                 rs485Port: "/dev/ttyUSB0",
@@ -118,6 +122,7 @@ export class Connection {
                 inactivityRetry: 10
             });
             existing = this.getPortByCfg(cfg);
+
             if (typeof existing !== 'undefined') {
                 existing.reconnects = 0;
                 //existing.emitPortStats();
@@ -145,6 +150,14 @@ export class Connection {
             let cfg = config.getSection('controller');
             for (let section in cfg) {
                 if (section.startsWith('comms')) {
+                    let c = cfg[section];
+                    let type = 'local';
+                    if (c.mockPort) type = 'mock';
+                    else if (c.netConnect) type = 'network';
+                    if (type !== c.type) {
+                        c.type = type;
+                        config.setSection(`controller.${section}`, c);
+                    }
                     let port = new RS485Port(cfg[section]);
                     this.rs485Ports.push(port);
                     await port.openAsync();
@@ -261,6 +274,7 @@ export class RS485Port {
         this._outBuffer = [];
         this.procTimer = null;
         this.emitter.on('messagewrite', (msg) => { this.pushOut(msg); });
+        
     }
     public get name(): string { return this.portId === 0 ? 'Primary' : `Aux${this.portId}` }
     public isRTS: boolean = true;
