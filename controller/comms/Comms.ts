@@ -196,7 +196,9 @@ export class Connection {
                 if (section.startsWith('comms')) {
                     let c = cfg[section];
                     if (typeof c.type === 'undefined') {
-                        c.type = c.netConnect ? 'netConnect' : 'local';
+                        let type = 'local';
+                        if (c.mockPort) type = 'mock';
+                        else if (c.netConnect) type = 'network';
                         config.setSection(`controller.${section}`, c);
                         console.log(section);
                         console.log(c);

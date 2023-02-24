@@ -51,11 +51,11 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         // 156 = poolheater
         // 157 = spaheater
         this.valueMaps.virtualCircuits = new byteValueMap([
-            [154, { name: 'solar', desc: 'Solar', assignableToPumpCircuit: true }],
+            [154, { name: 'freeze', desc: 'Freeze', assignableToPumpCircuit: true }],
             [155, { name: 'spaHeater', desc: 'Spa Heater', assignableToPumpCircuit: true }],
             [156, { name: 'poolHeater', desc: 'Pool Heater', assignableToPumpCircuit: true }],
             [157, { name: 'heater', desc: 'Either Heater', assignableToPumpCircuit: true }],
-            [158, { name: 'freeze', desc: 'Freeze', assignableToPumpCircuit: true }],
+            [158, { name: 'solar', desc: 'Solar', assignableToPumpCircuit: true }],
             [159, { name: 'heatBoost', desc: 'Heat Boost', assignableToPumpCircuit: false }],
             [160, { name: 'heatEnable', desc: 'Heat Enable', assignableToPumpCircuit: false }],
             [161, { name: 'pumpSpeedUp', desc: 'Pump Speed +', assignableToPumpCircuit: false }],
@@ -63,7 +63,6 @@ export class IntelliTouchBoard extends EasyTouchBoard {
             [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true }],
             [258, { name: 'anyHeater', desc: 'Any Heater' }]
         ]);
-
     }
     public initVirtualCircuits() {
         for (let i = state.virtualCircuits.length - 1; i >= 0; i--) {
@@ -73,6 +72,49 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         }
         // Now that we removed all the virtual circuits that should not be there we need
         // to update them based upon the data.
+    }
+    public initValves(eq) {
+        if (typeof sys.valves.find((v) => v.id === 1) === 'undefined') {
+            let valve = sys.valves.getItemById(1, true);
+            valve.isIntake = false;
+            valve.isReturn = false;
+            valve.type = 0;
+            valve.master = 0;
+            valve.isActive = true;
+            valve.name = 'Valve A';
+            logger.info(`Initializing IntelliTouch Valve A`);
+
+        }
+        if (typeof sys.valves.find((v) => v.id === 2) === 'undefined') {
+            let valve = sys.valves.getItemById(1, true);
+            valve.isIntake = false;
+            valve.isReturn = false;
+            valve.type = 0;
+            valve.master = 0;
+            valve.isActive = true;
+            valve.name = 'Valve B';
+            logger.info(`Initializing IntelliTouch Valve B`);
+        }
+        if (eq.intakeReturnValves) {
+            logger.info(`Initializing IntelliTouch Intake/Return Valves`);
+            let valve = sys.valves.getItemById(3, true);
+            valve.isIntake = true;
+            valve.isReturn = false;
+            valve.circuit = 6;
+            valve.type = 0;
+            valve.master = 0;
+            valve.isActive = true;
+            valve.name = 'Intake';
+
+            valve = sys.valves.getItemById(4, true);
+            valve.isIntake = false;
+            valve.isReturn = true;
+            valve.circuit = 6;
+            valve.type = 0;
+            valve.master = 0;
+            valve.isActive = true;
+            valve.name = 'Return';
+        }
     }
     public initExpansionModules(byte1: number, byte2: number) {
         console.log(`Pentair IntelliTouch System Detected!`);
@@ -199,6 +241,7 @@ export class IntelliTouchBoard extends EasyTouchBoard {
         }
         eq.setEquipmentIds();
         this.initVirtualCircuits();
+        this.initValves(eq);
         state.equipment.maxBodies = sys.equipment.maxBodies;
         state.equipment.maxCircuitGroups = sys.equipment.maxCircuitGroups;
         state.equipment.maxCircuits = sys.equipment.maxCircuits;

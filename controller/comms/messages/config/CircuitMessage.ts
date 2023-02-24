@@ -155,7 +155,13 @@ export class CircuitMessage {
             let circuit: Circuit = sys.circuits.getItemById(circuitId++, true);
 
             // For some odd reason the circuit type for circuit 6 does not equal pool while circuit 1 does equal spa.
-            circuit.type = circuitId - 1 !== 6 ? msg.extractPayloadByte(i) : 12;
+            // Apparently in later versions, spa does not do this either
+            if (circuit.id === 1)
+                circuit.type = 13
+            else if (circuit.id == 6)
+                circuit.type = 12
+            else
+                circuit.type = msg.extractPayloadByte(i);
             circuit.isActive = true;
             circuit.master = 0;
         }

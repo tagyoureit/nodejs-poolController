@@ -174,6 +174,7 @@ export class WebServer {
         // RKS: We need to get the scope-local nic. This has nothing to do with IP4/6 and is not necessarily named en0 or specific to a particular nic.  We are
         // looking for the first IPv4 interface that has a mac address which will be the scope-local address.  However, in the future we can simply use the IPv6 interface
         // if that is returned on the local scope but I don't know if the node ssdp server supports it on all platforms.
+        let fallback; // Use this for WSL adapters.
         for (let name in networkInterfaces) {
             let nic = networkInterfaces[name];
             for (let ndx in nic) {
@@ -181,10 +182,39 @@ export class WebServer {
                 // All scope-local addresses will have a mac.  In a multi-nic scenario we are simply grabbing
                 // the first one we come across.
                 if (!addr.internal && addr.mac.indexOf('00:00:00:') < 0 && addr.family === this.family) {
-                    return addr;
+                    if (!addr.mac.startsWith('00:'))
+                        return addr;
+                    else if (typeof fallback === 'undefined') fallback = addr;
                 }
             }
         }
+        return fallback;
+    }
+    public getNetworkInterfaces() {
+        const networkInterfaces = os.networkInterfaces();
+        // RKS: We need to get the scope-local nics. This has nothing to do with IP4/6 and is not necessarily named en0 or specific to a particular nic.  We are
+        // looking for the first IPv4 interface that has a mac address which will be the scope-local address.  However, in the future we can simply use the IPv6 interface
+        // if that is returned on the local scope but I don't know if the node ssdp server supports it on all platforms.
+        let ips = [];
+        let nics = { physical: [], virtual: [] }
+        for (let name in networkInterfaces) {
+            let nic = networkInterfaces[name];
+            for (let ndx in nic) {
+                let addr = nic[ndx];
+                // All scope-local addresses will have a mac.  In a multi-nic scenario we are simply grabbing
+                // the first one we come across.
+                if (!addr.internal && addr.mac.indexOf('00:00:00:') < 0 && addr.family === this.family) {
+                    if (typeof ips.find((x) => x === addr.address) === 'undefined') {
+                        ips.push(addr.address);
+                        if (!addr.mac.startsWith('00:'))
+                            nics.physical.push(extend(true, { name: name }, addr));
+                        else
+                            nics.virtual.push(extend(true, { name: name }, addr));
+                    }
+                }
+            }
+        }
+        return nics;
     }
     public ip() { return typeof this.getInterface() === 'undefined' ? '0.0.0.0' : this.getInterface().address; }
     public mac() { return typeof this.getInterface() === 'undefined' ? '00:00:00:00' : this.getInterface().mac; }
@@ -752,7 +782,7 @@ export class HttpServer extends ProtoServer {
 
                 // start our server on port
                 this.server.listen(cfg.port, cfg.ip, function () {
-                    logger.info('Server is now listening on %s:%s', cfg.ip, cfg.port);
+                    logger.info('Server is now listening on %s:%s - %s:%s', cfg.ip, cfg.port, webApp.ip(), webApp.httpPort());
                 });
                 this.isRunning = true;
             }
@@ -854,7 +884,7 @@ export class HttpsServer extends HttpServer {
 }
 export class SsdpServer extends ProtoServer {
     // Simple service discovery protocol
-    public server: any; //node-ssdp;
+    public server: ssdp.Server; //node-ssdp;
     public deviceUUID: string;
     public upnpPath: string;
     public modelName: string;
@@ -872,16 +902,37 @@ export class SsdpServer extends ProtoServer {
             this.modelName = `njsPC v${ver}`;
             this.modelNumber = `njsPC${ver.replace(/\./g, '-')}`;
             // todo: should probably check if http/https is enabled at this point
-            let port = config.getSection('web').servers.http.port || 7777;
-            this.upnpPath = 'http://' + webApp.ip() + ':' + port + '/upnp.xml';
+            //let port = config.getSection('web').servers.http.port || 7777;
+            this.upnpPath = 'http://' + webApp.ip() + ':' + webApp.httpPort() + '/upnp.xml';
+            let nics = webApp.getNetworkInterfaces();
             let SSDP = ssdp.Server;
-            this.server = new SSDP({
-                //customLogger: (...args) => console.log.apply(null, args),
-                logLevel: 'INFO',
-                udn: this.deviceUUID,
-                location: this.upnpPath,
-                sourcePort: 1900
-            });
+            if (nics.physical.length + nics.virtual.length > 1) {
+                // If there are multiple nics (docker...etc) then
+                // this will bind on all of them.
+                this.server = new SSDP({
+                    //customLogger: (...args) => console.log.apply(null, args),
+                    logLevel: 'INFO',
+                    udn: this.deviceUUID,
+                    location: {
+                        protocol: 'http://',
+                        port: webApp.httpPort(),
+                        path: '/upnp.xml'
+                    },
+                    explicitSocketBind: true,
+                    sourcePort: 1900
+                });
+            }
+            else {
+                this.server = new SSDP({
+                    //customLogger: (...args) => console.log.apply(null, args),
+                    logLevel: 'INFO',
+                    udn: this.deviceUUID,
+                    location: this.upnpPath,
+                    sourcePort: 1900
+                });
+
+
+            }
             this.server.addUSN('upnp:rootdevice'); // This line will make the server show up in windows.
             this.server.addUSN(this.deviceType);
             // start the server
@@ -899,7 +950,7 @@ export class SsdpServer extends ProtoServer {
     public deviceXML(): string {
         let ver = sys.appVersion.split('.');
         let friendlyName = 'njsPC: unknown model';
-        if (typeof sys !== 'undefined' && typeof sys.equipment !== 'undefined' && typeof sys.equipment.model !== 'undefined') friendlyName = `njsPC: ${sys.equipment.model}`;
+        if (typeof sys !== 'undefined' && typeof sys.equipment !== 'undefined' && typeof sys.equipment.model !== 'undefined') friendlyName = `${sys.equipment.model}`
         let XML = `<?xml version="1.0"?>
         <root xmlns="urn:schemas-upnp-org:device-1-0">
             <specVersion>
@@ -978,22 +1029,29 @@ export class MdnsServer extends ProtoServer {
                     if (question.name === '_poolcontroller._tcp.local') {
                         logger.info(`received mdns query for nodejs_poolController`);
                         self.server.respond({
-                            answers: [{
-                                name: '_poolcontroller._tcp.local',
-                                type: 'A',
-                                ttl: 300,
-                                data: webApp.ip()
-                            },
-                            {
-                                name: 'api._poolcontroller._tcp.local',
-                                type: 'SRV',
-                                data: {
-                                    port: '4200',
-                                    target: '_poolcontroller._tcp.local',
-                                    weight: 0,
-                                    priority: 10
-                                }
-                            }]
+                            answers: [
+                                {
+                                    name: '_poolcontroller._tcp.local',
+                                    type: 'A',
+                                    ttl: 300,
+                                    data: webApp.ip()
+                                },
+                                {
+                                    name: '_poolcontroller._tcp.local',
+                                    type: 'SRV',
+                                    data: {
+                                        port: webApp.httpPort().toString(),
+                                        target: '_poolcontroller._tcp.local',
+                                        weight: 0,
+                                        priority: 10
+                                    }
+                                },
+                                {
+                                    name: 'model',
+                                    type: 'TXT',
+                                    data: 'njsPC'
+                                },
+                            ]
                         });
                     }
                 });
@@ -1542,7 +1600,7 @@ export class REMInterfaceServer extends ProtoServer {
             });
             this.isRunning = true;
         }
-        catch (err) { logger.error(err); }
+        catch (err) { logger.error(`Error Initializing Sockets: ${err.message}`); }
     }
     private isJSONString(s: string): boolean {
         if (typeof s !== 'string') return false;

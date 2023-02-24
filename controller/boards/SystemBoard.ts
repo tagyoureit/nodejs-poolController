@@ -2253,10 +2253,10 @@ export class CircuitCommands extends BoardCommands {
                         if (!remove) {
                             // Determine whether the spa heater is on.
                             for (let j = 0; j < spaStates.length; j++) {
-                                let hstatus = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus);
                                 if (hstatus !== 'off' && hstatus !== 'solar') {
                                     // In this instance we may have a delay underway.
-                                    let hstate = state.heaters.find(x => x.bodyId === 1 && x.startupDelay === true && x.type.name !== 'solar');
+                                    let hstate = state.heaters.find(x => x.bodyId === 2 && x.startupDelay === true && x.type.name !== 'solar');
                                     bState = typeof hstate === 'undefined';
                                 }
                             }

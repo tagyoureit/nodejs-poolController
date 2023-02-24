@@ -102,10 +102,9 @@ export class ValveMessage {
         // [165,33,15,16,29,24],[2,0,0,0,128,1,255,255,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[4,154] [get]
         // what is payload[0]?
         for (let ndx = 4, id = 1; id <= sys.equipment.maxValves; ndx++) {
-            let valve: Valve = sys.valves.getItemById(id);
             if (id === 3) {
                 if (sys.equipment.shared && !sys.equipment.single) {
-                    valve = sys.valves.getItemById(id, true);
+                    let valve: Valve = sys.valves.getItemById(id);
                     valve.circuit = 6; // pool/spa -- fix
                     valve.name = 'Intake';
                     valve.isIntake = true;
@@ -124,7 +123,7 @@ export class ValveMessage {
             }
             else if (id === 4) {
                 if (sys.equipment.shared && !sys.equipment.single) {
-                    valve = sys.valves.getItemById(id, true);
+                    let valve: Valve = sys.valves.getItemById(id);
                     valve.circuit = 6; // pool/spa -- fix
                     valve.name = 'Return';
                     valve.isIntake = false;
@@ -142,7 +141,7 @@ export class ValveMessage {
                 }
             }
             else {
-                valve = sys.valves.getItemById(id, true);
+                let valve: Valve = sys.valves.getItemById(id);
                 let circ = msg.extractPayloadByte(ndx);
                 valve.circuit = circ > 0 && circ < 255 ? circ : 0;
                 //valve.circuit = msg.extractPayloadByte(ndx);
@@ -154,21 +153,12 @@ export class ValveMessage {
                 valve.isReturn = false;
                 valve.isIntake = false;
                 valve.type = 0;
+                valve.master = 0;
                 // Allow users to name the valve whatever they want.  *Touch apparently only allows the valve to be named the same
                 // as the circuit but this should be fine if we allow the user to edit it.
                 valve.name = (typeof valve.name === 'undefined') ? ValveMessage.getName(id, valve.circuit) : valve.name;
                 let svalve = state.valves.getItemById(id, true);
                 svalve.name = valve.name;
-                svalve.type = valve.type;
-                valve.master = 0;
-            }
-            if (!valve.isActive) {
-                sys.valves.removeItemById(id);
-                state.valves.removeItemById(id);
-            }
-            else {
-                valve.master = 0;
-                valve.type = 0;
             }
             id++;
         }

@@ -99,7 +99,7 @@ export class State implements IState {
                 lines = buff.toString().split('\n');
             }
             return lines;
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error reading log file ${logFile}: ${err.message}`); }
     }
     public async logData(logFile: string, data: any) {
         try {
@@ -116,7 +116,7 @@ export class State implements IState {
             else
                 lines.unshift(data.toString());
             fs.writeFileSync(logPath, lines.join('\n'));
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error reading or writing logData ${logFile}: ${err.message}`); }
     }
     public getState(section?: string): any {
         // todo: getState('time') returns an array of chars.  Needs no be fixed.
@@ -2593,6 +2593,17 @@ export class ChemControllerState extends EqState implements IChemControllerState
             this.data.siCalcType = sys.board.valueMaps.siCalcTypes.transform(val);
             this.hasChanged = true;
         }
+    }
+    public getEmitData(): any {
+        let chem = sys.chemControllers.getItemById(this.id);
+        let obj = this.get(true);
+        obj.address = chem.address;
+        obj.borates = chem.borates;
+        obj.saturationIndex = this.saturationIndex || 0;
+        obj.alkalinity = chem.alkalinity;
+        obj.calciumHardness = chem.calciumHardness;
+        obj.cyanuricAcid = chem.cyanuricAcid;
+        return obj;
     }
     public getExtended(): any {
         let chem = sys.chemControllers.getItemById(this.id);
