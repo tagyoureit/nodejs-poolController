@@ -2,17 +2,17 @@ import { ControllerType, Timestamp, Utils, utils } from '../../controller/Consta
 import { LightGroup, LightGroupCircuit, sys, Valve, Body, Pump, PumpCircuit, Remote } from '../../controller/Equipment';
 import { CircuitState, state, ValveState } from '../../controller/State';
 import * as ScreenLogic from 'node-screenlogic';
-import { SLControllerConfigData, SLEquipmentConfigurationData, Valves, HeaterConfig } from 'node-screenlogic/dist/messages/config/EquipmentConfig';
+import { SLControllerConfigData, SLEquipmentConfigurationData, Valves, HeaterConfig } from '../../../node-screenlogic/dist/messages/config/EquipmentConfig';
 import { EasyTouchBoard } from '../../controller/boards/EasyTouchBoard';
 import { IntelliTouchBoard } from '../../controller/boards/IntelliTouchBoard';
 import { logger } from '../../logger/Logger';
-import { SLIntellichlorData } from 'node-screenlogic/dist/messages/state/ChlorMessage';
-import { SLChemData } from 'node-screenlogic/dist/messages/state/ChemMessage';
-import { SLScheduleData } from 'node-screenlogic/dist/messages/config/ScheduleMessage';
+import { SLIntellichlorData } from '../../../node-screenlogic/dist/messages/state/ChlorMessage';
+import { SLChemData } from '../../../node-screenlogic/dist/messages/state/ChemMessage';
+import { SLScheduleData } from '../../../node-screenlogic/dist/messages/config/ScheduleMessage';
 import { webApp } from '../../web/Server';
-import { SLPumpStatusData } from 'node-screenlogic/dist/messages/state/PumpMessage';
+import { SLPumpStatusData } from '../../../node-screenlogic/dist/messages/state/PumpMessage';
 import { delayMgr } from '../../controller/Lockouts';
-import { EquipmentStateMessage, SLEquipmentStateData, SLSystemTimeData } from 'node-screenlogic/dist/messages/state/EquipmentState';
+import { EquipmentStateMessage, SLEquipmentStateData, SLSystemTimeData } from '../../../node-screenlogic/dist/messages/state/EquipmentState';
 import { config } from '../../config/Config';
 import { InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError } from '../../controller/Errors';
 import extend = require('extend');
@@ -22,6 +22,7 @@ export class ScreenLogicComms {
   constructor() {
     this._client = ScreenLogic.screenlogic;
   };
+  public a: SLChemData;
   public counter: SLCounter = new SLCounter();
   private _gateway: ScreenLogic.RemoteLogin;
   private _client: ScreenLogic.UnitConnection;
