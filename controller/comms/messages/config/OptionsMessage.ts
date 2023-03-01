@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -124,16 +125,18 @@ export class OptionsMessage {
                 // We don't want the dual speed pump to even exist unless there are no circuit controlling it.
                 // It should not be showing up in our pumps list or emitting state unless the user has defined
                 // circuits to it on *Touch interfaces.
+                // RSG 1/5/23 - Intellitouch (and Dual Body) accept 8 high speed circuits
+                let maxCircuits = sys.controllerType === ControllerType.IntelliTouch ? 8 : 4;
                 let arrCircuits = [];
                 let pump = sys.pumps.getDualSpeed(true);
-                for (let i = 0; i <= 3; i++) {
+                for (let i = 0; i < maxCircuits; i++) {
                     let val = msg.extractPayloadByte(i);
                     if (val > 0) arrCircuits.push(val);
                     else pump.circuits.removeItemById(i);
                 }
                 if (arrCircuits.length > 0) {
                     let pump = sys.pumps.getDualSpeed(true);
-                    for (let j = 1; j <= arrCircuits.length; j++) pump.circuits.getItemById(j, true).circuit = arrCircuits[j];
+                    for (let j = 1; j <= arrCircuits.length; j++) pump.circuits.getItemById(j, true).circuit = arrCircuits[j-1];
                 }
                 else sys.pumps.removeItemById(10);
                 msg.isProcessed = true;

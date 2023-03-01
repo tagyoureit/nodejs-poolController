@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -19,7 +20,7 @@ import * as path from "path";
 import * as express from "express";
 import * as extend from 'extend';
 import * as multer from 'multer';
-import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup, CustomNameCollection, Schedule, Chlorinator, Heater } from "../../../controller/Equipment";
+import { sys, LightGroup, ControllerType, Pump, Valve, Body, General, Circuit, ICircuit, Feature, CircuitGroup, CustomNameCollection, Schedule, Chlorinator, Heater, Screenlogic } from "../../../controller/Equipment";
 import { config } from "../../../config/Config";
 import { logger } from "../../../logger/Logger";
 import { utils } from "../../../controller/Constants";
@@ -29,6 +30,8 @@ import { stopPacketCaptureAsync, startPacketCapture } from '../../../app';
 import { conn } from "../../../controller/comms/Comms";
 import { webApp, BackupFile, RestoreFile } from "../../Server";
 import { release } from "os";
+import { ScreenLogicComms, sl } from "../../../controller/comms/ScreenLogic";
+import { screenlogic } from "node-screenlogic";
 
 export class ConfigRoute {
     public static initRoutes(app: express.Application) {
@@ -64,18 +67,46 @@ export class ConfigRoute {
         });
         app.get('/config/options/rs485', async (req, res, next) => {
             try {
-                let opts = { ports: [], local: [] }
+                let opts = { ports: [], local: [], screenlogic: {} }
                 let cfg = config.getSection('controller');
                 for (let section in cfg) {
                     if (section.startsWith('comms')) {
-                        let cport = extend(true, { enabled: false, netConnect: false }, cfg[section]);
+                        let cport = extend(true, { enabled: false, netConnect: false, mock: false }, cfg[section]);
                         let port = conn.findPortById(cport.portId || 0);
+                        if (typeof cport.type === 'undefined'){
+                            cport.type = cport.netConnect ? 'netConnect' : cport.mockPort || cport.mock ? 'mock' : 'local'
+                        }
                         if (typeof port !== 'undefined') cport.stats = port.stats;
+                        if (port.portId === 0 && port.type === 'screenlogic') {
+                            cport.screenlogic.stats = sl.stats;
+                        }
                         opts.ports.push(cport);
                     }
+                    // if (section.startsWith('screenlogic')){
+                    //     let screenlogic = cfg[section];
+                    //     screenlogic.types =  [{ val: 'local', name: 'Local', desc: 'Local Screenlogic' }, { val: 'remote', name: 'Remote', desc: 'Remote Screenlogic' }];
+                    //     screenlogic.stats = sl.stats;
+                    //     opts.screenlogic = screenlogic;
+                    // }
                 }
                 opts.local = await conn.getLocalPortsAsync() || [];
                 return res.status(200).send(opts);
+            } catch (err) { next(err); }
+        });
+        // app.get('/config/options/screenlogic', async (req, res, next) => {
+        //     try {
+        //         let cfg = config.getSection('controller.screenlogic');
+        //         let data = {
+        //             cfg,
+        //             types: [{ val: 'local', name: 'Local', desc: 'Local Screenlogic' }, { val: 'remote', name: 'Remote', desc: 'Remote Screenlogic' }]
+        //         }
+        //         return res.status(200).send(data);
+        //     } catch (err) { next(err); }
+        // });
+        app.get('/config/options/screenlogic/search', async (req, res, next) => {
+            try {
+                let localUnits = await ScreenLogicComms.searchAsync();
+                return res.status(200).send(localUnits);
             } catch (err) { next(err); }
         });
         app.get('/config/options/circuits', async (req, res, next) => {
@@ -316,6 +347,19 @@ export class ConfigRoute {
                 return res.status(200).send(opts);
             } catch (err) { next(err); }
         });
+        app.get('/config/options/anslq25ControllerType', async (req, res, next) => {
+            try {
+                let opts = {
+                    // controllerType: typeof sys.anslq25.controllerType === 'undefined' ? '' : sys.anslq25.controllerType,
+                    // model: typeof sys.anslq25.model === 'undefined' ? '' : sys.anslq25.model,
+                    // equipment: sys.equipment.get(),
+                    ...sys.anslq25.get(true),
+                    controllerTypes: sys.getAvailableControllerTypes(['easytouch', 'intellitouch', 'intellicenter']),
+                    rs485ports: await conn.listInstalledPorts()
+                }
+                return res.status(200).send(opts);
+            } catch (err) { next(err); }
+        });
         app.get('/config/options/chlorinators', async (req, res, next) => {
             try {
                 let opts = {
@@ -401,6 +445,13 @@ export class ConfigRoute {
             try {
                 let controller = await sys.board.setControllerType(req.body);
                 return res.status(200).send(controller.get(true));
+            } catch (err) { next(err); }
+        });
+        app.put('/config/anslq25ControllerType', async (req, res, next) => {
+            try {
+                // sys.anslq25ControllerType
+                await sys.anslq25Board.setAnslq25Async(req.body);
+                return res.status(200).send(sys.anslq25.get(true));
             } catch (err) { next(err); }
         });
         app.delete('/config/filter', async (req, res, next) => {
@@ -807,6 +858,13 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
+        // app.put('/app/screenlogic', async (req, res, next) => {
+        //     try {
+        //         let screenlogic = await sl.setScreenlogicAsync(req.body);
+        //         return res.status(200).send(screenlogic);
+        //     }
+        //     catch (err) { next(err); }
+        // });
         app.delete('/app/rs485Port', async (req, res, next) => {
             try {
                 let port = await conn.deleteAuxPort(req.body);
@@ -944,6 +1002,18 @@ export class ConfigRoute {
                 let opts = req.body;
                 let results = await webApp.restoreServers(opts);
                 return res.status(200).send(results);
+            } catch (err) { next(err); }
+        });
+        app.put('/app/anslq25', async(req, res, next) => {
+            try {
+                await sys.anslq25Board.setAnslq25Async(req.body);
+                return res.status(200).send(sys.anslq25.get(true));
+            } catch (err) { next(err); }
+        });
+        app.delete('/app/anslq25', async(req, res, next) => {
+            try {
+                await sys.anslq25Board.deleteAnslq25Async(req.body);
+                return res.status(200).send(sys.anslq25.get(true));
             } catch (err) { next(err); }
         });
     }

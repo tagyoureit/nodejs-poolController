@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -331,7 +332,7 @@ export class PumpMessage {
         // 18   | 3   | Big endian speed for the speed (1000 rpm with byte(28))
         // 19   | 0   | Circuit speed #8 = No circuit
         // 20   | 3   | Big endian speed for the speed (1000 rpm with byte(29))
-        // 21   | 3   | Big eniand speed for the priming speed (1000 rpm with byte(30))
+        // 21   | 3   | Big endian speed for the priming speed (1000 rpm with byte(30))
         // All 30 bytes on this message are accounted for except for byte 3 & 4.
         if (typeof pump.model === 'undefined') pump.model = 0;
         for (let circuitId = 1; circuitId <= sys.board.valueMaps.pumpTypes.get(pump.type).maxCircuits; circuitId++) {

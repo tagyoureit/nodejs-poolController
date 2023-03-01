@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -43,11 +44,14 @@ export class StateRoute {
                     reconnects: 0,
                     inactivityRetry: cfg.inactivityRetry,
                     isOpen: false,
-                    mockPort: cfg.mockPort || false
+                    mock: cfg.mock || false
                 }
-                if (cfg.netConnect) sport.network = { host: cfg.netHost, port: cfg.netPort };
+                if (cfg.netConnect) sport.netConnect = { host: cfg.netHost, port: cfg.netPort }
+                else if (typeof cfg.type !== 'undefined' && cfg.type === 'screenlogic'){
+                    sport.screenlogic = cfg.screenlogic;
+                }
                 else sport.settings = extend(true, { name: cfg.rs485Port }, cfg.portSettings);
-                if (typeof port !== 'undefined') {
+                if (typeof port !== 'undefined' && port.type !== 'screenlogic') {
                     let stats = port.stats;
                     sport.reconnects = port.reconnects;
                     sport.isOpen = port.isOpen;
@@ -426,6 +430,7 @@ export class StateRoute {
             // RKS: 06-24-20 -- Changed this so that users can send in the body id, circuit id, or the name.
             // RKS: 05-14-21 -- Added cooling setpoints for the body.
             try {
+                
                 let body = sys.bodies.findByObject(req.body);
                 if (typeof body === 'undefined') return next(new ServiceParameterError(`Cannot set body setPoint.  You must supply a valid id, circuit, name, or type for the body`, 'body', 'id', req.body.id));
                 if (typeof req.body.coolSetpoint !== 'undefined' && !isNaN(parseInt(req.body.coolSetpoint, 10)))

@@ -150,7 +150,7 @@ export class NixieHeaterBase extends NixieEquipment {
     public async setHeaterAsync(data: any) {
         try {
             let heater = this.heater;
-           
+
         }
         catch (err) { logger.error(`Nixie setHeaterAsync: ${err.message}`); return Promise.reject(err); }
     }
@@ -175,7 +175,7 @@ export class NixieGasHeater extends NixieHeaterBase {
         // Delays are always in terms of seconds so convert the minute to seconds.
         if (this.heater.cooldownDelay === 0 || typeof this.lastHeatCycle === 'undefined') return 0;
         let now = new Date().getTime();
-        let cooldown = this.isOn ? this.heater.cooldownDelay * 60000 : Math.round( ((this.lastHeatCycle.getDate() + this.heater.cooldownDelay * 60000) - now) / 1000);
+        let cooldown = this.isOn ? this.heater.cooldownDelay * 60000 : Math.round(((this.lastHeatCycle.getDate() + this.heater.cooldownDelay * 60000) - now) / 1000);
         return Math.min(Math.max(0, cooldown), this.heater.cooldownDelay * 60);
     }
     public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean) {
@@ -478,7 +478,7 @@ export class NixieUltratemp extends NixieHeaterBase {
         catch (err) { logger.error(`Error polling UltraTemp heater - ${err}`); }
         finally {
             this.suspendPolling = false; if (!this.closing) this._pollTimer = setTimeout(async () => {
-                try { await self.pollEquipmentAsync() } catch (err) {}
+                try { await self.pollEquipmentAsync() } catch (err) { }
             }, this.pollingInterval || 10000);
         }
     }
@@ -488,7 +488,7 @@ export class NixieUltratemp extends NixieHeaterBase {
             this.isCooling = isCooling;
             if (hstate.isOn !== isOn) {
                 logger.info(`Nixie: Set Heater ${hstate.id}-${hstate.name} to ${isCooling ? 'cooling' : isOn ? 'heating' : 'off'}`);
-                
+
             }
             if (isOn && !hstate.startupDelay) this.lastHeatCycle = new Date();
             this.isOn = hstate.isOn = isOn;
@@ -496,77 +496,68 @@ export class NixieUltratemp extends NixieHeaterBase {
     }
     public async releaseHeater(sheater: HeaterState): Promise<boolean> {
         try {
-            let success = await new Promise<boolean>((resolve, reject) => {
-                let out = Outbound.create({
-                    portId: this.heater.portId || 0,
-                    protocol: Protocol.Heater,
-                    source: 16,
-                    dest: this.heater.address,
-                    action: 114,
-                    payload: [],
-                    retries: 3, // We are going to try 4 times.
-                    response: Response.create({ protocol: Protocol.Heater, action: 115 }),
-                    onAbort: () => { },
-                    onComplete: (err) => {
-                        if (err) {
-                            // If the Ultratemp is not responding we need to store that off but at this point we know none of the codes.  If a 115 does
-                            // come across this will be cleared by the processing of that message.
-                            sheater.commStatus = sys.board.valueMaps.equipmentCommStatus.getValue('commerr');
-                            state.equipment.messages.setMessageByCode(`heater:${sheater.id}:comms`, 'error', `Communication error with ${sheater.name}`);
-                            resolve(false);
-                        }
-                        else { resolve(true); }
-                    }
-                });
-                out.appendPayloadBytes(0, 10);
-                out.setPayloadByte(0, 144);
-                out.setPayloadByte(1, 0, 0);
-                conn.queueSendMessage(out);
+            let out = Outbound.create({
+                portId: this.heater.portId || 0,
+                protocol: Protocol.Heater,
+                source: 16,
+                dest: this.heater.address,
+                action: 114,
+                payload: [],
+                retries: 3, // We are going to try 4 times.
+                response: Response.create({ protocol: Protocol.Heater, action: 115 }),
+                onAbort: () => { }
             });
-            return success;
-        } catch (err) { logger.error(`Communication error with Ultratemp : ${err.message}`); }
+            out.appendPayloadBytes(0, 10);
+            out.setPayloadByte(0, 144);
+            out.setPayloadByte(1, 0, 0);
+            await out.sendAsync();
+            return true;
+
+        } catch (err) {
+            // If the Ultratemp is not responding we need to store that off but at this point we know none of the codes.  If a 115 does
+            // come across this will be cleared by the processing of that message.
+            sheater.commStatus = sys.board.valueMaps.equipmentCommStatus.getValue('commerr');
+            state.equipment.messages.setMessageByCode(`heater:${sheater.id}:comms`, 'error', `Communication error with ${sheater.name}`);
+            logger.error(`Communication error with Ultratemp : ${err.message}`);
+            return false;
+        }
     }
     public async setStatus(sheater: HeaterState): Promise<boolean> {
         try {
-            let success = await new Promise<boolean>((resolve, reject) => {
-                let out = Outbound.create({
-                    portId: this.heater.portId || 0,
-                    protocol: Protocol.Heater,
-                    source: 16,
-                    dest: this.heater.address,
-                    action: 114,
-                    payload: [],
-                    retries: 3, // We are going to try 4 times.
-                    response: Response.create({ protocol: Protocol.Heater, action: 115 }),
-                    onAbort: () => { },
-                    onComplete: (err) => {
-                        if (err) {
-                            // If the Ultratemp is not responding we need to store that off but at this point we know none of the codes.  If a 115 does
-                            // come across this will be cleared by the processing of that message.
-                            sheater.commStatus = sys.board.valueMaps.equipmentCommStatus.getValue('commerr');
-                            state.equipment.messages.setMessageByCode(`heater:${sheater.id}:comms`, 'error', `Communication error with ${sheater.name}`);
-                            resolve(false);
-                        }
-                        else { resolve(true); }
-                    }
-                });
-                out.appendPayloadBytes(0, 10);
-                out.setPayloadByte(0, 144);
-                // If we are in startup delay simply tell the heater that it is off.
-                if (sheater.startupDelay || this.closing)
-                    out.setPayloadByte(1, 0, 0);
-                else {
-                    if (this.isOn) {
-                        if (!this.isCooling) this.lastHeatCycle = new Date();
-                        else this.lastCoolCycle = new Date();
-                    }
-                    //console.log(`Setting the heater byte ${this.isOn} ${sheater.isOn} to ${this.isOn ? (this.isCooling ? 2 : 1) : 0}`);
-                    out.setPayloadByte(1, this.isOn ? (this.isCooling ? 2 : 1) : 0, 0);
-                }
-                conn.queueSendMessage(out);
+            let out = Outbound.create({
+                portId: this.heater.portId || 0,
+                protocol: Protocol.Heater,
+                source: 16,
+                dest: this.heater.address,
+                action: 114,
+                payload: [],
+                retries: 3, // We are going to try 4 times.
+                response: Response.create({ protocol: Protocol.Heater, action: 115 }),
+                onAbort: () => { }
             });
+            out.appendPayloadBytes(0, 10);
+            out.setPayloadByte(0, 144);
+            // If we are in startup delay simply tell the heater that it is off.
+            if (sheater.startupDelay || this.closing)
+                out.setPayloadByte(1, 0, 0);
+            else {
+                if (this.isOn) {
+                    if (!this.isCooling) this.lastHeatCycle = new Date();
+                    else this.lastCoolCycle = new Date();
+                }
+                //console.log(`Setting the heater byte ${this.isOn} ${sheater.isOn} to ${this.isOn ? (this.isCooling ? 2 : 1) : 0}`);
+                out.setPayloadByte(1, this.isOn ? (this.isCooling ? 2 : 1) : 0, 0);
+            }
+            let success = await out.sendAsync();
             return success;
-        } catch (err) { logger.error(`Communication error with Ultratemp : ${err.message}`); }
+        } catch (err) {
+            // If the Ultratemp is not responding we need to store that off but at this point we know none of the codes.  If a 115 does
+            // come across this will be cleared by the processing of that message.
+            sheater.commStatus = sys.board.valueMaps.equipmentCommStatus.getValue('commerr');
+            state.equipment.messages.setMessageByCode(`heater:${sheater.id}:comms`, 'error', `Communication error with ${sheater.name}`);
+            logger.error(`Communication error with Ultratemp : ${err.message}`);
+            return false;
+        }
     }
     public async closeAsync() {
         try {
@@ -588,13 +579,13 @@ export class NixieMastertemp extends NixieGasHeater {
         this.pollEquipmentAsync();
         this.pollingInterval = 3000;
     }
-/*     public getCooldownTime(): number {
-        // Delays are always in terms of seconds so convert the minute to seconds.
-        if (this.heater.cooldownDelay === 0 || typeof this.lastHeatCycle === 'undefined') return 0;
-        let now = new Date().getTime();
-        let cooldown = this.isOn ? this.heater.cooldownDelay * 60000 : Math.round(((this.lastHeatCycle.getDate() + this.heater.cooldownDelay * 60000) - now) / 1000);
-        return Math.min(Math.max(0, cooldown), this.heater.cooldownDelay * 60);
-    } */
+    /*     public getCooldownTime(): number {
+            // Delays are always in terms of seconds so convert the minute to seconds.
+            if (this.heater.cooldownDelay === 0 || typeof this.lastHeatCycle === 'undefined') return 0;
+            let now = new Date().getTime();
+            let cooldown = this.isOn ? this.heater.cooldownDelay * 60000 : Math.round(((this.lastHeatCycle.getDate() + this.heater.cooldownDelay * 60000) - now) / 1000);
+            return Math.min(Math.max(0, cooldown), this.heater.cooldownDelay * 60);
+        } */
     public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean) {
         try {
             // Initialize the desired state.
@@ -626,42 +617,37 @@ export class NixieMastertemp extends NixieGasHeater {
     }
     public async setStatus(sheater: HeaterState): Promise<boolean> {
         try {
-            let success = await new Promise<boolean>((resolve, reject) => {
-                let out = Outbound.create({
-                    portId: this.heater.portId || 0,
-                    protocol: Protocol.Heater,
-                    source: 16,
-                    dest: this.heater.address,
-                    action: 112,
-                    payload: [],
-                    retries: 3, // We are going to try 4 times.
-                    response: Response.create({ protocol: Protocol.Heater, action: 116 }),
-                    onAbort: () => { },
-                    onComplete: (err) => {
-                        if (err) {
-                            // If the MasterTemp is not responding we need to store that off but at this point we know none of the codes.  If a 115 does
-                            // come across this will be cleared by the processing of that message.
-                            sheater.commStatus = sys.board.valueMaps.equipmentCommStatus.getValue('commerr');
-                            state.equipment.messages.setMessageByCode(`heater:${sheater.id}:comms`, 'error', `Communication error with ${sheater.name}`);
-                            resolve(false);
-                        }
-                        else { resolve(true); }
-                    }
-                });
-                out.appendPayloadBytes(0, 11);
-                // If we have a startup delay we need to simply send 0 to the heater to make sure that it is off.
-                if (sheater.startupDelay)
-                    out.setPayloadByte(0, 0);
-                else {
-                    // The cooldown delay is a bit hard to figure out here since I think the heater does it on its own.
-                    out.setPayloadByte(0, sheater.bodyId <= 2 ? sheater.bodyId : 0);
-                }
-                out.setPayloadByte(1, sys.bodies.getItemById(1).heatSetpoint || 0);
-                out.setPayloadByte(2, sys.bodies.getItemById(2).heatSetpoint || 0);
-                conn.queueSendMessage(out);
+            let out = Outbound.create({
+                portId: this.heater.portId || 0,
+                protocol: Protocol.Heater,
+                source: 16,
+                dest: this.heater.address,
+                action: 112,
+                payload: [],
+                retries: 3, // We are going to try 4 times.
+                response: Response.create({ protocol: Protocol.Heater, action: 116 }),
+                onAbort: () => { }
             });
+            out.appendPayloadBytes(0, 11);
+            // If we have a startup delay we need to simply send 0 to the heater to make sure that it is off.
+            if (sheater.startupDelay)
+                out.setPayloadByte(0, 0);
+            else {
+                // The cooldown delay is a bit hard to figure out here since I think the heater does it on its own.
+                out.setPayloadByte(0, sheater.bodyId <= 2 ? sheater.bodyId : 0);
+            }
+            out.setPayloadByte(1, sys.bodies.getItemById(1).heatSetpoint || 0);
+            out.setPayloadByte(2, sys.bodies.getItemById(2).heatSetpoint || 0);
+            let success = await out.sendAsync();
             return success;
-        } catch (err) { logger.error(`Communication error with MasterTemp : ${err.message}`); }
+        } catch (err) {
+            // If the MasterTemp is not responding we need to store that off but at this point we know none of the codes.  If a 115 does
+            // come across this will be cleared by the processing of that message.
+            sheater.commStatus = sys.board.valueMaps.equipmentCommStatus.getValue('commerr');
+            state.equipment.messages.setMessageByCode(`heater:${sheater.id}:comms`, 'error', `Communication error with ${sheater.name}`);
+            logger.error(`Communication error with MasterTemp : ${err.message}`);
+            return false;
+        }
     }
     public async setServiceModeAsync() {
         let hstate = state.heaters.getItemById(this.heater.id);
@@ -720,38 +706,33 @@ export class NixieUltraTempETi extends NixieHeaterBase {
     }
     public async releaseHeater(sheater: HeaterState): Promise<boolean> {
         try {
-            let success = await new Promise<boolean>((resolve, reject) => {
-                let out = Outbound.create({
-                    portId: this.heater.portId || 0,
-                    protocol: Protocol.Heater,
-                    source: 16,
-                    dest: this.heater.address,
-                    action: 112,
-                    payload: [],
-                    retries: 3, // We are going to try 4 times.
-                    response: Response.create({ protocol: Protocol.Heater, action: 113 }),
-                    onAbort: () => { },
-                    onComplete: (err) => {
-                        if (err) {
-                            // If the Ultratemp is not responding we need to store that off but at this point we know none of the codes.  If a 113 does
-                            // come across this will be cleared by the processing of that message.
-                            sheater.commStatus = sys.board.valueMaps.equipmentCommStatus.getValue('commerr');
-                            state.equipment.messages.setMessageByCode(`heater:${sheater.id}:comms`, 'error', `Communication error with ${sheater.name}`);
-                            resolve(false);
-                        }
-                        else { resolve(true); }
-                    }
-                });
-                out.appendPayloadBytes(0, 10);
-                out.setPayloadByte(0, 0);
-                out.setPayloadByte(1, 0);
-                out.setPayloadByte(2, 78);
-                out.setPayloadByte(3, 1);
-                out.setPayloadByte(4, 5);
-                conn.queueSendMessage(out);
+            let out = Outbound.create({
+                portId: this.heater.portId || 0,
+                protocol: Protocol.Heater,
+                source: 16,
+                dest: this.heater.address,
+                action: 112,
+                payload: [],
+                retries: 3, // We are going to try 4 times.
+                response: Response.create({ protocol: Protocol.Heater, action: 113 }),
+                onAbort: () => { }
             });
+            out.appendPayloadBytes(0, 10);
+            out.setPayloadByte(0, 0);
+            out.setPayloadByte(1, 0);
+            out.setPayloadByte(2, 78);
+            out.setPayloadByte(3, 1);
+            out.setPayloadByte(4, 5);
+            let success = await out.sendAsync();
             return success;
-        } catch (err) { logger.error(`Communication error with Ultratemp : ${err.message}`); }
+        } catch (err) {
+            // If the Ultratemp is not responding we need to store that off but at this point we know none of the codes.  If a 113 does
+            // come across this will be cleared by the processing of that message.
+            sheater.commStatus = sys.board.valueMaps.equipmentCommStatus.getValue('commerr');
+            state.equipment.messages.setMessageByCode(`heater:${sheater.id}:comms`, 'error', `Communication error with ${sheater.name}`);
+            logger.error(`Communication error with Ultratemp : ${err.message}`);
+            return false;
+        }
     }
     protected calcHeatModeByte(body: Body): number {
         let byte = 0;
@@ -783,46 +764,41 @@ export class NixieUltraTempETi extends NixieHeaterBase {
     }
     public async setStatus(sheater: HeaterState): Promise<boolean> {
         try {
-            let success = await new Promise<boolean>((resolve, reject) => {
-                let out = Outbound.create({
-                    portId: this.heater.portId || 0,
-                    protocol: Protocol.Heater,
-                    source: 16,
-                    dest: this.heater.address,
-                    action: 112,
-                    payload: [],
-                    retries: 3, // We are going to try 4 times.
-                    response: Response.create({ protocol: Protocol.Heater, action: 113 }),
-                    onAbort: () => { },
-                    onComplete: (err) => {
-                        if (err) {
-                            // If the Ultratemp ETi is not responding we need to store that off but at this point we know none of the codes.  If a 113 does
-                            // come across this will be cleared by the processing of that message.
-                            sheater.commStatus = sys.board.valueMaps.equipmentCommStatus.getValue('commerr');
-                            state.equipment.messages.setMessageByCode(`heater:${sheater.id}:comms`, 'error', `Communication error with ${sheater.name}`);
-                            resolve(false);
-                        }
-                        else resolve(true);
-                    }
-                });
-                out.appendPayloadBytes(0, 10);
-                out.setPayloadByte(0, this.isOn && !sheater.startupDelay && !this.closing ? 1 : 0);
-                if (sheater.bodyId > 0) {
-                    let body = sys.bodies.getItemById(sheater.bodyId);
-                    out.setPayloadByte(1, this.calcHeatModeByte(body));
-                    out.setPayloadByte(2, body.setPoint);
-                }
-                else out.setPayloadByte(2, utils.convert.temperature.convertUnits(78, 'F', sys.board.valueMaps.tempUnits.getName(state.temps.units) || 'F')); // Just set it to a valid setpoint and call it a day.
-                out.setPayloadByte(3, this.heater.economyTime, 1);
-                out.setPayloadByte(4, this.heater.maxBoostTemp, 5);
-                if (this.isOn) {
-                    if (!this.isCooling) this.lastHeatCycle = new Date();
-                    else this.lastCoolCycle = new Date();
-                }
-                conn.queueSendMessage(out);
+            let out = Outbound.create({
+                portId: this.heater.portId || 0,
+                protocol: Protocol.Heater,
+                source: 16,
+                dest: this.heater.address,
+                action: 112,
+                payload: [],
+                retries: 3, // We are going to try 4 times.
+                response: Response.create({ protocol: Protocol.Heater, action: 113 }),
+                onAbort: () => { }
             });
+            out.appendPayloadBytes(0, 10);
+            out.setPayloadByte(0, this.isOn && !sheater.startupDelay && !this.closing ? 1 : 0);
+            if (sheater.bodyId > 0) {
+                let body = sys.bodies.getItemById(sheater.bodyId);
+                out.setPayloadByte(1, this.calcHeatModeByte(body));
+                out.setPayloadByte(2, body.setPoint);
+            }
+            else out.setPayloadByte(2, utils.convert.temperature.convertUnits(78, 'F', sys.board.valueMaps.tempUnits.getName(state.temps.units) || 'F')); // Just set it to a valid setpoint and call it a day.
+            out.setPayloadByte(3, this.heater.economyTime, 1);
+            out.setPayloadByte(4, this.heater.maxBoostTemp, 5);
+            if (this.isOn) {
+                if (!this.isCooling) this.lastHeatCycle = new Date();
+                else this.lastCoolCycle = new Date();
+            }
+            let success = await out.sendAsync();
             return success;
-        } catch (err) { logger.error(`Communication error with Ultratemp ETi : ${err.message}`); }
+        } catch (err) {
+            // If the Ultratemp ETi is not responding we need to store that off but at this point we know none of the codes.  If a 113 does
+            // come across this will be cleared by the processing of that message.
+            sheater.commStatus = sys.board.valueMaps.equipmentCommStatus.getValue('commerr');
+            state.equipment.messages.setMessageByCode(`heater:${sheater.id}:comms`, 'error', `Communication error with ${sheater.name}`);
+            logger.error(`Communication error with Ultratemp ETi : ${err.message}`);
+            return false;
+        }
     }
     public async closeAsync() {
         try {

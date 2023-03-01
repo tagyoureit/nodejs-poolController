@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -115,7 +116,7 @@ export class State implements IState {
             else
                 lines.unshift(data.toString());
             fs.writeFileSync(logPath, lines.join('\n'));
-        } catch (err) { logger.error(`Error reading logData ${logFile}: ${err.message}`); }
+        } catch (err) { logger.error(`Error reading or writing logData ${logFile}: ${err.message}`); }
     }
     public getState(section?: string): any {
         // todo: getState('time') returns an array of chars.  Needs no be fixed.
@@ -965,7 +966,7 @@ export class PumpState extends EqState {
             this.hasChanged = true;
         }
     }
-    public get virtualControllerStatus(): number {
+/*     public get virtualControllerStatus(): number {
         return typeof (this.data.virtualControllerStatus) !== 'undefined' ? this.data.virtualControllerStatus.val : -1;
     }
     public set virtualControllerStatus(val: number) {
@@ -973,7 +974,7 @@ export class PumpState extends EqState {
             this.data.virtualControllerStatus = sys.board.valueMaps.virtualControllerStatus.transform(val);
             this.hasChanged = true;
         }
-    }
+    } */
     public get targetSpeed(): number { return this.data.targetSpeed; } // used for virtual controller
     public set targetSpeed(val: number) { this.setDataVal('targetSpeed', val); }
     public get type() { return typeof (this.data.type) !== 'undefined' ? this.data.type.val : -1; }

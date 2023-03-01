@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -20,6 +21,7 @@ import { EventEmitter } from 'events';
 const extend = require("extend");
 import { logger } from "../logger/Logger";
 import { utils } from "../controller/Constants";
+import { setTimeout } from 'timers/promises';
 class Config {
     private cfgPath: string;
     private _cfg: any;
@@ -39,7 +41,7 @@ class Config {
             const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), "/package.json"), "utf8").trim());
             this._cfg = extend(true, {}, def, this._cfg, { appVersion: packageJson.version });
             this._isInitialized = true;
-            this.update((err) => {
+            this.updateAsync((err) => {
                 if (typeof err === 'undefined') {
                     fs.watch(this.cfgPath, (event, fileName) => {
                         if (fileName && event === 'change') {
@@ -55,7 +57,7 @@ class Config {
                         }
                     });
                 }
-                else throw err;
+                else return Promise.reject(err);
             });
             this._isLoading = false;
             this.getEnvVariables();
@@ -65,7 +67,7 @@ class Config {
             throw err;
         }
     }
-    public update(callback?: (err?) => void) {
+    public async updateAsync(callback?: (err?) => void) {
         // Don't overwrite the configuration if we failed during the initialization.
         try {
             if (!this._isInitialized) {
@@ -78,7 +80,8 @@ class Config {
                 JSON.stringify(this._cfg, undefined, 2)
             );
             if (typeof callback === 'function') callback();
-            setTimeout(()=>{this._isLoading = false;}, 2000);
+            await setTimeout(2000);
+            this._isLoading = false;
         }
         catch (err) {
             logger.error("Error writing configuration file %s", err);
@@ -98,7 +101,7 @@ class Config {
             section = arr[arr.length - 1];
         }
         if(typeof c[section] !== 'undefined') delete c[section];
-        this.update();
+        this.updateAsync();
     }
     public setSection(section: string, val) {
         let c = this._cfg;
@@ -112,7 +115,7 @@ class Config {
             section = arr[arr.length - 1];
         }
         c[section] = val;
-        this.update();
+        this.updateAsync();
     }
     // RKS: 09-21-21 - We are counting on the return from this being immutable.  A copy of the data
     // should always be returned here.
@@ -153,7 +156,7 @@ class Config {
         for (var i in interfaces) {
             if (interfaces[i].uuid === obj.uuid) {
                 interfaces[i] = obj;
-                this.update();
+                this.updateAsync();
                 return {[i]: interfaces[i]};
             }
         }
@@ -186,7 +189,7 @@ class Config {
             this._cfg.controller.comms.netPort = env.POOL_NET_PORT;
             bUpdate = true;
         }
-        if (bUpdate) this.update();
+        if (bUpdate) this.updateAsync();
     }
 }
 export const config: Config = new Config();

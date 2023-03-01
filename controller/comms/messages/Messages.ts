@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -42,8 +43,10 @@ import { TouchScheduleCommands } from "controller/boards/EasyTouchBoard";
 import { IntelliValveStateMessage } from "./status/IntelliValveStateMessage";
 import { IntelliChemStateMessage } from "./status/IntelliChemStateMessage";
 import { OutboundMessageError } from "../../Errors";
-import { prototype } from "events";
+import { conn } from "../Comms"
 import extend = require("extend");
+import { MessagesMock } from "../../../anslq25/MessagesMock";
+
 export enum Direction {
     In = 'in',
     Out = 'out'
@@ -70,7 +73,10 @@ export class Message {
     private _id: number = -1;
     // Fields
     private static _messageId: number = 0;
-    public static get nextMessageId(): number { return this._messageId < 80000 ? ++this._messageId : this._messageId = 0; }
+    public static get nextMessageId(): number { 
+        let i = this._messageId < 80000 ? ++this._messageId : this._messageId = 0;
+        logger.debug(`Assigning message id ${i}`)
+        return i; }
     public portId = 0; // This will be the target or source port for the message.  If this is from or to an Aux RS485 port the value will be > 0.
     public timestamp: Date = new Date();
     public direction: Direction = Direction.In;
@@ -85,13 +91,14 @@ export class Message {
     public set id(val: number) { this._id = val; }
     public isValid: boolean = true;
     public scope: string;
+    public isClone: boolean;
     // Properties
     public get isComplete(): boolean { return this._complete; }
     public get sub(): number { return this.header.length > 1 ? this.header[1] : -1; }
     public get dest(): number {
         if (this.header.length > 2) {
             if (this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink) {
-                return this.header.length > 2 ? (this.header[2] >= 80 ? this.header[2] - 79 : 0) : -1;
+                return this.header.length > 2 ? (this.header[2] >= 80 ? this.header[2] : 0) : -1;
             }
             else if (this.protocol === Protocol.Hayward) {
                 //            src   act   dest             
@@ -104,7 +111,7 @@ export class Message {
     }
     public get source(): number {
         if (this.protocol === Protocol.Chlorinator) {
-            return this.header.length > 2 ? (this.header[2] >= 80 ? 0 : 1) : -1;
+            return this.header.length > 2 ? (this.header[2] >= 80 ? 0 : this.header[2]) : -1;
             // have to assume incoming packets with header[2] >= 80 (sent to a chlorinator)
             // are from controller (0);
             // likewise, if the destination is 0 (controller) we
@@ -165,7 +172,59 @@ export class Message {
         return pkt;
     }
     public toLog(): string {
-        return `{"port":${this.portId},"id":${ this.id },"valid":${ this.isValid },"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)}, ${JSON.stringify(this.header)}, ${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts":"${Timestamp.toISOLocal(this.timestamp)}"}`;
+        return `{"port":${this.portId},"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)}, ${JSON.stringify(this.header)}, ${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts":"${Timestamp.toISOLocal(this.timestamp)}"}`;
+    }
+    public static convertOutboundToInbound(out: Outbound): Inbound {
+        let inbound = new Inbound();
+        inbound.portId = out.portId;
+        // inbound.id = Message.nextMessageId;
+        inbound.protocol = out.protocol;
+        inbound.scope = out.scope;
+        inbound.preamble = out.preamble;
+        inbound.padding = out.padding;
+        inbound.header = out.header;
+        inbound.payload = [...out.payload];
+        inbound.term = out.term;
+        inbound.portId = out.portId;
+        return inbound;
+    }
+    public static convertInboundToOutbound(inbound: Inbound): Outbound {
+        let out = new Outbound(
+            inbound.protocol,
+            inbound.source,
+            inbound.dest,
+            inbound.action,
+            inbound.payload,
+        );
+        out.scope = inbound.scope;
+        out.preamble = inbound.preamble;
+        out.padding = inbound.padding;
+        out.header = inbound.header;
+        out.term = inbound.term;
+        out.portId = inbound.portId;
+        return out;
+    }
+    public clone(): Inbound | Outbound {
+        let msg;
+        if (this instanceof Inbound) {
+            msg = new Inbound();
+            msg.id = Message.nextMessageId;
+            msg.scope = this.scope;
+            msg.preamble = this.preamble;
+            msg.padding = this.padding;
+            msg.payload = [...this.payload];
+            msg.header = this.header;
+            msg.term = this.term;
+            msg.portId = this.portId;
+        }
+        else {
+            msg = new Outbound(
+                this.protocol, this.source, this.dest, this.action, [...this.payload], 
+            );
+            msg.portId = this.portId;
+            msg.scope = this.scope;
+        }
+        return msg;
     }
 }
 export class Inbound extends Message {
@@ -195,7 +254,7 @@ export class Inbound extends Message {
     }
     public toLog() {
         if (this.responseFor.length > 0)
-            return `{"port":${this.portId || 0},"id":${this.id},"valid":${this.isValid},"dir":"${ this.direction }","proto":"${ this.protocol }","for":${JSON.stringify(this.responseFor)},"pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${ Timestamp.toISOLocal(this.timestamp) }"}`;
+            return `{"port":${this.portId || 0},"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","for":${JSON.stringify(this.responseFor)},"pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${Timestamp.toISOLocal(this.timestamp)}"}`;
         return `{"port":${this.portId || 0},"id":${this.id},"valid":${this.isValid},"dir":"${this.direction}","proto":"${this.protocol}","pkt":[${JSON.stringify(this.padding)},${JSON.stringify(this.preamble)},${JSON.stringify(this.header)},${JSON.stringify(this.payload)},${JSON.stringify(this.term)}],"ts": "${Timestamp.toISOLocal(this.timestamp)}"}`;
     }
     private testChlorHeader(bytes: number[], ndx: number): boolean {
@@ -719,6 +778,13 @@ export class Inbound extends Message {
         }
     }
     public process() {
+        let port = conn.findPortById(this.portId);
+        if (this.portId === sys.anslq25.portId) {
+            return MessagesMock.process(this);
+        }
+        if (port.mock && port.hasAssignedEquipment()){
+            return MessagesMock.process(this);
+        }
         switch (this.protocol) {
             case Protocol.Broadcast:
                 this.processBroadcast();
@@ -754,7 +820,7 @@ class OutboundCommon extends Message {
     public set sub(val: number) { if (this.protocol !== Protocol.Chlorinator && this.protocol !== Protocol.AquaLink) this.header[1] = val; }
     public get sub() { return super.sub; }
     public set dest(val: number) {
-        if (this.protocol === Protocol.Chlorinator) this.header[2] = val + 79;
+        if (this.protocol === Protocol.Chlorinator) this.header[2] = val;
         else if (this.protocol === Protocol.Hayward) this.header[4] = val;
         else this.header[2] = val;
     }
@@ -805,16 +871,13 @@ class OutboundCommon extends Message {
             case Protocol.Unidentified:
             case Protocol.IntelliChem:
             case Protocol.Heater:
+            case Protocol.Hayward:
                 this.chkHi = Math.floor(sum / 256);
                 this.chkLo = (sum - (super.chkHi * 256));
                 break;
             case Protocol.AquaLink:
             case Protocol.Chlorinator:
-                this.term[0] = sum;
-                break;
-            case Protocol.Hayward:
-                this.chkHi = Math.floor(sum / 256);
-                this.chkLo = (sum - (super.chkHi * 256));
+                this.term[0] = sum % 256;
                 break;
         }
     }
@@ -890,7 +953,9 @@ export class Outbound extends OutboundCommon {
     public static createMessage(action: number, payload: number[], retries?: number, response?: Response | boolean): Outbound {
         return new Outbound(Protocol.Broadcast, sys.board.commandSourceAddress || Message.pluginAddress, sys.board.commandDestAddress || 16, action, payload, retries, response);
     }
-
+    public async sendAsync() {
+        return conn.queueSendMessageAsync(this);
+    }
     // Fields
     public retries: number = 0;
     public tries: number = 0;
@@ -983,11 +1048,11 @@ export class Outbound extends OutboundCommon {
         if (typeof s === 'undefined') s = def;
         let l = typeof len === 'undefined' ? s.length : len;
         let buf = [];
-        for (let i = 0; i < l; l++) {
-            if (i < l) buf.push(s.charCodeAt(i));
-            else buf.push(i);
+        for (let i = 0; i < l; i++) {
+            if (i < s.length) buf.push(s.charCodeAt(i));
+            else buf.push(0);
         }
-        this.payload.splice(start, 0, ...buf);
+        this.payload.splice(start, l, ...buf);
         return this;
     }
     public toPacket(): number[] {
@@ -999,6 +1064,20 @@ export class Outbound extends OutboundCommon {
         pkt.push.apply(pkt, this.payload);
         pkt.push.apply(pkt, this.term);
         return pkt;
+    }
+    public processMock(){
+        // When the port is a mock port, we are no longer sending an
+        // outbound message but converting it to an inbound and
+        // skipping the actual send/receive part of the comms.
+        let inbound = Message.convertOutboundToInbound(this);
+        let port = conn.findPortById(this.portId);
+        if (port.hasAssignedEquipment() || this.portId === sys.anslq25.portId){
+            MessagesMock.process(inbound);
+        }
+        else {
+            inbound.process();
+        }
+    
     }
 }
 export class Ack extends Outbound {
@@ -1051,7 +1130,10 @@ export class Response extends OutboundCommon {
         try {
             if (typeof this.responseBool === 'boolean' && this.responseBool) bresp = this.evalResponse(msgIn, msgOut);
             else return bresp;
-            if (bresp === true && typeof msgOut !== 'undefined') msgIn.responseFor.push(msgOut.id);
+            if (bresp === true && typeof msgOut !== 'undefined') {
+                msgIn.responseFor.push(msgOut.id);
+                logger.silly(`Message in ${msgIn.id} is a response for message out ${msgOut.id}`);
+            }
             return bresp;
         }
         catch (err) { }

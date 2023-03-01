@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -59,7 +60,8 @@ export class IntelliTouchBoard extends EasyTouchBoard {
             [160, { name: 'heatEnable', desc: 'Heat Enable', assignableToPumpCircuit: false }],
             [161, { name: 'pumpSpeedUp', desc: 'Pump Speed +', assignableToPumpCircuit: false }],
             [162, { name: 'pumpSpeedDown', desc: 'Pump Speed -', assignableToPumpCircuit: false }],
-            [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true }]
+            [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true }],
+            [258, { name: 'anyHeater', desc: 'Any Heater' }]
         ]);
     }
     public initVirtualCircuits() {
@@ -340,31 +342,27 @@ export class IntelliTouchBoard extends EasyTouchBoard {
 class ITTouchConfigQueue extends TouchConfigQueue {
     public queueChanges() {
         this.reset();
-        if (conn.mockPort) {
-            logger.info(`Skipping configuration request from OCP because MockPort enabled.`);
-        } else {
-            logger.info(`Requesting ${sys.controllerType} configuration`);
-            this.queueItems(GetTouchConfigCategories.dateTime, [0]);
-            this.queueItems(GetTouchConfigCategories.heatTemperature, [0]);
-            this.queueItems(GetTouchConfigCategories.solarHeatPump, [0]);
-            this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1);
-            this.queueRange(GetTouchConfigCategories.circuits, 1, sys.equipment.maxCircuits); // circuits
-            this.queueRange(GetTouchConfigCategories.circuits, 41, 41 + sys.equipment.maxFeatures); // features
-            this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
-            this.queueItems(GetTouchConfigCategories.delays, [0]);
-            this.queueItems(GetTouchConfigCategories.settings, [0]);
-            this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes, [0]);
-            this.queueItems(GetTouchConfigCategories.is4is10, [0]);
-            this.queueItems(GetTouchConfigCategories.spaSideRemote, [0]);
-            this.queueItems(GetTouchConfigCategories.valves, [0]);
-            this.queueItems(GetTouchConfigCategories.lightGroupPositions);
-            this.queueItems(GetTouchConfigCategories.highSpeedCircuits, [0]);
-            this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);
-            this.queueRange(GetTouchConfigCategories.circuitGroups, 0, sys.equipment.maxFeatures - 1);
-            // items not required by ScreenLogic
-            if (sys.chlorinators.getItemById(1).isActive)
-                this.queueItems(GetTouchConfigCategories.intellichlor, [0]);
-        }
+        logger.info(`Requesting ${sys.controllerType} configuration`);
+        this.queueItems(GetTouchConfigCategories.dateTime, [0]);
+        this.queueItems(GetTouchConfigCategories.heatTemperature, [0]);
+        this.queueItems(GetTouchConfigCategories.solarHeatPump, [0]);
+        this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1);
+        this.queueRange(GetTouchConfigCategories.circuits, 1, sys.equipment.maxCircuits); // circuits
+        this.queueRange(GetTouchConfigCategories.circuits, 41, 41 + sys.equipment.maxFeatures); // features
+        this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
+        this.queueItems(GetTouchConfigCategories.delays, [0]);
+        this.queueItems(GetTouchConfigCategories.settings, [0]);
+        this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes, [0]);
+        this.queueItems(GetTouchConfigCategories.is4is10, [0]);
+        this.queueItems(GetTouchConfigCategories.quickTouchRemote, [0]);
+        this.queueItems(GetTouchConfigCategories.valves, [0]);
+        this.queueItems(GetTouchConfigCategories.lightGroupPositions);
+        this.queueItems(GetTouchConfigCategories.highSpeedCircuits, [0]);
+        this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);
+        this.queueRange(GetTouchConfigCategories.circuitGroups, 0, sys.equipment.maxFeatures - 1);
+        // items not required by ScreenLogic
+        if (sys.chlorinators.getItemById(1).isActive)
+            this.queueItems(GetTouchConfigCategories.intellichlor, [0]);
         if (this.remainingItems > 0) {
             var self = this;
             setTimeout(() => { self.processNext(); }, 50);

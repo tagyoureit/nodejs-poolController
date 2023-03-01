@@ -1,45 +1,36 @@
 {
-    /* See all the pre-defined configs here: https://www.npmjs.com/package/eslint-config-defaults */
+    "env": {
+        "es2021": true,
+        "node": true
+    },
     "extends": [
-        "eslint:recommended"
+        "eslint:recommended",
+        "plugin:@typescript-eslint/recommended"
     ],
     "parser": "@typescript-eslint/parser",
     "parserOptions": {
-        "ecmaVersion": 6,
-        "ecmaFeatures": {
-            "jsx": true
-        },
+        "ecmaVersion": "latest",
         "sourceType": "module"
     },
-    "env": {
-        "amd": true,
-        "browser": true,
-        "jquery": true,
-        "node": true,
-        "es6": true,
-        "worker": true
-    },
+    "plugins": [
+        "@typescript-eslint"
+    ],
     "rules": {
-        "eqeqeq": 2,
-        "comma-dangle": 1,
-        "no-console": 0,
-        "no-debugger": 1,
-        "no-extra-semi": 1,
-        "no-extra-parens": 0,
-        "no-irregular-whitespace": 0,
-        "no-undef": 0,
-        "no-unused-vars": 0,
-        "no-case-declaration": 0,
-        "no-prototype-builtins": 0,
-        "semi": 1,
-        "semi-spacing": 1,
-        "valid-jsdoc": [
-            2,
-            {
-                "requireReturn": false
-            }
+        "indent": [
+            "error",
+            "tab"
         ],
-        "space-infix-ops": 2,
-        "keyword-spacing": ["error",{"before": true, "after": true}]
+        "linebreak-style": [
+            "error",
+            "windows"
+        ],
+        "quotes": [
+            "error",
+            "single"
+        ],
+        "semi": [
+            "error",
+            "always"
+        ]
     }
 }

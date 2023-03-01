@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -14,16 +15,19 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+
+import { sl } from '../../controller/comms/ScreenLogic';
 import * as extend from 'extend';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { Message, Outbound, Protocol, Response } from '../comms/messages/Messages';
-import { utils } from '../Constants';
-import { Body, ChemController, ConfigVersion, CustomName, EggTimer, Feature, Heater, ICircuit, LightGroup, LightGroupCircuit, Options, PoolSystem, Pump, Schedule, sys } from '../Equipment';
-import { EquipmentTimeoutError, InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError } from '../Errors';
+import { Timestamp, utils } from '../Constants';
+import { Body, ChemController, ConfigVersion, CustomName, EggTimer, Feature, Heater, ICircuit, LightGroup, LightGroupCircuit, Options, PoolSystem, Pump, Schedule, sys, Valve } from '../Equipment';
+import { InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError } from '../Errors';
 import { ncp } from "../nixie/Nixie";
 import { BodyTempState, ChlorinatorState, ICircuitGroupState, ICircuitState, LightGroupState, state } from '../State';
-import { BodyCommands, byteValueMap, ChemControllerCommands, ChlorinatorCommands, CircuitCommands, ConfigQueue, ConfigRequest, EquipmentIdRange, FeatureCommands, HeaterCommands, PumpCommands, ScheduleCommands, SystemBoard, SystemCommands } from './SystemBoard';
+import { BodyCommands, byteValueMap, ChemControllerCommands, ChlorinatorCommands, CircuitCommands, ConfigQueue, ConfigRequest, EquipmentIdRange, FeatureCommands, HeaterCommands, PumpCommands, ScheduleCommands, SystemBoard, SystemCommands, ValveCommands } from './SystemBoard';
+
 
 export class EasyTouchBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
@@ -32,8 +36,11 @@ export class EasyTouchBoard extends SystemBoard {
         this._statusInterval = -1;
         this.equipmentIds.circuits = new EquipmentIdRange(function () { return this.start; }, function () { return this.start + sys.equipment.maxCircuits - 1; });
         this.equipmentIds.features = new EquipmentIdRange(() => { return 11; }, () => { return this.equipmentIds.features.start + sys.equipment.maxFeatures + 1; });
-        this.equipmentIds.virtualCircuits = new EquipmentIdRange(128, 136);
-        this.equipmentIds.circuitGroups = new EquipmentIdRange(192, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
+        this.equipmentIds.features.start = 11;
+        this.equipmentIds.virtualCircuits = new EquipmentIdRange(function () { return 128; }, function () { return 136; });
+        this.equipmentIds.virtualCircuits.start = 128;
+        this.equipmentIds.circuitGroups = new EquipmentIdRange(function () { return 192; }, function () { return this.start + sys.equipment.maxCircuitGroups - 1; });
+        this.equipmentIds.circuitGroups.start = 192;
         this.equipmentIds.circuits.start = sys.equipment.shared || sys.equipment.dual ? 1 : 2;
         if (typeof sys.configVersion.equipment === 'undefined') { sys.configVersion.equipment = 0; }
         this.valueMaps.heatSources = new byteValueMap([
@@ -46,7 +53,7 @@ export class EasyTouchBoard extends SystemBoard {
             [2, { name: 'cooling', desc: 'Cooling' }],
             [3, { name: 'solar', desc: 'Solar' }],
             [4, { name: 'hpheat', desc: 'Heatpump' }],
-            [5, { name: 'dual', desc: 'Dual'}]
+            [5, { name: 'dual', desc: 'Dual' }]
         ]);
         this.valueMaps.customNames = new byteValueMap(
             sys.customNames.get().map((el, idx) => {
@@ -91,7 +98,7 @@ export class EasyTouchBoard extends SystemBoard {
             [30, { name: 'fiberoptic', desc: 'Fiber Optic' }],
             [31, { name: 'fiberworks', desc: 'Fiber Works' }],
             [32, { name: 'fillline', desc: 'Fill Line' }],
-            [33, { name: 'floorclnr', desc: 'Floor CLeaner' }],
+            [33, { name: 'floorclnr', desc: 'Floor Cleaner' }],
             [34, { name: 'fogger', desc: 'Fogger' }],
             [35, { name: 'fountain', desc: 'Fountain' }],
             [36, { name: 'fountain1', desc: 'Fountain 1' }],
@@ -374,6 +381,13 @@ export class EasyTouchBoard extends SystemBoard {
                 let bt = sys.board.valueMaps.bodyTypes.transform(cbody.type);
                 tbody.name = cbody.name = bt.desc;
             }
+            if (tbody.id === 1) {
+                tbody.circuit = cbody.circuit = 6;
+            }
+            else if (tbody.id === 2) {
+                tbody.circuit = cbody.circuit = 1;
+            }
+
         }
         if (!sys.equipment.shared && !sys.equipment.dual && state.equipment.controllerType !== 'intellitouch') {
             sys.bodies.removeItemById(2);
@@ -407,6 +421,7 @@ export class EasyTouchBoard extends SystemBoard {
         eq.maxFeatures = md.features = typeof mt.features !== 'undefined' ? mt.features : 8;
         eq.maxValves = md.valves = typeof mt.valves !== 'undefined' ? mt.valves : mt.shared ? 4 : 2;
         eq.maxPumps = md.maxPumps = typeof mt.pumps !== 'undefined' ? mt.pumps : 2;
+        eq.maxHeaters = md.maxHeaters = typeof mt.heaters !== 'undefined' ? mt.heaters : 2;
         eq.shared = mt.shared;
         eq.single = typeof mt.single !== 'undefined' ? mt.single : false;
         eq.dual = false;
@@ -454,6 +469,7 @@ export class EasyTouchBoard extends SystemBoard {
         state.equipment.single = sys.equipment.single;
         state.equipment.shared = sys.equipment.shared;
         state.equipment.dual = sys.equipment.dual;
+        eq.setEquipmentIds();
         state.emitControllerChange();
     }
     public bodies: TouchBodyCommands = new TouchBodyCommands(this);
@@ -465,6 +481,7 @@ export class EasyTouchBoard extends SystemBoard {
     public schedules: TouchScheduleCommands = new TouchScheduleCommands(this);
     public heaters: TouchHeaterCommands = new TouchHeaterCommands(this);
     public chemControllers: TouchChemControllerCommands = new TouchChemControllerCommands(this);
+    public valves: TouchValveCommands = new TouchValveCommands(this);
     protected _configQueue: TouchConfigQueue = new TouchConfigQueue();
     public reloadConfig() {
         //sys.resetSystem();
@@ -519,30 +536,26 @@ export class TouchConfigQueue extends ConfigQueue {
     protected queueItems(cat: number, items: number[] = [0]) { this.push(new TouchConfigRequest(cat, items)); }
     public queueChanges() {
         this.reset();
-        if (conn.mockPort) {
-            logger.info(`Skipping configuration request from OCP because MockPort enabled.`);
-        } else {
-            logger.info(`Requesting ${sys.controllerType} configuration`);
-            this.queueItems(GetTouchConfigCategories.dateTime);
-            this.queueItems(GetTouchConfigCategories.version);
-            this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1);
-            this.queueRange(GetTouchConfigCategories.circuits, 1, sys.board.equipmentIds.features.end);
-            this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
-            // moved heat/solar request items after circuits to allow bodies to be discovered
-            this.queueItems(GetTouchConfigCategories.heatTemperature);
-            this.queueItems(GetTouchConfigCategories.solarHeatPump);
-            this.queueItems(GetTouchConfigCategories.delays);
-            this.queueItems(GetTouchConfigCategories.settings);
-            this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes);
-            this.queueItems(GetTouchConfigCategories.is4is10);
-            this.queueItems(GetTouchConfigCategories.spaSideRemote);
-            this.queueItems(GetTouchConfigCategories.valves);
-            this.queueItems(GetTouchConfigCategories.lightGroupPositions);
-            this.queueItems(GetTouchConfigCategories.highSpeedCircuits);
-            this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);
-            this.queueItems(GetTouchConfigCategories.intellichlor);
-            // todo: add chlor or other commands not asked for by screenlogic if there is no remote/indoor panel present
-        }
+        logger.info(`Requesting ${sys.controllerType} configuration`);
+        this.queueItems(GetTouchConfigCategories.dateTime);
+        this.queueItems(GetTouchConfigCategories.version);
+        this.queueRange(GetTouchConfigCategories.customNames, 0, sys.equipment.maxCustomNames - 1);
+        this.queueRange(GetTouchConfigCategories.circuits, 1, sys.board.equipmentIds.features.end);
+        this.queueRange(GetTouchConfigCategories.schedules, 1, sys.equipment.maxSchedules);
+        // moved heat/solar request items after circuits to allow bodies to be discovered
+        this.queueItems(GetTouchConfigCategories.heatTemperature);
+        this.queueItems(GetTouchConfigCategories.solarHeatPump);
+        this.queueItems(GetTouchConfigCategories.delays);
+        this.queueItems(GetTouchConfigCategories.settings);
+        this.queueItems(GetTouchConfigCategories.intellifloSpaSideRemotes);
+        this.queueItems(GetTouchConfigCategories.is4is10);
+        this.queueItems(GetTouchConfigCategories.quickTouchRemote);
+        this.queueItems(GetTouchConfigCategories.valves);
+        this.queueItems(GetTouchConfigCategories.lightGroupPositions);
+        this.queueItems(GetTouchConfigCategories.highSpeedCircuits);
+        this.queueRange(GetTouchConfigCategories.pumpConfig, 1, sys.equipment.maxPumps);
+        this.queueItems(GetTouchConfigCategories.intellichlor);
+        // todo: add chlor or other commands not asked for by screenlogic if there is no remote/indoor panel present
         if (this.remainingItems > 0) {
             var self = this;
             setTimeout(() => { self.processNext(); }, 50);
@@ -589,6 +602,7 @@ export class TouchConfigQueue extends ConfigQueue {
         let itm = 0;
         const self = this;
         if (this.curr && !this.curr.isComplete) {
+
             itm = this.curr.items.shift();
             const out: Outbound = Outbound.create({
                 source: Message.pluginAddress,
@@ -596,13 +610,33 @@ export class TouchConfigQueue extends ConfigQueue {
                 action: this.curr.setcategory,
                 payload: [itm],
                 retries: 3,
-                response: Response.create({ response: true, callback: () => { self.processNext(out); } })
+                response: Response.create({
+                    response: true
+                    , callback: () => {
+                        console.log(`CALLBACKED`);
+                    }
+                    // , callback: () => {
+                    //     self.processNext(out);
+                    // }
+                })
                 // response: true,
                 // onResponseProcessed: function () { self.processNext(out); }
             });
             // RKS: 12-1-22 the unfortunate part of the response: true setting is that there is mapping in the isResponse that should translate the exceptions
-            // Unfortunately somewhere along the line we quit asking for the firmware version.
-            setTimeout(() => conn.queueSendMessage(out), 50);
+            // Unfortunately somewhere along the line we quit asking for the firmware version.  RG 12-4-22 Not sure where this is lost, but it is added back.
+            //out.timeout = 5000;
+            // setTimeout(() => conn.queueSendMessage(out), 50);
+            out.sendAsync()
+                .then(() => {
+                    logger.debug(`msg ${out.toShortPacket()} sent successfully`);
+                })
+                .catch((err) => {
+                    logger.error(`Error sending configuration request message on port ${out.portId}: ${err.message};`);
+                })
+                .finally(() => {
+                    setTimeout(() => { self.processNext(out); }, 50);
+                })
+
         } else {
             // Now that we are done check the configuration a final time.  If we have anything outstanding
             // it will get picked up.
@@ -620,165 +654,135 @@ export class TouchConfigQueue extends ConfigQueue {
     }
 }
 export class TouchScheduleCommands extends ScheduleCommands {
-    /* public setSchedule(sched: Schedule | EggTimer, obj?: any) {
-        super.setSchedule(sched, obj);
-        let msgs: Outbound[] = this.createSchedConfigMessages(sched);
-        for (let i = 0; i <= msgs.length; i++) {
-            conn.queueSendMessage(msgs[i]);
-        }
-    }
+    public async setScheduleAsync(data: any, send: boolean = true): Promise<Schedule> {
+        try {
+            let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+            let slSchedId = id;
+            if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
+            let sched = sys.schedules.getItemById(id, id > 0);
+            let ssched = state.schedules.getItemById(id, id > 0);
+            let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
+            if (typeof schedType === 'undefined') schedType = sys.board.valueMaps.scheduleTypes.getValue('repeat'); // Repeats
 
-    public createSchedConfigMessages(sched: Schedule | EggTimer): Outbound[] {
-        // delete sched 1
-        // [ 255, 0, 255], [165, 33, 16, 33, 145, 7], [1, 0, 0, 0, 0, 0, 0], [1, 144]
+            let startTimeType = typeof data.startTimeType !== 'undefined' ? data.startTimeType : sched.startTimeType;
+            let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
+            // let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
+            // if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
+            let heatSource = typeof data.heatSource !== 'undefined' && data.heatSource !== null ? data.heatSource : sched.heatSource || 32;
+            let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
+            let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
+            let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
+            let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
+            let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays || 255); // default to all days
+            let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? utils.makeBool(data.changeHeatSetpoint) : sched.changeHeatSetpoint;
+            let display = typeof data.display !== 'undefined' ? data.display : sched.display || 0;
 
-        const setSchedConfig = Outbound.create({
-            action: 145,
-            payload: [sched.id, 0, 0, 0, 0, 0, 0],
-            retries: 2
-        });
-        if (sched.circuit === 0) {
-            // delete - take defaults
-        }
-        else {
-            if (sched instanceof EggTimer) {
-                setSchedConfig.payload[1] = sched.circuit;
-                setSchedConfig.payload[2] = 25;
-                setSchedConfig.payload[4] = Math.floor(sched.runTime);
-                setSchedConfig.payload[5] = sched.runTime - (setSchedConfig.payload[4] * 60);
+            // Ensure all the defaults.
+            // if (isNaN(startDate.getTime())) startDate = new Date();
+            if (typeof startTime === 'undefined') startTime = 480; // 8am
+            if (typeof endTime === 'undefined') endTime = 1020; // 5pm
+            if (typeof startTimeType === 'undefined') startTimeType = 0; // Manual
+            if (typeof endTimeType === 'undefined') endTimeType = 0; // Manual
+            if (typeof circuit === 'undefined') circuit = 6; // pool
+            if (typeof heatSource !== 'undefined' && typeof heatSetpoint === 'undefined') heatSetpoint = state.temps.units === sys.board.valueMaps.tempUnits.getValue('C') ? 26 : 80;
+            if (typeof changeHeatSetpoint === 'undefined') changeHeatSetpoint = false;
+
+            // At this point we should have all the data.  Validate it.
+            if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType)); }
+            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType)); }
+            if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType)); }
+            if (!sys.board.valueMaps.heatSources.valExists(heatSource)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource)); }
+            if (heatSetpoint < 0 || heatSetpoint > 104) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint)); }
+            if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit)); }
+            // if (schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
+            if (typeof heatSource !== 'undefined' && !sys.circuits.getItemById(circuit).hasHeatSource) heatSource = undefined;
+
+            // If we make it here we can make it anywhere.
+            // let runOnce = (schedDays || (schedType !== 0 ? 0 : 0x80));
+            if (schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce')) {
+                // make sure only 1 day is selected
+                let scheduleDays = sys.board.valueMaps.scheduleDays.transform(schedDays);
+                let s2 = sys.board.valueMaps.scheduleDays.toArray();
+                if (scheduleDays.days.length > 1) {
+                    schedDays = scheduleDays.days[scheduleDays.days.length - 1].val;  // get the earliest day in the week
+                }
+                else if (scheduleDays.days.length === 0) {
+                    for (let i = 0; i < s2.length; i++) {
+                        if (s2[i].days[0].name === 'sun') schedDays = s2[i].val;
+                    }
+                }
+                // update end time incase egg timer changed
+                const eggTimer = sys.circuits.getInterfaceById(circuit).eggTimer || 720;
+                endTime = (startTime + eggTimer) % 1440; // remove days if we go past midnight
             }
-            else if (sched instanceof Schedule) {
-                setSchedConfig.payload[1] = sched.circuit;
-                setSchedConfig.payload[2] = Math.floor(sched.startTime / 60);
-                setSchedConfig.payload[3] = sched.startTime - (setSchedConfig.payload[2] * 60);
-                setSchedConfig.payload[4] = Math.floor(sched.endTime / 60);
-                setSchedConfig.payload[5] = sched.endTime - (setSchedConfig.payload[4] * 60);
-                setSchedConfig.payload[6] = sched.scheduleDays;
-                if (sched.scheduleType === sys.board.valueMaps.scheduleTypes.getValue('runonce')) setSchedConfig.payload[6] = setSchedConfig.payload[6] | 0x80;
+
+
+            // If we have sunrise/sunset then adjust for the values; if heliotrope isn't set just ignore
+            if (state.heliotrope.isCalculated) {
+                const sunrise = state.heliotrope.sunrise.getHours() * 60 + state.heliotrope.sunrise.getMinutes();
+                const sunset = state.heliotrope.sunset.getHours() * 60 + state.heliotrope.sunset.getMinutes();
+                if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) startTime = sunrise;
+                else if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) startTime = sunset;
+                if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) endTime = sunrise;
+                else if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) endTime = sunset;
             }
-        }
-        const schedConfigRequest = Outbound.create({
-            action: 209,
-            payload: [sched.id],
-            retries: 2
-        });
 
-        return [setSchedConfig, schedConfigRequest];
-    } */
-    public async setScheduleAsync(data: any): Promise<Schedule> {
 
-        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-        if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
-        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
-        let sched = sys.schedules.getItemById(id, id > 0);
-        let ssched = state.schedules.getItemById(id, id > 0);
-        let schedType = typeof data.scheduleType !== 'undefined' ? data.scheduleType : sched.scheduleType;
-        if (typeof schedType === 'undefined') schedType = sys.board.valueMaps.scheduleTypes.getValue('repeat'); // Repeats
 
-        let startTimeType = typeof data.startTimeType !== 'undefined' ? data.startTimeType : sched.startTimeType;
-        let endTimeType = typeof data.endTimeType !== 'undefined' ? data.endTimeType : sched.endTimeType;
-        // let startDate = typeof data.startDate !== 'undefined' ? data.startDate : sched.startDate;
-        // if (typeof startDate.getMonth !== 'function') startDate = new Date(startDate);
-        let heatSource = typeof data.heatSource !== 'undefined' && data.heatSource !== null ? data.heatSource : sched.heatSource || 32;
-        let heatSetpoint = typeof data.heatSetpoint !== 'undefined' ? data.heatSetpoint : sched.heatSetpoint;
-        let circuit = typeof data.circuit !== 'undefined' ? data.circuit : sched.circuit;
-        let startTime = typeof data.startTime !== 'undefined' ? data.startTime : sched.startTime;
-        let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
-        let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays || 255); // default to all days
-        let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? utils.makeBool(data.changeHeatSetpoint) : sched.changeHeatSetpoint;
-        let display = typeof data.display !== 'undefined' ? data.display : sched.display || 0;
-
-        // Ensure all the defaults.
-        // if (isNaN(startDate.getTime())) startDate = new Date();
-        if (typeof startTime === 'undefined') startTime = 480; // 8am
-        if (typeof endTime === 'undefined') endTime = 1020; // 5pm
-        if (typeof startTimeType === 'undefined') startTimeType = 0; // Manual
-        if (typeof endTimeType === 'undefined') endTimeType = 0; // Manual
-        if (typeof circuit === 'undefined') circuit = 6; // pool
-        if (typeof heatSource !== 'undefined' && typeof heatSetpoint === 'undefined') heatSetpoint = state.temps.units === sys.board.valueMaps.tempUnits.getValue('C') ? 26 : 80;
-        if (typeof changeHeatSetpoint === 'undefined') changeHeatSetpoint = false;
-
-        // At this point we should have all the data.  Validate it.
-        if (!sys.board.valueMaps.scheduleTypes.valExists(schedType)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule type; ${schedType}`, 'Schedule', schedType)); }
-        if (!sys.board.valueMaps.scheduleTimeTypes.valExists(startTimeType)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid start time type; ${startTimeType}`, 'Schedule', startTimeType)); }
-        if (!sys.board.valueMaps.scheduleTimeTypes.valExists(endTimeType)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid end time type; ${endTimeType}`, 'Schedule', endTimeType)); }
-        if (!sys.board.valueMaps.heatSources.valExists(heatSource)) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid heat source: ${heatSource}`, 'Schedule', heatSource)); }
-        if (heatSetpoint < 0 || heatSetpoint > 104) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid heat setpoint: ${heatSetpoint}`, 'Schedule', heatSetpoint)); }
-        if (sys.board.circuits.getCircuitReferences(true, true, false, true).find(elem => elem.id === circuit) === undefined) { sys.schedules.removeItemById(id); state.schedules.removeItemById(id); return Promise.reject(new InvalidEquipmentDataError(`Invalid circuit reference: ${circuit}`, 'Schedule', circuit)); }
-        // if (schedDays === 0) return Promise.reject(new InvalidEquipmentDataError(`Invalid schedule days: ${schedDays}. You must supply days that the schedule is to run.`, 'Schedule', schedDays));
-        if (typeof heatSource !== 'undefined' && !sys.circuits.getItemById(circuit).hasHeatSource) heatSource = undefined;
-
-        // If we make it here we can make it anywhere.
-        // let runOnce = (schedDays || (schedType !== 0 ? 0 : 0x80));
-        if (schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce')) {
-            // make sure only 1 day is selected
-            let scheduleDays = sys.board.valueMaps.scheduleDays.transform(schedDays);
-            let s2 = sys.board.valueMaps.scheduleDays.toArray();
-            if (scheduleDays.days.length > 1) {
-                schedDays = scheduleDays.days[scheduleDays.days.length - 1].val;  // get the earliest day in the week
-            }
-            else if (scheduleDays.days.length === 0) {
-                for (let i = 0; i < s2.length; i++) {
-                    if (s2[i].days[0].name === 'sun') schedDays = s2[i].val;
+            if (sl.enabled && send) {
+                let slId = await sl.schedules.setScheduleAsync(slSchedId, circuit, startTime, endTime, schedDays, schedType, changeHeatSetpoint, heatSource, heatSetpoint);
+                // if SL adds this as a new schedule id different from what we expect.
+                if (slId !== id) {
+                    sys.schedules.removeItemById(id);
+                    state.schedules.removeItemById(id);
+                    id = slId;
+                    sched = sys.schedules.getItemById(id, id > 0);
+                    ssched = state.schedules.getItemById(id, id > 0);
                 }
             }
-            // update end time incase egg timer changed
-            const eggTimer = sys.circuits.getInterfaceById(circuit).eggTimer || 720;
-            endTime = (startTime + eggTimer) % 1440; // remove days if we go past midnight
+            else if (send) {
+                let out = Outbound.create({
+                    action: 145,
+                    payload: [
+                        id,
+                        circuit,
+                        Math.floor(startTime / 60),
+                        startTime - (Math.floor(startTime / 60) * 60),
+                        schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce') ? sys.board.valueMaps.scheduleTypes.getValue('runonce') : Math.floor(endTime / 60),
+                        endTime - (Math.floor(endTime / 60) * 60),
+                        schedDays],
+                    retries: 2
+                    // ,response: Response.create({ action: 1, payload: [145] })
+                });
+                await out.sendAsync();
+            }
+            sched.circuit = ssched.circuit = circuit;
+            sched.scheduleDays = ssched.scheduleDays = schedDays;
+            sched.scheduleType = ssched.scheduleType = schedType;
+            sched.changeHeatSetpoint = ssched.changeHeatSetpoint = changeHeatSetpoint;
+            sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
+            sched.heatSource = ssched.heatSource = heatSource;
+            sched.startTime = ssched.startTime = startTime;
+            sched.endTime = ssched.endTime = endTime;
+            sched.startTimeType = ssched.startTimeType = startTimeType;
+            sched.endTimeType = ssched.endTimeType = endTimeType;
+            sched.isActive = ssched.isActive = true;
+            ssched.display = sched.display = display;
+            ssched.emitEquipmentChange();
+            // For good measure russ is sending out a config request for
+            // the schedule in question.  If there was a failure on the
+            // OCP side this will resolve it.
+            if (send && !sl.enabled) {
+                let req = Outbound.create({ action: 209, payload: [sched.id], retries: 2 });
+                await req.sendAsync();
+            }
+            state.schedules.sortById();
+            return sched;
         }
-
-
-        // If we have sunrise/sunset then adjust for the values; if heliotrope isn't set just ignore
-        if (state.heliotrope.isCalculated) {
-            const sunrise = state.heliotrope.sunrise.getHours() * 60 + state.heliotrope.sunrise.getMinutes();
-            const sunset = state.heliotrope.sunset.getHours() * 60 + state.heliotrope.sunset.getMinutes();
-            if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) startTime = sunrise;
-            else if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) startTime = sunset;
-            if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) endTime = sunrise;
-            else if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) endTime = sunset;
+        catch (err) {
+            return Promise.reject(err);
         }
-
-        let out = Outbound.create({
-            action: 145,
-            payload: [
-                id,
-                circuit,
-                Math.floor(startTime / 60),
-                startTime - (Math.floor(startTime / 60) * 60),
-                schedType === sys.board.valueMaps.scheduleTypes.getValue('runonce') ? sys.board.valueMaps.scheduleTypes.getValue('runonce') : Math.floor(endTime / 60),
-                endTime - (Math.floor(endTime / 60) * 60),
-                schedDays],
-            retries: 2
-            // ,response: Response.create({ action: 1, payload: [145] })
-        });
-        return new Promise<Schedule>((resolve, reject) => {
-            out.onComplete = (err, msg) => {
-                if (!err) {
-                    sched.circuit = ssched.circuit = circuit;
-                    sched.scheduleDays = ssched.scheduleDays = schedDays;
-                    sched.scheduleType = ssched.scheduleType = schedType;
-                    sched.changeHeatSetpoint = ssched.changeHeatSetpoint = changeHeatSetpoint;
-                    sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
-                    sched.heatSource = ssched.heatSource = heatSource;
-                    sched.startTime = ssched.startTime = startTime;
-                    sched.endTime = ssched.endTime = endTime;
-                    sched.startTimeType = ssched.startTimeType = startTimeType;
-                    sched.endTimeType = ssched.endTimeType = endTimeType;
-                    sched.isActive = ssched.isActive = true;
-                    ssched.display = sched.display = display;
-                    ssched.emitEquipmentChange();
-                    // For good measure russ is sending out a config request for
-                    // the schedule in question.  If there was a failure on the
-                    // OCP side this will resolve it.
-                    let req = Outbound.create({ action: 209, payload: [sched.id], retries: 2 });
-                    conn.queueSendMessage(req);
-                    state.schedules.sortById();
-                    resolve(sched);
-                }
-                else reject(err);
-            };
-            conn.queueSendMessage(out); // Send it off in a letter to yourself.
-        });
     }
     public async deleteScheduleAsync(data: any): Promise<Schedule> {
         let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
@@ -786,112 +790,133 @@ export class TouchScheduleCommands extends ScheduleCommands {
         let sched = sys.schedules.getItemById(id);
         let ssched = state.schedules.getItemById(id);
         // RKS: Assuming you just send 0s for the schedule and it will delete it.
-        let out = Outbound.create({
-            action: 145,
-            payload: [
-                id,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0],
-            retries: 3
-        });
-        return new Promise<Schedule>((resolve, reject) => {
-            out.onComplete = (err, msg) => {
-                if (!err) {
-                    sys.schedules.removeItemById(id);
-                    state.schedules.removeItemById(id);
-                    ssched.emitEquipmentChange();
-                    sched.isActive = false;
-                    let req = Outbound.create({ action: 209, payload: [sched.id], retries: 2 });
-                    conn.queueSendMessage(req);
-                    resolve(sched);
-                }
-                else reject(err);
-            };
-            conn.queueSendMessage(out);
-        });
+        try {
+            if (sl.enabled) {
+                await sl.schedules.deleteScheduleAsync(id);
+            }
+            else {
+
+                let out = Outbound.create({
+                    action: 145,
+                    payload: [
+                        id,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0],
+                    retries: 3
+                });
+                await out.sendAsync();
+            }
+            sys.schedules.removeItemById(id);
+            state.schedules.removeItemById(id);
+            ssched.emitEquipmentChange();
+            sched.isActive = false;
+            if (!sl.enabled) {
+                let req = Outbound.create({ action: 209, payload: [sched.id], retries: 2 });
+                await req.sendAsync();
+            }
+            return sched;
+        }
+        catch (err) {
+            return Promise.reject(err);
+        }
     }
-    public async setEggTimerAsync(data?: any): Promise<EggTimer> {
+    public async setEggTimerAsync(data?: any, send: boolean = true): Promise<EggTimer> {
         let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
         if (id <= 0) id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, sys.equipment.maxSchedules));
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule/eggTimer id: ${data.id} or all schedule/eggTimer ids filled (${sys.eggTimers.length + sys.schedules.length} used out of ${sys.equipment.maxSchedules})`, data.id, 'Schedule'));
         let circuit = sys.circuits.getInterfaceById(data.circuit);
         if (typeof circuit === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit id: ${data.circuit} for schedule id ${data.id}`, data.id, 'Schedule'));
-        return new Promise<EggTimer>((resolve, reject) => {
-            let out = Outbound.create({
-                action: 145,
-                payload: [
-                    id,
-                    circuit.id,
-                    25,
-                    0,
-                    utils.makeBool(data.dontStop) ? 27 : Math.floor(parseInt(data.runTime, 10) / 60),
-                    utils.makeBool(data.dontStop) ? 0 : data.runTime - (Math.floor(parseInt(data.runTime, 10) / 60) * 60),
-                    0],
-                onComplete: (err, msg) => {
-                    if (!err) {
-                        let eggTimer = sys.eggTimers.getItemById(id, true);
-                        eggTimer.circuit = circuit.id;
-                        eggTimer.runTime = circuit.eggTimer = typeof data.runTime !== 'undefined' ? data.runTime : circuit.eggTimer || 720;
-                        circuit.dontStop = typeof data.dontStop !== 'undefined' ? utils.makeBool(data.dontStop) : eggTimer.runTime === 1620;
-                        eggTimer.isActive = true;
-                        // For good measure russ is sending out a config request for
-                        // the schedule in question.  If there was a failure on the
-                        // OCP side this will resolve it.
-                        let req = Outbound.create({ action: 209, payload: [eggTimer.id], retries: 2 });
-                        conn.queueSendMessage(req);
-                        resolve(eggTimer);
-                    }
-                    else reject(err);
-                },
-                retries: 2
-            });
-            conn.queueSendMessage(out); // Send it off in a letter to yourself.
-        });
+
+        try {
+            if (send) {
+                if (sl.enabled) {
+                    await sl.schedules.setEggTimerAsync(circuit.id, parseInt(data.runTime, 10));
+                }
+                else {
+
+                    let out = Outbound.create({
+                        action: 145,
+                        payload: [
+                            id,
+                            circuit.id,
+                            25,
+                            0,
+                            utils.makeBool(data.dontStop) ? 27 : Math.floor(parseInt(data.runTime, 10) / 60),
+                            utils.makeBool(data.dontStop) ? 0 : data.runTime - (Math.floor(parseInt(data.runTime, 10) / 60) * 60),
+                            0],
+                        retries: 2
+                    });
+                    await out.sendAsync();
+                }
+            }
+            let eggTimer = sys.eggTimers.getItemById(id, true);
+            eggTimer.circuit = circuit.id;
+            eggTimer.runTime = circuit.eggTimer = typeof data.runTime !== 'undefined' ? data.runTime : circuit.eggTimer || 720;
+            circuit.dontStop = typeof data.dontStop !== 'undefined' ? utils.makeBool(data.dontStop) : eggTimer.runTime === 1620;
+            eggTimer.isActive = true;
+            // For good measure russ is sending out a config request for
+            // the schedule in question.  If there was a failure on the
+            // OCP side this will resolve it.
+            if (send) {
+                let req = Outbound.create({ action: 209, payload: [eggTimer.id], retries: 2 });
+                await req.sendAsync();
+            }
+            return eggTimer;
+        }
+        catch (err) {
+            return Promise.reject(err);
+        }
+
     }
     public async deleteEggTimerAsync(data: any): Promise<EggTimer> {
-        return new Promise<EggTimer>((resolve, reject) => {
-            let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-            if (isNaN(id) || id < 0) reject(new InvalidEquipmentIdError(`Invalid eggTimer id: ${data.id}`, data.id, 'Schedule'));
-            let eggTimer = sys.eggTimers.getItemById(id);
-            // RKS: Assuming you just send 0s for the schedule and it will delete it.
-            let out = Outbound.create({
-                action: 145,
-                payload: [
-                    id,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0,
-                    0],
-                onComplete: (err, msg) => {
-                    if (!err) {
-                        const circuit = sys.circuits.getInterfaceById(data.circuit);
-                        circuit.eggTimer = 720;
-                        circuit.dontStop = circuit.eggTimer === 1620;
-                        sys.eggTimers.removeItemById(id);
-                        eggTimer.isActive = false;
-                        let req = Outbound.create({ action: 209, payload: [eggTimer.id], retries: 2 });
-                        conn.queueSendMessage(req);
-                        resolve(eggTimer);
-                    }
-                    else reject(err);
-                },
-                retries: 3
-            });
-            conn.queueSendMessage(out);
-        });
+        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+        if (isNaN(id) || id < 0) throw new InvalidEquipmentIdError(`Invalid eggTimer id: ${data.id}`, data.id, 'Schedule');
+        let eggTimer = sys.eggTimers.getItemById(id);
+        // RKS: Assuming you just send 0s for the schedule and it will delete it.
+        try {
+            if (sl.enabled) {
+                await sl.schedules.setEggTimerAsync(data.circuit, 720);
+            }
+            else {
+                let out = Outbound.create({
+                    action: 145,
+                    payload: [
+                        id,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0,
+                        0],
+                    retries: 3
+                });
+                await out.sendAsync();
+            }
+            const circuit = sys.circuits.getInterfaceById(data.circuit);
+            circuit.eggTimer = 720;
+            circuit.dontStop = circuit.eggTimer === 1620;
+            sys.eggTimers.removeItemById(id);
+            eggTimer.isActive = false;
+            if (!sl.enabled) {
+                let req = Outbound.create({ action: 209, payload: [eggTimer.id], retries: 2 });
+                await req.sendAsync();
+            }
+            return eggTimer;
+        }
+        catch (err) {
+            return Promise.reject(err);
+        }
     }
     public async updateSunriseSunsetAsync(): Promise<boolean> {
         // *Touch doesn't have a notion of sunrise/sunset on the schedules;
         // This will check the schedule and if the existing sunrise/sunset times 
         // are not matching the desired time it will update the time on the OCP.
         // https://github.com/tagyoureit/nodejs-poolController/discussions/560#discussioncomment-3362149
-        if (!state.heliotrope.isCalculated) { return Promise.resolve(false); }
+        if (!state.heliotrope.isCalculated) { return false; }
         const sunrise = state.heliotrope.sunrise.getHours() * 60 + state.heliotrope.sunrise.getMinutes();
         const sunset = state.heliotrope.sunset.getHours() * 60 + state.heliotrope.sunset.getMinutes();
 
@@ -916,7 +941,7 @@ export class TouchScheduleCommands extends ScheduleCommands {
                 anyUpdated = sUpdated = true;
             }
             if (sUpdated) {
-                await sys.board.schedules.setScheduleAsync({id: sched.id});
+                await sys.board.schedules.setScheduleAsync({ id: sched.id });
             }
         }
         return Promise.resolve(anyUpdated);
@@ -930,7 +955,7 @@ export enum TouchConfigCategories {
     customNames = 10,
     circuits = 11,
     schedules = 17,
-    spaSideRemote = 22,
+    quickTouchRemote = 22,
     pumpStatus = 23,
     pumpConfig = 24,
     intellichlor = 25,
@@ -950,7 +975,7 @@ export enum GetTouchConfigCategories {
     customNames = 202,
     circuits = 203,
     schedules = 209,
-    spaSideRemote = 214,
+    quickTouchRemote = 214,
     pumpStatus = 215,
     pumpConfig = 216,
     intellichlor = 217,
@@ -967,172 +992,172 @@ export enum GetTouchConfigCategories {
 }
 class TouchSystemCommands extends SystemCommands {
     public async cancelDelay() {
-        return new Promise<void>((resolve, reject) => {
-            let out = Outbound.create({
-                action: 131,
-                payload: [0],
-                retries: 0,
-                response: true,
-                onComplete: (err, msg) => {
-                    if (err) {
-                        reject(err);
-                    }
-                    else {
-                        // todo: track delay status?
-                        state.delay = sys.board.valueMaps.delay.getValue('nodelay');
-                        resolve(state.data.delay);
-                    }
-                }
-            });
-            conn.queueSendMessage(out);
-        });
-    }
-    public async setDateTimeAsync(obj: any): Promise<any> {
-        let dayOfWeek = function (): number {
-            // for IntelliTouch set date/time
-            if (state.time.toDate().getUTCDay() === 0)
-                return 0;
-            else
-                return Math.pow(2, state.time.toDate().getUTCDay() - 1);
-        }
-        return new Promise<any>((resolve, reject) => {
-            let dst = sys.general.options.adjustDST ? 1 : 0;
-            if (typeof obj.dst !== 'undefined') utils.makeBool(obj.dst) ? dst = 1 : dst = 0;
-            let { hour = state.time.hours,
-                min = state.time.minutes,
-                date = state.time.date,
-                month = state.time.month,
-                year = state.time.year >= 100 ? state.time.year - 2000 : state.time.year,
-                dow = dayOfWeek() } = obj;
-            if (obj.dt instanceof Date) {
-                let _dt: Date = obj.dt;
-                hour = _dt.getHours();
-                min = _dt.getMinutes();
-                date = _dt.getDate();
-                month = _dt.getMonth() + 1;
-                year = _dt.getFullYear() - 2000;
-                let dates = sys.board.valueMaps.scheduleDays.toArray();
-                dates.forEach(d => {
-                    if (d.dow === _dt.getDay()) dow = d.val;
-                })
+        try {
+            if (sl.enabled) {
+                await sl.bodies.cancelDalayAsync();
             }
-            if (obj.clockSource === 'manual' || obj.clockSource === 'server') sys.general.options.clockSource = obj.clockSource;
-            // dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] 
-            // and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
-            // [165,33,16,34,133,8],[13,10,16,29,8,19,0,0],[1,228]
-            // [165,33,34,16,1,1],[133],[1,127]
-            const out = Outbound.create({
-                source: Message.pluginAddress,
-                dest: 16,
-                action: 133,
-                payload: [hour, min, dow, date, month, year, 0, dst],
-                retries: 3,
-                response: true,
-                onComplete: (err, msg) => {
-                    if (err) reject(err)
-                    else {
-                        state.time.hours = hour;
-                        state.time.minutes = min;
-                        state.time.date = date;
-                        state.time.month = month;
-                        state.time.year = year;
-                        if (sys.general.options.clockSource !== 'server' || typeof sys.general.options.adjustDST === 'undefined') sys.general.options.adjustDST = dst === 1 ? true : false;
-                        sys.board.system.setTZ();
-                        resolve({
-                            time: state.time.format(),
-                            adjustDST: sys.general.options.adjustDST,
-                            clockSource: sys.general.options.clockSource
-                        });
-                    }
-                }
-            });
-            conn.queueSendMessage(out);
-        });
+            else {
+                let out = Outbound.create({
+                    action: 131,
+                    payload: [0],
+                    retries: 0,
+                    response: true
+                });
+                await out.sendAsync();
+            }
+            state.delay = sys.board.valueMaps.delay.getValue('nodelay');
+            return state.data.delay;
+        }
+        catch (err) {
+            return Promise.reject(err);
+        }
     }
-    public async setCustomNameAsync(data: any): Promise<CustomName> {
-        return new Promise<CustomName>((resolve, reject) => {
-            let id = parseInt(data.id, 10);
-            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Invalid Custom Name Id', data.id, 'customName'));
-            if (id > sys.equipment.maxCustomNames) return reject(new InvalidEquipmentIdError('Custom Name Id out of range', data.id, 'customName'));
-            let cname = sys.customNames.getItemById(id);
-            // No need to make any changes. Just return.
-            if (cname.name === data.name) return resolve(cname);
-            let out = Outbound.create({
-                action: 138,
-                payload: [data.id],
-                response: true,
-                retries: 3,
-                onComplete: (err) => {
-                    if (err) reject(err);
-                    else {
-                        let c = sys.customNames.getItemById(id, true);
-                        c.name = data.name;
-                        resolve(c);
-                        sys.board.system.syncCustomNamesValueMap();
-                        sys.emitEquipmentChange();
-                        for (let i = 0; i < sys.circuits.length; i++) {
-                            let circ = sys.circuits.getItemByIndex(i);
-                            if (circ.nameId === data.id + 200) {
-                                let cstate = state.circuits.getItemById(circ.id);
-                                cstate.name = circ.name = data.name;
-                                for (let j = 0; j < state.schedules.length; j++) {
-                                    let ssched = state.schedules.getItemByIndex(j);
-                                    if (ssched.circuit === cstate.id) {
-                                        ssched.hasChanged = true;
-                                        ssched.emitEquipmentChange();
-                                    }
-                                }
-                            }
+    public async setDateTimeAsync(obj: any, send: boolean = true): Promise<any> {
+
+        let dst = sys.general.options.adjustDST ? 1 : 0;
+        if (typeof obj.dst !== 'undefined') utils.makeBool(obj.dst) ? dst = 1 : dst = 0;
+        let { hour = state.time.hours,
+            min = state.time.minutes,
+            date = state.time.date,
+            month = state.time.month,
+            year = state.time.year >= 100 ? state.time.year - 2000 : state.time.year,
+            dow = Timestamp.dayOfWeek(state.time) } = obj;
+        if (obj.dt instanceof Date) {
+            let _dt: Date = obj.dt;
+            hour = _dt.getHours();
+            min = _dt.getMinutes();
+            date = _dt.getDate();
+            month = _dt.getMonth() + 1;
+            year = _dt.getFullYear() - 2000;
+            let dates = sys.board.valueMaps.scheduleDays.toArray();
+            dates.forEach(d => {
+                if (d.dow === _dt.getDay()) dow = d.val;
+            })
+        }
+        if (obj.clockSource === 'manual' || obj.clockSource === 'server') sys.general.options.clockSource = obj.clockSource;
+        // dow= day of week as expressed as [0=Sunday, 1=Monday, 2=Tuesday, 4=Wednesday, 8=Thursday, 16=Friday, 32=Saturday] 
+        // and DST = 0(manually adjst for DST) or 1(automatically adjust DST)
+        // [165,33,16,34,133,8],[13,10,16,29,8,19,0,0],[1,228]
+        // [165,33,34,16,1,1],[133],[1,127]
+        const out = Outbound.create({
+            source: Message.pluginAddress,
+            dest: 16,
+            action: 133,
+            payload: [hour, min, dow, date, month, year, 0, dst],
+            retries: 3,
+            response: true
+        });
+        try {
+            if (sl.enabled && send) {
+                await sl.controller.setSystemTime();
+            }
+            else if (send) await out.sendAsync();
+            state.time.hours = hour;
+            state.time.minutes = min;
+            state.time.date = date;
+            state.time.month = month;
+            state.time.year = year;
+            if (sys.general.options.clockSource !== 'server' || typeof sys.general.options.adjustDST === 'undefined') sys.general.options.adjustDST = dst === 1 ? true : false;
+            sys.board.system.setTZ();
+            return {
+                time: state.time.format(),
+                adjustDST: sys.general.options.adjustDST,
+                clockSource: sys.general.options.clockSource
+            };
+        }
+        catch (err) {
+            return Promise.reject(err);
+        }
+    }
+    public async setCustomNameAsync(data: any, send: boolean = true): Promise<CustomName> {
+        let id = parseInt(data.id, 10);
+        if (isNaN(id)) throw new InvalidEquipmentIdError('Invalid Custom Name Id', data.id, 'customName');
+        if (id > sys.equipment.maxCustomNames) throw new InvalidEquipmentIdError('Custom Name Id out of range', data.id, 'customName');
+        let cname = sys.customNames.getItemById(id);
+        // No need to make any changes. Just return.
+        if (cname.name === data.name) return cname;
+        try {
+            if (sl.enabled && send) {
+                await sl.controller.setCustomName(id, data.name);
+            }
+            else if (send) {
+                let out = Outbound.create({
+                    action: 138,
+                    payload: [data.id],
+                    response: true,
+                    retries: 3
+                });
+                out.appendPayloadString(data.name, 11);
+                await out.sendAsync();
+            }
+
+            let c = sys.customNames.getItemById(id, true);
+            c.name = data.name;
+
+            sys.board.system.syncCustomNamesValueMap();
+            sys.emitEquipmentChange();
+            for (let i = 0; i < sys.circuits.length; i++) {
+                let circ = sys.circuits.getItemByIndex(i);
+                if (circ.nameId === data.id + 200) {
+                    let cstate = state.circuits.getItemById(circ.id);
+                    cstate.name = circ.name = data.name;
+                    for (let j = 0; j < state.schedules.length; j++) {
+                        let ssched = state.schedules.getItemByIndex(j);
+                        if (ssched.circuit === cstate.id) {
+                            ssched.hasChanged = true;
+                            ssched.emitEquipmentChange();
                         }
-                        for (let i = 0; i < sys.circuitGroups.length; i++) {
-                            let cg = sys.circuitGroups.getItemByIndex(i);
-                            if (cg.nameId === data.id + 200) {
-                                let cgstate = state.circuitGroups.getItemById(cg.id);
-                                cgstate.name = cg.name = data.name;
-                                for (let j = 0; j < state.schedules.length; j++) {
-                                    let ssched = state.schedules.getItemByIndex(j);
-                                    if (ssched.circuit === cgstate.id) {
-                                        ssched.hasChanged = true;
-                                        ssched.emitEquipmentChange();
-                                    }
-                                }
-                            }
-                        }
-                        for (let i = 0; i < sys.lightGroups.length; i++) {
-                            let lg = sys.lightGroups.getItemByIndex(i);
-                            if (lg.nameId === data.id + 200) {
-                                let lgstate = state.lightGroups.getItemById(lg.id);
-                                lgstate.name = lg.name = data.name;
-                                for (let j = 0; j < state.schedules.length; j++) {
-                                    let ssched = state.schedules.getItemByIndex(j);
-                                    if (ssched.circuit === lgstate.id) {
-                                        ssched.hasChanged = true;
-                                        ssched.emitEquipmentChange();
-                                    }
-                                }
-                            }
-                        }
-                        for (let i = 0; i < sys.features.length; i++) {
-                            let f = sys.features.getItemByIndex(i);
-                            if (f.nameId === data.id + 200) {
-                                let fstate = state.features.getItemById(f.id);
-                                fstate.name = f.name = data.name;
-                                for (let j = 0; j < state.schedules.length; j++) {
-                                    let ssched = state.schedules.getItemByIndex(j);
-                                    if (ssched.circuit === fstate.id) {
-                                        ssched.hasChanged = true;
-                                        ssched.emitEquipmentChange();
-                                    }
-                                }
-                            }
-                        }
-                        state.emitEquipmentChanges();
                     }
                 }
-            });
-            out.appendPayloadString(data.name, 11);
-            conn.queueSendMessage(out);
-        });
+            }
+            for (let i = 0; i < sys.circuitGroups.length; i++) {
+                let cg = sys.circuitGroups.getItemByIndex(i);
+                if (cg.nameId === data.id + 200) {
+                    let cgstate = state.circuitGroups.getItemById(cg.id);
+                    cgstate.name = cg.name = data.name;
+                    for (let j = 0; j < state.schedules.length; j++) {
+                        let ssched = state.schedules.getItemByIndex(j);
+                        if (ssched.circuit === cgstate.id) {
+                            ssched.hasChanged = true;
+                            ssched.emitEquipmentChange();
+                        }
+                    }
+                }
+            }
+            for (let i = 0; i < sys.lightGroups.length; i++) {
+                let lg = sys.lightGroups.getItemByIndex(i);
+                if (lg.nameId === data.id + 200) {
+                    let lgstate = state.lightGroups.getItemById(lg.id);
+                    lgstate.name = lg.name = data.name;
+                    for (let j = 0; j < state.schedules.length; j++) {
+                        let ssched = state.schedules.getItemByIndex(j);
+                        if (ssched.circuit === lgstate.id) {
+                            ssched.hasChanged = true;
+                            ssched.emitEquipmentChange();
+                        }
+                    }
+                }
+            }
+            for (let i = 0; i < sys.features.length; i++) {
+                let f = sys.features.getItemByIndex(i);
+                if (f.nameId === data.id + 200) {
+                    let fstate = state.features.getItemById(f.id);
+                    fstate.name = f.name = data.name;
+                    for (let j = 0; j < state.schedules.length; j++) {
+                        let ssched = state.schedules.getItemByIndex(j);
+                        if (ssched.circuit === fstate.id) {
+                            ssched.hasChanged = true;
+                            ssched.emitEquipmentChange();
+                        }
+                    }
+                }
+            }
+            state.emitEquipmentChanges();
+            return c;
+        } catch (err) {
+            return Promise.reject(err);
+        }
+
     }
     public async setOptionsAsync(obj: any): Promise<Options> {
         // Proxy for setBodyAsync.  See below for explanation.
@@ -1158,266 +1183,259 @@ class TouchBodyCommands extends BodyCommands {
         // We also need to return the proper body setting manual heat, but it is irrelevant
         // for when we are returning to chemController
         try {
-            return new Promise<Body>((resolve, reject) => {
-                let manualHeat = sys.general.options.manualHeat;
-                let manualPriority = sys.general.options.manualPriority;
-                if (typeof obj.manualHeat !== 'undefined') manualHeat = utils.makeBool(obj.manualHeat);
-                if (typeof obj.manualPriority !== 'undefined') manualPriority = utils.makeBool(obj.manualPriority);
-                let body = sys.bodies.getItemById(obj.id, false);
-                let intellichemInstalled = sys.chemControllers.getItemByAddress(144, false).isActive;
+            let manualHeat = sys.general.options.manualHeat;
+            let manualPriority = sys.general.options.manualPriority;
+            if (typeof obj.manualHeat !== 'undefined') manualHeat = utils.makeBool(obj.manualHeat);
+            if (typeof obj.manualPriority !== 'undefined') manualPriority = utils.makeBool(obj.manualPriority);
+            let body = sys.bodies.getItemById(obj.id, false);
+            let intellichemInstalled = sys.chemControllers.getItemByAddress(144, false).isActive;
+            if (sl.enabled) {              
+                await sl.controller.setEquipmentAsync({manualHeat, intellichem: intellichemInstalled}, 'misc');
+            }
+            else {
                 let out = Outbound.create({
                     dest: 16,
                     action: 168,
                     retries: 3,
                     response: true,
-                    onComplete: (err, msg) => {
-                        if (err) reject(err);
-                        else {
-                            sys.general.options.manualHeat = manualHeat;
-                            sys.general.options.manualPriority = manualPriority;
-                            let sbody = state.temps.bodies.getItemById(body.id, true);
-                            if (body.type === 1){ // spa
-                                body.manualHeat = manualHeat;
-                            };
-                            if (typeof obj.name !== 'undefined') body.name = sbody.name = obj.name;
-                            if (typeof obj.capacity !== 'undefined') body.capacity = parseInt(obj.capacity, 10);
-                            if (typeof obj.showInDashboard !== 'undefined') body.showInDashboard = sbody.showInDashboard = utils.makeBool(obj.showInDashboard);
-                            state.emitEquipmentChanges();
-                            resolve(body);
-                        }
-                    }
                 });
                 out.insertPayloadBytes(0, 0, 9);
                 out.setPayloadByte(3, intellichemInstalled ? 255 : 254);
                 out.setPayloadByte(4, manualHeat ? 1 : 0);
                 out.setPayloadByte(5, manualPriority ? 1 : 0);
-                conn.queueSendMessage(out);
-            });
-
+                await out.sendAsync();
+            }
+            sys.general.options.manualHeat = manualHeat;
+            sys.general.options.manualPriority = manualPriority;
+            let sbody = state.temps.bodies.getItemById(body.id, true);
+            if (body.type === 1) { // spa
+                body.manualHeat = manualHeat;
+            };
+            if (typeof obj.name !== 'undefined') body.name = sbody.name = obj.name;
+            if (typeof obj.capacity !== 'undefined') body.capacity = parseInt(obj.capacity, 10);
+            if (typeof obj.showInDashboard !== 'undefined') body.showInDashboard = sbody.showInDashboard = utils.makeBool(obj.showInDashboard);
+            state.emitEquipmentChanges();
+            return body;
         }
         catch (err) { return Promise.reject(err); }
     }
     public async setHeatModeAsync(body: Body, mode: number): Promise<BodyTempState> {
-        return new Promise<BodyTempState>((resolve, reject) => {
-            //  [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
-            //  [85, 97, 7, 0]
-            // byte | val | 
-            // 0    | 85  | Pool Setpoint
-            // 1    | 97  | Spa setpoint
-            // 2    | 7   | Pool/spa heat modes (01 = Heater spa 11 = Solar Only pool)
-            // 3    | 0   | Cool set point for ultratemp
+        //  [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
+        //  [85, 97, 7, 0]
+        // byte | val | 
+        // 0    | 85  | Pool Setpoint
+        // 1    | 97  | Spa setpoint
+        // 2    | 7   | Pool/spa heat modes (01 = Heater spa 11 = Solar Only pool)
+        // 3    | 0   | Cool set point for ultratemp
 
 
-            // Heat modes
-            // 0 = Off
-            // 1 = Heater
-            // 2 = Solar/Heatpump Pref
-            // 3 = Solar
-            // 
+        // Heat modes
+        // 0 = Off
+        // 1 = Heater
+        // 2 = Solar/Heatpump Pref
+        // 3 = Solar
+        // 
 
-            const body1 = sys.bodies.getItemById(1);
-            const body2 = sys.bodies.getItemById(2);
-            const temp1 = body1.setPoint || 100;
-            const temp2 = body2.setPoint || 100;
-            let cool = body1.coolSetpoint || 0;
-            let mode1 = body1.heatMode;
-            let mode2 = body2.heatMode;
-            body.id === 1 ? mode1 = mode : mode2 = mode;
-            let out = Outbound.create({
-                dest: 16,
-                action: 136,
-                payload: [temp1, temp2, mode2 << 2 | mode1, cool],
-                retries: 3,
-                response: true,
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    body.heatMode = mode;
-                    let bstate = state.temps.bodies.getItemById(body.id);
-                    bstate.heatMode = mode;
-                    state.emitEquipmentChanges();
-                    resolve(bstate);
-                }
-            });
-            conn.queueSendMessage(out);
+        const body1 = sys.bodies.getItemById(1);
+        const body2 = sys.bodies.getItemById(2);
+        const temp1 = body1.setPoint || 100;
+        const temp2 = body2.setPoint || 100;
+        let cool = body1.coolSetpoint || 0;
+        let mode1 = body1.heatMode;
+        let mode2 = body2.heatMode;
+        body.id === 1 ? mode1 = mode : mode2 = mode;
+        let out = Outbound.create({
+            dest: 16,
+            action: 136,
+            payload: [temp1, temp2, mode2 << 2 | mode1, cool],
+            retries: 3,
+            response: true
         });
-    }
-    public async setSetpoints(body: Body, obj: any): Promise<BodyTempState> {
-        return new Promise<BodyTempState>((resolve, reject) => {
-            let setPoint = typeof obj.setPoint !== 'undefined' ? parseInt(obj.setPoint, 10) : parseInt(obj.heatSetpoint, 10);
-            let coolSetPoint = typeof obj.coolSetPoint !== 'undefined' ? parseInt(obj.coolSetPoint, 10) : 0;
-            if (isNaN(setPoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid ${body.name} setpoint ${obj.setPoint || obj.heatSetpoint}`, 'body', obj));
-            // [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
-            // 165,33,16,34,136,4,89,99,7,0,2,71  Request
-            // 165,33,34,16,1,1,136,1,130  Controller Response
-            const tempUnits = state.temps.units;
-            switch (tempUnits) {
-                case 0: // fahrenheit
-                    {
-                        if (setPoint < 40 || setPoint > 104) {
-                            logger.warn(`Setpoint of ${setPoint} is outside acceptable range.`);
-                        }
-                        if (coolSetPoint < 40 || coolSetPoint > 104) {
-                            logger.warn(`Cool Setpoint of ${setPoint} is outside acceptable range.`);
-                            return;
-                        }
-                        break;
-                    }
-                case 1: // celsius
-                    {
-                        if (setPoint < 4 || setPoint > 40) {
-                            logger.warn(
-                                `Setpoint of ${setPoint} is outside of acceptable range.`
-                            );
-                            return;
-                        }
-                        if (coolSetPoint < 4 || coolSetPoint > 40) {
-                            logger.warn(`Cool SetPoint of ${coolSetPoint} is outside of acceptable range.`
-                            );
-                            return;
-                        }
-                        break;
-                    }
+        try {
+            if (sl.enabled) {
+                await sl.bodies.setHeatModeAsync(body, mode);
             }
-            const body1 = sys.bodies.getItemById(1);
-            const body2 = sys.bodies.getItemById(2);
-            let temp1 = body1.setPoint || tempUnits === 0 ? 40 : 4;
-            let temp2 = body2.setPoint || tempUnits === 0 ? 40 : 4;
-            let cool = coolSetPoint || body1.setPoint + 1;
-            body.id === 1 ? temp1 = setPoint : temp2 = setPoint;
-            const mode1 = body1.heatMode;
-            const mode2 = body2.heatMode;
-            const out = Outbound.create({
-                dest: 16,
-                action: 136,
-                payload: [temp1, temp2, mode2 << 2 | mode1, cool],
-                retries: 3,
-                response: true,
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    body.setPoint = setPoint;
-                    let bstate = state.temps.bodies.getItemById(body.id);
-                    bstate.setPoint = setPoint;
-                    if (body.id === 1) body.coolSetpoint = bstate.coolSetpoint = cool;
-                    state.temps.emitEquipmentChange();
-                    resolve(bstate);
-                }
+            else {
+                await out.sendAsync();
+            }
+            body.heatMode = mode;
+            let bstate = state.temps.bodies.getItemById(body.id);
+            bstate.heatMode = mode;
+            state.emitEquipmentChanges();
+            return bstate;
+        } catch (err) {
+            return Promise.reject(err);
+        }
 
-            });
-            conn.queueSendMessage(out);
+    }
+    public async setSetpoints(body: Body, obj: any, send: boolean = true): Promise<BodyTempState> {
+        let setPoint = typeof obj.setPoint !== 'undefined' ? parseInt(obj.setPoint, 10) : parseInt(obj.heatSetpoint, 10);
+        let coolSetPoint = typeof obj.coolSetPoint !== 'undefined' ? parseInt(obj.coolSetPoint, 10) : 0;
+        if (isNaN(setPoint)) return Promise.reject(new InvalidEquipmentDataError(`Invalid ${body.name} setpoint ${obj.setPoint || obj.heatSetpoint}`, 'body', obj));
+        // [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
+        // 165,33,16,34,136,4,89,99,7,0,2,71  Request
+        // 165,33,34,16,1,1,136,1,130  Controller Response
+        const tempUnits = state.temps.units;
+        switch (tempUnits) {
+            case 0: // fahrenheit
+                {
+                    if (setPoint < 40 || setPoint > 104) {
+                        logger.warn(`Setpoint of ${setPoint} is outside acceptable range.`);
+                    }
+                    if (coolSetPoint < 40 || coolSetPoint > 104) {
+                        logger.warn(`Cool Setpoint of ${setPoint} is outside acceptable range.`);
+                        return;
+                    }
+                    break;
+                }
+            case 1: // celsius
+                {
+                    if (setPoint < 4 || setPoint > 40) {
+                        logger.warn(
+                            `Setpoint of ${setPoint} is outside of acceptable range.`
+                        );
+                        return;
+                    }
+                    if (coolSetPoint < 4 || coolSetPoint > 40) {
+                        logger.warn(`Cool SetPoint of ${coolSetPoint} is outside of acceptable range.`
+                        );
+                        return;
+                    }
+                    break;
+                }
+        }
+        const body1 = sys.bodies.getItemById(1);
+        const body2 = sys.bodies.getItemById(2);
+        let temp1 = body1.setPoint || tempUnits === 0 ? 40 : 4;
+        let temp2 = body2.setPoint || tempUnits === 0 ? 40 : 4;
+        let cool = coolSetPoint || body1.setPoint + 1;
+        body.id === 1 ? temp1 = setPoint : temp2 = setPoint;
+        const mode1 = body1.heatMode;
+        const mode2 = body2.heatMode;
+        const out = Outbound.create({
+            dest: 16,
+            action: 136,
+            payload: [temp1, temp2, mode2 << 2 | mode1, cool],
+            retries: 3,
+            response: true
         });
+        try {
+            if (sl.enabled && send) {
+                await sl.bodies.setHeatSetpointAsync(body, setPoint);
+            }
+            else if (send) {
+                await out.sendAsync();
+            }
+            body.setPoint = setPoint;
+            let bstate = state.temps.bodies.getItemById(body.id);
+            bstate.setPoint = setPoint;
+            if (body.id === 1) body.coolSetpoint = bstate.coolSetpoint = cool;
+            state.temps.emitEquipmentChange();
+            return bstate;
+        } catch (err) {
+            return Promise.reject(err);
+        }
     }
     public async setHeatSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
-        return new Promise<BodyTempState>((resolve, reject) => {
-            // [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
-            // 165,33,16,34,136,4,89,99,7,0,2,71  Request
-            // 165,33,34,16,1,1,136,1,130  Controller Response
-            const tempUnits = state.temps.units;
-            switch (tempUnits) {
-                case 0: // fahrenheit
-                    if (setPoint < 40 || setPoint > 104) {
-                        logger.warn(`Setpoint of ${setPoint} is outside acceptable range.`);
-                        return;
-                    }
-                    break;
-                case 1: // celsius
-                    if (setPoint < 4 || setPoint > 40) {
-                        logger.warn(
-                            `Setpoint of ${setPoint} is outside of acceptable range.`
-                        );
-                        return;
-                    }
-                    break;
-            }
-            const body1 = sys.bodies.getItemById(1);
-            const body2 = sys.bodies.getItemById(2);
-            let temp1 = body1.setPoint || 100;
-            let temp2 = body2.setPoint || 100;
-            body.id === 1 ? temp1 = setPoint : temp2 = setPoint;
-            const mode1 = body1.heatMode || 0;
-            const mode2 = body2.heatMode || 0;
-            let cool = body1.coolSetpoint || (body1.setPoint + 1);
-            const out = Outbound.create({
-                dest: 16,
-                action: 136,
-                payload: [temp1, temp2, mode2 << 2 | mode1, cool],
-                retries: 3,
-                response: true,
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    body.setPoint = setPoint;
-                    let bstate = state.temps.bodies.getItemById(body.id);
-                    bstate.setPoint = setPoint;
-                    state.temps.emitEquipmentChange();
-                    resolve(bstate);
+        // [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,0,2,56]
+        // 165,33,16,34,136,4,89,99,7,0,2,71  Request
+        // 165,33,34,16,1,1,136,1,130  Controller Response
+        const tempUnits = state.temps.units;
+        switch (tempUnits) {
+            case 0: // fahrenheit
+                if (setPoint < 40 || setPoint > 104) {
+                    logger.warn(`Setpoint of ${setPoint} is outside acceptable range.`);
+                    return;
                 }
-
-            });
-            conn.queueSendMessage(out);
+                break;
+            case 1: // celsius
+                if (setPoint < 4 || setPoint > 40) {
+                    logger.warn(
+                        `Setpoint of ${setPoint} is outside of acceptable range.`
+                    );
+                    return;
+                }
+                break;
+        }
+        const body1 = sys.bodies.getItemById(1);
+        const body2 = sys.bodies.getItemById(2);
+        let temp1 = body1.setPoint || 100;
+        let temp2 = body2.setPoint || 100;
+        body.id === 1 ? temp1 = setPoint : temp2 = setPoint;
+        const mode1 = body1.heatMode || 0;
+        const mode2 = body2.heatMode || 0;
+        let cool = body1.coolSetpoint || (body1.setPoint + 1);
+        const out = Outbound.create({
+            dest: 16,
+            action: 136,
+            payload: [temp1, temp2, mode2 << 2 | mode1, cool],
+            retries: 3,
+            response: true
         });
+        try {
+            if (sl.enabled) {
+                await sl.bodies.setHeatSetpointAsync(body, setPoint);
+            }
+            else {
+                await out.sendAsync();
+            }
+            body.setPoint = setPoint;
+            let bstate = state.temps.bodies.getItemById(body.id);
+            bstate.setPoint = setPoint;
+            state.temps.emitEquipmentChange();
+            return bstate;
+        } catch (err) {
+            return Promise.reject(err);
+        }
     }
     public async setCoolSetpointAsync(body: Body, setPoint: number): Promise<BodyTempState> {
-        return new Promise<BodyTempState>((resolve, reject) => {
-            // [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,Cool,2,56]
-            // 165,33,16,34,136,4,89,99,7,0,2,71  Request
-            // 165,33,34,16,1,1,136,1,130  Controller Response
-            const tempUnits = state.temps.units;
-            switch (tempUnits) {
-                case 0: // fahrenheit
-                    if (setPoint < 40 || setPoint > 104) {
-                        logger.warn(`Setpoint of ${setPoint} is outside acceptable range.`);
-                        return;
-                    }
-                    break;
-                case 1: // celsius
-                    if (setPoint < 4 || setPoint > 40) {
-                        logger.warn(
-                            `Setpoint of ${setPoint} is outside of acceptable range.`
-                        );
-                        return;
-                    }
-                    break;
-            }
-            const body1 = sys.bodies.getItemById(1);
-            const body2 = sys.bodies.getItemById(2);
-            let temp1 = body1.setPoint || 100;
-            let temp2 = body2.setPoint || 100;
-            const mode1 = body1.heatMode || 0;
-            const mode2 = body2.heatMode || 0;
-            const out = Outbound.create({
-                dest: 16,
-                action: 136,
-                payload: [temp1, temp2, mode2 << 2 | mode1, setPoint],
-                retries: 3,
-                response: true,
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    let bstate = state.temps.bodies.getItemById(body.id);
-                    body.coolSetpoint = bstate.coolSetpoint = setPoint;
-                    state.temps.emitEquipmentChange();
-                    resolve(bstate);
+        // [16,34,136,4],[POOL HEAT Temp,SPA HEAT Temp,Heat Mode,Cool,2,56]
+        // 165,33,16,34,136,4,89,99,7,0,2,71  Request
+        // 165,33,34,16,1,1,136,1,130  Controller Response
+        const tempUnits = state.temps.units;
+        switch (tempUnits) {
+            case 0: // fahrenheit
+                if (setPoint < 40 || setPoint > 104) {
+                    logger.warn(`Setpoint of ${setPoint} is outside acceptable range.`);
+                    return;
                 }
-
-            });
-            conn.queueSendMessage(out);
+                break;
+            case 1: // celsius
+                if (setPoint < 4 || setPoint > 40) {
+                    logger.warn(
+                        `Setpoint of ${setPoint} is outside of acceptable range.`
+                    );
+                    return;
+                }
+                break;
+        }
+        const body1 = sys.bodies.getItemById(1);
+        const body2 = sys.bodies.getItemById(2);
+        let temp1 = body1.setPoint || 100;
+        let temp2 = body2.setPoint || 100;
+        const mode1 = body1.heatMode || 0;
+        const mode2 = body2.heatMode || 0;
+        const out = Outbound.create({
+            dest: 16,
+            action: 136,
+            payload: [temp1, temp2, mode2 << 2 | mode1, setPoint],
+            retries: 3,
+            response: true
         });
+        if (sl.enabled) {
+            await sl.bodies.setCoolSetpointAsync(body, setPoint);
+        }
+        else {
+            await out.sendAsync();
+        }
+        let bstate = state.temps.bodies.getItemById(body.id);
+        body.coolSetpoint = bstate.coolSetpoint = setPoint;
+        state.temps.emitEquipmentChange();
+        return bstate;
     }
 }
 export class TouchCircuitCommands extends CircuitCommands {
-    // RKS: 12-01-2021 This has been deprecated we are now driving this through metadata on the valuemaps.  This allows
-    // for multiple types of standardized on/off sequences with nixie controllers.
-    //public getLightThemes(type?: number): any[] {
-    //    let themes = sys.board.valueMaps.lightThemes.toArray();
-    //    if (typeof type === 'undefined') return themes;
-    //    switch (type) {
-    //        case 8: // Magicstream
-    //            return themes.filter(theme => theme.types.includes('magicstream'));
-    //        case 16: // Intellibrite
-    //            return themes.filter(theme => theme.types.includes('intellibrite'));
-    //        default:
-    //            return [];
-    //    }
-    //}
-    public async setCircuitAsync(data: any): Promise<ICircuit> {
+    public async setCircuitAsync(data: any, send: boolean = true): Promise<ICircuit> {
         try {
             // example [255,0,255][165,33,16,34,139,5][17,14,209,0,0][2,120]
             // set circuit 17 to function 14 and name 209
@@ -1431,53 +1449,55 @@ export class TouchCircuitCommands extends CircuitCommands {
                 let circ = await super.setCircuitAsync(data);
                 return circ;
             }
-
-            let typeByte = parseInt(data.type, 10) || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
+            let cstate = state.circuits.getInterfaceById(data.id, true);
+            let showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures;
+            let typeByte = parseInt(data.type, 10) === 0 ? 0 : parseInt(data.type, 10) || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
+            let freeze = typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze;
             let nameByte = 3; // set default `Aux 1`
             if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
             else if (typeof circuit.name !== 'undefined') nameByte = circuit.nameId;
-            return new Promise<ICircuit>(async (resolve, reject) => {
-                let out = Outbound.create({
-                    action: 139,
-                    payload: [parseInt(data.id, 10), typeByte | (utils.makeBool(data.freeze) ? 64 : 0), nameByte, 0, 0],
-                    retries: 3,
-                    response: true,
-                    onComplete: async (err, msg) => {
-                        if (err) reject(err);
-                        else {
-                            let circuit = sys.circuits.getInterfaceById(data.id);
-                            let cstate = state.circuits.getInterfaceById(data.id);
-                            circuit.nameId = cstate.nameId = nameByte;
-                            circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
-                            circuit.showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures;
-                            circuit.freeze = typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze;
-                            circuit.type = cstate.type = typeByte;
-                            circuit.eggTimer = typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer || 720;
-                            circuit.dontStop = (typeof data.dontStop !== 'undefined') ? utils.makeBool(data.dontStop) : circuit.eggTimer === 1620;
-                            cstate.isActive = circuit.isActive = true;
-                            circuit.master = 0;
-                            let eggTimer = sys.eggTimers.find(elem => elem.circuit === parseInt(data.id, 10));
-                            try {
-                                if (circuit.eggTimer === 720) {
-                                    if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
-                                }
-                                else {
-                                    await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: circuit.eggTimer, dontStop: circuit.dontStop, circuit: circuit.id });
-                                }
-                            }
-                            catch (err) {
-                                // fail silently if there are no slots to fill in the schedules
-                                logger.info(`Cannot set/delete eggtimer on circuit ${circuit.id}.  Error: ${err.message}`);
-                                circuit.eggTimer = 720;
-                                circuit.dontStop = false;
-                            }
-                            state.emitEquipmentChanges();
-                            resolve(circuit);
-                        }
-                    }
-                });
-                conn.queueSendMessage(out);
-            });
+            if (send) {
+                if (sl.enabled) {
+                    // SL show in features = 0 = pool; 1 = spa; 2 = features; 4 = lights; 5 = hide
+                    await sl.circuits.setCircuitAsync(parseInt(data.id, 10), nameByte, typeByte, showInFeatures ? 2 : 0, freeze)
+                }
+                else {
+                    let out = Outbound.create({
+                        action: 139,
+                        payload: [parseInt(data.id, 10), typeByte | (utils.makeBool(data.freeze) ? 64 : 0), nameByte, 0, 0],
+                        retries: 3,
+                        response: true
+                    });
+                    await out.sendAsync();
+                }
+            }
+            circuit = sys.circuits.getInterfaceById(data.id, true);
+            circuit.nameId = cstate.nameId = nameByte;
+            circuit.name = cstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
+            circuit.showInFeatures = showInFeatures;
+            circuit.freeze = freeze;
+            circuit.type = cstate.type = typeByte;
+            circuit.eggTimer = typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : circuit.eggTimer || 720;
+            circuit.dontStop = (typeof data.dontStop !== 'undefined') ? utils.makeBool(data.dontStop) : circuit.eggTimer === 1620;
+            cstate.isActive = circuit.isActive = true;
+            circuit.master = 0;
+            let eggTimer = sys.eggTimers.find(elem => elem.circuit === parseInt(data.id, 10));
+            try {
+                if (circuit.eggTimer === 720) {
+                    if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
+                }
+                else {
+                    await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: circuit.eggTimer, dontStop: circuit.dontStop, circuit: circuit.id });
+                }
+            }
+            catch (err) {
+                // fail silently if there are no slots to fill in the schedules
+                logger.info(`Cannot set/delete eggtimer on circuit ${circuit.id}.  Error: ${err.message}`);
+                circuit.eggTimer = 720;
+                circuit.dontStop = false;
+            }
+            state.emitEquipmentChanges();
+            return circuit;
         }
         catch (err) { logger.error(`setCircuitAsync error setting circuit ${JSON.stringify(data)}: ${err}`); return Promise.reject(err); }
     }
@@ -1503,27 +1523,24 @@ export class TouchCircuitCommands extends CircuitCommands {
             id = 1;
             val = false;
         }
-        return new Promise<ICircuitState>((resolve, reject) => {
-            let cstate = state.circuits.getInterfaceById(id);
-            let out = Outbound.create({
-                action: 134,
-                payload: [id, val ? 1 : 0],
-                retries: 3,
-                response: true,
-                scope: `circuitState${id}`,
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        sys.board.circuits.setEndTime(c, cstate, val);
-                        cstate.isOn = val;
-                        state.emitEquipmentChanges();
-                        resolve(cstate);
-                    }
-                }
-            });
-            conn.queueSendMessage(out);
+        let cstate = state.circuits.getInterfaceById(id);
+        let out = Outbound.create({
+            action: 134,
+            payload: [id, val ? 1 : 0],
+            retries: 3,
+            response: true,
+            scope: `circuitState${id}`
         });
-
+        if (sl.enabled) {
+            await sl.circuits.setCircuitStateAsync(id, val);
+        }
+        else {
+            await out.sendAsync();
+        }
+        sys.board.circuits.setEndTime(c, cstate, val);
+        cstate.isOn = val;
+        state.emitEquipmentChanges();
+        return cstate;
     }
     public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> { return this.setCircuitGroupStateAsync(id, val); }
     public async toggleCircuitStateAsync(id: number) {
@@ -1533,147 +1550,117 @@ export class TouchCircuitCommands extends CircuitCommands {
         }
         return await this.setCircuitStateAsync(id, !cstate.isOn);
     }
-    public createLightGroupMessages(group: LightGroup) {
-        let packets: Promise<void>[] = [];
-        // intellibrites can come with 8 settings (1 packet) or 10 settings (2 packets)
-        if (sys.equipment.maxIntelliBrites === 8) {
-            // Easytouch
-            packets.push(new Promise(function (resolve, reject) {
-                let out = Outbound.create({
-                    action: 167,
-                    retries: 3,
-                    response: true,
-                    onComplete: (err, msg) => {
-                        if (err) return reject(err);
-                        else {
-                            return resolve();
-                        }
-                    }
-                });
-                const lgcircuits = group.circuits.get();
-                for (let circ = 0; circ < 8; circ++) {
-                    const lgcirc = lgcircuits[circ];
-                    if (typeof lgcirc === 'undefined') out.payload.push(0, 0, 0, 0);
-                    else {
-                        out.payload.push(lgcirc.circuit);
-                        out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
-                        out.payload.push(lgcirc.swimDelay << 1);
-                        out.payload.push(0);
-                    }
-                }
-                conn.queueSendMessage(out);
-            }));
 
-        }
-        else {
-            // Intellitouch
-            const lgcircuits = group.circuits.get();
-            packets.push(new Promise(function (resolve, reject) {
-                let out = Outbound.create({
-                    action: 167,
-                    retries: 3,
-                    payload: [1],
-                    response: true,
-                    onComplete: (err, msg) => {
-                        if (err) return reject(err);
-                        else {
-                            return resolve();
-                        }
-                    }
-                });
-                for (let circ = 0; circ < 5; circ++) {
-                    const lgcirc = lgcircuits[circ];
-                    if (typeof lgcirc === 'undefined') out.payload.push.apply([0, 0, 0, 0]);
-                    else {
-                        out.payload.push(lgcirc.id);
-                        out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
-                        out.payload.push(lgcirc.swimDelay << 1);
-                        out.payload.push(0);
-                    }
-                }
-                conn.queueSendMessage(out);
-            }));
-            packets.push(new Promise(function (resolve, reject) {
-                let out = Outbound.create({
-                    action: 167,
-                    retries: 3,
-                    payload: [2],
-                    response: true,
-                    onComplete: (err, msg) => {
-                        if (err) return Promise.reject(err);
-                        else {
-                            return Promise.resolve();
-                        }
-                    }
-                });
-                for (let circ = 5; circ < 10; circ++) {
-                    const lgcirc = lgcircuits[circ];
-                    if (typeof lgcirc === 'undefined') out.payload.push.apply([0, 0, 0, 0]);
-                    else {
-                        out.payload.push(lgcirc.id);
-                        out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
-                        out.payload.push(lgcirc.swimDelay << 1);
-                        out.payload.push(0);
-                    }
-                }
-                conn.queueSendMessage(out);
-            }));
-        }
-        return packets;
-    }
-    public async setLightGroupAsync(obj: any): Promise<LightGroup> {
-        let group: LightGroup = null;
-        let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
-        if (id <= 0) {
-            // We are adding a circuit group.
-            id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
-        }
-        if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit light group id exceeded`, id, 'LightGroup'));
-        if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'LightGroup'));
-        group = sys.lightGroups.getItemById(id, true);
-
-        if (typeof obj.name !== 'undefined') group.name = obj.name;
-        if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440); // this isn't an *Touch thing, so need to figure out if we can handle it some other way
-        group.dontStop = (group.eggTimer === 1440);
-        group.isActive = true;
-        if (typeof obj.circuits !== 'undefined') {
-            for (let i = 0; i < obj.circuits.length; i++) {
-                let cobj = obj.circuits[i];
-                let c: LightGroupCircuit;
-                if (typeof cobj.id !== 'undefined') c = group.circuits.getItemById(parseInt(cobj.id, 10), true);
-                else if (typeof cobj.circuit !== 'undefined') c = group.circuits.getItemByCircuitId(parseInt(cobj.circuit, 10), true);
-                else c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
-                if (typeof cobj.circuit !== 'undefined') c.circuit = cobj.circuit;
-                //if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10); // does this belong here?
-                if (typeof cobj.color !== 'undefined') c.color = parseInt(cobj.color, 10);
-                if (typeof cobj.swimDelay !== 'undefined') c.swimDelay = parseInt(cobj.swimDelay, 10);
-                if (typeof cobj.position !== 'undefined') c.position = parseInt(cobj.position, 10);
+    public async setLightGroupAsync(obj: any, send: boolean = true): Promise<LightGroup> {
+        try {
+            let group: LightGroup = null;
+            let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+            if (id <= 0) {
+                // We are adding a circuit group.
+                id = sys.circuitGroups.getNextEquipmentId(sys.board.equipmentIds.circuitGroups);
             }
-            // group.circuits.length = obj.circuits.length;
-        }
-        let messages = this.createLightGroupMessages(group);
-        messages.push(new Promise(function (resolve, reject) {
-            let out = Outbound.create({
-                action: 231,
-                payload: [0],
-                onComplete: (err, msg) => {
-                    if (err) reject(err);
-                    else resolve();
+            if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Max circuit light group id exceeded`, id, 'LightGroup'));
+            if (isNaN(id) || !sys.board.equipmentIds.circuitGroups.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid circuit group id: ${obj.id}`, obj.id, 'LightGroup'));
+            group = sys.lightGroups.getItemById(id, true);
+
+            if (typeof obj.name !== 'undefined') group.name = obj.name;
+            if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440); // this isn't an *Touch thing, so need to figure out if we can handle it some other way
+            group.dontStop = (group.eggTimer === 1440);
+            group.isActive = true;
+            group.type = 3; // intellibrite
+            if (typeof obj.circuits !== 'undefined') {
+                for (let i = 0; i < obj.circuits.length; i++) {
+                    let cobj = obj.circuits[i];
+                    let c: LightGroupCircuit;
+                    if (typeof cobj.id !== 'undefined') c = group.circuits.getItemById(parseInt(cobj.id, 10), true);
+                    else if (typeof cobj.circuit !== 'undefined') c = group.circuits.getItemByCircuitId(parseInt(cobj.circuit, 10), true);
+                    else c = group.circuits.getItemByIndex(i, true, { id: i + 1 });
+                    if (typeof cobj.circuit !== 'undefined') c.circuit = cobj.circuit;
+                    //if (typeof cobj.lightingTheme !== 'undefined') c.lightingTheme = parseInt(cobj.lightingTheme, 10); // does this belong here?
+                    if (typeof cobj.color !== 'undefined') c.color = parseInt(cobj.color, 10);
+                    if (typeof cobj.swimDelay !== 'undefined') c.swimDelay = parseInt(cobj.swimDelay, 10);
+                    if (typeof cobj.position !== 'undefined') c.position = parseInt(cobj.position, 10);
                 }
-
-            });
-            conn.queueSendMessage(out);
-        }));
-
-        return new Promise<LightGroup>(async (resolve, reject) => {
-            try {
-                await Promise.all(messages).catch(err => reject(err));
-                sys.emitData('lightGroupConfig', group.get(true));
-                resolve(group);
+                // group.circuits.length = obj.circuits.length;
             }
-            catch (err) { reject(err); }
-        });
+            if (sl.enabled && send) {
+                await sl.controller.setEquipmentAsync(obj,'lightGroup');
+            }
+            else if (send) {
+                if (sys.equipment.maxIntelliBrites === 8) {
+                    // Easytouch
 
+                    let out = Outbound.create({
+                        action: 167,
+                        retries: 3,
+                        response: true
+                    });
+                    const lgcircuits = group.circuits.get();
+                    for (let circ = 0; circ < 8; circ++) {
+                        const lgcirc = lgcircuits[circ];
+                        if (typeof lgcirc === 'undefined') out.payload.push(0, 0, 0, 0);
+                        else {
+                            out.payload.push(lgcirc.circuit);
+                            out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
+                            out.payload.push(lgcirc.swimDelay << 1);
+                            out.payload.push(0);
+                        }
+                    }
+                    await out.sendAsync();
+                }
+                else {
+                    // Intellitouch
+                    const lgcircuits = group.circuits.get();
+                    if (send) {
+
+                        let out = Outbound.create({
+                            action: 167,
+                            retries: 3,
+                            payload: [1],
+                            response: true
+                        });
+                        for (let circ = 0; circ < 5; circ++) {
+                            const lgcirc = lgcircuits[circ];
+                            if (typeof lgcirc === 'undefined') out.payload.push.apply([0, 0, 0, 0]);
+                            else {
+                                out.payload.push(lgcirc.id);
+                                out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
+                                out.payload.push(lgcirc.swimDelay << 1);
+                                out.payload.push(0);
+                            }
+                        }
+                        await out.sendAsync();
+
+                        out = Outbound.create({
+                            action: 167,
+                            retries: 3,
+                            payload: [2],
+                            response: true
+                        });
+                        for (let circ = 5; circ < 10; circ++) {
+                            const lgcirc = lgcircuits[circ];
+                            if (typeof lgcirc === 'undefined') out.payload.push.apply([0, 0, 0, 0]);
+                            else {
+                                out.payload.push(lgcirc.id);
+                                out.payload.push(((lgcirc.position - 1) << 4) + lgcirc.color);
+                                out.payload.push(lgcirc.swimDelay << 1);
+                                out.payload.push(0);
+                            }
+                        }
+                        out.sendAsync();
+
+                    }
+                }
+                let out = Outbound.create({
+                    action: 231,
+                    payload: [0]
+                });
+                await out.sendAsync();
+            }
+            sys.emitData('lightGroupConfig', group.get(true));
+            return group;
+        }
+        catch (err) { return Promise.reject(err); }
     }
     public async setLightThemeAsync(id: number, theme: number): Promise<ICircuitState> {
         // Re-route this as we cannot set individual circuit themes in *Touch.
@@ -1737,71 +1724,69 @@ export class TouchCircuitCommands extends CircuitCommands {
         catch (err) { return Promise.reject(`Error runLightCommandAsync ${err.message}`); }
     }
     public async setLightGroupThemeAsync(id = sys.board.equipmentIds.circuitGroups.start, theme: number): Promise<ICircuitState> {
-        return new Promise<ICircuitState>((resolve, reject) => {
+        try {
             const grp = sys.lightGroups.getItemById(id);
             const sgrp = state.lightGroups.getItemById(id);
             grp.lightingTheme = sgrp.lightingTheme = theme;
             sgrp.action = sys.board.valueMaps.circuitActions.getValue('lighttheme');
             sgrp.emitEquipmentChange();
-            let out = Outbound.create({
-                action: 96,
-                payload: [theme, 0],
-                retries: 3,
-                response: true,
-                scope: `lightGroupTheme${id}`,
-                onComplete: async (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        try {
-                            // Let everyone know we turned these on.  The theme messages will come later.
-                            for (let i = 0; i < grp.circuits.length; i++) {
-                                let c = grp.circuits.getItemByIndex(i);
-                                let cstate = state.circuits.getItemById(c.circuit);
-                                // if theme is 'off' light groups should not turn on
-                                if (cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) === 'off')
-                                    await sys.board.circuits.setCircuitStateAsync(c.circuit, false);
-                                else if (!cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) !== 'off') await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
-                            }
-                            let isOn = sys.board.valueMaps.lightThemes.getName(theme) === 'off' ? false : true;
-                            sys.board.circuits.setEndTime(grp, sgrp, isOn);
-                            sgrp.isOn = isOn;
-                            switch (theme) {
-                                case 0: // off
-                                case 1: // on
-                                    break;
-                                case 128: // sync
-                                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'sync'); });
-                                    break;
-                                case 144: // swim
-                                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'swim'); });
-                                    break;
-                                case 160: // swim
-                                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'set'); });
-                                    break;
-                                case 190: // save
-                                case 191: // recall
-                                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'other'); });
-                                    break;
-                                default:
-                                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'color'); });
-                                // other themes for magicstream?
-                            }
-                            sgrp.action = 0;
-                            sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
-                            state.emitEquipmentChanges();
-                            resolve(sgrp);
-                        }
-                        catch (err) {
-                            logger.error(`error setting intellibrite theme: ${err.message}`);
-                            reject(err);
-                        }
-                    }
-                }
-            });
-            conn.queueSendMessage(out);
-        });
-    }
+            if (sl.enabled) {
+                await sl.circuits.setLightGroupThemeAsync(theme);
+            }
+            else {
+                let out = Outbound.create({
+                    action: 96,
+                    payload: [theme, 0],
+                    retries: 3,
+                    response: true,
+                    scope: `lightGroupTheme${id}`
+                });
+                await out.sendAsync();
+            }
+            // Let everyone know we turned these on.  The theme messages will come later.
+            for (let i = 0; i < grp.circuits.length; i++) {
+                let c = grp.circuits.getItemByIndex(i);
+                let cstate = state.circuits.getItemById(c.circuit);
+                // if theme is 'off' light groups should not turn on
+                if (cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) === 'off')
+                    await sys.board.circuits.setCircuitStateAsync(c.circuit, false);
+                else if (!cstate.isOn && sys.board.valueMaps.lightThemes.getName(theme) !== 'off') await sys.board.circuits.setCircuitStateAsync(c.circuit, true);
+            }
+            let isOn = sys.board.valueMaps.lightThemes.getName(theme) === 'off' ? false : true;
+            sys.board.circuits.setEndTime(grp, sgrp, isOn);
+            sgrp.isOn = isOn;
+            switch (theme) {
+                case 0: // off
+                case 1: // on
+                    break;
+                case 128: // sync
+                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'sync'); });
+                    break;
+                case 144: // swim
+                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'swim'); });
+                    break;
+                case 160: // swim
+                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'set'); });
+                    break;
+                case 190: // save
+                case 191: // recall
+                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'other'); });
+                    break;
+                default:
+                    setImmediate(function () { sys.board.circuits.sequenceLightGroupAsync(grp.id, 'lighttheme'); });
+                // other themes for magicstream?
+            }
+            sgrp.action = 0;
+            sgrp.hasChanged = true; // Say we are dirty but we really are pure as the driven snow.
+            state.emitEquipmentChanges();
+            return sgrp;
+        }
+        catch (err) {
+            logger.error(`error setting intellibrite theme: ${err.message}`);
+            return Promise.reject(err);
+        }
 
+    }
 }
 
 class TouchFeatureCommands extends FeatureCommands {
@@ -1817,63 +1802,69 @@ class TouchFeatureCommands extends FeatureCommands {
         return this.board.circuits.toggleCircuitStateAsync(id);
     }
     public async setFeatureAsync(data: any): Promise<Feature> {
-        return new Promise<Feature>((resolve, reject) => {
-            let id = parseInt(data.id, 10);
-            let feature: Feature;
-            if (id <= 0) {
-                id = sys.features.getNextEquipmentId(sys.board.equipmentIds.features);
-                feature = sys.features.getItemById(id, false, { isActive: true, freeze: false });
-            }
-            else
-                feature = sys.features.getItemById(id, false);
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('feature Id has not been defined', data.id, 'Feature'));
-            if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`feature Id ${id}: is out of range.`, id, 'Feature'));
-            let typeByte = data.type || feature.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
-            let nameByte = 3; // set default `Aux 1`
-            if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
-            else if (typeof feature.name !== 'undefined') nameByte = feature.nameId;
-            // [165,23,16,34,139,5],[17,0,1,0,0],[1,144]
+        let id = parseInt(data.id, 10);
+        let feature: Feature;
+        if (id <= 0) {
+            id = sys.features.getNextEquipmentId(sys.board.equipmentIds.features);
+            feature = sys.features.getItemById(id, false, { isActive: true, freeze: false });
+        }
+        else
+            feature = sys.features.getItemById(id, false);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('feature Id has not been defined', data.id, 'Feature'));
+        if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`feature Id ${id}: is out of range.`, id, 'Feature'));
+        let typeByte = data.type === 0 ? data.type : data.type || feature.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
+        let nameByte = 3; // set default `Aux 1`
+        if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
+        else if (typeof feature.name !== 'undefined') nameByte = feature.nameId;
+        let freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : feature.freeze);
+        let showInFeatures = feature.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : feature.showInFeatures);
+        // [165,23,16,34,139,5],[17,0,1,0,0],[1,144]
+        if (sl.enabled) {
+            // SL show in features = 0 = pool; 1 = spa; 2 = features; 4 = lights; 5 = hide
+            await sl.circuits.setCircuitAsync(id, nameByte, typeByte, showInFeatures ? 2 : 0, freeze);
+        }
+        else {
             let out = Outbound.create({
                 action: 139,
                 payload: [id, typeByte | (utils.makeBool(data.freeze) ? 64 : 0), nameByte, 0, 0],
                 retries: 3,
-                response: true,
-                onComplete: async (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        let feature = sys.features.getItemById(id);
-                        let fstate = state.features.getItemById(data.id);
-                        feature.nameId = fstate.nameId = nameByte;
-                        // circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
-                        feature.name = fstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
-                        feature.type = fstate.type = typeByte;
-
-                        feature.freeze = (typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : feature.freeze);
-                        fstate.showInFeatures = feature.showInFeatures = (typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : feature.showInFeatures);
-                        feature.eggTimer = typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : feature.eggTimer || 720;
-                        feature.dontStop = (typeof data.dontStop !== 'undefined') ? utils.makeBool(data.dontStop) : feature.eggTimer === 1620;
-                        let eggTimer = sys.eggTimers.find(elem => elem.circuit === id);
-                        try {
-                            if (feature.eggTimer === 720) {
-                                if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
-                            }
-                            else {
-                                await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: feature.eggTimer, dontStop: feature.dontStop, circuit: feature.id });
-                            }
-                        }
-                        catch (err) {
-                            // fail silently if there are no slots to fill in the schedules
-                            logger.info(`Cannot set/delete eggtimer on feature ${feature.id}.  Error: ${err.message}`);
-                            feature.eggTimer = 720;
-                            feature.dontStop = false;
-                        }
-                        state.emitEquipmentChanges();
-                        resolve(feature);
-                    }
-                }
+                response: true
             });
-            conn.queueSendMessage(out);
-        });
+            await out.sendAsync();
+        }
+        feature = sys.features.getItemById(id);
+        let fstate = state.features.getItemById(data.id);
+        feature.nameId = fstate.nameId = nameByte;
+        // circuit.name = cstate.name = sys.board.valueMaps.circuitNames.get(nameByte).desc;
+        feature.name = fstate.name = sys.board.valueMaps.circuitNames.transform(nameByte).desc;
+        feature.type = fstate.type = typeByte;
+
+        feature.freeze = freeze;
+        fstate.showInFeatures = showInFeatures;
+        feature.eggTimer = typeof data.eggTimer !== 'undefined' ? parseInt(data.eggTimer, 10) : feature.eggTimer || 720;
+        feature.dontStop = (typeof data.dontStop !== 'undefined') ? utils.makeBool(data.dontStop) : feature.eggTimer === 1620;
+        let eggTimer = sys.eggTimers.find(elem => elem.circuit === id);
+        try {
+            if (feature.eggTimer === 720) {
+                if (typeof eggTimer !== 'undefined') await sys.board.schedules.deleteEggTimerAsync({ id: eggTimer.id });
+            }
+            else {
+                if (sl.enabled) {
+                    await sl.schedules.setEggTimerAsync(feature.id, feature.eggTimer);
+                }
+                else {
+                    await sys.board.schedules.setEggTimerAsync({ id: typeof eggTimer !== 'undefined' ? eggTimer.id : -1, runTime: feature.eggTimer, dontStop: feature.dontStop, circuit: feature.id });
+                }
+            }
+        }
+        catch (err) {
+            // fail silently if there are no slots to fill in the schedules
+            logger.info(`Cannot set/delete eggtimer on feature ${feature.id}.  Error: ${err.message}`);
+            feature.eggTimer = 720;
+            feature.dontStop = false;
+        }
+        state.emitEquipmentChanges();
+        return feature;
     }
     public async deleteFeatureAsync(data: any): Promise<Feature> {
         let circuit = sys.circuits.getItemById(data.id);
@@ -1885,95 +1876,81 @@ class TouchFeatureCommands extends FeatureCommands {
 
 }
 class TouchChlorinatorCommands extends ChlorinatorCommands {
-    public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
-        let id = parseInt(obj.id, 10);
-        // Bail out right away if this is not controlled by the OCP.
-        if (typeof obj.master !== 'undefined' && parseInt(obj.master, 10) !== 0) return super.setChlorAsync(obj);
-        let isAdd = false;
-        if (isNaN(id) || id <= 0) {
-            // We are adding so we need to see if there is another chlorinator that is not external.
-            if (sys.chlorinators.count(elem => elem.master !== 2) > sys.equipment.maxChlorinators) return Promise.reject(new InvalidEquipmentDataError(`The max number of chlorinators has been exceeded you may only add ${sys.equipment.maxChlorinators}`, 'chlorinator', sys.equipment.maxChlorinators));
-            id = 1;
-            isAdd = true;
-        }
-        let chlor = sys.chlorinators.getItemById(id);
-        if (chlor.master !== 0 && !isAdd) return super.setChlorAsync(obj);
-        // RKS: I am not even sure this can be done with Touch as the master on the RS485 bus.
-        if (typeof chlor.master === 'undefined') chlor.master = 0;
-        let name = obj.name || chlor.name || 'IntelliChlor' + id;
-        let superChlorHours = parseInt(obj.superChlorHours, 10);
-        if (typeof obj.superChlorinate !== 'undefined') obj.superChlor = utils.makeBool(obj.superChlorinate);
-        let superChlorinate = typeof obj.superChlor === 'undefined' ? undefined : utils.makeBool(obj.superChlor);
-        let isDosing = typeof obj.isDosing !== 'undefined' ? utils.makeBool(obj.isDosing) : chlor.isDosing;
-        let disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled;
-        let poolSetpoint = typeof obj.poolSetpoint !== 'undefined' ? parseInt(obj.poolSetpoint, 10) : chlor.poolSetpoint;
-        let spaSetpoint = typeof obj.spaSetpoint !== 'undefined' ? parseInt(obj.spaSetpoint, 10) : chlor.spaSetpoint;
-        let saltTarget = typeof obj.saltTarget === 'number' ? parseInt(obj.saltTarget, 10) : chlor.saltTarget;
-
-        let model = typeof obj.model !== 'undefined' ? sys.board.valueMaps.chlorinatorModel.encode(obj.model) : chlor.model || 0;
-        let chlorType = typeof obj.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(obj.type) : chlor.type || 0;
-        let portId = typeof obj.portId !== 'undefined' ? parseInt(obj.portId, 10) : chlor.portId;
-        if (portId !== chlor.portId && sys.chlorinators.count(elem => elem.id !== chlor.id && elem.portId === portId && elem.master !== 2) > 0) return Promise.reject(new InvalidEquipmentDataError(`Another chlorinator is installed on port #${portId}.  Only one chlorinator can be installed per port.`, 'Chlorinator', portId));
-        if (isAdd) {
-            if (isNaN(poolSetpoint)) poolSetpoint = 50;
-            if (isNaN(spaSetpoint)) spaSetpoint = 10;
-            if (isNaN(superChlorHours)) superChlorHours = 8;
-            if (typeof superChlorinate === 'undefined') superChlorinate = false;
-        }
-        else {
-            if (isNaN(poolSetpoint)) poolSetpoint = chlor.poolSetpoint || 0;
-            if (isNaN(spaSetpoint)) spaSetpoint = chlor.spaSetpoint || 0;
-            if (isNaN(superChlorHours)) superChlorHours = chlor.superChlorHours;
-            if (typeof superChlorinate === 'undefined') superChlorinate = utils.makeBool(chlor.superChlor);
-        }
-        if (typeof obj.disabled !== 'undefined') chlor.disabled = utils.makeBool(obj.disabled);
-        if (typeof chlor.body === 'undefined') chlor.body = parseInt(obj.body, 10) || 32;
-        // Verify the data.
-        let body = sys.board.bodies.mapBodyAssociation(chlor.body);
-        if (typeof body === 'undefined') {
-            if (sys.equipment.shared) body = 32;
-            else if (!sys.equipment.dual) body = 0;
-            else return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${body}`, 'chlorinator', body));
-        }
-        if (poolSetpoint > 100 || poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
-        if (spaSetpoint > 100 || spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
-        if (typeof obj.ignoreSaltReading !== 'undefined') chlor.ignoreSaltReading = utils.makeBool(obj.ignoreSaltReading);
-
-        let _timeout: NodeJS.Timeout;
+    public async setChlorAsync(obj: any, send: boolean = true): Promise<ChlorinatorState> {
         try {
-            let request153packet = new Promise<void>((resolve, reject) => {
-                let out = Outbound.create({
-                    dest: 16,
-                    action: 153,
-                    // removed disable ? 0 : (spaSetpoint << 1) + 1 because only deleteChlorAsync should remove it from the OCP
-                    payload: [(disabled ? 0 : isDosing ? 100 << 1: spaSetpoint << 1) + 1, disabled ? 0 : isDosing ? 100 : poolSetpoint,
-                    utils.makeBool(superChlorinate) && superChlorHours > 0 ? superChlorHours + 128 : 0,  // We only want to set the superChlor when the user sends superChlor = true
-                        0, 0, 0, 0, 0, 0, 0],
-                    retries: 3,
-                    response: true,
-                    // scope: Math.random(),
-                    onComplete: (err)=>{
-                        if (err) {
-                            logger.error(`Error setting Chlorinator values: ${err.message}`);
-                            // in case of race condition
-                            if (typeof reject !== 'undefined') reject(err);
-                            reject = undefined;
-                        }
-                        else {
-                            resolve();
-                            resolve = undefined;
-                        }
-                    }
-                });
-                conn.queueSendMessage(out);
-                _timeout = setTimeout(()=>{
-                    if (typeof reject === 'undefined' || typeof resolve === 'undefined') return;
-                    reject(new EquipmentTimeoutError(`no chlor response in 7 seconds`, `chlorTimeOut`));
-                    reject = undefined;
+            let id = parseInt(obj.id, 10);
+            // Bail out right away if this is not controlled by the OCP.
+            if (typeof obj.master !== 'undefined' && parseInt(obj.master, 10) !== 0) return super.setChlorAsync(obj);
+            let isAdd = false;
+            if (isNaN(id) || id <= 0) {
+                // We are adding so we need to see if there is another chlorinator that is not external.
+                if (sys.chlorinators.count(elem => elem.master !== 2) > sys.equipment.maxChlorinators) return Promise.reject(new InvalidEquipmentDataError(`The max number of chlorinators has been exceeded you may only add ${sys.equipment.maxChlorinators}`, 'chlorinator', sys.equipment.maxChlorinators));
+                id = 1;
+                isAdd = true;
+            }
+            let chlor = sys.chlorinators.getItemById(id, isAdd);
+            if (chlor.master !== 0 && !isAdd) return super.setChlorAsync(obj);
+            // RKS: I am not even sure this can be done with Touch as the master on the RS485 bus.
+            if (typeof chlor.master === 'undefined') chlor.master = 0;
+            let name = obj.name || chlor.name || 'IntelliChlor' + id;
+            let superChlorHours = parseInt(obj.superChlorHours, 10);
+            if (typeof obj.superChlorinate !== 'undefined') obj.superChlor = utils.makeBool(obj.superChlorinate);
+            let superChlorinate = typeof obj.superChlor === 'undefined' ? undefined : utils.makeBool(obj.superChlor);
+            let isDosing = typeof obj.isDosing !== 'undefined' ? utils.makeBool(obj.isDosing) : chlor.isDosing;
+            let disabled = typeof obj.disabled !== 'undefined' ? utils.makeBool(obj.disabled) : chlor.disabled;
+            let poolSetpoint = typeof obj.poolSetpoint !== 'undefined' ? parseInt(obj.poolSetpoint, 10) : chlor.poolSetpoint;
+            let spaSetpoint = typeof obj.spaSetpoint !== 'undefined' ? parseInt(obj.spaSetpoint, 10) : chlor.spaSetpoint;
+            let saltTarget = typeof obj.saltTarget === 'number' ? parseInt(obj.saltTarget, 10) : chlor.saltTarget;
 
-                }, 3000);
-            });
-            await request153packet;
+            let model = typeof obj.model !== 'undefined' ? sys.board.valueMaps.chlorinatorModel.encode(obj.model) : chlor.model || 0;
+            let chlorType = typeof obj.type !== 'undefined' ? sys.board.valueMaps.chlorinatorType.encode(obj.type) : chlor.type || 0;
+            let portId = typeof obj.portId !== 'undefined' ? parseInt(obj.portId, 10) : chlor.portId;
+            if (portId !== chlor.portId && sys.chlorinators.count(elem => elem.id !== chlor.id && elem.portId === portId && elem.master !== 2) > 0) return Promise.reject(new InvalidEquipmentDataError(`Another chlorinator is installed on port #${portId}.  Only one chlorinator can be installed per port.`, 'Chlorinator', portId));
+            if (isAdd) {
+                if (isNaN(poolSetpoint)) poolSetpoint = 50;
+                if (isNaN(spaSetpoint)) spaSetpoint = 10;
+                if (isNaN(superChlorHours)) superChlorHours = 8;
+                if (typeof superChlorinate === 'undefined') superChlorinate = false;
+            }
+            else {
+                if (isNaN(poolSetpoint)) poolSetpoint = chlor.poolSetpoint || 0;
+                if (isNaN(spaSetpoint)) spaSetpoint = chlor.spaSetpoint || 0;
+                if (isNaN(superChlorHours)) superChlorHours = chlor.superChlorHours;
+                if (typeof superChlorinate === 'undefined') superChlorinate = utils.makeBool(chlor.superChlor);
+            }
+            if (typeof obj.disabled !== 'undefined') chlor.disabled = utils.makeBool(obj.disabled);
+            if (typeof chlor.body === 'undefined') chlor.body = parseInt(obj.body, 10) || 32;
+            // Verify the data.
+            let body = sys.board.bodies.mapBodyAssociation(chlor.body).val;
+            if (typeof body === 'undefined') {
+                if (sys.equipment.shared) body = 32;
+                else if (!sys.equipment.dual) body = 0;
+                else return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${body}`, 'chlorinator', body));
+            }
+            if (poolSetpoint > 100 || poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
+            if (spaSetpoint > 100 || spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
+            if (typeof obj.ignoreSaltReading !== 'undefined') chlor.ignoreSaltReading = utils.makeBool(obj.ignoreSaltReading);
+
+
+            if (send) {
+                if (sl.enabled) {
+                    if (!chlor.isActive) {await sl.chlor.setChlorEnabledAsync(true);}
+                    await sl.chlor.setChlorOutputAsync(poolSetpoint, spaSetpoint);
+                }
+                else {
+                    let out = Outbound.create({
+                        dest: 16,
+                        action: 153,
+                        // removed disable ? 0 : (spaSetpoint << 1) + 1 because only deleteChlorAsync should remove it from the OCP
+                        payload: [(disabled ? 0 : isDosing ? 100 << 1 : spaSetpoint << 1) + 1, disabled ? 0 : isDosing ? 100 : poolSetpoint,
+                        utils.makeBool(superChlorinate) && superChlorHours > 0 ? superChlorHours + 128 : 0,  // We only want to set the superChlor when the user sends superChlor = true
+                            0, 0, 0, 0, 0, 0, 0],
+                        retries: 3,
+                        response: true,
+                    });
+                    await out.sendAsync();
+                }
+            };
             let schlor = state.chlorinators.getItemById(id, true);
             chlor.disabled = disabled;
             schlor.isActive = chlor.isActive = true;
@@ -1982,40 +1959,22 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             schlor.spaSetpoint = chlor.spaSetpoint = spaSetpoint;
             schlor.superChlorHours = chlor.superChlorHours = superChlorHours;
             schlor.body = chlor.body = body;
-            chlor.address = 79 + id;
+            if (typeof chlor.address === 'undefined') chlor.address = 80; // 79 + id;
             chlor.name = schlor.name = name;
             schlor.model = chlor.model = model;
             schlor.type = chlor.type = chlorType;
             chlor.isDosing = isDosing;
             chlor.portId = portId;
             chlor.saltTarget = saltTarget;
-            let request217Packet = new Promise<void>((resolve, reject) => {
+            if (send && !sl.enabled) {
                 let out = Outbound.create({
                     dest: 16,
                     action: 217,
                     payload: [0],
                     retries: 3,
-                    // scope: Math.random(),
                     response: true,
-                    onComplete: (err) => {
-                        // if (typeof reject === 'undefined') {
-                        //     logger.error(`reject chlor already called.`)
-                        // }
-                        if (err) {
-                            logger.error(`Error requesting chlor status: ${err.message}`);
-                            reject(err);
-                        }
-                        else{
-                            resolve();
-                        }
-                    }
                 })
-                conn.queueSendMessage(out);
-            });
-            await request217Packet;
-            if (typeof _timeout !== 'undefined'){
-                clearTimeout(_timeout);
-                _timeout = undefined;
+                await out.sendAsync();
             }
             state.emitEquipmentChanges();
             return state.chlorinators.getItemById(id);
@@ -2025,107 +1984,37 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
         }
     }
     public async deleteChlorAsync(obj: any): Promise<ChlorinatorState> {
-        let id = parseInt(obj.id, 10);
-        if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator id is not valid: ${obj.id}`, 'chlorinator', obj.id));
-        let chlor = sys.chlorinators.getItemById(id);
-        if (chlor.master === 1) return await super.deleteChlorAsync(obj);
-        return new Promise<ChlorinatorState>((resolve, reject) => {
-            let out = Outbound.create({
-                dest: 16,
-                action: 153,
-                payload: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                retries: 3,
-                response: true,
-                onComplete: (err) => {
-                    if (err) {
-                        logger.error(`Error deleting chlorinator: ${err.message}`);
-                        reject(err);
-                    }
-                    else {
-                        ncp.chlorinators.deleteChlorinatorAsync(id).then(()=>{});
-                        let cstate = state.chlorinators.getItemById(id, true);
-                        chlor = sys.chlorinators.getItemById(id, true);
-                        chlor.isActive = cstate.isActive = false;
-                        sys.chlorinators.removeItemById(id);
-                        state.chlorinators.removeItemById(id);
-                        resolve(cstate);
-                    }
-                }
-            });
-            conn.queueSendMessage(out);
-        });
-    }
-
-    /*
-    public setChlorAsync(obj: any): Promise<ChlorinatorState> {
-        let id = parseInt(obj.id, 10);
-        if (isNaN(id)) obj.id = 1;
-        // Merge all the information.
-        let chlor = extend(true, {}, sys.chlorinators.getItemById(id).get(), obj);
-        if (typeof obj.superChlorinate !== 'undefined') {
-            chlor.superChlor = obj.superChlorinate;         
+        try {
+            let id = parseInt(obj.id, 10);
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator id is not valid: ${obj.id}`, 'chlorinator', obj.id));
+            let chlor = sys.chlorinators.getItemById(id);
+            if (chlor.master === 1) return await super.deleteChlorAsync(obj);
+            if (sl.enabled) {
+                await sl.chlor.setChlorEnabledAsync(false);
+            }
+            else {
+                let out = Outbound.create({
+                    dest: 16,
+                    action: 153,
+                    payload: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                    retries: 3,
+                    response: true
+                });
+                await out.sendAsync();
+            }
+            ncp.chlorinators.deleteChlorinatorAsync(id).then(() => { });
+            let cstate = state.chlorinators.getItemById(id, true);
+            chlor = sys.chlorinators.getItemById(id, true);
+            chlor.isActive = cstate.isActive = false;
+            sys.chlorinators.removeItemById(id);
+            state.chlorinators.removeItemById(id);
+            return cstate;
         }
-        if (typeof obj.superChlorHours !== 'undefined') chlor.superChlorHours = obj.superChlorHours;
-        
-        if (chlor.isActive && chlor.isVirtual) return super.setChlorAsync(obj);
-        if (typeof chlor.body === 'undefined') chlor.body = obj.body || 32;
-        // Verify the data.
-        let body = sys.board.bodies.mapBodyAssociation(chlor.body);
-        if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${chlor.body}`, 'chlorinator', chlor.body));
-        else chlor.body = body.val;
-        if (chlor.poolSetpoint > 100 || chlor.poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
-        if (chlor.spaSetpoint > 100 || chlor.spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.spaSetpoint}`, 'chlorinator', chlor.spaSetpoint));
-        
-        let disabled = utils.makeBool(chlor.disabled);
-        return new Promise<ChlorinatorState>((resolve, reject) => {
-            let out = Outbound.create({
-                dest: 16,
-                action: 153,
-                payload: [disabled ? 0 : (chlor.spaSetpoint << 1) + 1, disabled ? 0 : chlor.poolSetpoint,
-                    utils.makeBool(chlor.superChlor) && chlor.superChlorHours > 0 ? chlor.superChlorHours + 128 : 0,  // We only want to set the superChlor when the user sends superChlor = true
-                    0, 0, 0, 0, 0, 0, 0],
-                retries: 3,
-                response: true,
-                onComplete: (err) => {
-                    if (err) {
-                        logger.error(`Error setting Chlorinator values: ${err.message}`);
-                        reject(err);
-                    }
-                    let schlor = state.chlorinators.getItemById(id, true);
-                    let cchlor = sys.chlorinators.getItemById(id, true);
-                    for (let prop in chlor) {
-                        if (prop in schlor) schlor[prop] = chlor[prop];
-                        if (prop in cchlor) cchlor[prop] = chlor[prop];
-                    }
-                    schlor.isActive = cchlor.isActive = true;
-                    schlor.superChlor = cchlor.superChlor = utils.makeBool(chlor.superChlor);
-
-                    let hours = typeof chlor.superChlorHours === 'undefined' ? parseInt(chlor.superChlorHours, 10) : 24;
-                    if (isNaN(hours)) hours = 24;
-                    schlor.superChlorHours = cchlor.superChlorHours = hours;
-                    
-                    let request25Packet = Outbound.create({
-                        dest: 16,
-                        action: 217,
-                        payload: [0],
-                        retries: 3,
-                        response: true,
-                        onComplete: (err) => {
-                            if (err) {
-                                logger.error(`Error requesting chlor status: ${err.message}`);
-                                reject(err);
-                            }
-                        }
-                    });
-                    conn.queueSendMessage(request25Packet);
-                    state.emitEquipmentChanges();
-                    resolve(schlor);
-                }
-            });
-            conn.queueSendMessage(out);
-        });
+        catch (err) {
+            logger.error(`Error deleting chlorinator: ${err.message}`);
+            return Promise.reject(err);
+        }
     }
-    */
 }
 class TouchPumpCommands extends PumpCommands {
     //public setPump(pump: Pump, obj?: any) {
@@ -2165,7 +2054,8 @@ class TouchPumpCommands extends PumpCommands {
             spump.emitData('pumpExt', spump.getExtended());
         }
     }
-    public async setPumpAsync(data: any): Promise<Pump> {
+
+    public async setPumpAsync(data: any, send: boolean = true): Promise<Pump> {
         // Rules regarding Pumps in *Touch
         // In *Touch there are basically three classifications of pumps. These include those under control of RS485, Dual Speed, and Single Speed.
         // 485 Controlled pumps - Any of the IntelliFlo pumps.  These are managed by the control panel.
@@ -2179,345 +2069,398 @@ class TouchPumpCommands extends PumpCommands {
         // 3. There can only be 1 single speed pump it will be id 10
         //    a. single speed pumps allow the identification of an ss pump model.  This determines the continuous wattage for when it is on.
         // 4. Background Circuits can be assigned for (vf, vsf, vs, ss, and ds pumps).
-        let pump: Pump;
-        let ntype;
-        let type;
-        let isAdd = false;
-        let id = (typeof data.id === 'undefined') ? -1 : parseInt(data.id, 10);
-        if (typeof data.id === 'undefined' || isNaN(id) || id <= 0) {
-            // We are adding a new pump
-            ntype = sys.board.valueMaps.pumpTypes.encode(data.type);
-            type = sys.board.valueMaps.pumpTypes.transform(ntype);
-            // If this is one of the pumps that are not supported by touch send it to system board.
-            if (type.equipmentMaster > 0 || data.master > 0) return await super.setPumpAsync(data);
-            data.master = 0;
-            if (typeof data.type === 'undefined' || isNaN(ntype) || typeof type.name === 'undefined') return Promise.reject(new InvalidEquipmentDataError('You must supply a pump type when creating a new pump', 'Pump', data));
-            if (type.name === 'ds') {
-                id = 9;
-                if (sys.pumps.find(elem => elem.type === ntype)) return Promise.reject(new InvalidEquipmentDataError(`You may add only one ${type.desc} pump`, 'Pump', data));
-            }
-            else if (type.name === 'ss') {
-                id = 10;
-                if (sys.pumps.find(elem => elem.type === ntype)) return Promise.reject(new InvalidEquipmentDataError(`You may add only one ${type.desc} pump`, 'Pump', data));
-            }
-            else if (type.name === 'none') return Promise.reject(new InvalidEquipmentDataError('You must supply a valid id when removing a pump.', 'Pump', data));
-            else {
-                // Under most circumstances the id will = the address minus 95.
-                if (typeof data.address !== 'undefined') {
-                    data.address = parseInt(data.address, 10);
-                    if (isNaN(data.address)) return Promise.reject(new InvalidEquipmentDataError(`You must supply a valid pump address to add a ${type.desc} pump.`, 'Pump', data));
-                    id = data.address - 95;
-                    // Make sure it doesn't already exist.
-                    if (sys.pumps.find(elem => elem.address === data.address)) return Promise.reject(new InvalidEquipmentDataError(`A pump already exists at address ${data.address - 95}`, 'Pump', data));
+        try {
+            let pump: Pump;
+            let ntype;
+            let type;
+            let isAdd = false;
+            let id = (typeof data.id === 'undefined') ? -1 : parseInt(data.id, 10);
+            if (typeof data.id === 'undefined' || isNaN(id) || id <= 0) {
+                // We are adding a new pump
+                ntype = sys.board.valueMaps.pumpTypes.encode(data.type);
+                type = sys.board.valueMaps.pumpTypes.transform(ntype);
+                // If this is one of the pumps that are not supported by touch send it to system board.
+                if (type.equipmentMaster > 0 || data.master > 0) return await super.setPumpAsync(data);
+                data.master = 0;
+                if (typeof data.type === 'undefined' || isNaN(ntype) || typeof type.name === 'undefined') return Promise.reject(new InvalidEquipmentDataError('You must supply a pump type when creating a new pump', 'Pump', data));
+                if (type.name === 'ds') {
+                    id = 9;
+                    if (sys.pumps.find(elem => elem.type === ntype)) return Promise.reject(new InvalidEquipmentDataError(`You may add only one ${type.desc} pump`, 'Pump', data));
                 }
+                else if (type.name === 'ss') {
+                    id = 10;
+                    if (sys.pumps.find(elem => elem.type === ntype)) return Promise.reject(new InvalidEquipmentDataError(`You may add only one ${type.desc} pump`, 'Pump', data));
+                }
+                else if (type.name === 'none') return Promise.reject(new InvalidEquipmentDataError('You must supply a valid id when removing a pump.', 'Pump', data));
                 else {
-                    if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`You may not add another ${type.desc} pump.  Max number of pumps exceeded.`, 'Pump', data));
-                    id = sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps);
-                    data.address = id + 95;
-                }
-            }
-            isAdd = true;
-            pump = sys.pumps.getItemById(id, true);
-        }
-        else {
-            pump = sys.pumps.getItemById(id, false);
-            if (data.master > 0 || pump.master > 0) return await super.setPumpAsync(data);
-            data.master = 0;
-            ntype = typeof data.type === 'undefined' ? pump.type : parseInt(data.type, 10);
-            if (isNaN(ntype)) return Promise.reject(new InvalidEquipmentDataError(`Pump type ${data.type} is not valid`, 'Pump', data));
-            type = sys.board.valueMaps.pumpTypes.transform(ntype);
-            // changing type?  clear out all props and add as new
-            if (ntype !== pump.type) {
-                isAdd = true;
-                this.setType(pump, ntype);
-                pump = sys.pumps.getItemById(id, false); // refetch pump with new value
-            }
-        }
-        // Validate all the ids since in *Touch the address is determined from the id.
-        if (!isAdd) isAdd = sys.pumps.find(elem => elem.id === id) === undefined;
-        // Now lets validate the ids related to the type.
-        if (id === 9 && type.name !== 'ds') return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} pump must be 9`, 'Pump', data));
-        else if (id === 10 && type.name !== 'ss') return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} pump must be 10`, 'Pump', data));
-        else if (id > sys.equipment.maxPumps) return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} must be less than ${sys.equipment.maxPumps}`, 'Pump', data));
-
-        // Need to do a check here if we are clearing out the circuits; id data.circuits === []
-        // extend will keep the original array
-        let bClearPumpCircuits = typeof data.circuits !== 'undefined' && data.circuits.length === 0;
-        // RKS: 09-14-22 - This is fundamentally wrong.  This ensures that no circuit can be deleted
-        // from the pump.
-        if (!isAdd) {
-            data.address = typeof data.address !== 'undefined' ? data.address : pump.address;
-            data.backgroundCircuit = typeof data.backgroundCircuit !== 'undefined' ? data.backgroundCircuit : pump.backgroundCircuit;
-            data.backwashFlow = typeof data.backwashFlow !== 'undefined' ? data.backwashFlow : pump.backwashFlow;
-            data.backwashTime = typeof data.backwashTime !== 'undefined' ? data.backwashTime : pump.backwashTime;
-            data.body = typeof data.body !== 'undefined' ? data.body : pump.body;
-            data.filterSize = typeof data.filterSize !== 'undefined' ? data.filterSize : pump.filterSize;
-            data.flowStepSize = typeof data.flowStepSize !== 'undefined' ? data.flowStepSize : pump.flowStepSize
-            data.manualFilterGPM = typeof data.manualFilterGPM !== 'undefined' ? data.manualFilterGPM : pump.manualFilterGPM;
-            data.master = 0;
-            data.maxFlow = typeof data.maxFlow !== 'undefined' ? data.maxFlow : pump.maxFlow;
-            data.maxPressureIncrease = typeof data.maxPressureIncrease ? data.maxPressureIncrease : pump.maxPressureIncrease;
-            data.maxSpeed = typeof data.maxSpeed !== 'undefined' ? data.maxSpeed : pump.maxSpeed;
-            data.maxSystemTime = typeof data.maxSystemTime !== 'undefined' ? data.maxSystemTime : pump.maxSystemTime;
-            data.minFlow = typeof data.minFlow !== 'undefined' ? data.minFlow : pump.minFlow;
-            data.minSpeed = typeof data.minSpeed !== 'undefined' ? data.minSpeed : pump.minSpeed;
-            data.model = typeof data.model !== 'undefined' ? data.model : pump.model;
-            data.name = typeof data.name !== 'undefined' ? data.name : pump.name;
-            data.portId = typeof data.portId !== 'undefined' ? data.portId : pump.portId || 0;
-            data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? data.primingSpeed : pump.primingSpeed;
-            data.primingTime = typeof data.primingTime !== 'undefined' ? data.primingTime : pump.primingTime;
-            data.rinseTime = typeof data.rinseTime !== 'undefined' ? data.rinseTime : pump.rinseTime;
-            data.speedStepSize = typeof data.speedStepSize !== 'undefined' ? data.speedStepSize : pump.speedStepSize;
-            data.turnovers = typeof data.turnovers !== 'undefined' ? data.turnovers : pump.turnovers;
-            data.vacuumFlow = typeof data.vacuumFlow !== 'undefined' ? data.vacuumFlow : pump.vacuumFlow;
-            data.vacuumTime = typeof data.vacuumTime !== 'undefined' ? data.vacuumTime : pump.vacuumTime;
-            if (typeof data.circuits !== 'undefined') {
-                let circs = extend(true, [], data.circuits);
-                data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
-                data.circuits = circs;
-            }
-            else
-                data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
-        }
-        else data = extend(false, {}, data, { id: id, type: ntype });
-        if (!isAdd && bClearPumpCircuits) data.circuits = [];
-        data.name = data.name || pump.name || type.desc;
-        data.portId = 0;
-        // RKS: 12-02-22 -- The EasyTouch 1 OCPs only support 1 pump and this pump must be an IntelliFlo VS.  Do some checks here to make sure we are
-        // sending the right messages to the right controller.  At this point I only know of 1 EasyTouch v1 panel and it is a 4.
-        let isVersion1 = sys.equipment.modules.getItemByIndex(0, false).type >= 128;
-
-        // We will not be sending message for ss type pumps.
-        if (type.name === 'ss') {
-            // The OCP doesn't deal with single speed pumps.  Simply add it to the config.
-            data.circuits = [];
-            pump.set(pump);
-            let spump = state.pumps.getItemById(id, true);
-            for (let prop in spump) {
-                if (typeof data[prop] !== 'undefined') spump[prop] = data[prop];
-            }
-            data.model = typeof data.model === 'undefined' ? sys.board.valueMaps.pumpSSModels.encode(data.model) : pump.model || 0;
-            spump.emitEquipmentChange();
-            return Promise.resolve(pump);
-        }
-        else if (type.name === 'ds') {
-            // We are going to set all the high speed circuits.
-            // RSG: TODO I don't know what the message is to set the high speed circuits.  The following should
-            // be moved into the onComplete for the outbound message to set high speed circuits.
-            data.model = typeof data.model === 'undefined' ? sys.board.valueMaps.pumpDSModels.encode(data.model) : pump.model || 0;
-            for (let prop in pump) {
-                if (typeof data[prop] !== 'undefined') pump[prop] = data[prop];
-            }
-            let spump = state.pumps.getItemById(id, true);
-            for (let prop in spump) {
-                if (typeof data[prop] !== 'undefined') spump[prop] = data[prop];
-            }
-            spump.emitEquipmentChange();
-            return Promise.resolve(pump);
-        }
-        else {
-            let arrCircuits = [];
-            data.address = id + 95;
-            if (isVersion1) {
-                if (data.address !== 96) return Promise.reject(new InvalidEquipmentDataError(`EasyTouch Version 1 controllers only support VS pumps at the first address`, 'Pump', data));
-                if (type.name !== 'vs') return Promise.reject(new InvalidEquipmentDataError(`EasyTouch Version 1 controllers only support VS pump types. ${type.desc} pumps are not supported`, 'Pump', data));
-                let outc = Outbound.create({
-                    action: 150,
-                    retries: 2,
-                    response: Response.create({ action: 1, payload: [150] })
-                });
-                outc.appendPayloadBytes(0, 13);
-                data.primingTime = typeof data.primingTime !== 'undefined' ? isNaN(parseInt(data.primingTime, 10)) ? pump.primingTime || 0 : 0 : pump.primingTime;
-                data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || type.minSpeed;
-                // If we do not have any circuits to define we should use the circuits from the existing pump.
-                if (typeof data.circuits === 'undefined') data.circuits = pump.circuits.toArray();
-                for (let i = 0; i < 4; i++) {
-                    let c = i < data.circuits.length ? data.circuits[i] : {id: i + 1, master: 0, speed: 0, circuit: 0, units: 0 };
-                    let byte = (i * 3) + 1;
-                    c.units = 0;
-                    c.master = 0;
-                    c.id = arrCircuits.length + 1;
-                    outc.setPayloadByte(byte, c.circuit);
-                    outc.setPayloadByte(byte + 1, Math.floor(c.speed / 256));
-                    outc.setPayloadByte(byte + 2, c.speed % 256);
-                    if (c.circuit > 0) {
-                        // Check to see if the circuit was already included.
-                        if (typeof arrCircuits.find(x => x.circuit === c.cuircuit) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Configuration for pump ${pump.name} is not correct circuit #${c.circuit} as included more than once. ${JSON.stringify(c)}`, 'Pump', data));
-                        arrCircuits.push(c);
+                    // Under most circumstances the id will = the address minus 95.
+                    if (typeof data.address !== 'undefined') {
+                        data.address = parseInt(data.address, 10);
+                        if (isNaN(data.address)) return Promise.reject(new InvalidEquipmentDataError(`You must supply a valid pump address to add a ${type.desc} pump.`, 'Pump', data));
+                        id = data.address - 95;
+                        // Make sure it doesn't already exist.
+                        if (sys.pumps.find(elem => elem.address === data.address)) return Promise.reject(new InvalidEquipmentDataError(`A pump already exists at address ${data.address - 95}`, 'Pump', data));
+                    }
+                    else {
+                        if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`You may not add another ${type.desc} pump.  Max number of pumps exceeded.`, 'Pump', data));
+                        id = sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps);
+                        data.address = id + 95;
                     }
                 }
-                data.circuits = arrCircuits;
-                return new Promise<Pump>((resolve, reject) => {
-                    outc.onComplete = (err, msg) => {
-                        if (err) reject(err);
-                        else {
-                            pump = sys.pumps.getItemById(id, true);
-                            pump.set(data);
-                            let spump = state.pumps.getItemById(id, true);
-                            spump.name = pump.name;
-                            spump.type = pump.type;
-                            spump.emitEquipmentChange();
-                            resolve(pump);
-                            const pumpConfigRequest = Outbound.create({
-                                action: 214,
-                                payload: [0],
-                                retries: 2,
-                                response: true
-                            });
-                            conn.queueSendMessage(pumpConfigRequest);
-                        }
-                    };
-                    conn.queueSendMessage(outc);
-                });
+                isAdd = true;
+                pump = sys.pumps.getItemById(id, true);
             }
             else {
-                let outc = Outbound.create({
-                    action: 155,
-                    payload: [id, ntype],
-                    retries: 2,
-                    response: Response.create({ action: 1, payload: [155] })
-                });
-                outc.appendPayloadBytes(0, 44);
-                if (type.val === 128) {
-                    outc.setPayloadByte(3, 2);
-                    data.model = 0;
+                pump = sys.pumps.getItemById(id, false);
+                if (data.master > 0 || pump.master > 0) return await super.setPumpAsync(data);
+                data.master = 0;
+                ntype = typeof data.type === 'undefined' ? pump.type : parseInt(data.type, 10);
+                if (isNaN(ntype)) return Promise.reject(new InvalidEquipmentDataError(`Pump type ${data.type} is not valid`, 'Pump', data));
+                type = sys.board.valueMaps.pumpTypes.transform(ntype);
+                // changing type?  clear out all props and add as new
+                if (ntype !== pump.type) {
+                    isAdd = true;
+                    this.setType(pump, ntype);
+                    pump = sys.pumps.getItemById(id, false); // refetch pump with new value
                 }
-                if (typeof type.maxPrimingTime !== 'undefined' && type.maxPrimingTime > 0 && type.val >= 64) {
-                    // We need to set all of this back to data since later pump.set is called to set the data after success.
+            }
+            // Validate all the ids since in *Touch the address is determined from the id.
+            if (!isAdd) isAdd = sys.pumps.find(elem => elem.id === id) === undefined;
+            // Now lets validate the ids related to the type.
+            if (id === 9 && type.name !== 'ds') return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} pump must be 9`, 'Pump', data));
+            else if (id === 10 && type.name !== 'ss') return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} pump must be 10`, 'Pump', data));
+            else if (id > sys.equipment.maxPumps) return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} must be less than ${sys.equipment.maxPumps}`, 'Pump', data));
+
+            // Need to do a check here if we are clearing out the circuits; id data.circuits === []
+            // extend will keep the original array
+            let bClearPumpCircuits = typeof data.circuits !== 'undefined' && data.circuits.length === 0;
+            // RKS: 09-14-22 - This is fundamentally wrong.  This ensures that no circuit can be deleted
+            // from the pump.
+            if (!isAdd) {
+                data.address = typeof data.address !== 'undefined' ? data.address : pump.address;
+                data.backgroundCircuit = typeof data.backgroundCircuit !== 'undefined' ? data.backgroundCircuit : pump.backgroundCircuit;
+                data.backwashFlow = typeof data.backwashFlow !== 'undefined' ? data.backwashFlow : pump.backwashFlow;
+                data.backwashTime = typeof data.backwashTime !== 'undefined' ? data.backwashTime : pump.backwashTime;
+                data.body = typeof data.body !== 'undefined' ? data.body : pump.body;
+                data.filterSize = typeof data.filterSize !== 'undefined' ? data.filterSize : pump.filterSize;
+                data.flowStepSize = typeof data.flowStepSize !== 'undefined' ? data.flowStepSize : pump.flowStepSize
+                data.manualFilterGPM = typeof data.manualFilterGPM !== 'undefined' ? data.manualFilterGPM : pump.manualFilterGPM;
+                data.master = 0;
+                data.maxFlow = typeof data.maxFlow !== 'undefined' ? data.maxFlow : pump.maxFlow;
+                data.maxPressureIncrease = typeof data.maxPressureIncrease ? data.maxPressureIncrease : pump.maxPressureIncrease;
+                data.maxSpeed = typeof data.maxSpeed !== 'undefined' ? data.maxSpeed : pump.maxSpeed;
+                data.maxSystemTime = typeof data.maxSystemTime !== 'undefined' ? data.maxSystemTime : pump.maxSystemTime;
+                data.minFlow = typeof data.minFlow !== 'undefined' ? data.minFlow : pump.minFlow;
+                data.minSpeed = typeof data.minSpeed !== 'undefined' ? data.minSpeed : pump.minSpeed;
+                data.model = typeof data.model !== 'undefined' ? data.model : pump.model;
+                data.name = typeof data.name !== 'undefined' ? data.name : pump.name;
+                data.portId = typeof data.portId !== 'undefined' ? data.portId : pump.portId || 0;
+                data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? data.primingSpeed : pump.primingSpeed;
+                data.primingTime = typeof data.primingTime !== 'undefined' ? data.primingTime : pump.primingTime;
+                data.rinseTime = typeof data.rinseTime !== 'undefined' ? data.rinseTime : pump.rinseTime;
+                data.speedStepSize = typeof data.speedStepSize !== 'undefined' ? data.speedStepSize : pump.speedStepSize;
+                data.turnovers = typeof data.turnovers !== 'undefined' ? data.turnovers : pump.turnovers;
+                data.vacuumFlow = typeof data.vacuumFlow !== 'undefined' ? data.vacuumFlow : pump.vacuumFlow;
+                data.vacuumTime = typeof data.vacuumTime !== 'undefined' ? data.vacuumTime : pump.vacuumTime;
+                if (typeof data.circuits !== 'undefined') {
+                    let circs = extend(true, [], data.circuits);
+                    data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
+                    data.circuits = circs;
+                }
+                else
+                    data = extend(true, {}, pump.get(true), data, { id: id, type: ntype });
+            }
+            else data = extend(false, {}, data, { id: id, type: ntype });
+            if (!isAdd && bClearPumpCircuits) data.circuits = [];
+            data.name = data.name || pump.name || type.desc;
+            data.portId = 0;
+            // RKS: 12-02-22 -- The EasyTouch 1 OCPs only support 1 pump and this pump must be an IntelliFlo VS.  Do some checks here to make sure we are
+            // sending the right messages to the right controller.  At this point I only know of 1 EasyTouch v1 panel and it is a 4.
+            let isVersion1 = sys.equipment.modules.getItemByIndex(0, false).type >= 128;
+            // We will not be sending message for ss type pumps.
+            if (type.name === 'ss') {
+                // The OCP doesn't deal with single speed pumps.  Simply add it to the config.
+                data.circuits = [];
+                pump.set(pump);
+                let spump = state.pumps.getItemById(id, true);
+                for (let prop in spump) {
+                    if (typeof data[prop] !== 'undefined') spump[prop] = data[prop];
+                }
+                data.model = typeof data.model === 'undefined' ? sys.board.valueMaps.pumpSSModels.encode(data.model) : pump.model || 0;
+                spump.emitEquipmentChange();
+                return Promise.resolve(pump);
+            }
+            else if (type.name === 'ds') {
+                // We are going to set all the high speed circuits.
+                // RSG: TODO I don't know what the message is to set the high speed circuits.  The following should
+                // be moved into the onComplete for the outbound message to set high speed circuits.
+                data.model = typeof data.model === 'undefined' ? sys.board.valueMaps.pumpDSModels.encode(data.model) : pump.model || 0;
+                for (let prop in pump) {
+                    if (typeof data[prop] !== 'undefined') pump[prop] = data[prop];
+                }
+                let spump = state.pumps.getItemById(id, true);
+                for (let prop in spump) {
+                    if (typeof data[prop] !== 'undefined') spump[prop] = data[prop];
+                }
+                spump.emitEquipmentChange();
+                return Promise.resolve(pump);
+            }
+            else {
+                let arrCircuits = [];
+                data.address = id + 95;
+                if (isVersion1) {
+                    if (data.address !== 96) return Promise.reject(new InvalidEquipmentDataError(`EasyTouch Version 1 controllers only support VS pumps at the first address`, 'Pump', data));
+                    if (type.name !== 'vs') return Promise.reject(new InvalidEquipmentDataError(`EasyTouch Version 1 controllers only support VS pump types. ${type.desc} pumps are not supported`, 'Pump', data));
+                    let outc = Outbound.create({
+                        action: 150,
+                        retries: 2,
+                        response: Response.create({ action: 1, payload: [150] })
+                    });
+                    outc.appendPayloadBytes(0, 13);
                     data.primingTime = typeof data.primingTime !== 'undefined' ? isNaN(parseInt(data.primingTime, 10)) ? pump.primingTime || 0 : 0 : pump.primingTime;
                     data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || type.minSpeed;
-                    outc.setPayloadByte(2, data.primingTime);
-                    outc.setPayloadByte(21, Math.floor(data.primingSpeed / 256));
-                    outc.setPayloadByte(30, data.primingSpeed % 256);
-                }
-                if (type.val === 1) { // Any VF pump.
-                    // We need to set all of this back to data since later pump.set is called to set the data after success.
-                    data.backgroundCircuit = typeof data.backgroundCircuit !== 'undefined' ? parseInt(data.backgroundCircuit, 10) : pump.backgroundCircuit || 6;
-                    data.filterSize = typeof data.filterSize !== 'undefined' ? parseInt(data.filterSize, 10) : pump.filterSize || 15000;
-                    data.turnovers = typeof data.turnovers !== 'undefined' ? parseInt(data.turnovers, 10) : pump.turnovers || 2;
-                    data.manualFilterGPM = typeof data.manualFilterGPM !== 'undefined' ? parseInt(data.manualFilterGPM, 10) : pump.manualFilterGPM || 30;
-                    data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || 55;
-                    data.primingTime = typeof data.primingTime !== 'undefined' ? parseInt(data.primingTime, 10) : pump.primingTime || 0;
-                    data.maxSystemTime = typeof data.maxSystemTime !== 'undefined' ? parseInt(data.maxSystemTime, 10) : pump.maxSystemTime || 0;
-                    data.maxPressureIncrease = typeof data.maxPressureIncrease != 'undefined' ? parseInt(data.maxPressureIncrease, 10) : pump.maxPressureIncrease || 0;
-                    data.backwashFlow = typeof data.backwashFlow !== 'undefined' ? parseInt(data.backwashFlow, 10) : pump.backwashFlow || 60;
-                    data.backwashTime = typeof data.backwashTime !== 'undefined' ? parseInt(data.bacwashTime, 10) : pump.backwashTime || 5;
-                    data.rinseTime = typeof data.rinseTime !== 'undefined' ? parseInt(data.rinseTime, 10) : pump.rinseTime || 1;
-                    data.vacuumFlow = typeof data.vacuumFlow !== 'undefined' ? parseInt(data.vacuumFlow, 10) : pump.vacuumFlow || 50;
-                    data.vacuumTime = typeof data.vacuumTime !== 'undefined' ? parseInt(data.vacuumTime, 10) : pump.vacuumTime || 10;
-                    data.model = 0;
-                    outc.setPayloadByte(1, data.backgroundCircuit);
-                    outc.setPayloadByte(2, data.filterSize);
-                    outc.setPayloadByte(3, data.turnovers);
-                    outc.setPayloadByte(21, data.manualFilterGPM);
-                    outc.setPayloadByte(22, data.primingSpeed);
-                    outc.setPayloadByte(23, data.primingTime | data.maxSystemTime << 4, 5);
-                    outc.setPayloadByte(24, data.maxPressureIncrease);
-                    outc.setPayloadByte(25, data.backwashFlow);
-                    outc.setPayloadByte(26, data.backwashTime);
-                    outc.setPayloadByte(27, data.rinseTime);
-                    outc.setPayloadByte(28, data.vacuumFlow);
-                    outc.setPayloadByte(30, data.vacuumTime);
-                }
-                if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
+                    // If we do not have any circuits to define we should use the circuits from the existing pump.
+                    if (typeof data.circuits === 'undefined') data.circuits = pump.circuits.toArray();
+                    for (let i = 0; i < 4; i++) {
+                        let c = i < data.circuits.length ? data.circuits[i] : { id: i + 1, master: 0, speed: 0, circuit: 0, units: 0 };
+                        let byte = (i * 3) + 1;
+                        c.units = 0;
+                        c.master = 0;
+                        c.id = arrCircuits.length + 1;
+                        outc.setPayloadByte(byte, c.circuit);
+                        outc.setPayloadByte(byte + 1, Math.floor(c.speed / 256));
+                        outc.setPayloadByte(byte + 2, c.speed % 256);
+                        if (c.circuit > 0) {
+                            // Check to see if the circuit was already included.
+                            if (typeof arrCircuits.find(x => x.circuit === c.cuircuit) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Configuration for pump ${pump.name} is not correct circuit #${c.circuit} as included more than once. ${JSON.stringify(c)}`, 'Pump', data));
+                            arrCircuits.push(c);
+                        }
+                        if (sl.enabled && send) {
+                            // this is a shortcut for only updating a single pump
+                            // speed at a time; for full config we need a different API
+                            for (let i = 0; i < pump.circuits.length; i++) {
+                                let pc = pump.circuits.getItemByIndex(i);
+                                if (pc.circuit === c.id && (pc.speed !== c.speed || pc.flow !== c.flow)) {
 
-                    // Do some validation to make sure we don't have a condition where a circuit is declared twice.
-                    let arrCircuits = [];
-                    // Below is a very strange mess that goofs up the circuit settings.
-                    //{id:1, circuits:[{speed:1750, units:{val:0}, id:1, circuit:6}, {speed:2100, units:{val:0}, id:2, circuit:6}]}
-                    let ubyte = 0;
-                    for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
-                        // RKS: This notion of always returning the max number of circuits was misguided.  It leaves gaps in the circuit definitions and makes the pump
-                        // layouts difficult when there are a variety of supported circuits.  For instance with SF pumps you only get 4.
-                        let c = i > data.circuits.length ? { speed: type.minSpeed || 0, flow: type.minFlow || 0, circuit: 0 } : data.circuits[i - 1];
-                        //{speed:1750, units:{val:0}, id:1, circuit:6}
-                        let speed = parseInt(c.speed, 10);
-                        let flow = parseInt(c.flow, 10);
-                        let circuit = parseInt(c.circuit, 10);
-                        if (isNaN(circuit)) return Promise.reject(new InvalidEquipmentDataError(`An invalid pump circuit was supplied for pump ${pump.name}. ${JSON.stringify(c)}`, 'Pump', data))
-                        if (isNaN(speed)) speed = type.minSpeed;
-                        if (isNaN(flow)) flow = type.minFlow;
-                        outc.setPayloadByte((i * 2) + 3, circuit, 0);
-                        let units;
-                        if (type.name === 'vf') units = sys.board.valueMaps.pumpUnits.getValue('gpm');
-                        else if (type.name === 'vs') units = sys.board.valueMaps.pumpUnits.getValue('rpm');
-                        else units = sys.board.valueMaps.pumpUnits.encode(c.units);
-                        c.units = units;
-                        if (isNaN(units)) units = sys.board.valueMaps.pumpUnits.getValue('rpm');
-                        if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
-                            outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
-                            outc.setPayloadByte(i + 21, speed % 256);
-                            c.speed = speed;
-                            ubyte |= (1 << (i - 1));
-                        }
-                        else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
-                            outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
-                            c.flow = flow;
-                        }
-                        c.id = i;
-                        c.circuit = circuit;
-                        if (arrCircuits.includes(c.circuit)) return Promise.reject(new InvalidEquipmentDataError(`Configuration for pump ${pump.name} is not correct circuit #${c.circuit} as included more than once. ${JSON.stringify(c)}`, 'Pump', data))
-                        arrCircuits.push(c.circuit);
-                    }
-                    if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
-                }
-                else if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits === 'undefined') { // This pump type supports circuits and the payload did not contain them.
-                    // Copy the data from the circuits array.  That way when we call pump.set to set the data back it will be persisted correctly.
-                    data.circuits = extend(true, {}, pump.circuits.get());
-                    let ubyte = 0;
-                    for (let i = 1; i <= data.circuits.length; i++) data.circuits[i].id = i;
-                    for (let i = 1; i <= pump.circuits.length && i <= type.maxCircuits; i++) {
-                        let c = pump.circuits.getItemByIndex(i - 1);
-                        let speed = c.speed;
-                        let flow = c.flow;
-                        let circuit = c.circuit;
-                        if (isNaN(speed)) speed = type.minSpeed;
-                        if (isNaN(flow)) flow = type.minFlow;
-                        outc.setPayloadByte((i * 2) + 3, circuit, 0);
-                        let units;
-                        if (type.name === 'vf') units = sys.board.valueMaps.pumpUnits.getValue('gpm');
-                        else if (type.name === 'vs') units = sys.board.valueMaps.pumpUnits.getValue('rpm');
-                        else units = c.units;
-                        if (isNaN(units)) units = sys.board.valueMaps.pumpUnits.getValue('rpm');
-                        c.units = units;
-                        if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
-                            outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
-                            outc.setPayloadByte(i + 21, speed % 256);
-                            ubyte |= (1 << (i - 1));
-                        }
-                        else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
-                            outc.setPayloadByte((i * 2) + 4, flow); // Set to gpm
+                                    await sl.pumps.setPumpSpeedAsync(pump, c);
+                                }
+                            }
                         }
                     }
-                    if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
+                    data.circuits = arrCircuits;
 
+                    if (send) {
+                        return new Promise<Pump>(async (resolve, reject) => {
+                            outc.onComplete = (err, msg) => {
+                                if (err) reject(err);
+                                else {
+                                    pump = sys.pumps.getItemById(id, true);
+                                    pump.set(data);
+                                    let spump = state.pumps.getItemById(id, true);
+                                    spump.isActive = pump.isActive = true;
+                                    spump.name = pump.name;
+                                    spump.type = pump.type;
+                                    spump.emitEquipmentChange();
+                                    resolve(pump);
+                                    const pumpConfigRequest = Outbound.create({
+                                        action: 214,
+                                        payload: [0],
+                                        retries: 2,
+                                        response: true
+                                    });
+                                    conn.queueSendMessage(pumpConfigRequest);
+                                }
+                            };
+                            await outc.sendAsync();
+                        });
+                    }
                 }
-                return new Promise<Pump>((resolve, reject) => {
-                    outc.onComplete = (err, msg) => {
-                        if (err) reject(err);
-                        else {
-                            pump = sys.pumps.getItemById(id, true);
-                            // RKS: 05-20-22 Boooh to this if the payload does not include its
-                            // circuits we have just destroyed the pump definition.  So I added code to
-                            // make sure that the data is complete.
-                            pump.set(data); // Sets all the data back to the pump.
-                            let spump = state.pumps.getItemById(id, true);
-                            spump.name = pump.name;
-                            spump.type = pump.type;
-                            spump.emitEquipmentChange();
-                            resolve(pump);
-                            const pumpConfigRequest = Outbound.create({
-                                action: 216,
-                                payload: [pump.id],
-                                retries: 2,
-                                response: true
-                            });
-                            conn.queueSendMessage(pumpConfigRequest);
+                else {
+                    let outc = Outbound.create({
+                        action: 155,
+                        payload: [id, ntype],
+                        retries: 2,
+                        response: Response.create({ action: 1, payload: [155] })
+                    });
+                    outc.appendPayloadBytes(0, 44);
+                    if (type.val === 128) {
+                        outc.setPayloadByte(3, 2);
+                        data.model = 0;
+                    }
+                    if (typeof type.maxPrimingTime !== 'undefined' && type.maxPrimingTime > 0 && type.val >= 64) {
+                        // We need to set all of this back to data since later pump.set is called to set the data after success.
+                        data.primingTime = typeof data.primingTime !== 'undefined' ? isNaN(parseInt(data.primingTime, 10)) ? pump.primingTime || 0 : 0 : pump.primingTime;
+                        data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || type.minSpeed;
+                        outc.setPayloadByte(2, data.primingTime);
+                        outc.setPayloadByte(21, Math.floor(data.primingSpeed / 256));
+                        outc.setPayloadByte(30, data.primingSpeed % 256);
+                    }
+                    if (type.val === 1) { // Any VF pump.
+                        // We need to set all of this back to data since later pump.set is called to set the data after success.
+                        data.backgroundCircuit = typeof data.backgroundCircuit !== 'undefined' ? parseInt(data.backgroundCircuit, 10) : pump.backgroundCircuit || 6;
+                        data.filterSize = typeof data.filterSize !== 'undefined' ? parseInt(data.filterSize, 10) : pump.filterSize || 15000;
+                        data.turnovers = typeof data.turnovers !== 'undefined' ? parseInt(data.turnovers, 10) : pump.turnovers || 2;
+                        data.manualFilterGPM = typeof data.manualFilterGPM !== 'undefined' ? parseInt(data.manualFilterGPM, 10) : pump.manualFilterGPM || 30;
+                        data.primingSpeed = typeof data.primingSpeed !== 'undefined' ? parseInt(data.primingSpeed, 10) : pump.primingSpeed || 55;
+                        data.primingTime = typeof data.primingTime !== 'undefined' ? parseInt(data.primingTime, 10) : pump.primingTime || 0;
+                        data.maxSystemTime = typeof data.maxSystemTime !== 'undefined' ? parseInt(data.maxSystemTime, 10) : pump.maxSystemTime || 0;
+                        data.maxPressureIncrease = typeof data.maxPressureIncrease != 'undefined' ? parseInt(data.maxPressureIncrease, 10) : pump.maxPressureIncrease || 0;
+                        data.backwashFlow = typeof data.backwashFlow !== 'undefined' ? parseInt(data.backwashFlow, 10) : pump.backwashFlow || 60;
+                        data.backwashTime = typeof data.backwashTime !== 'undefined' ? parseInt(data.bacwashTime, 10) : pump.backwashTime || 5;
+                        data.rinseTime = typeof data.rinseTime !== 'undefined' ? parseInt(data.rinseTime, 10) : pump.rinseTime || 1;
+                        data.vacuumFlow = typeof data.vacuumFlow !== 'undefined' ? parseInt(data.vacuumFlow, 10) : pump.vacuumFlow || 50;
+                        data.vacuumTime = typeof data.vacuumTime !== 'undefined' ? parseInt(data.vacuumTime, 10) : pump.vacuumTime || 10;
+                        data.model = 0;
+                        outc.setPayloadByte(1, data.backgroundCircuit);
+                        outc.setPayloadByte(2, data.filterSize);
+                        outc.setPayloadByte(3, data.turnovers);
+                        outc.setPayloadByte(21, data.manualFilterGPM);
+                        outc.setPayloadByte(22, data.primingSpeed);
+                        outc.setPayloadByte(23, data.primingTime | data.maxSystemTime << 4, 5);
+                        outc.setPayloadByte(24, data.maxPressureIncrease);
+                        outc.setPayloadByte(25, data.backwashFlow);
+                        outc.setPayloadByte(26, data.backwashTime);
+                        outc.setPayloadByte(27, data.rinseTime);
+                        outc.setPayloadByte(28, data.vacuumFlow);
+                        outc.setPayloadByte(30, data.vacuumTime);
+                    }
+                    if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits !== 'undefined') { // This pump type supports circuits
+                        // Do some validation to make sure we don't have a condition where a circuit is declared twice.
+                        let arrCircuits = [];
+                        // Below is a very strange mess that goofs up the circuit settings.
+                        //{id:1, circuits:[{speed:1750, units:{val:0}, id:1, circuit:6}, {speed:2100, units:{val:0}, id:2, circuit:6}]}
+                        let ubyte = 0;
+                        for (let i = 1; i <= data.circuits.length && i <= type.maxCircuits; i++) {
+                            // RKS: This notion of always returning the max number of circuits was misguided.  It leaves gaps in the circuit definitions and makes the pump
+                            // layouts difficult when there are a variety of supported circuits.  For instance with SF pumps you only get 4.
+                            let c = i > data.circuits.length ? { speed: type.minSpeed || 0, flow: type.minFlow || 0, circuit: 0 } : data.circuits[i - 1];
+                            //{speed:1750, units:{val:0}, id:1, circuit:6}
+                            let speed = parseInt(c.speed, 10);
+                            let flow = parseInt(c.flow, 10);
+                            let circuit = parseInt(c.circuit, 10);
+                            if (isNaN(circuit)) return Promise.reject(new InvalidEquipmentDataError(`An invalid pump circuit was supplied for pump ${pump.name}. ${JSON.stringify(c)}`, 'Pump', data))
+                            if (isNaN(speed)) speed = type.minSpeed;
+                            if (isNaN(flow)) flow = type.minFlow;
+                            outc.setPayloadByte((i * 2) + 3, circuit, 0);
+                            let units;
+                            if (type.name === 'vf') units = sys.board.valueMaps.pumpUnits.getValue('gpm');
+                            else if (type.name === 'vs') units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                            else units = sys.board.valueMaps.pumpUnits.encode(c.units);
+                            c.units = units;
+                            if (isNaN(units)) units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                            if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
+                                outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
+                                outc.setPayloadByte(i + 21, speed % 256);
+                                c.speed = speed;
+                                ubyte |= (1 << (i - 1));
+                            }
+                            else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
+                                outc.setPayloadByte(i * 2 + 4, flow); // Set to gpm
+                                c.flow = flow;
+                            }
+                            c.id = i;
+                            c.circuit = circuit;
+                            if (arrCircuits.includes(c.circuit)) return Promise.reject(new InvalidEquipmentDataError(`Configuration for pump ${pump.name} is not correct circuit #${c.circuit} as included more than once. ${JSON.stringify(c)}`, 'Pump', data))
+                            arrCircuits.push(c.circuit);
+                            if (sl.enabled && send) {
+                                // this is a shortcut for only updating a single pump
+                                // speed at a time; for full config we need a different API
+                                for (let i = 0; i < pump.circuits.length; i++) {
+                                    let pc = pump.circuits.getItemByIndex(i);
+                                    if (pc.circuit === c.circuit && (pc.speed !== c.speed || pc.flow !== c.flow)) {
+                                        // todo: now that equipconfig is functional for pumps, this is really
+                                        // only needed when changing speeds on the home page
+                                        // (not config).  
+                                        await sl.pumps.setPumpSpeedAsync(pump, c);
+                                    }
+                                }
+                            }
                         }
-                    };
-                    conn.queueSendMessage(outc);
-                });
+                        // data.circuits = arrCircuits;
+                        if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
+                    }
+                    else if (typeof type.maxCircuits !== 'undefined' && type.maxCircuits > 0 && typeof data.circuits === 'undefined') { // This pump type supports circuits and the payload did not contain them.
+                        // Copy the data from the circuits array.  That way when we call pump.set to set the data back it will be persisted correctly.
+                        data.circuits = extend(true, {}, pump.circuits.get());
+                        let ubyte = 0;
+                        for (let i = 1; i <= data.circuits.length; i++) data.circuits[i].id = i;
+                        for (let i = 1; i <= pump.circuits.length && i <= type.maxCircuits; i++) {
+                            let c = pump.circuits.getItemByIndex(i - 1);
+                            let speed = c.speed;
+                            let flow = c.flow;
+                            let circuit = c.circuit;
+                            if (isNaN(speed)) speed = type.minSpeed;
+                            if (isNaN(flow)) flow = type.minFlow;
+                            outc.setPayloadByte((i * 2) + 3, circuit, 0);
+                            let units;
+                            if (type.name === 'vf') units = sys.board.valueMaps.pumpUnits.getValue('gpm');
+                            else if (type.name === 'vs') units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                            else units = c.units;
+                            if (isNaN(units)) units = sys.board.valueMaps.pumpUnits.getValue('rpm');
+                            c.units = units;
+                            if (typeof type.minSpeed !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('rpm')) {
+                                outc.setPayloadByte((i * 2) + 4, Math.floor(speed / 256)); // Set to rpm
+                                outc.setPayloadByte(i + 21, speed % 256);
+                                ubyte |= (1 << (i - 1));
+                            }
+                            else if (typeof type.minFlow !== 'undefined' && c.units === sys.board.valueMaps.pumpUnits.getValue('gpm')) {
+                                outc.setPayloadByte((i * 2) + 4, flow); // Set to gpm
+                            }
+                            if (sl.enabled && send) {
+                                await sl.pumps.setPumpSpeedAsync(pump, c);
+                            }
+                        }
+                        if (type.name === 'vsf') outc.setPayloadByte(4, ubyte);
+
+                    }
+                    if (sl.enabled) {
+                        if (send) {
+                            // set Equip Config with pumps
+                            await sl.controller.setEquipmentAsync(data, 'pump');
+                        }
+                        pump = sys.pumps.getItemById(id, true);
+                        pump.set(data); // Sets all the data back to the pump.
+                        let spump = state.pumps.getItemById(id, true);
+                        spump.isActive = pump.isActive = true;
+                        spump.name = pump.name;
+                        spump.type = pump.type;
+                        spump.emitEquipmentChange();
+                        return Promise.resolve(pump);
+                    }
+                    else if (send) {
+                        return new Promise<Pump>(async (resolve, reject) => {
+                            outc.onComplete = (err, msg) => {
+                                if (err) reject(err);
+                                else {
+                                    pump = sys.pumps.getItemById(id, true);
+                                    // RKS: 05-20-22 Boooh to this if the payload does not include its
+                                    // circuits we have just destroyed the pump definition.  So I added code to
+                                    // make sure that the data is complete.
+                                    pump.set(data); // Sets all the data back to the pump.
+                                    let spump = state.pumps.getItemById(id, true);
+                                    spump.isActive = pump.isActive = true;
+                                    spump.name = pump.name;
+                                    spump.type = pump.type;
+                                    spump.emitEquipmentChange();
+                                    resolve(pump);
+                                    const pumpConfigRequest = Outbound.create({
+                                        action: 216,
+                                        payload: [pump.id],
+                                        retries: 2,
+                                        response: true
+                                    });
+                                    conn.queueSendMessage(pumpConfigRequest);
+                                }
+                            };
+                            await outc.sendAsync();
+                        });
+                    }
+                }
             }
+        }
+        catch (err) {
+            logger.error(`Error setting pump: ${err.message}`);
+            return Promise.reject(err);
         }
     }
     //private createPumpConfigMessages(pump: Pump): Outbound[] {
@@ -2600,64 +2543,35 @@ class TouchPumpCommands extends PumpCommands {
     //    spump.type = pump.type;
     //    spump.status = 0;
     //}
-    public async deletePumpAsync(data: any):Promise<Pump>{
+    public async deletePumpAsync(data: any): Promise<Pump> {
         let id = parseInt(data.id, 10);
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`deletePumpAsync: Pump ${id} is not valid.`, 0, `pump`));
         let pump = sys.pumps.getItemById(id, false);
         if (pump.master === 1) return super.deletePumpAsync(data);
-        let isVersion1 = sys.equipment.modules.getItemByIndex(0, false).type >= 128;
-        if (isVersion1) {
-            const outc = Outbound.create({
-                action: 150,
-                retries: 2,
-                response: true
-            });
-            outc.appendPayloadBytes(0, 13);
-            return new Promise<Pump>((resolve, reject) => {
-                outc.onComplete = (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        sys.pumps.removeItemById(id);
-                        state.pumps.removeItemById(id);
-                        resolve(sys.pumps.getItemById(id, false));
-                        const pumpConfigRequest = Outbound.create({
-                            action: 214,
-                            payload: [0],
-                            retries: 2,
-                            response: true
-                        });
-                        conn.queueSendMessage(pumpConfigRequest);
-                    }
-                };
-                conn.queueSendMessage(outc);
-            });
-        }
-        else {
-            const outc = Outbound.create({
-                action: 155,
-                payload: [id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-                retries: 2,
-                response: true
-            });
-            return new Promise<Pump>((resolve, reject) => {
-                outc.onComplete = (err, msg) => {
-                    if (err) reject(err);
-                    else {
-                        sys.pumps.removeItemById(id);
-                        state.pumps.removeItemById(id);
-                        resolve(sys.pumps.getItemById(id, false));
-                        const pumpConfigRequest = Outbound.create({
-                            action: 216,
-                            payload: [id],
-                            retries: 2,
-                            response: true
-                        });
-                        conn.queueSendMessage(pumpConfigRequest);
-                    }
-                };
-                conn.queueSendMessage(outc);
-            });
-        }
+        const outc = Outbound.create({
+            action: 155,
+            payload: [id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            retries: 2,
+            response: true
+        });
+        return new Promise<Pump>(async (resolve, reject) => {
+            outc.onComplete = (err, msg) => {
+                if (err) reject(err);
+                else {
+                    sys.pumps.removeItemById(id);
+                    state.pumps.removeItemById(id);
+                    resolve(sys.pumps.getItemById(id, false));
+                    const pumpConfigRequest = Outbound.create({
+                        action: 216,
+                        payload: [id],
+                        retries: 2,
+                        response: true
+                    });
+                    conn.queueSendMessage(pumpConfigRequest);
+                }
+            };
+            await outc.sendAsync();
+        });
     }
 }
 class TouchHeaterCommands extends HeaterCommands {
@@ -2718,168 +2632,165 @@ class TouchHeaterCommands extends HeaterCommands {
         }
     }
     // RKS: Not sure what to do with this as the heater data for Touch isn't actually processed anywhere.
-    public async setHeaterAsync(obj: any): Promise<Heater> {
+    public async setHeaterAsync(obj: any, send: boolean = true): Promise<Heater> {
         if (obj.master === 1 || parseInt(obj.id, 10) > 255) return super.setHeaterAsync(obj);
-        return new Promise<Heater>((resolve, reject) => {
-            let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
-            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
-            let heater: Heater;
-            let address: number;
-            let out = Outbound.create({
-                action: 162,
-                payload: [5, 0, 0],
-                retries: 2,
-                // I am assuming that there should be an action 34 when the 162 is sent but I do not have this
-                // data.
-                response: Response.create({ dest: -1, action: 34 })
-            });
-            let htype;
-            if (id <= 0) {
-                // Touch only supports two installed heaters.  So the type determines the id.
-                if (sys.heaters.length > sys.equipment.maxHeaters) return reject(new InvalidEquipmentDataError('The maximum number of heaters are already installed.', 'Heater', sys.heaters.length));
-                htype = sys.board.valueMaps.heaterTypes.findItem(obj.type);
-                if (typeof htype === 'undefined') return reject(new InvalidEquipmentDataError('Heater type is not valid.', 'Heater', obj.heaterType));
-                // Check to see if we can find any heaters of this type already installed.
-                if (sys.heaters.count(h => h.type === htype.val) > 0) return reject(new InvalidEquipmentDataError(`Only one ${htype.desc} heater can be installed`, 'Heater', htype));
-                // Next we need to see if this heater is compatible with all the other heaters.  For Touch you may only have the following combos.
-                // 1 Gas + 1 Solar
-                // 1 Gas + 1 Heatpump
-                // 1 Hybrid
-
-                // Heater ids are as follows.
-                // 1 = Gas Heater
-                // 2 = Solar
-                // 3 = UltraTemp (HEATPUMPCOM)
-                // 4 = UltraTemp ETi (Hybrid)
-                switch (htype.name) {
-                    case 'gas':
-                        id = 1;
-                        break;
-                    case 'solar':
-                        out.setPayloadByte(0, out.payload[0] | 0x02);
-                        // Set the start and stop temp delta.
-                        out.setPayloadByte(1, (obj.freeze ? 0x80 : 0x00) | (obj.coolingEnabled ? 0x20 : 0x00));
-                        out.setPayloadByte(2, ((obj.startTempDelta || 6) - 3 << 6) | ((obj.stopTempDelta || 3) - 2 << 1));
-                        id = 2;
-                        break;
-                    case 'ultratemp':
-                    case 'heatpump':
-                        address = 112;
-                        out.setPayloadByte(0, out.payload[0] | 0x02);
-                        out.setPayloadByte(1, out.payload[1] | 0x10 | (obj.coolingEnabled ? 0x20 : 0x00));
-                        id = 3;
-                        break;
-                    case 'hybrid':
-                        // If we are adding a hybrid heater this means that the gas heater is to be replaced.  This means that only
-                        // a gas heater can be installed.
-                        if (sys.heaters.length > 1) return reject(new InvalidEquipmentDataError(`Hybrid heaters can only be installed by themselves`, 'Heater', htype));
-                        if (sys.heaters.getItemByIndex(0).type > 1) return reject(new InvalidEquipmentDataError(`Hybrid heaters can only replace the gas heater`, 'Heater', htype));
-                        out.setPayloadByte(0, 5);
-                        out.setPayloadByte(1, 16);
-                        // NOTE: byte 2 makes absolutely no sense. Perhaps this is because we have no idea what message action 16 is.  This probably contains the rest of the info
-                        // for heaters on Touch panels.
-                        out.setPayloadByte(2, 118);
-                        id = 4;
-                        break;
-                }
-            }
-            else {
-                // This all works because there are 0 items that can be set on a Touch heater with the exception of a few items on solar.  This means that the
-                // first two bytes are calculated based upon the existing heaters.
-                heater = sys.heaters.find(x => id === x.id);
-                if (typeof heater === 'undefined') return reject(new InvalidEquipmentIdError(`Heater #${id} is not installed and cannot be updated.`, id, 'Heater'));
-                // So here we go with the settings.
-                htype = sys.board.valueMaps.heaterTypes.findItem(heater.type);
-                switch (htype.name) {
-                    case 'gas':
-                        break;
-                    case 'solar':
-                        out.setPayloadByte(0, out.payload[0] | 0x02);
-                        // Set the start and stop temp delta.
-                        out.setPayloadByte(1, (obj.freeze ? 0x80 : 0x00) | (obj.coolingEnabled ? 0x20 : 0x00));
-                        out.setPayloadByte(2, ((obj.startTempDelta || 6) - 3 << 6) | ((obj.stopTempDelta || 3) - 2 << 1));
-                        break;
-                    case 'ultratemp':
-                    case 'heatpump':
-                        address = 112;
-                        out.setPayloadByte(0, out.payload[0] | 0x02);
-                        out.setPayloadByte(1, out.payload[1] | 0x10 | (obj.coolingEnabled ? 0x20 : 0x00));
-                        break;
-                    case 'hybrid':
-                        address = 112;
-                        out.setPayloadByte(0, 5);
-                        out.setPayloadByte(1, 16);
-                        // NOTE: byte 2 makes absolutely no sense. Perhaps this is because we have no idea what message action 144/16 is.  This probably contains the rest of the info
-                        // for heaters on Touch panels.
-                        out.setPayloadByte(2, 118);
-                        break;
-                }
-            }
-            // Set the bytes from the existing installed heaters.
-            for (let i = 0; i < sys.heaters.length; i++) {
-                let h = sys.heaters.getItemByIndex(i);
-                if (h.id === id) continue;
-                let ht = sys.board.valueMaps.heaterTypes.transform(h.type);
-                switch (ht.name) {
-                    case 'gas':
-                        break;
-                    case 'solar':
-                        out.setPayloadByte(0, out.payload[0] | 0x02);
-                        out.setPayloadByte(1, (h.freeze ? 0x80 : 0x00) | (h.coolingEnabled ? 0x20 : 0x00));
-                        out.setPayloadByte(2, ((h.startTempDelta || 6) - 3 << 6) | ((h.stopTempDelta || 3) - 2 << 1));
-                        break;
-                    case 'ultratemp':
-                    case 'heatpump':
-                        out.setPayloadByte(0, out.payload[0] | 0x02);
-                        out.setPayloadByte(1, out.payload[1] | 0x10 | (h.coolingEnabled ? 0x20 : 0x00));
-                        break;
-                    case 'hybrid':
-                        break;
-                }
-            }
-            out.onComplete = (err, msg) => {
-                if (err) reject(err);
-                else {
-                    heater = sys.heaters.getItemById(id, true);
-                    let sheater = state.heaters.getItemById(id, true);
-                    for (var s in obj) {
-                        switch (s) {
-                            case 'id':
-                            case 'name':
-                            case 'type':
-                            case 'address':
-                                break;
-                            default:
-                                heater[s] = obj[s];
-                                break;
-                        }
-                    }
-                    sheater.name = heater.name = typeof obj.name !== 'undefined' ? obj.name : heater.name;
-                    sheater.type = heater.type = htype.val;
-                    heater.address = address;
-                    heater.master = 0;
-                    heater.body = sys.equipment.shared ? 32 : 0;
-                    sys.board.heaters.updateHeaterServices();
-                    sys.board.heaters.syncHeaterStates();
-                    resolve(heater);
-                }
-            }
-            conn.queueSendMessage(out);
+        let id = typeof obj.id === 'undefined' ? -1 : parseInt(obj.id, 10);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Heater Id is not valid.', obj.id, 'Heater'));
+        let heater: Heater;
+        let address: number;
+        let htype;
+        let out = Outbound.create({
+            action: 162,
+            payload: [5, 0, 0],
+            retries: 2,
+            // I am assuming that there should be an action 34 when the 162 is sent but I do not have this
+            // data.
+            response: Response.create({ dest: -1, action: 34 })
         });
+        if (id <= 0) {
+            // Touch only supports two installed heaters.  So the type determines the id.
+            if (sys.heaters.length > sys.equipment.maxHeaters) return Promise.reject(new InvalidEquipmentDataError('The maximum number of heaters are already installed.', 'Heater', sys.heaters.length));
+            htype = sys.board.valueMaps.heaterTypes.findItem(obj.type);
+            if (typeof htype === 'undefined') return Promise.reject(new InvalidEquipmentDataError('Heater type is not valid.', 'Heater', obj.heaterType));
+            // Check to see if we can find any heaters of this type already installed.
+            if (sys.heaters.count(h => h.type === htype.val) > 0) return Promise.reject(new InvalidEquipmentDataError(`Only one ${htype.desc} heater can be installed`, 'Heater', htype));
+            // Next we need to see if this heater is compatible with all the other heaters.  For Touch you may only have the following combos.
+            // 1 Gas + 1 Solar
+            // 1 Gas + 1 Heatpump
+            // 1 Hybrid
+
+            // Heater ids are as follows.
+            // 1 = Gas Heater
+            // 2 = Solar
+            // 3 = UltraTemp (HEATPUMPCOM)
+            // 4 = UltraTemp ETi (Hybrid)
+            switch (htype.name) {
+                case 'gas':
+                    id = 1;
+                    break;
+                case 'solar':
+                    out.setPayloadByte(0, out.payload[0] | 0x02);
+                    // Set the start and stop temp delta.
+                    out.setPayloadByte(1, (obj.freeze ? 0x80 : 0x00) | (obj.coolingEnabled ? 0x20 : 0x00));
+                    out.setPayloadByte(2, ((obj.startTempDelta || 6) - 3 << 6) | ((obj.stopTempDelta || 3) - 2 << 1));
+                    id = 2;
+                    break;
+                case 'ultratemp':
+                case 'heatpump':
+                    address = 112;
+                    out.setPayloadByte(0, out.payload[0] | 0x02);
+                    out.setPayloadByte(1, out.payload[1] | 0x10 | (obj.coolingEnabled ? 0x20 : 0x00));
+                    id = 3;
+                    break;
+                case 'hybrid':
+                    // If we are adding a hybrid heater this means that the gas heater is to be replaced.  This means that only
+                    // a gas heater can be installed.
+                    if (sys.heaters.length > 1) return Promise.reject(new InvalidEquipmentDataError(`Hybrid heaters can only be installed by themselves`, 'Heater', htype));
+                    if (sys.heaters.getItemByIndex(0).type > 1) return Promise.reject(new InvalidEquipmentDataError(`Hybrid heaters can only replace the gas heater`, 'Heater', htype));
+                    out.setPayloadByte(0, 5);
+                    out.setPayloadByte(1, 16);
+                    // NOTE: byte 2 makes absolutely no sense. Perhaps this is because we have no idea what message action 16 is.  This probably contains the rest of the info
+                    // for heaters on Touch panels.
+                    out.setPayloadByte(2, 118);
+                    id = 4;
+                    break;
+            }
+        }
+        else {
+            // This all works because there are 0 items that can be set on a Touch heater with the exception of a few items on solar.  This means that the
+            // first two bytes are calculated based upon the existing heaters.
+            heater = sys.heaters.find(x => id === x.id);
+            if (typeof heater === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Heater #${id} is not installed and cannot be updated.`, id, 'Heater'));
+            // So here we go with the settings.
+            htype = sys.board.valueMaps.heaterTypes.findItem(heater.type);
+            switch (htype.name) {
+                case 'gas':
+                    break;
+                case 'solar':
+                    out.setPayloadByte(0, out.payload[0] | 0x02);
+                    // Set the start and stop temp delta.
+                    out.setPayloadByte(1, (obj.freeze ? 0x80 : 0x00) | (obj.coolingEnabled ? 0x20 : 0x00));
+                    out.setPayloadByte(2, ((obj.startTempDelta || 6) - 3 << 6) | ((obj.stopTempDelta || 3) - 2 << 1));
+                    break;
+                case 'ultratemp':
+                case 'heatpump':
+                    address = 112;
+                    out.setPayloadByte(0, out.payload[0] | 0x02);
+                    out.setPayloadByte(1, out.payload[1] | 0x10 | (obj.coolingEnabled ? 0x20 : 0x00));
+                    break;
+                case 'hybrid':
+                    address = 112;
+                    out.setPayloadByte(0, 5);
+                    out.setPayloadByte(1, 16);
+                    // NOTE: byte 2 makes absolutely no sense. Perhaps this is because we have no idea what message action 144/16 is.  This probably contains the rest of the info
+                    // for heaters on Touch panels.
+                    out.setPayloadByte(2, 118);
+                    break;
+            }
+        }
+        // Set the bytes from the existing installed heaters.
+        for (let i = 0; i < sys.heaters.length; i++) {
+            let h = sys.heaters.getItemByIndex(i);
+            if (h.id === id) continue;
+            let ht = sys.board.valueMaps.heaterTypes.transform(h.type);
+            switch (ht.name) {
+                case 'gas':
+                    break;
+                case 'solar':
+                    out.setPayloadByte(0, out.payload[0] | 0x02);
+                    out.setPayloadByte(1, (h.freeze ? 0x80 : 0x00) | (h.coolingEnabled ? 0x20 : 0x00));
+                    out.setPayloadByte(2, ((h.startTempDelta || 6) - 3 << 6) | ((h.stopTempDelta || 3) - 2 << 1));
+                    break;
+                case 'ultratemp':
+                case 'heatpump':
+                    out.setPayloadByte(0, out.payload[0] | 0x02);
+                    out.setPayloadByte(1, out.payload[1] | 0x10 | (h.coolingEnabled ? 0x20 : 0x00));
+                    break;
+                case 'hybrid':
+                    break;
+            }
+        }
+        if (sl.enabled && send) {
+            await sl.controller.setEquipmentAsync(obj, 'heater');
+        }
+        else if (send) {
+            await out.sendAsync();
+        }
+        heater = sys.heaters.getItemById(id, true);
+        let sheater = state.heaters.getItemById(id, true);
+        for (var s in obj) {
+            switch (s) {
+                case 'id':
+                case 'name':
+                case 'type':
+                case 'address':
+                    break;
+                default:
+                    heater[s] = obj[s];
+                    break;
+            }
+        }
+        sheater.name = heater.name = typeof obj.name !== 'undefined' ? obj.name : heater.name;
+        sheater.type = heater.type = htype.val;
+        heater.address = address;
+        heater.master = 0;
+        heater.body = sys.equipment.shared ? 32 : 0;
+        sys.board.heaters.updateHeaterServices();
+        sys.board.heaters.syncHeaterStates();
+        return heater;
     }
     public async deleteHeaterAsync(obj: any): Promise<Heater> {
         if (utils.makeBool(obj.master === 1 || parseInt(obj.id, 10) > 255)) return super.deleteHeaterAsync(obj);
-        return new Promise<Heater>((resolve, reject) => {
-            let id = parseInt(obj.id, 10);
-            if (isNaN(id)) return reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
-            let heater = sys.heaters.getItemById(id);
-            heater.isActive = false;
-            sys.heaters.removeItemById(id);
-            state.heaters.removeItemById(id);
-            sys.board.heaters.updateHeaterServices();
-            sys.board.heaters.syncHeaterStates();
-            resolve(heater);
-        });
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Cannot delete.  Heater Id is not valid.', obj.id, 'Heater'));
+        let heater = sys.heaters.getItemById(id);
+        heater.isActive = false;
+        sys.heaters.removeItemById(id);
+        state.heaters.removeItemById(id);
+        sys.board.heaters.updateHeaterServices();
+        sys.board.heaters.syncHeaterStates();
+        return heater;
+
     }
     public updateHeaterServices() {
         let htypes = sys.board.heaters.getInstalledHeaterTypes();
@@ -2947,169 +2858,167 @@ class TouchHeaterCommands extends HeaterCommands {
             }
         }
         sys.board.valueMaps.heatSources.set(32, { name: 'nochange', desc: 'No Change' });
+        // Now set the body data.
+        for (let i = 0; i < sys.bodies.length; i++) {
+            let body = sys.bodies.getItemByIndex(i);
+            let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
+            let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
+            btemp.heaterOptions = opts;
+        }
         this.setActiveTempSensors();
     }
 }
 class TouchChemControllerCommands extends ChemControllerCommands {
     // This method is not meant to be called directly.  The setChemControllerAsync method does some routing to set IntelliChem correctly
     // if an OCP is involved.  This is the reason that the method is protected.
-    protected async setIntelliChemAsync(data: any): Promise<ChemController> {
-        let chem = sys.board.chemControllers.findChemController(data);
-        let ichemType = sys.board.valueMaps.chemControllerTypes.encode('intellichem');
-        if (typeof chem === 'undefined') {
-            // We are adding an IntelliChem.  Check to see how many intellichems we have.
-            let arr = sys.chemControllers.toArray();
-            let count = 0;
-            for (let i = 0; i < arr.length; i++) {
-                let cc: ChemController = arr[i];
-                if (cc.type === ichemType) count++;
-            }
-            if (count >= sys.equipment.maxChemControllers) return Promise.reject(new InvalidEquipmentDataError(`The max number of IntelliChem controllers has been reached: ${sys.equipment.maxChemControllers}`, 'chemController', sys.equipment.maxChemControllers));
-            chem = sys.chemControllers.getItemById(data.id);
-        }
-        let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : chem.address;
-        if (typeof address === 'undefined' || isNaN(address) || (address < 144 || address > 158)) return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address`, 'chemController', address));
-        if (typeof sys.chemControllers.find(elem => elem.id !== data.id && elem.type === ichemType && elem.address === address) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address: Address is used on another IntelliChem`, 'chemController', address));
-        // Now lets do all our validation to the incoming chem controller data.
-        let name = typeof data.name !== 'undefined' ? data.name : chem.name || `IntelliChem - ${address - 143}`;
-        let type = sys.board.valueMaps.chemControllerTypes.transformByName('intellichem');
-        // So now we are down to the nitty gritty setting the data for the REM Chem controller.
-        let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
-        let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
-        let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
-        let borates = typeof data.borates !== 'undefined' ? parseInt(data.borates, 10) : chem.borates || 0;
-        let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
-        if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
-        // Do a final validation pass so we dont send this off in a mess.
-        if (isNaN(calciumHardness)) return Promise.reject(new InvalidEquipmentDataError(`Invalid calcium hardness`, 'chemController', calciumHardness));
-        if (isNaN(cyanuricAcid)) return Promise.reject(new InvalidEquipmentDataError(`Invalid cyanuric acid`, 'chemController', cyanuricAcid));
-        if (isNaN(alkalinity)) return Promise.reject(new InvalidEquipmentDataError(`Invalid alkalinity`, 'chemController', alkalinity));
-        if (isNaN(borates)) return Promise.reject(new InvalidEquipmentDataError(`Invalid borates`, 'chemController', borates));
-        let schem = state.chemControllers.getItemById(chem.id, true);
-        let pHSetpoint = typeof data.ph !== 'undefined' && typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
-        let orpSetpoint = typeof data.orp !== 'undefined' && typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
-        let lsiRange = typeof data.lsiRange !== 'undefined' ? data.lsiRange : chem.lsiRange || {};
-        if (typeof data.lsiRange !== 'undefined') {
-            if (typeof data.lsiRange.enabled !== 'undefined') lsiRange.enabled = utils.makeBool(data.lsiRange.enabled);
-            if (typeof data.lsiRange.low === 'number') lsiRange.low = parseFloat(data.lsiRange.low);
-            if (typeof data.lsiRange.high === 'number') lsiRange.high = parseFloat(data.lsiRange.high);
-        }
-        if (isNaN(pHSetpoint) || pHSetpoint > type.ph.max || pHSetpoint < type.ph.min) Promise.reject(new InvalidEquipmentDataError(`Invalid pH setpoint`, 'ph.setpoint', pHSetpoint));
-        if (isNaN(orpSetpoint) || orpSetpoint > type.orp.max || orpSetpoint < type.orp.min) Promise.reject(new InvalidEquipmentDataError(`Invalid orp setpoint`, 'orp.setpoint', orpSetpoint));
-        let phTolerance = typeof data.ph.tolerance !== 'undefined' ? data.ph.tolerance : chem.ph.tolerance;
-        let orpTolerance = typeof data.orp.tolerance !== 'undefined' ? data.orp.tolerance : chem.orp.tolerance;
-        if (typeof data.ph.tolerance !== 'undefined') {
-            if (typeof data.ph.tolerance.enabled !== 'undefined') phTolerance.enabled = utils.makeBool(data.ph.tolerance.enabled);
-            if (typeof data.ph.tolerance.low !== 'undefined') phTolerance.low = parseFloat(data.ph.tolerance.low);
-            if (typeof data.ph.tolerance.high !== 'undefined') phTolerance.high = parseFloat(data.ph.tolerance.high);
-            if (isNaN(phTolerance.low)) phTolerance.low = type.ph.min;
-            if (isNaN(phTolerance.high)) phTolerance.high = type.ph.max;
-        }
-        if (typeof data.orp.tolerance !== 'undefined') {
-            if (typeof data.orp.tolerance.enabled !== 'undefined') orpTolerance.enabled = utils.makeBool(data.orp.tolerance.enabled);
-            if (typeof data.orp.tolerance.low !== 'undefined') orpTolerance.low = parseFloat(data.orp.tolerance.low);
-            if (typeof data.orp.tolerance.high !== 'undefined') orpTolerance.high = parseFloat(data.orp.tolerance.high);
-            if (isNaN(orpTolerance.low)) orpTolerance.low = type.orp.min;
-            if (isNaN(orpTolerance.high)) orpTolerance.high = type.orp.max;
-        }
-        let phEnabled = typeof data.ph.enabled !== 'undefined' ? utils.makeBool(data.ph.enabled) : chem.ph.enabled;
-        let orpEnabled = typeof data.orp.enabled !== 'undefined' ? utils.makeBool(data.orp.enabled) : chem.orp.enabled;
-        let siCalcType = typeof data.siCalcType !== 'undefined' ? sys.board.valueMaps.siCalcTypes.encode(data.siCalcType, 0) : chem.siCalcType;
+    protected async setIntelliChemAsync(data: any, send: boolean = true): Promise<ChemController> {
+        try {
 
-        let saltLevel = (state.chlorinators.length > 0) ? state.chlorinators.getItemById(1).saltLevel || 1000 : 1000
-        chem.ph.tank.capacity = 6;
-        chem.orp.tank.capacity = 6;
-        let acidTankLevel = typeof data.ph !== 'undefined' && typeof data.ph.tank !== 'undefined' && typeof data.ph.tank.level !== 'undefined' ? parseInt(data.ph.tank.level, 10) : schem.ph.tank.level;
-        let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' && typeof data.orp.tank.level !== 'undefined' ? parseInt(data.orp.tank.level, 10) : schem.orp.tank.level;
-        // OCP needs to set the IntelliChem as active so it knows that it exists
-
-        return new Promise<ChemController>((resolve, reject) => {
-            let out = Outbound.create({
-                action: 211,
-                payload: [],
-                retries: 3, // We are going to try 4 times.
-                response: Response.create({ protocol: Protocol.IntelliChem, action: 1, payload: [211] }),
-                onAbort: () => { },
-                onComplete: (err) => {
-                    if (err) reject(err);
-                    else {
-                        chem = sys.chemControllers.getItemById(data.id, true);
-                        schem = state.chemControllers.getItemById(data.id, true);
-                        chem.master = 0;
-                        // Copy the data back to the chem object.
-                        schem.name = chem.name = name;
-                        schem.type = chem.type = sys.board.valueMaps.chemControllerTypes.encode('intellichem');
-                        chem.calciumHardness = calciumHardness;
-                        chem.cyanuricAcid = cyanuricAcid;
-                        chem.alkalinity = alkalinity;
-                        chem.borates = borates;
-                        chem.body = schem.body = body.val;
-                        schem.isActive = chem.isActive = true;
-                        chem.lsiRange.enabled = lsiRange.enabled;
-                        chem.lsiRange.low = lsiRange.low;
-                        chem.lsiRange.high = lsiRange.high;
-                        chem.ph.tolerance.enabled = phTolerance.enabled;
-                        chem.ph.tolerance.low = phTolerance.low;
-                        chem.ph.tolerance.high = phTolerance.high;
-                        chem.orp.tolerance.enabled = orpTolerance.enabled;
-                        chem.orp.tolerance.low = orpTolerance.low;
-                        chem.orp.tolerance.high = orpTolerance.high;
-                        chem.ph.setpoint = pHSetpoint;
-                        chem.orp.setpoint = orpSetpoint;
-                        schem.siCalcType = chem.siCalcType = siCalcType;
-                        chem.address = schem.address = address;
-                        chem.name = schem.name = name;
-                        chem.flowSensor.enabled = false;
-                        sys.board.bodies.setBodyAsync(sys.bodies.getItemById(1, false))
-                            .then(()=>{resolve(chem)});
-                    }
+            let chem = sys.board.chemControllers.findChemController(data);
+            let ichemType = sys.board.valueMaps.chemControllerTypes.encode('intellichem');
+            if (typeof chem === 'undefined') {
+                // We are adding an IntelliChem.  Check to see how many intellichems we have.
+                let arr = sys.chemControllers.toArray();
+                let count = 0;
+                for (let i = 0; i < arr.length; i++) {
+                    let cc: ChemController = arr[i];
+                    if (cc.type === ichemType) count++;
                 }
-            });
-            out.insertPayloadBytes(0, 0, 22);
-            out.setPayloadByte(0, address - 144);
-            out.setPayloadByte(1, Math.floor((pHSetpoint * 100) / 256) || 0);
-            out.setPayloadByte(2, Math.round((pHSetpoint * 100) % 256) || 0);
-            out.setPayloadByte(3, Math.floor(orpSetpoint / 256) || 0);
-            out.setPayloadByte(4, Math.round(orpSetpoint % 256) || 0);
-            out.setPayloadByte(5, phEnabled ? acidTankLevel + 1 : 0);
-            out.setPayloadByte(6, orpEnabled ? orpTankLevel + 1 : 0);
-            out.setPayloadByte(7, Math.floor(calciumHardness / 256) || 0);
-            out.setPayloadByte(8, Math.round(calciumHardness % 256) || 0);
-            out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid || 0);
-            out.setPayloadByte(11, Math.floor(alkalinity / 256) || 0);
-            out.setPayloadByte(12, Math.round(alkalinity % 256) || 0);
-            out.setPayloadByte(13, Math.round(saltLevel / 50) || 20);
-            conn.queueSendMessage(out);
-        });
+                if (count >= sys.equipment.maxChemControllers) return Promise.reject(new InvalidEquipmentDataError(`The max number of IntelliChem controllers has been reached: ${sys.equipment.maxChemControllers}`, 'chemController', sys.equipment.maxChemControllers));
+                chem = sys.chemControllers.getItemById(data.id);
+            }
+            let address = typeof data.address !== 'undefined' ? parseInt(data.address, 10) : chem.address;
+            if (typeof address === 'undefined' || isNaN(address) || (address < 144 || address > 158)) return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address`, 'chemController', address));
+            if (typeof sys.chemControllers.find(elem => elem.id !== data.id && elem.type === ichemType && elem.address === address) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid IntelliChem address: Address is used on another IntelliChem`, 'chemController', address));
+            // Now lets do all our validation to the incoming chem controller data.
+            let name = typeof data.name !== 'undefined' ? data.name : chem.name || `IntelliChem - ${address - 143}`;
+            let type = sys.board.valueMaps.chemControllerTypes.transformByName('intellichem');
+            // So now we are down to the nitty gritty setting the data for the REM Chem controller.
+            let calciumHardness = typeof data.calciumHardness !== 'undefined' ? parseInt(data.calciumHardness, 10) : chem.calciumHardness;
+            let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
+            let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
+            let borates = typeof data.borates !== 'undefined' ? parseInt(data.borates, 10) : chem.borates || 0;
+            let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
+            if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
+            // Do a final validation pass so we dont send this off in a mess.
+            if (isNaN(calciumHardness)) return Promise.reject(new InvalidEquipmentDataError(`Invalid calcium hardness`, 'chemController', calciumHardness));
+            if (isNaN(cyanuricAcid)) return Promise.reject(new InvalidEquipmentDataError(`Invalid cyanuric acid`, 'chemController', cyanuricAcid));
+            if (isNaN(alkalinity)) return Promise.reject(new InvalidEquipmentDataError(`Invalid alkalinity`, 'chemController', alkalinity));
+            if (isNaN(borates)) return Promise.reject(new InvalidEquipmentDataError(`Invalid borates`, 'chemController', borates));
+            let schem = state.chemControllers.getItemById(chem.id, true);
+            let pHSetpoint = typeof data.ph !== 'undefined' && typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
+            let orpSetpoint = typeof data.orp !== 'undefined' && typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
+            let lsiRange = typeof data.lsiRange !== 'undefined' ? data.lsiRange : chem.lsiRange || {};
+            if (typeof data.lsiRange !== 'undefined') {
+                if (typeof data.lsiRange.enabled !== 'undefined') lsiRange.enabled = utils.makeBool(data.lsiRange.enabled);
+                if (typeof data.lsiRange.low === 'number') lsiRange.low = parseFloat(data.lsiRange.low);
+                if (typeof data.lsiRange.high === 'number') lsiRange.high = parseFloat(data.lsiRange.high);
+            }
+            if (isNaN(pHSetpoint) || pHSetpoint > type.ph.max || pHSetpoint < type.ph.min) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH setpoint`, 'ph.setpoint', pHSetpoint));
+            if (isNaN(orpSetpoint) || orpSetpoint > type.orp.max || orpSetpoint < type.orp.min) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp setpoint`, 'orp.setpoint', orpSetpoint));
+            let phTolerance = typeof data.ph.tolerance !== 'undefined' ? data.ph.tolerance : chem.ph.tolerance;
+            let orpTolerance = typeof data.orp.tolerance !== 'undefined' ? data.orp.tolerance : chem.orp.tolerance;
+            if (typeof data.ph.tolerance !== 'undefined') {
+                if (typeof data.ph.tolerance.enabled !== 'undefined') phTolerance.enabled = utils.makeBool(data.ph.tolerance.enabled);
+                if (typeof data.ph.tolerance.low !== 'undefined') phTolerance.low = parseFloat(data.ph.tolerance.low);
+                if (typeof data.ph.tolerance.high !== 'undefined') phTolerance.high = parseFloat(data.ph.tolerance.high);
+                if (isNaN(phTolerance.low)) phTolerance.low = type.ph.min;
+                if (isNaN(phTolerance.high)) phTolerance.high = type.ph.max;
+            }
+            if (typeof data.orp.tolerance !== 'undefined') {
+                if (typeof data.orp.tolerance.enabled !== 'undefined') orpTolerance.enabled = utils.makeBool(data.orp.tolerance.enabled);
+                if (typeof data.orp.tolerance.low !== 'undefined') orpTolerance.low = parseFloat(data.orp.tolerance.low);
+                if (typeof data.orp.tolerance.high !== 'undefined') orpTolerance.high = parseFloat(data.orp.tolerance.high);
+                if (isNaN(orpTolerance.low)) orpTolerance.low = type.orp.min;
+                if (isNaN(orpTolerance.high)) orpTolerance.high = type.orp.max;
+            }
+            let phEnabled = typeof data.ph.enabled !== 'undefined' ? utils.makeBool(data.ph.enabled) : chem.ph.enabled;
+            let orpEnabled = typeof data.orp.enabled !== 'undefined' ? utils.makeBool(data.orp.enabled) : chem.orp.enabled;
+            let siCalcType = typeof data.siCalcType !== 'undefined' ? sys.board.valueMaps.siCalcTypes.encode(data.siCalcType, 0) : chem.siCalcType;
+
+            let saltLevel = (state.chlorinators.length > 0) ? state.chlorinators.getItemById(1).saltLevel || 1000 : 1000
+            chem.ph.tank.capacity = 6;
+            chem.orp.tank.capacity = 6;
+            let acidTankLevel = typeof data.ph !== 'undefined' && typeof data.ph.tank !== 'undefined' && typeof data.ph.tank.level !== 'undefined' ? parseInt(data.ph.tank.level, 10) : schem.ph.tank.level;
+            let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' && typeof data.orp.tank.level !== 'undefined' ? parseInt(data.orp.tank.level, 10) : schem.orp.tank.level;
+            // OCP needs to set the IntelliChem as active so it knows that it exists
+            if (sl.enabled && send) {
+                if (!schem.isActive) {
+                    await sl.controller.setEquipmentAsync({intellichem: true}, 'misc');
+                }
+                // todo: need to add chem controller logic for setting ph/orp/etc
+            }
+            else if (send) {
+                let out = Outbound.create({
+                    action: 211,
+                    payload: [],
+                    retries: 3, // We are going to try 4 times.
+                    response: Response.create({ protocol: Protocol.IntelliChem, action: 1, payload: [211] }),
+                    onAbort: () => { }
+                });
+                out.insertPayloadBytes(0, 0, 22);
+                out.setPayloadByte(0, address - 144);
+                out.setPayloadByte(1, Math.floor((pHSetpoint * 100) / 256) || 0);
+                out.setPayloadByte(2, Math.round((pHSetpoint * 100) % 256) || 0);
+                out.setPayloadByte(3, Math.floor(orpSetpoint / 256) || 0);
+                out.setPayloadByte(4, Math.round(orpSetpoint % 256) || 0);
+                out.setPayloadByte(5, phEnabled ? acidTankLevel + 1 : 0);
+                out.setPayloadByte(6, orpEnabled ? orpTankLevel + 1 : 0);
+                out.setPayloadByte(7, Math.floor(calciumHardness / 256) || 0);
+                out.setPayloadByte(8, Math.round(calciumHardness % 256) || 0);
+                out.setPayloadByte(9, parseInt(data.cyanuricAcid, 10), chem.cyanuricAcid || 0);
+                out.setPayloadByte(11, Math.floor(alkalinity / 256) || 0);
+                out.setPayloadByte(12, Math.round(alkalinity % 256) || 0);
+                out.setPayloadByte(13, Math.round(saltLevel / 50) || 20);
+                await out.sendAsync();
+            }
+            chem = sys.chemControllers.getItemById(data.id, true);
+            schem = state.chemControllers.getItemById(data.id, true);
+            chem.master = 0;
+            // Copy the data back to the chem object.
+            schem.name = chem.name = name;
+            schem.type = chem.type = sys.board.valueMaps.chemControllerTypes.encode('intellichem');
+            chem.calciumHardness = calciumHardness;
+            chem.cyanuricAcid = cyanuricAcid;
+            chem.alkalinity = alkalinity;
+            chem.borates = borates;
+            chem.body = schem.body = body.val;
+            schem.isActive = chem.isActive = true;
+            chem.lsiRange.enabled = lsiRange.enabled;
+            chem.lsiRange.low = lsiRange.low;
+            chem.lsiRange.high = lsiRange.high;
+            chem.ph.tolerance.enabled = phTolerance.enabled;
+            chem.ph.tolerance.low = phTolerance.low;
+            chem.ph.tolerance.high = phTolerance.high;
+            chem.orp.tolerance.enabled = orpTolerance.enabled;
+            chem.orp.tolerance.low = orpTolerance.low;
+            chem.orp.tolerance.high = orpTolerance.high;
+            chem.ph.setpoint = pHSetpoint;
+            chem.orp.setpoint = orpSetpoint;
+            schem.siCalcType = chem.siCalcType = siCalcType;
+            chem.address = schem.address = address;
+            chem.name = schem.name = name;
+            chem.flowSensor.enabled = false;
+            await sys.board.bodies.setBodyAsync(sys.bodies.getItemById(1, false));
+            return chem;
+
+        } catch (err) {
+            logger.error(`Error setting chem: ${err.message}`);
+            return Promise.reject(err);
+        }
     }
     public async deleteChemControllerAsync(data: any): Promise<ChemController> {
-        let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
-        if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemController'));
-        let chem = sys.board.chemControllers.findChemController(data);
-        if (chem.master === 1) return super.deleteChemControllerAsync(data);
-        return new Promise<ChemController>((resolve, reject) => {
+        try {
+
+            let id = typeof data.id !== 'undefined' ? parseInt(data.id, 10) : -1;
+            if (typeof id === 'undefined' || isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid Chem Controller Id`, id, 'chemController'));
+            let chem = sys.board.chemControllers.findChemController(data);
+            if (chem.master === 1) return super.deleteChemControllerAsync(data);
             let out = Outbound.create({
                 action: 211,
                 response: Response.create({ protocol: Protocol.IntelliChem, action: 1, payload: [211] }),
                 retries: 3,
                 payload: [],
-                onComplete: (err) => {
-                    if (err) { reject(err); }
-                    else {
-                        let schem = state.chemControllers.getItemById(id);
-                        chem.isActive = false;
-                        chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
-                        chem.ph.tank.units = chem.orp.tank.units = '';
-                        schem.isActive = false;
-                        sys.board.bodies.setBodyAsync(sys.bodies.getItemById(1, false))
-                            .then(()=>{
-                                sys.chemControllers.removeItemById(id);
-                                state.chemControllers.removeItemById(id);
-                                resolve(chem);
-                            })
-                            .catch(()=>{reject(err);});
-                    }
-                }
             });
             // I think this payload should delete the controller on Touch.
             out.insertPayloadBytes(0, 0, 22);
@@ -3126,7 +3035,45 @@ class TouchChemControllerCommands extends ChemControllerCommands {
             out.setPayloadByte(11, Math.floor(chem.alkalinity / 256) || 0);
             out.setPayloadByte(12, Math.round(chem.alkalinity % 256) || 0);
             out.setPayloadByte(13, 20);
-            conn.queueSendMessage(out);
-        });
+            if (sl.enabled) {
+                await sl.controller.setEquipmentAsync({intellichem: false}, 'misc');
+            }
+            else {
+                await out.sendAsync();
+            }
+            let schem = state.chemControllers.getItemById(id);
+            chem.isActive = false;
+            chem.ph.tank.capacity = chem.orp.tank.capacity = 6;
+            chem.ph.tank.units = chem.orp.tank.units = '';
+            schem.isActive = false;
+            await sys.board.bodies.setBodyAsync(sys.bodies.getItemById(1, false));
+            sys.chemControllers.removeItemById(id);
+            state.chemControllers.removeItemById(id);
+            return chem;
+
+        } catch (err) {
+            logger.error(`Error deleting chem controller: ${err.message}`);
+            return Promise.reject(err);
+        }
+    }
+}
+class TouchValveCommands extends ValveCommands {
+    public async setValveAsync(obj: any, send: boolean = true): Promise<Valve> {
+        try {
+            let id = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+            obj.master = 0;
+            if (isNaN(id) || id <= 0) id = Math.max(sys.valves.getMaxId(false, 49) + 1, 50);
+
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`EasyTouch: Valve Id has not been defined ${id}`, obj.id, 'Valve'));
+            let valve = sys.valves.getItemById(id, true);
+            // Set all the valve properies.
+            let vstate = state.valves.getItemById(valve.id, true);
+            valve.isActive = true;
+            valve.circuit = typeof obj.circuit !== 'undefined' ? obj.circuit : valve.circuit;
+            valve.name = typeof obj.name !== 'undefined' ? obj.name : valve.name;
+            valve.connectionId = typeof obj.connectionId ? obj.connectionId : valve.connectionId;
+
+            return valve;
+        } catch (err) { logger.error(`Nixie: Error setting valve definition. ${err.message}`); return Promise.reject(err); }
     }
 }

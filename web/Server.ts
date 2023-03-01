@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -45,7 +46,8 @@ import { StateSocket } from "./services/state/StateSocket";
 import { UtilitiesRoute } from "./services/utilities/Utilities";
 import express = require('express');
 import extend = require("extend");
-
+import { setTimeout as setTimeoutSync } from 'timers';
+import { setTimeout } from 'timers/promises';
 
 // This class serves data and pages for
 // external interfaces as well as an internal dashboard.
@@ -259,7 +261,7 @@ export class WebServer {
             else
                 logger.info(`Auto-backup initialized Last Backup: ${Timestamp.toISOLocal(new Date(this.lastBackup))}`);
             // Lets wait a good 20 seconds before we auto-backup anything.  Now that we are initialized let the OCP have its way with everything.
-            setTimeout(() => { this.checkAutoBackup(); }, 20000);
+            setTimeoutSync(()=>{this.checkAutoBackup();}, 20000);
         }
         catch (err) { logger.error(`Error initializing auto-backup: ${err.message}`); }
     }
@@ -410,7 +412,7 @@ export class WebServer {
         if (this.autoBackup) {
             await this.pruneAutoBackups(bu.keepCount);
             let nextBackup = this.lastBackup + (bu.interval.days * 86400000) + (bu.interval.hours * 3600000);
-            setTimeout(async () => {
+            setTimeoutSync(async () => {
                 try {
                     await this.checkAutoBackup();
                 } catch (err) { logger.error(`Error checking auto-backup: ${err.message}`); }
@@ -518,7 +520,7 @@ export class WebServer {
                             }
                         }
                         stats.servers.push(ctx);
-                        if (!srv.isConnected) await utils.sleep(6000); // rem server waits to connect 5s before isConnected will be true. Server.ts#1256 = REMInterfaceServer.init();  What's a better way to do this?
+                        if (!srv.isConnected) await setTimeout(6000); // rem server waits to connect 5s before isConnected will be true. Server.ts#1256 = REMInterfaceServer.init();  What's a better way to do this?
                         if (typeof cfg === 'undefined' || typeof cfg.controllerConfig === 'undefined') ctx.server.errors.push(`Server configuration not found in zip file`);
                         else if (typeof srv === 'undefined') ctx.server.errors.push(`Server ${s.name} is not enabled in njsPC cannot restore.`);
                         else if (!srv.isConnected) ctx.server.errors.push(`Server ${s.name} is not connected cannot restore.`);
@@ -643,7 +645,7 @@ export class HttpServer extends ProtoServer {
     private socketHandler(sock: Socket) {
         let self = this;
         // this._sockets.push(sock);
-        setTimeout(async () => {
+        setTimeoutSync(async () => {
             // refresh socket list with every new socket
             self._sockets = await self.sockServer.fetchSockets();
         }, 100)
@@ -684,10 +686,15 @@ export class HttpServer extends ProtoServer {
             if (!sendMessages) sock.leave('msgLogger');
             else sock.join('msgLogger');
         });
-        sock.on('sendRS485PortStats', function (sendPortStatus: boolean) {
-            console.log(`sendRS485PortStats set to ${sendPortStatus}`);
-            if (!sendPortStatus) sock.leave('rs485PortStats');
+        sock.on('sendRS485PortStats', function (sendPortStats: boolean) {
+            console.log(`sendRS485PortStats set to ${sendPortStats}`);
+            if (!sendPortStats) sock.leave('rs485PortStats');
             else sock.join('rs485PortStats');
+        });
+        sock.on('sendScreenlogicStats', function (sendScreenlogicStats: boolean) {
+            console.log(`sendScreenlogicStats set to ${sendScreenlogicStats}`);
+            if (!sendScreenlogicStats) sock.leave('screenlogicStats');
+            else sock.join('screenlogicStats');
         });
         StateSocket.initSockets(sock);
         ConfigSocket.initSockets(sock);
@@ -926,7 +933,6 @@ export class SsdpServer extends ProtoServer {
 
 
             }
-
             this.server.addUSN('upnp:rootdevice'); // This line will make the server show up in windows.
             this.server.addUSN(this.deviceType);
             // start the server
@@ -944,7 +950,7 @@ export class SsdpServer extends ProtoServer {
     public deviceXML(): string {
         let ver = sys.appVersion.split('.');
         let friendlyName = 'njsPC: unknown model';
-        if (typeof sys !== 'undefined' && typeof sys.equipment !== 'undefined' && typeof sys.equipment.model !== 'undefined') friendlyName = `${sys.equipment.model}`;
+        if (typeof sys !== 'undefined' && typeof sys.equipment !== 'undefined' && typeof sys.equipment.model !== 'undefined') friendlyName = `${sys.equipment.model}`
         let XML = `<?xml version="1.0"?>
         <root xmlns="urn:schemas-upnp-org:device-1-0">
             <specVersion>
@@ -1045,8 +1051,6 @@ export class MdnsServer extends ProtoServer {
                                     type: 'TXT',
                                     data: 'njsPC'
                                 },
-
-
                             ]
                         });
                     }
@@ -1401,7 +1405,7 @@ export class REMInterfaceServer extends ProtoServer {
         this.uuid = cfg.uuid;
         if (cfg.enabled) {
             this.initSockets();
-            setTimeout(async () => {
+            setTimeoutSync(async () => {
                 try {
                     await self.initConnection();
                 }
@@ -1456,9 +1460,9 @@ export class REMInterfaceServer extends ProtoServer {
                 url = '/config/checkemit'
                 data = { eventName: "checkemit", property: "result", value: 'success', connectionId: result.obj.id }
                 // wait for REM server to finish resetting
-                setTimeout(async () => {
+                setTimeoutSync(async () => {
                     try {
-                        let _tmr = setTimeout(() => { return reject(new Error(`initConnection: No socket response received.  Check REM→njsPC communications.`)) }, 5000);
+                        let _tmr = setTimeoutSync(() => { return reject(new Error(`initConnection: No socket response received.  Check REM→njsPC communications.`)) }, 5000);
                         let srv: HttpServer = webApp.findServer('http') as HttpServer;
                         srv.addListenerOnce('/checkemit', (data: any) => {
                             // if we receive the emit, data will work both ways.

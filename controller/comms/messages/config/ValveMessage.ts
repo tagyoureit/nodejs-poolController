@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -96,14 +97,14 @@ export class ValveMessage {
     }
     private static process_ValveAssignment_IT(msg: Inbound) {
         // sample packet
-        // 165,33,16,34,157,6,0,0,1,255,255,255,4,153  [set]
+        // [165,33,16,34,157,6],[0,0,1,255,255,255],[4,153]  [set]
+        // [165,33,16,34,157,6],[0,0,7,255,255,255],[4,159]] [set]
         // [165,33,15,16,29,24],[2,0,0,0,128,1,255,255,255,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],[4,154] [get]
-        // [[][255,0,255][165,33,16,34,157,6][0,0,7,255,255,255][4,159]] [set]
         // what is payload[0]?
         for (let ndx = 4, id = 1; id <= sys.equipment.maxValves; ndx++) {
             if (id === 3) {
                 if (sys.equipment.shared && !sys.equipment.single) {
-                    let valve: Valve = sys.valves.getItemById(id, true);
+                    let valve: Valve = sys.valves.getItemById(id);
                     valve.circuit = 6; // pool/spa -- fix
                     valve.name = 'Intake';
                     valve.isIntake = true;
@@ -122,7 +123,7 @@ export class ValveMessage {
             }
             else if (id === 4) {
                 if (sys.equipment.shared && !sys.equipment.single) {
-                    let valve: Valve = sys.valves.getItemById(id, true);
+                    let valve: Valve = sys.valves.getItemById(id);
                     valve.circuit = 6; // pool/spa -- fix
                     valve.name = 'Return';
                     valve.isIntake = false;
@@ -140,7 +141,7 @@ export class ValveMessage {
                 }
             }
             else {
-                let valve: Valve = sys.valves.getItemById(id, true);
+                let valve: Valve = sys.valves.getItemById(id);
                 let circ = msg.extractPayloadByte(ndx);
                 valve.circuit = circ > 0 && circ < 255 ? circ : 0;
                 //valve.circuit = msg.extractPayloadByte(ndx);
@@ -158,7 +159,6 @@ export class ValveMessage {
                 valve.name = (typeof valve.name === 'undefined') ? ValveMessage.getName(id, valve.circuit) : valve.name;
                 let svalve = state.valves.getItemById(id, true);
                 svalve.name = valve.name;
-                svalve.type = valve.type;
             }
             id++;
         }

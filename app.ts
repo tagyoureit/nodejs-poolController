@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -15,16 +16,18 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 // add source map support for .js to .ts files
-require('source-map-support').install();
+//require('source-map-support').install();
+import 'source-map-support/register';
 
 import { logger } from "./logger/Logger";
 import { config } from "./config/Config";
 import { conn } from "./controller/comms/Comms";
-import { sys, ControllerType } from "./controller/Equipment";
+import { sys } from "./controller/Equipment";
 
 import { state } from "./controller/State";
 import { webApp } from "./web/Server";
 import * as readline from 'readline';
+import { sl } from './controller/comms/ScreenLogic'
 
 export async function initAsync() {
     try {
@@ -36,15 +39,8 @@ export async function initAsync() {
         await conn.initAsync();
         await sys.start();
         await webApp.initAutoBackup();
+        await sl.openAsync();
     } catch (err) { console.log(`Error Initializing nodejs-PoolController ${err.message}`);  }
-    //return Promise.resolve()
-    //    .then(function () { config.init(); })
-    //    .then(function () { logger.init(); })
-    //    .then(function () { conn.init(); })
-    //    .then(function () { sys.init(); })
-    //    .then(function () { state.init(); })
-    //    .then(function () { webApp.init(); })
-    //    .then(function () { sys.start(); });
 }
 
 export async function startPacketCapture(bResetLogs: boolean) {
@@ -70,13 +66,13 @@ export async function stopPacketCaptureAsync() {
 export async function stopAsync(): Promise<void> {
     try {
         console.log('Shutting down open processes');
-        // await sys.board.virtualPumpControllers.stopAsync();
         await webApp.stopAutoBackup();
         await sys.stopAsync();
         await state.stopAsync();
         await conn.stopAsync();
+        await sl.closeAsync();
         await webApp.stopAsync();
-        config.update();
+        await config.updateAsync();
         await logger.stopAsync();
         // RKS: Uncomment below to see the shutdown process
         //await new Promise<void>((resolve, reject) => { setTimeout(() => { resolve(); }, 20000); });

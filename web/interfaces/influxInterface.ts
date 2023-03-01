@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -99,10 +100,14 @@ export class InfluxInterfaceBindings extends BaseInterfaceBindings {
             writeSuccess: function(lines){
                 logger.silly(`InfluxDB successfully wrote ${lines.length} lines.`)
             },
+            writeRetrySkipped: function(entry){
+                logger.silly(`Influx write retry skipped ${JSON.stringify(entry)}`);
+            },
             maxRetryTime: DEFAULT_WriteOptions.maxRetryTime,
             exponentialBase: DEFAULT_WriteOptions.exponentialBase,
             randomRetry: DEFAULT_WriteOptions.randomRetry,
             maxBatchBytes: 4096
+           
         }
         this.writeApi = influxDB.getWriteApi(org, bucket, 'ms', writeOptions);
 

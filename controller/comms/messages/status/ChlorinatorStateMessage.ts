@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -31,7 +32,7 @@ export class ChlorinatorStateMessage {
             let chlor: Chlorinator = sys.chlorinators.findItemByPortId(msg.portId || 0);
             if (typeof chlor === 'undefined' || chlor.isActive === false) return; // Bail out of here if we don't find an active chlorinator.
             let cstate: ChlorinatorState = state.chlorinators.getItemById(chlor.id, true);
-            if (msg.dest >= 1 && msg.dest <= 4) {
+            if (msg.dest >= 80 && msg.dest <= 83) {
                 // RKS: This message is from the OCP to the chlorinator.  NOTE: We will not see these messages when the communication is coming from njsPC on any
                 // comms port.  The processing for no comms is done in the Nixe control when the message is sent.
                 if (typeof cstate.lastComm === 'undefined') cstate.lastComm = new Date(1970, 0, 1, 0, 0, 0, 0).getTime();
@@ -40,8 +41,8 @@ export class ChlorinatorStateMessage {
                     // We have not talked to the chlorinator in 30 seconds so we have lost communication.
                     cstate.status = 128;
                 }
-                chlor = sys.chlorinators.getItemById(msg.dest, true);
-                chlor.address = msg.dest + 79; // Theoretically, this will always be 80.
+                // chlor = sys.chlorinators.getItemById(msg.dest - 79, true); chlor is retrieved above; don't get in incorrectly here.
+                chlor.address = msg.dest; // Theoretically, this will always be 80.
                 if (typeof chlor.isActive === 'undefined') cstate.isActive = chlor.isActive = true;
             }
             else {
@@ -68,7 +69,7 @@ export class ChlorinatorStateMessage {
                     // This is the model number of the chlorinator and the address is actually the second byte.
                     let name = msg.extractPayloadString(1, 16);
                     if (typeof chlor.name === 'undefined' || chlor.name === '') chlor.name = cstate.name = name;
-                    if (typeof chlor.model === 'undefined') chlor.model = sys.board.valueMaps.chlorinatorModel.getValue(name.toLowerCase());
+                    if (typeof chlor.model === 'undefined' || chlor.model === 0) chlor.model = sys.board.valueMaps.chlorinatorModel.getValue(name.toLowerCase());
                     cstate.isActive = chlor.isActive;
                     state.emitEquipmentChanges();
                     break;

@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -59,7 +60,7 @@ export class RemoteMessage {
     public static processRemote_IT(msg: Inbound) {
         /*      process Spa-side remotes
                     for is4  [165,33,16,34,33,11],[id,button1,button2,button3,button4,5,6,7,8,9,10],[chkh,chkl]
-                    for is10:[165,33,16,34,323,11],[id,button1,button2,button3,button4,btn5,btn1bot,btn2bot,btn3bot,btn4bot,btn5bot],[chkh,chkl]
+                    for is10:[165,33,16,34,32,11],[id,button1,button2,button3,button4,btn5,btn1bot,btn2bot,btn3bot,btn4bot,btn5bot],[chkh,chkl]
                     [255, 0, 255], [165, 33, 15, 16, 32, 11], [0, 1, 5, 18, 13, 5, 6, 7, 8, 9, 10], [1, 98]
                     [255, 0, 255], [165, 33, 15, 16, 32, 11], [1, 8, 2, 7, 7, 5, 8, 9, 8, 9, 3], [1, 83]
                     for quicktouch:
@@ -74,17 +75,29 @@ export class RemoteMessage {
                     Note: For systems with four iS10/SpaCommand remotes, adding one or two iS4 remotes will affect button function assignments as follows: Assigned button functions 1 - 4 on iS4 #1 are linked with the same functions to buttons 1 - 4 (top row) of iS10 #4. Also, buttons 1 - 4 on iS4 #2 are linked to buttons 6 - 10 (bottom row) of iS10 #4. For example, button 6 on the bottom row of iS10 #4 is linked to button 1 of iS4 #2, button 7 on iS10 #4 is linked to button 2 of iS4 #2, etc.
 
                     Not sure how packets will come through with 6 controllers on it.
+                    
+                    // RSG 1.6.23 - Per Screenlogic Config, the IS10#4 shares the bytes with IS4#1/IS4#2.
+                    //  Byte 1 - IS10#1-1  IS4#1-1
+                    //  Byte 2 - IS10#1-2  IS4#1-2
+                    //  Byte 3 - IS10#1-3  IS4#1-3
+                    //  Byte 4 - IS10#1-4  IS4#1-4
+                    //  Byte 5 - IS10#1-5  
+                    //  Byte 6 - IS10#1-6  IS4#2-1
+                    //  Byte 7 - IS10#1-7  IS4#2-2
+                    //  Byte 8 - IS10#1-8  IS4#2-3
+                    //  Byte 9 - IS10#1-9  IS4#2-4
+                    //  Byte 10 - IS10#1-10  
 
                     Fixing ID's for lack of having better info.
-                    0-3 = is10
-                    4-5 = is4
-                    6 = QuickTouch
-                    7 = Spa Command (can multiple be present?  are these tied to is10?)
+                    1-4 = is10
+                    5-6 = is4 
+                    7 = QuickTouch
+                    8 = Spa Command
                     */
         switch (msg.action) {
             case 33: // quicktouch
                 {
-                    const remoteId = 6; // what determines 2nd is4?
+                    const remoteId = 7; // what determines 2nd is4?
                     const remote: Remote = sys.remotes.getItemById(remoteId, true);
                     remote.type = remoteId;
                     remote.button1 = msg.extractPayloadByte(0);
@@ -130,11 +143,11 @@ export class RemoteMessage {
                     // sample packet from EasyTouch
                     // [165,33,16,34,150,16],[0,1,7,8,0,2,250,10,1,144,13,122,15,130,0,0],[4,93]
                     // note: spa command may be tied to an already present is10.  Need to clarify.
-                    //const remoteId = 7;
+                    //const remoteId = 8;
                     //const remote: Remote = sys.remotes.getItemById(remoteId, true);
                     //remote.pumpId = msg.extractPayloadByte(5);
                     //remote.stepSize = msg.extractPayloadByte(6);
-                    //remote.type = 7;
+                    //remote.type = 8;
                     RemoteMessage.processIntelliFlo4(msg);
                     msg.isProcessed = true;
                     break;

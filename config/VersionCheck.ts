@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -124,7 +125,7 @@ class VersionCheck {
         if (this.redirects >= 20) return Promise.reject(`Too many redirects.`)
         return new Promise<string>((resolve, reject) => {
             try {
-                https.request(url, options, async res => {
+                let req = https.request(url, options, async res => {
                     if (res.statusCode > 300 && res.statusCode < 400 && res.headers.location) await this.getLatestRelease(res.headers.location);
                     let data = '';
                     res.on('data', d => { data += d; });
@@ -137,6 +138,9 @@ class VersionCheck {
                     })
                 })
                     .end();
+                req.on('error', (err) => {
+                    logger.error(`Error getting Github API latest release.  ${err.message}`)
+                })
             }
             catch (err) {
                 logger.error('Error contacting Github for latest published release: ' + err);

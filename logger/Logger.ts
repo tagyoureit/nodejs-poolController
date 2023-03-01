@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -22,6 +23,7 @@ import { utils } from "../controller/Constants";
 import { Message } from '../controller/comms/messages/Messages';
 import { config } from '../config/Config';
 import { webApp } from '../web/Server';
+import { sl } from '../controller/comms/ScreenLogic';
 
 const extend = require("extend");
 
@@ -32,9 +34,11 @@ class Logger {
         this.captureForReplayBaseDir = path.join(process.cwd(), '/logs/', this.getLogTimestamp());
         /*         this.captureForReplayPath = path.join(this.captureForReplayBaseDir, '/packetCapture.json'); */
         this.pkts = [];
+        this.slMessages = [];
     }
     private cfg;
     private pkts: Message[];
+    private slMessages: any[];
     private pktPath: string;
     private consoleToFilePath: string;
     private transports: { console: winston.transports.ConsoleTransportInstance, file?: winston.transports.FileTransportInstance, consoleFile?: winston.transports.FileTransportInstance } = {
@@ -163,6 +167,25 @@ class Logger {
             else if (!msg.isValid) logger._logger.warn(msg.toLog());
         }
     }
+    public screenlogic(data: any){
+        if (logger.cfg.screenlogic.enabled || logger.cfg.app.captureForReplay){
+            if (logger.cfg.screenlogic.logToFile) {
+                logger.slMessages.push(data);
+                if (logger.slMessages.length > 5)
+                    logger.flushSLLogs();
+                else {
+                    // Attempt to ease up on the writes if we are logging a bunch of packets.
+                    if (logger.pktTimer) clearTimeout(logger.pktTimer);
+                    logger.pktTimer = setTimeout(logger.flushSLLogs, 1000);
+                }
+            }
+            webApp.emitToChannel('msgLogger', 'logMessage', data);
+
+        }
+        if (logger.cfg.screenlogic.logToConsole){
+            logger._logger.info(sl.toLog(data));
+        }
+    }
     public logAPI(apiReq:string){
         if (logger.cfg.app.captureForReplay){
             // TODO: buffer this
@@ -183,6 +206,7 @@ class Logger {
         var buf: string = '';
         if (logger.cfg.packet.enabled) {
             for (let i = 0; i < p.length; i++) {
+             
                 buf += (p[i].toLog() + os.EOL);
             }
             fs.appendFile(logger.pktPath, buf, function(err) {
@@ -190,14 +214,19 @@ class Logger {
             });
         }
         buf = '';
-        /*         if (logger.cfg.app.captureForReplay) {
-                    for (let i = 0; i < p.length; i++) {
-                        buf += (p[i].toReplay() + os.EOL);
-                    }
-                    fs.appendFile(logger.captureForReplayPath, buf, function (err) {
-                        if (err) logger.error('Error writing replay to %s: %s', logger.captureForReplayPath, err);
-                    });
-                } */
+    }
+    public flushSLLogs() {
+        var p: any[] = logger.slMessages.splice(0, logger.slMessages.length);
+        var buf: string = '';
+       
+            for (let i = 0; i < p.length; i++) {
+                buf += (p[i] + os.EOL);
+            }
+            fs.appendFile(logger.pktPath, buf, function(err) {
+                if (err) logger.error(`Error writing screenlogic message to ${logger.pktPath}: ${err.message}`);
+            });
+        
+        buf = '';
     }
     public setOptions(opts, c?: any) {
         c = typeof c === 'undefined' ? this.cfg : c;

@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -857,7 +858,7 @@ export class ExternalMessage {
                 // chlorinator.  These should be 0 anyway.
                 schlor.poolSetpoint = chlor.spaSetpoint = msg.extractPayloadByte(0) >> 1;
                 schlor.spaSetpoint = chlor.poolSetpoint = msg.extractPayloadByte(1);
-                chlor.address = chlor.id + 79;
+                if (typeof chlor.address === 'undefined') chlor.address = 80; // chlor.id + 79;
                 schlor.body = chlor.body = sys.equipment.maxBodies >= 1 || sys.equipment.shared === true ? 32 : 0;
             }
             schlor.superChlor = chlor.superChlor = msg.extractPayloadByte(2) - 128 > 0;

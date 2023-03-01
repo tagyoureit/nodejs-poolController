@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -158,7 +159,7 @@ export class ScheduleMessage {
             eggTimer.isActive = eggTimerActive;
             const circuit = sys.circuits.getInterfaceById(circuitId);
             circuit.eggTimer = eggTimer.runTime;
-            circuit.eggTimer === 720;
+            //circuit.eggTimer === 720;
             circuit.dontStop = circuit.eggTimer === 1620;
             // When eggTimers are found go back and check existing schedules to see if a runOnce schedule already exists.
              // It is possible that the runOnce schedule will be discovered before the eggTimer so we need to adjust the endTime 

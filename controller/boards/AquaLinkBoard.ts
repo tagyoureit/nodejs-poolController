@@ -1,5 +1,6 @@
 /*  nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017, 2018, 2019, 2020.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022.  
+Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
@@ -727,7 +728,7 @@ class AquaLinkChlorinatorCommands extends ChlorinatorCommands {
             schlor.spaSetpoint = chlor.spaSetpoint = spaSetpoint;
             schlor.superChlorHours = chlor.superChlorHours = superChlorHours;
             schlor.body = chlor.body = body;
-            chlor.address = 79 + id;
+            if (typeof chlor.address === 'undefined') chlor.address = 80; // 79 + id;
             chlor.name = schlor.name = name;
             schlor.model = chlor.model = model;
             schlor.type = chlor.type = chlorType;
