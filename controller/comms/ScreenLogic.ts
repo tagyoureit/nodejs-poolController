@@ -874,13 +874,14 @@ class Controller {
         add = true;
       }
     }
-    else if (heaterConfig.solarHeatPumpPresent) {
-      let heater = sys.heaters.getItemById(3);
-      if (!heater.isActive) {
-        data.type = 3;
-        add = true;
-      }
-    }
+    // RSG - Which type is this?  Duplicate of 3 above.
+    // else if (heaterConfig.solarHeatPumpPresent) {
+    //   let heater = sys.heaters.getItemById(3);
+    //   if (!heater.isActive) {
+    //     data.type = 3;
+    //     add = true;
+    //   }
+    //batt}
     // Need to figure out dual body here: body2SolarPresent
     if (add) {
       sys.board.heaters.setHeaterAsync(data, false).catch((err) => {
@@ -1449,8 +1450,8 @@ export class SLChlor extends SLCommands {
 export class SLSchedule extends SLCommands {
   public async addScheduleAsync(type: number) {
     // Passed as an argument to the emitted addNewScheduleEvent event. Adds a new event to the specified schedule type, either 0 for regular events or 1 for one-time events.
-    let id = this._unit.schedule.addNewScheduleEventAsync(0);
-    return id;
+    let slRet = this._unit.schedule.addNewScheduleEventAsync(0);
+    return (await slRet).val;
   }
   // SCHEDULES
 
