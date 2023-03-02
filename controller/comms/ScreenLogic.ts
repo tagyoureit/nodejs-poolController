@@ -1,18 +1,13 @@
 import { ControllerType, Timestamp, Utils, utils } from '../../controller/Constants';
-import { LightGroup, LightGroupCircuit, sys, Valve, Body, Pump, PumpCircuit, Remote } from '../../controller/Equipment';
+import { LightGroup, LightGroupCircuit, sys, Valve, Body, Pump, PumpCircuit, Remote} from '../../controller/Equipment';
 import { CircuitState, state, ValveState } from '../../controller/State';
-import * as ScreenLogic from 'node-screenlogic';
+import { SLChemData, screenlogic, RemoteLogin, UnitConnection, FindUnits, SLEquipmentStateData, SLIntellichlorData, SLPumpStatusData, SLScheduleData, SLSystemTimeData, HeatModes } from 'node-screenlogic';
 import { SLControllerConfigData, SLEquipmentConfigurationData, Valves, HeaterConfig } from '../../../node-screenlogic/dist/messages/config/EquipmentConfig';
 import { EasyTouchBoard } from '../../controller/boards/EasyTouchBoard';
 import { IntelliTouchBoard } from '../../controller/boards/IntelliTouchBoard';
 import { logger } from '../../logger/Logger';
-import { SLIntellichlorData } from '../../../node-screenlogic/dist/messages/state/ChlorMessage';
-import { SLChemData } from '../../../node-screenlogic/dist/messages/state/ChemMessage';
-import { SLScheduleData } from '../../../node-screenlogic/dist/messages/config/ScheduleMessage';
 import { webApp } from '../../web/Server';
-import { SLPumpStatusData } from '../../../node-screenlogic/dist/messages/state/PumpMessage';
 import { delayMgr } from '../../controller/Lockouts';
-import { EquipmentStateMessage, SLEquipmentStateData, SLSystemTimeData } from '../../../node-screenlogic/dist/messages/state/EquipmentState';
 import { config } from '../../config/Config';
 import { InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError } from '../../controller/Errors';
 import extend = require('extend');
@@ -20,12 +15,12 @@ import { Message } from './messages/Messages';
 
 export class ScreenLogicComms {
   constructor() {
-    this._client = ScreenLogic.screenlogic;
+    this._client = screenlogic;
   };
   public a: SLChemData;
   public counter: SLCounter = new SLCounter();
-  private _gateway: ScreenLogic.RemoteLogin;
-  private _client: ScreenLogic.UnitConnection;
+  private _gateway: RemoteLogin;
+  private _client: UnitConnection;
   private _pollTimer: NodeJS.Timeout;
   public circuits: SLCircuits;
   public bodies: SLBodies;
@@ -60,7 +55,7 @@ export class ScreenLogicComms {
     let systemName = this._cfg.screenlogic.systemName; // 'Pentair: 00-00-00';
     let password = this._cfg.screenlogic.password.toString(); // '1111';
 
-    this._gateway = new ScreenLogic.RemoteLogin(systemName);
+    this._gateway = new RemoteLogin(systemName);
     this._gateway.on('error', async (err) => {
       logger.error(`Screenlogic Gateway Error: ${err.message}`);
       this.isOpen = false;
@@ -413,7 +408,7 @@ export class ScreenLogicComms {
   }
   public static async searchAsync() {
     try {
-      let finder = new ScreenLogic.FindUnits();
+      let finder = new FindUnits();
       let localUnits = await finder.searchAsync();
       finder.close();
       return Promise.resolve(localUnits);
@@ -1199,10 +1194,10 @@ class Controller {
   }
 }
 export class SLCommands {
-  constructor(unit: ScreenLogic.UnitConnection) {
+  constructor(unit: UnitConnection) {
     this._unit = unit;
   }
-  protected _unit: ScreenLogic.UnitConnection;
+  protected _unit: UnitConnection;
 }
 export class SLCircuits extends SLCommands {
   public async setCircuitAsync(circuitId: number, nameIndex: number, circuitFunction: number, circuitInterface: number, freeze: boolean = false, colorPos: number = 0) {
@@ -1366,19 +1361,19 @@ export class SLBodies extends SLCommands {
     let slHeatMode = 0;
     switch (mode) {
       case 0:
-        slHeatMode = ScreenLogic.HeatModes.HEAT_MODE_OFF;
+        slHeatMode = HeatModes.HEAT_MODE_OFF;
         break;
       case 1:
-        if (hybridInstalled) slHeatMode = ScreenLogic.HeatModes.HEAT_MODE_HEATPUMP;
-        slHeatMode = ScreenLogic.HeatModes.HEAT_MODE_HEATER;
+        if (hybridInstalled) slHeatMode = HeatModes.HEAT_MODE_HEATPUMP;
+        slHeatMode = HeatModes.HEAT_MODE_HEATER;
         break;
       case 2:
-        if (hybridInstalled) slHeatMode = ScreenLogic.HeatModes.HEAT_MODE_HEATER;
-        else if (solarInstalled) slHeatMode = ScreenLogic.HeatModes.HEAT_MODE_SOLARPREFERRED;
+        if (hybridInstalled) slHeatMode = HeatModes.HEAT_MODE_HEATER;
+        else if (solarInstalled) slHeatMode = HeatModes.HEAT_MODE_SOLARPREFERRED;
         break;
       case 3:
-        if (hybridInstalled) slHeatMode = ScreenLogic.HeatModes.HEAT_MODE_SOLARPREFERRED; // ?? Should be heatpumppref but maybe this is the same?
-        else if (solarInstalled) slHeatMode = ScreenLogic.HeatModes.HEAT_MODE_SOLAR;
+        if (hybridInstalled) slHeatMode = HeatModes.HEAT_MODE_SOLARPREFERRED; // ?? Should be heatpumppref but maybe this is the same?
+        else if (solarInstalled) slHeatMode = HeatModes.HEAT_MODE_SOLAR;
         break;
       case 16:
         // ?? Should be Dual heat mode; maybe not supported on SL?
@@ -1507,23 +1502,23 @@ export class SLSchedule extends SLCommands {
         let hybridInstalled = htypes.hybrid > 0;
         switch (heatSource) {
           case 0:
-            SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_OFF;
+            SLheatSource = HeatModes.HEAT_MODE_OFF;
             break;
           case 3:
-            if (hybridInstalled) SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_HEATPUMP;
-            SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_HEATER;
+            if (hybridInstalled) SLheatSource = HeatModes.HEAT_MODE_HEATPUMP;
+            SLheatSource = HeatModes.HEAT_MODE_HEATER;
             break;
           case 5:
-            if (hybridInstalled) SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_SOLARPREFERRED; // ?? Should be heatpumppref but maybe this is the same?
-            else if (solarInstalled) SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_SOLAR;
+            if (hybridInstalled) SLheatSource = HeatModes.HEAT_MODE_SOLARPREFERRED; // ?? Should be heatpumppref but maybe this is the same?
+            else if (solarInstalled) SLheatSource = HeatModes.HEAT_MODE_SOLAR;
             break;
           case 21:
-            if (hybridInstalled) SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_HEATER;
-            else if (solarInstalled) SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_SOLARPREFERRED;
+            if (hybridInstalled) SLheatSource = HeatModes.HEAT_MODE_HEATER;
+            else if (solarInstalled) SLheatSource = HeatModes.HEAT_MODE_SOLARPREFERRED;
             break;
           case 32:
             // No change
-            SLheatSource = ScreenLogic.HeatModes.HEAT_MODE_DONTCHANGE;
+            SLheatSource = HeatModes.HEAT_MODE_DONTCHANGE;
             break;
           default:
             logger.warn(`Screenlogic: No valid heat source passed for schedule: ${id}, heat source: ${heatSource}. `);
