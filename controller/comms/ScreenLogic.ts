@@ -1,8 +1,8 @@
 import { ControllerType, Timestamp, Utils, utils } from '../../controller/Constants';
 import { LightGroup, LightGroupCircuit, sys, Valve, Body, Pump, PumpCircuit, Remote} from '../../controller/Equipment';
 import { CircuitState, state, ValveState } from '../../controller/State';
-import { SLChemData, screenlogic, RemoteLogin, UnitConnection, FindUnits, SLEquipmentStateData, SLIntellichlorData, SLPumpStatusData, SLScheduleData, SLSystemTimeData, HeatModes } from 'node-screenlogic';
-import { SLControllerConfigData, SLEquipmentConfigurationData, Valves, HeaterConfig } from '../../../node-screenlogic/dist/messages/config/EquipmentConfig';
+import { SLChemData, RemoteLogin, UnitConnection, FindUnits, SLEquipmentStateData, SLIntellichlorData, SLPumpStatusData, SLScheduleData, SLSystemTimeData, HeatModes, SLControllerConfigData, SLEquipmentConfigurationData, HeaterConfig, Valves } from 'node-screenlogic';
+import * as Screenlogic from 'node-screenlogic';
 import { EasyTouchBoard } from '../../controller/boards/EasyTouchBoard';
 import { IntelliTouchBoard } from '../../controller/boards/IntelliTouchBoard';
 import { logger } from '../../logger/Logger';
@@ -15,7 +15,7 @@ import { Message } from './messages/Messages';
 
 export class ScreenLogicComms {
   constructor() {
-    this._client = screenlogic;
+    this._client = Screenlogic.screenlogic;
   };
   public a: SLChemData;
   public counter: SLCounter = new SLCounter();
@@ -1639,7 +1639,8 @@ export class SLController extends SLCommands {
       spaCommand,
       alarm
     }
-    await this._unit.equipment.setEquipmentConfigurationAsync(data);
+    return Promise.reject(new InvalidOperationError('Operation not implemented yet.', 'setEquipmentConfigurationAsync'));
+    // await this._unit.equipment.setEquipmentConfigurationAsync(data);
   }
 
   public async setSystemTime(){
