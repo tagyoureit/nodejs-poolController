@@ -1,7 +1,7 @@
 import { ControllerType, Timestamp, Utils, utils } from '../../controller/Constants';
 import { LightGroup, LightGroupCircuit, sys, Valve, Body, Pump, PumpCircuit, Remote} from '../../controller/Equipment';
 import { CircuitState, state, ValveState } from '../../controller/State';
-import { SLChemData, RemoteLogin, UnitConnection, FindUnits, SLEquipmentStateData, SLIntellichlorData, SLPumpStatusData, SLScheduleData, SLSystemTimeData, HeatModes, SLControllerConfigData, SLEquipmentConfigurationData, HeaterConfig, Valves } from 'node-screenlogic';
+import { RemoteLogin, UnitConnection, FindUnits, SLEquipmentStateData, SLIntellichlorData, SLPumpStatusData, SLScheduleData, SLSystemTimeData, HeatModes, SLControllerConfigData, SLEquipmentConfigurationData, HeaterConfig, Valves, SLChemData, SLGetCustomNamesData } from 'node-screenlogic';
 import * as Screenlogic from 'node-screenlogic';
 import { EasyTouchBoard } from '../../controller/boards/EasyTouchBoard';
 import { IntelliTouchBoard } from '../../controller/boards/IntelliTouchBoard';
@@ -15,7 +15,7 @@ import { Message } from './messages/Messages';
 
 export class ScreenLogicComms {
   constructor() {
-    this._client = Screenlogic.screenlogic;
+    this._client = new Screenlogic.UnitConnection();
   };
   public a: SLChemData;
   public counter: SLCounter = new SLCounter();
@@ -766,11 +766,11 @@ class Controller {
       logger.error(`Caught error in decodeEquipmentState: ${err.message}`);
     }
   }
-  public static async decodeCustomNames(customNames: string[]) {
+  public static async decodeCustomNames(customNames: SLGetCustomNamesData) {
     for (let i = 0; i < sys.equipment.maxCustomNames; i++) {
       let data = {
         id: i,
-        name: customNames[i]
+        name: customNames.names[i]
       }
       try {
 
@@ -1101,14 +1101,14 @@ class Controller {
     pstate.command = (pstate.rpm > 0 || pstate.watts > 0) ? 10 : 0;
     state.emitEquipmentChanges();
   }
-  public static async decodeSchedules(slrecurring: SLScheduleData[], slrunonce: SLScheduleData[]) {
+  public static async decodeSchedules(slrecurring: SLScheduleData, slrunonce: SLScheduleData) {
     /*     reccuring schedules: [{"scheduleId":1,"circuitId":6,"startTime":"1800","stopTime":"0700","dayMask":127,"flags":0,"heatCmd":4,"heatSetPoint":70,"days":["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]},
     
     {"scheduleId":4,"circuitId":2,"startTime":"1800","stopTime":"2300","dayMask":127,"flags":0,"heatCmd":0,"heatSetPoint":0,"days":["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]},{"scheduleId":11,"circuitId":6,"startTime":"0800","stopTime":"1700","dayMask":127,"flags":0,"heatCmd":4,"heatSetPoint":70,"days":["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]}]
     
         Run once schedules: [{"scheduleId":12,"circuitId":6,"startTime":"0800","stopTime":"1100","dayMask":1,"flags":1,"heatCmd":4,"heatSetPoint":70,"days":["Mon"]},{"scheduleId":13,"circuitId":6,"startTime":"0800","stopTime":"1100","dayMask":1,"flags":1,"heatCmd":4,"heatSetPoint":70,"days":["Mon"]}] */
 
-    for (let i = 0; i < slrecurring.length; i++) {
+    for (let i = 0; i < slrecurring.data.length; i++) {
       let slsched = slrecurring[i];
       let data = {
         id: slsched.scheduleId,
@@ -1126,13 +1126,14 @@ class Controller {
         logger.error(`Error setting schedule ${slsched.scheduleId}.  ${err.message}`);
       }
     }
-    for (let i = 0; i < slrunonce.length; i++) {
-      let slsched = slrunonce[i];
+    for (let i = 0; i < slrunonce.data.length; i++) {
+      let slsched = slrunonce.data[i];
       let data = {
         id: slsched.scheduleId,
         circuit: slsched.circuitId,
-        startTime: Math.floor(slsched.startTime / 100) * 60 + slsched.startTime % 100,
-        endTime: Math.floor(slsched.stopTime / 100) * 60 + slsched.stopTime % 100,
+        // start and stop come in as military time string
+        startTime: parseInt(slsched.startTime, 10),
+        endTime: parseInt(slsched.stopTime, 10),
         scheduleDays: slsched.dayMask,
         changeHeatSetPoint: slsched.heatCmd > 0,
         heatSetPoint: slsched.heatSetPoint,
@@ -1654,7 +1655,7 @@ export class SLController extends SLCommands {
   public async setCustomName(idx: number, name: string){
     try {
       let ack = await this._unit.equipment.setCustomNameAsync(idx, name);
-      logger.silly(`Screenlogic:set custom name result: ${ack}`);
+      logger.silly(`Screenlogic:set custom name result: ${JSON.stringify(ack)}`);
     } catch (error) {
       return Promise.reject(new InvalidOperationError('Unable to set custom name.', error.message));
     }
