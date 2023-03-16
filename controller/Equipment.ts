@@ -1398,7 +1398,7 @@ export class PumpCollection extends EqItemCollection<Pump> {
         if (typeof add !== 'undefined' && add) return this.add(data || { id: this.data.length + 1, address: address });
         return this.createItem(data || { id: this.data.length + 1, address: address });
     }
-    public getNextEquipmentId(range?: EquipmentIdRange, exclude?: number[]): number { return this.getNextEquipmentId(typeof range === 'undefined' ? sys.board.equipmentIds.pumps : range, exclude); }
+    public getNextEquipmentId(range?: EquipmentIdRange, exclude?: number[]): number { return super.getNextEquipmentId(typeof range === 'undefined' ? sys.board.equipmentIds.pumps : range, exclude); }
 }
 export class Pump extends EqItem {
     public dataName = 'pumpConfig';
