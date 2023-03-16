@@ -47,7 +47,7 @@ export class ScreenLogicComms {
     this.controller = new SLController(this._client);
     let cfg = config.getSection('controller.comms');
     if (typeof cfg !== 'undefined') this._cfg = cfg;
-    this.enabled = this._cfg.enabled;
+    this.enabled = this._cfg.enabled && this._cfg.type === 'screenlogic';
     if (!this._cfg.enabled || this._cfg.type !== 'screenlogic') {
       return;
     }
