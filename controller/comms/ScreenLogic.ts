@@ -51,7 +51,6 @@ export class ScreenLogicComms {
     if (!this._cfg.enabled || this._cfg.type !== 'screenlogic') {
       return;
     }
-
     let systemName = this._cfg.screenlogic.systemName; // 'Pentair: 00-00-00';
     let password = this._cfg.screenlogic.password.toString(); // '1111';
 
