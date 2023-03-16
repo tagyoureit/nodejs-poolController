@@ -613,7 +613,7 @@ export class TouchConfigQueue extends ConfigQueue {
                 response: Response.create({
                     response: true
                     , callback: () => {
-                        console.log(`CALLBACKED`);
+                    //    console.log(`CALLBACKED`);
                     }
                     // , callback: () => {
                     //     self.processNext(out);
