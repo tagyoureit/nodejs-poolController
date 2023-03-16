@@ -1,6 +1,7 @@
 ﻿{
   "controller": {
     "comms": {
+      "type": "local",
       "portId": 0,
       "enabled": true,
       "rs485Port": "/dev/ttyUSB0",
