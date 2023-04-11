@@ -2807,15 +2807,15 @@ class TouchHeaterCommands extends HeaterCommands {
             // 2 = Gas Heater
             // 3 = Hybrid
             // 16 = Dual 
-            sys.board.valueMaps.heatModes.set(1, { name: 'heatpump', desc: 'Heat Pump' });
-            sys.board.valueMaps.heatModes.set(2, { name: 'heater', desc: 'Gas Heat' });
-            sys.board.valueMaps.heatModes.set(3, { name: 'heatpumppref', desc: 'Hybrid' });
-            sys.board.valueMaps.heatModes.set(16, { name: 'dual', desc: 'Dual Heat' });
+            sys.board.valueMaps.heatModes.set(1, { name: 'hybheatpump', desc: 'Heat Pump' });
+            sys.board.valueMaps.heatModes.set(2, { name: 'hybheat', desc: 'Gas Heat' });
+            sys.board.valueMaps.heatModes.set(3, { name: 'hybhybrid', desc: 'Hybrid' });
+            sys.board.valueMaps.heatModes.set(16, { name: 'hybdual', desc: 'Dual Heat' });
 
-            sys.board.valueMaps.heatSources.set(2, { name: 'heater', desc: 'Gas Heat' });
-            sys.board.valueMaps.heatSources.set(5, { name: 'heatpumppref', desc: 'Hybrid' });
-            sys.board.valueMaps.heatSources.set(20, { name: 'dual', desc: 'Dual Heat' });
-            sys.board.valueMaps.heatSources.set(21, { name: 'heatpump', desc: 'Heat Pump' });
+            sys.board.valueMaps.heatSources.set(2, { name: 'hybheat', desc: 'Gas Heat' });
+            sys.board.valueMaps.heatSources.set(5, { name: 'hybhybrid', desc: 'Hybrid' });
+            sys.board.valueMaps.heatSources.set(20, { name: 'hybdual', desc: 'Dual Heat' });
+            sys.board.valueMaps.heatSources.set(21, { name: 'hybheatpump', desc: 'Heat Pump' });
         }
         else {
             if (gasHeaterInstalled) {
