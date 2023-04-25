@@ -4077,6 +4077,7 @@ export class HeaterCommands extends BoardCommands {
             let body = sys.bodies.getItemByIndex(i);
             let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
             let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
+            
             btemp.heaterOptions = opts;
         }
         this.setActiveTempSensors();

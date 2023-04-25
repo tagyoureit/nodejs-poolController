@@ -2863,6 +2863,8 @@ class TouchHeaterCommands extends HeaterCommands {
             let body = sys.bodies.getItemByIndex(i);
             let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
             let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
+            btemp.data.heatMode = sys.board.valueMaps.heatModes.transform(btemp.heatMode);
+            btemp.data.heatStatus = sys.board.valueMaps.heatStatus.transform(btemp.heatStatus);
             btemp.heaterOptions = opts;
         }
         this.setActiveTempSensors();
