@@ -264,10 +264,9 @@ export class NixiePump extends NixieEquipment {
             // RSG 8-2022.  Refactored to add initasync.  With this.pollEquipmentAsync inside the
             // constructor we could get here before the pump is initialized.  The added check
             // for the 112 address prevented that previously, but now is just a final fail safe.
-            if (this.suspendPolling || this.closing || this.pump.address > 112) return;
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
-            // let success = false;
+            if (this.suspendPolling || this.closing || this.pump.address > 112) return;
             let pstate = state.pumps.getItemById(this.pump.id);
             this.setTargetSpeed(pstate);
             await this.setPumpStateAsync(pstate);
