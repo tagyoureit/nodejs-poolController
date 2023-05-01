@@ -266,7 +266,11 @@ export class NixiePump extends NixieEquipment {
             // for the 112 address prevented that previously, but now is just a final fail safe.
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
             this._pollTimer = null;
-            if (this.suspendPolling || this.closing || this.pump.address > 112) return;
+            if (this.suspendPolling || this.closing || this.pump.address > 112) {
+                if (this.suspendPolling) logger.info(`Pump ${this.id} Polling Suspended`);
+                if (this.closing) logger.info(`Pump ${this.id} is closing`);
+                return;
+            }
             let pstate = state.pumps.getItemById(this.pump.id);
             this.setTargetSpeed(pstate);
             await this.setPumpStateAsync(pstate);
