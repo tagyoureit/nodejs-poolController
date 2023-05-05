@@ -75,7 +75,7 @@ export class Message {
     private static _messageId: number = 0;
     public static get nextMessageId(): number { 
         let i = this._messageId < 80000 ? ++this._messageId : this._messageId = 0;
-        logger.debug(`Assigning message id ${i}`)
+        //logger.debug(`Assigning message id ${i}`)
         return i; }
     public portId = 0; // This will be the target or source port for the message.  If this is from or to an Aux RS485 port the value will be > 0.
     public timestamp: Date = new Date();

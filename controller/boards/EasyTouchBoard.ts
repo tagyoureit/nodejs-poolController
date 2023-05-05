@@ -2188,7 +2188,7 @@ class TouchPumpCommands extends PumpCommands {
                 }
                 data.model = typeof data.model === 'undefined' ? sys.board.valueMaps.pumpSSModels.encode(data.model) : pump.model || 0;
                 spump.emitEquipmentChange();
-                return Promise.resolve(pump);
+                return pump;
             }
             else if (type.name === 'ds') {
                 // We are going to set all the high speed circuits.
@@ -2203,7 +2203,7 @@ class TouchPumpCommands extends PumpCommands {
                     if (typeof data[prop] !== 'undefined') spump[prop] = data[prop];
                 }
                 spump.emitEquipmentChange();
-                return Promise.resolve(pump);
+                return pump;
             }
             else {
                 let arrCircuits = [];
@@ -2250,7 +2250,7 @@ class TouchPumpCommands extends PumpCommands {
                     data.circuits = arrCircuits;
 
                     if (send) {
-                        return new Promise<Pump>(async (resolve, reject) => {
+                        return await new Promise<Pump>(async (resolve, reject) => {
                             outc.onComplete = (err, msg) => {
                                 if (err) reject(err);
                                 else {
@@ -2268,10 +2268,12 @@ class TouchPumpCommands extends PumpCommands {
                                         retries: 2,
                                         response: true
                                     });
-                                    conn.queueSendMessage(pumpConfigRequest);
+                                    (async () => { pumpConfigRequest.sendAsync(); })();
+                                    //conn.queueSendMessage(pumpConfigRequest);
                                 }
                             };
                             await outc.sendAsync();
+                            return pump;
                         });
                     }
                 }
@@ -2428,32 +2430,26 @@ class TouchPumpCommands extends PumpCommands {
                         return Promise.resolve(pump);
                     }
                     else if (send) {
-                        return new Promise<Pump>(async (resolve, reject) => {
-                            outc.onComplete = (err, msg) => {
-                                if (err) reject(err);
-                                else {
-                                    pump = sys.pumps.getItemById(id, true);
-                                    // RKS: 05-20-22 Boooh to this if the payload does not include its
-                                    // circuits we have just destroyed the pump definition.  So I added code to
-                                    // make sure that the data is complete.
-                                    pump.set(data); // Sets all the data back to the pump.
-                                    let spump = state.pumps.getItemById(id, true);
-                                    spump.isActive = pump.isActive = true;
-                                    spump.name = pump.name;
-                                    spump.type = pump.type;
-                                    spump.emitEquipmentChange();
-                                    resolve(pump);
-                                    const pumpConfigRequest = Outbound.create({
-                                        action: 216,
-                                        payload: [pump.id],
-                                        retries: 2,
-                                        response: true
-                                    });
-                                    conn.queueSendMessage(pumpConfigRequest);
-                                }
-                            };
-                            await outc.sendAsync();
-                        });
+                        if (await outc.sendAsync()) {
+                            pump = sys.pumps.getItemById(id, true);
+                            // RKS: 05-20-22 Boooh to this if the payload does not include its
+                            // circuits we have just destroyed the pump definition.  So I added code to
+                            // make sure that the data is complete.
+                            pump.set(data); // Sets all the data back to the pump.
+                            let spump = state.pumps.getItemById(id, true);
+                            spump.isActive = pump.isActive = true;
+                            spump.name = pump.name;
+                            spump.type = pump.type;
+                            spump.emitEquipmentChange();
+                            const pumpConfigRequest = Outbound.create({
+                                action: 216,
+                                payload: [pump.id],
+                                retries: 2,
+                                response: true
+                            });
+                            await pumpConfigRequest.sendAsync();
+                            return pump;
+                        }
                     }
                 }
             }
@@ -2567,7 +2563,7 @@ class TouchPumpCommands extends PumpCommands {
                         retries: 2,
                         response: true
                     });
-                    conn.queueSendMessage(pumpConfigRequest);
+                    (async () => { await pumpConfigRequest.sendAsync(); });
                 }
             };
             await outc.sendAsync();

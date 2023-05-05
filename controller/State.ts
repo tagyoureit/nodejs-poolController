@@ -283,7 +283,10 @@ export class State implements IState {
             }
         }
     }
-    public get time(): Timestamp { return this._dt; }
+    public get time(): Timestamp {
+        if (typeof this._dt === 'undefined' || !this._dt.isValid) this._dt = new Timestamp(new Date());
+        return this._dt;
+    }
     public get mode(): number { return typeof (this.data.mode) !== 'undefined' ? this.data.mode.val : -1; }
     public set mode(val: number) {
         let m = sys.board.valueMaps.panelModes.transform(val);

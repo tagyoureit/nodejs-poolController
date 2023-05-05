@@ -1057,7 +1057,10 @@ export class SystemCommands extends BoardCommands {
         try {
             let ctx = await sys.board.system.validateRestore(rest);
             // Restore the general stuff.
-            if (ctx.general.update.length > 0) await sys.board.system.setGeneralAsync(ctx.general.update[0]);
+            if (ctx.general.update.length > 0) try {
+                await sys.board.system.setGeneralAsync(ctx.general.update[0]);
+                res.addModuleSuccess('general', 'Update General Settings')
+            } catch (err) { res.addModuleError('general', err); }
             for (let i = 0; i < ctx.customNames.update.length; i++) {
                 let cn = ctx.customNames.update[i];
                 try {
@@ -1082,6 +1085,7 @@ export class SystemCommands extends BoardCommands {
             await sys.board.chlorinator.restore(rest, ctx, res);
             await sys.board.chemControllers.restore(rest, ctx, res);
             await sys.board.schedules.restore(rest, ctx, res);
+            state.cleanupState();
             return res;
             //await sys.board.covers.restore(rest, ctx);
         } catch (err) { logger.error(`Error restoring njsPC server: ${err.message}`); res.addModuleError('system', err.message); return Promise.reject(err); }
@@ -1092,13 +1096,16 @@ export class SystemCommands extends BoardCommands {
 
             // Step 1 - Verify that the boards are the same.  For instance you do not want to restore an IntelliTouch to an IntelliCenter.
             let cfg = rest.poolConfig;
-            if (sys.controllerType === cfg.controllerType) {
+            if (sys.controllerType === cfg.controllerType || sys.controllerType === ControllerType.Nixie || sys.controllerType === ControllerType.None || sys.controllerType === ControllerType.Unknown) {
+                sys.controllerType = cfg.controllerType;
                 ctx.customNames = { errors: [], warnings: [], add: [], update: [], remove: [] };
                 let customNames = sys.customNames.get();
-                for (let i = 0; i < rest.poolConfig.customNames.length; i++) {
-                    let cn = customNames.find(elem => elem.id === rest.poolConfig.customNames[i].id);
-                    if (typeof cn === 'undefined') ctx.customNames.add.push(rest.poolConfig.customNames[i]);
-                    else if (JSON.stringify(rest.poolConfig.customNames[i]) !== JSON.stringify(cn)) ctx.customNames.update.push(cn);
+                if (typeof rest.poolConfig.customNames !== 'undefined') {
+                    for (let i = 0; i < rest.poolConfig.customNames.length; i++) {
+                        let cn = customNames.find(elem => elem.id === rest.poolConfig.customNames[i].id);
+                        if (typeof cn === 'undefined') ctx.customNames.add.push(rest.poolConfig.customNames[i]);
+                        else if (JSON.stringify(rest.poolConfig.customNames[i]) !== JSON.stringify(cn)) ctx.customNames.update.push(cn);
+                    }
                 }
                 ctx.general = { errors: [], warnings: [], add: [], update: [], remove: [] };
                 if (JSON.stringify(sys.general.get()) !== JSON.stringify(cfg.pool)) ctx.general.update.push(cfg.pool);
@@ -1116,7 +1123,6 @@ export class SystemCommands extends BoardCommands {
                 ctx.schedules = await sys.board.schedules.validateRestore(rest);
             }
             else ctx.board.errors.push(`Panel Types do not match cannot restore backup from ${sys.controllerType} to ${rest.poolConfig.controllerType}`);
-
             return ctx;
 
         } catch (err) { logger.error(`Error validating restore file: ${err.message}`); return Promise.reject(err); }
@@ -1905,36 +1911,38 @@ export class BodyCommands extends BoardCommands {
   }
 }
 export class PumpCommands extends BoardCommands {
-  public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
-    try {
-      // First delete the pumps that should be removed.
-      for (let i = 0; i < ctx.pumps.remove.length; i++) {
-        let p = ctx.pumps.remove[i];
+    public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {
         try {
-          await sys.board.pumps.deletePumpAsync(p);
-          res.addModuleSuccess('pump', `Remove: ${p.id}-${p.name}`);
-        } catch (err) { res.addModuleError('pump', `Remove: ${p.id}-${p.name}: ${err.message}`); }
-      }
-      for (let i = 0; i < ctx.pumps.update.length; i++) {
-        let p = ctx.pumps.update[i];
-        try {
-          await sys.board.pumps.setPumpAsync(p);
-          res.addModuleSuccess('pump', `Update: ${p.id}-${p.name}`);
-        } catch (err) { res.addModuleError('pump', `Update: ${p.id}-${p.name}: ${err.message}`); }
-      }
-      for (let i = 0; i < ctx.pumps.add.length; i++) {
-        let p = ctx.pumps.add[i];
-        try {
-          // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
-          // it won't error out.
-          sys.pumps.getItemById(p, true);
-          await sys.board.pumps.setPumpAsync(p);
-          res.addModuleSuccess('pump', `Add: ${p.id}-${p.name}`);
-        } catch (err) { res.addModuleError('pump', `Add: ${p.id}-${p.name}: ${err.message}`); }
-      }
-      return true;
-    } catch (err) { logger.error(`Error restoring pumps: ${err.message}`); res.addModuleError('system', `Error restoring pumps: ${err.message}`); return false; }
-  }
+            // First delete the pumps that should be removed.
+            for (let i = 0; i < ctx.pumps.remove.length; i++) {
+                let p = ctx.pumps.remove[i];
+                try {
+                    await sys.board.pumps.deletePumpAsync(p);
+                    res.addModuleSuccess('pump', `Remove: ${p.id}-${p.name}`);
+                } catch (err) { res.addModuleError('pump', `Remove: ${p.id}-${p.name}: ${err.message}`); }
+            }
+            if (typeof ctx.pumps.update !== 'undefined') {
+                for (let i = 0; i < ctx.pumps.update.length; i++) {
+                    let p = ctx.pumps.update[i];
+                    try {
+                        await sys.board.pumps.setPumpAsync(p);
+                        res.addModuleSuccess('pump', `Update: ${p.id}-${p.name}`);
+                    } catch (err) { res.addModuleError('pump', `Update: ${p.id}-${p.name}: ${err.message}`); }
+                }
+            }
+            for (let i = 0; i < ctx.pumps.add.length; i++) {
+                let p = ctx.pumps.add[i];
+                try {
+                    // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
+                    // it won't error out.
+                    sys.pumps.getItemById(p, true);
+                    await sys.board.pumps.setPumpAsync(p);
+                    res.addModuleSuccess('pump', `Add: ${p.id}-${p.name}`);
+                } catch (err) { res.addModuleError('pump', `Add: ${p.id}-${p.name}: ${err.message}`); }
+            }
+            return true;
+        } catch (err) { logger.error(`Error restoring pumps: ${err.message}`); res.addModuleError('system', `Error restoring pumps: ${err.message}`); return false; }
+    }
   public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
     try {
       let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
@@ -1980,7 +1988,7 @@ export class PumpCommands extends BoardCommands {
       let spump = state.pumps.getItemById(id, true);
       spump.emitData('pumpExt', spump.getExtended());
       spump.emitEquipmentChange();
-      return Promise.resolve(pump);
+      return pump;
     }
     catch (err) {
       logger.error(`Error setting pump: ${err}`);

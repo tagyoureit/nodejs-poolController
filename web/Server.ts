@@ -1719,16 +1719,18 @@ export class RestoreFile {
                 this.njsPC.poolConfig = await this.extractFile(zip, 'njsPC/data/poolConfig.json');
                 this.njsPC.poolState = await this.extractFile(zip, 'njsPC/data/poolState.json');
             }
-            for (let i = 0; i < this.options.servers.length; i++) {
-                // Extract each server from the file.
-                let srv = this.options.servers[i];
-                if (srv.backup && srv.success) {
-                    this.servers.push({
-                        name: srv.name,
-                        uuid: srv.uuid,
-                        serverConfig: await this.extractFile(zip, `${srv.name}/serverConfig.json`),
-                        controllerConfig: await this.extractFile(zip, `${srv.name}/data/controllerConfig.json`)
-                    });
+            if (typeof this.options.servers !== 'undefined') {
+                for (let i = 0; i < this.options.servers.length; i++) {
+                    // Extract each server from the file.
+                    let srv = this.options.servers[i];
+                    if (srv.backup && srv.success) {
+                        this.servers.push({
+                            name: srv.name,
+                            uuid: srv.uuid,
+                            serverConfig: await this.extractFile(zip, `${srv.name}/serverConfig.json`),
+                            controllerConfig: await this.extractFile(zip, `${srv.name}/data/controllerConfig.json`)
+                        });
+                    }
                 }
             }
         } catch(err) { this.errors.push(err); logger.error(`Error extracting restore options from ${file}: ${err.message}`); }

@@ -185,11 +185,15 @@ export class Timestamp {
     constructor(dt?: Date | string) {
         if (typeof dt === 'string') this._dt = new Date(dt);
         else this._dt = dt || new Date();
+        if (!this.isValid) this._dt = new Date();
         this.emitter = new EventEmitter();
     }
     private _isUpdating: boolean = false;
     public static get now(): Timestamp { return new Timestamp(); }
     public toDate() { return this._dt; }
+    public get isValid() {
+        return this._dt instanceof Date && !isNaN(this._dt.getTime());
+    }
     public set isUpdating(val: boolean) { this._isUpdating = val; }
     public get isUpdating(): boolean { return this._isUpdating; }
     public get hours(): number { return this._dt.getHours(); }
