@@ -1935,7 +1935,7 @@ export class PumpCommands extends BoardCommands {
                 try {
                     // pull a little trick to first add the data then perform the update.  This way we won't get a new id or
                     // it won't error out.
-                    sys.pumps.getItemById(p, true);
+                    sys.pumps.getItemById(p.id, true, {id: parseInt(p.id, 10), type: parseInt(p.type, 10) });
                     await sys.board.pumps.setPumpAsync(p);
                     res.addModuleSuccess('pump', `Add: ${p.id}-${p.name}`);
                 } catch (err) { res.addModuleError('pump', `Add: ${p.id}-${p.name}: ${err.message}`); }
@@ -1943,25 +1943,25 @@ export class PumpCommands extends BoardCommands {
             return true;
         } catch (err) { logger.error(`Error restoring pumps: ${err.message}`); res.addModuleError('system', `Error restoring pumps: ${err.message}`); return false; }
     }
-  public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
-    try {
-      let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
-      // Look at pumps.
-      let cfg = rest.poolConfig;
-      for (let i = 0; i < cfg.pumps.length; i++) {
-        let r = cfg.pumps[i];
-        let c = sys.pumps.find(elem => r.id === elem.id);
-        if (typeof c === 'undefined') ctx.add.push(r);
-        else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
-      }
-      for (let i = 0; i < sys.pumps.length; i++) {
-        let c = sys.pumps.getItemByIndex(i);
-        let r = cfg.pumps.find(elem => elem.id == c.id);
-        if (typeof r === 'undefined') ctx.remove.push(c.get(true));
-      }
-      return ctx;
-    } catch (err) { logger.error(`Error validating pumps for restore: ${err.message}`); }
-  }
+    public async validateRestore(rest: { poolConfig: any, poolState: any }): Promise<{ errors: any, warnings: any, add: any, update: any, remove: any }> {
+        try {
+            let ctx = { errors: [], warnings: [], add: [], update: [], remove: [] };
+            // Look at pumps.
+            let cfg = rest.poolConfig;
+            for (let i = 0; i < cfg.pumps.length; i++) {
+                let r = cfg.pumps[i];
+                let c = sys.pumps.find(elem => r.id === elem.id);
+                if (typeof c === 'undefined' || c.type !== r.type || (c.master || 0) !== (r.master || 0)) ctx.add.push(r);
+                else if (JSON.stringify(c.get()) !== JSON.stringify(r)) ctx.update.push(r);
+            }
+            for (let i = 0; i < sys.pumps.length; i++) {
+                let c = sys.pumps.getItemByIndex(i);
+                let r = cfg.pumps.find(elem => elem.id === c.id);
+                if (typeof r === 'undefined' || r.type !== c.type || (r.master || 0) !== (c.master || 0)) ctx.remove.push(c.get(true));
+            }
+            return ctx;
+        } catch (err) { logger.error(`Error validating pumps for restore: ${err.message}`); }
+    }
 
   public getPumpTypes() { return this.board.valueMaps.pumpTypes.toArray(); }
   public getCircuitUnits(pump?: Pump) {
@@ -1983,7 +1983,7 @@ export class PumpCommands extends BoardCommands {
       if (id <= 0) id = sys.pumps.filter(elem => elem.master === 1).getMaxId(false, 49) + 1;
       data.id = id;
       if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid pump id: ${data.id}`, data.id, 'Pump'));
-      let pump = sys.pumps.getItemById(id, true);
+        let pump = sys.pumps.getItemById(id, true);
       await ncp.pumps.setPumpAsync(pump, data);
       let spump = state.pumps.getItemById(id, true);
       spump.emitData('pumpExt', spump.getExtended());

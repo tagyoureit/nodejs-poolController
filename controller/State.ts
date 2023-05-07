@@ -684,7 +684,7 @@ class EqStateCollection<T> {
         return arr;
     }
     // Finds an item and returns undefined if it doesn't exist.
-    public find(f: (value: any, index?: number, obj?: any) => boolean): T {
+    public find(f: (value: T, index?: number, obj?: any) => boolean): T {
         let itm = this.data.find(f);
         if (typeof itm !== 'undefined') return this.createItem(itm);
     }

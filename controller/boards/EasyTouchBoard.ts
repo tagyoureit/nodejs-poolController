@@ -21,7 +21,7 @@ import * as extend from 'extend';
 import { logger } from '../../logger/Logger';
 import { conn } from '../comms/Comms';
 import { Message, Outbound, Protocol, Response } from '../comms/messages/Messages';
-import { Timestamp, utils } from '../Constants';
+import { ControllerType, Timestamp, utils } from '../Constants';
 import { Body, ChemController, ConfigVersion, CustomName, EggTimer, Feature, Heater, ICircuit, LightGroup, LightGroupCircuit, Options, PoolSystem, Pump, Schedule, sys, Valve } from '../Equipment';
 import { InvalidEquipmentDataError, InvalidEquipmentIdError, InvalidOperationError } from '../Errors';
 import { ncp } from "../nixie/Nixie";
@@ -174,7 +174,7 @@ export class EasyTouchBoard extends SystemBoard {
         this.valueMaps.pumpTypes = new byteValueMap([
             [1, { name: 'vf', desc: 'Intelliflo VF', maxPrimingTime: 6, minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
             [64, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
-            [65, { name: 'ds', desc: 'Two-Speed', maxCircuits: 40, hasAddress: false, hasBody: true }],
+            [65, { name: 'ds', desc: 'Two-Speed', maxCircuits: 4, hasAddress: false, hasBody: true }],
             [128, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 10, minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true }],
             [169, { name: 'vssvrs', desc: 'IntelliFlo VS+SVRS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true }],
             [257, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true, equipmentMaster: 1, maxRelays: 1, relays: [{ id: 1, name: 'Pump On/Off' }] }],
@@ -348,6 +348,49 @@ export class EasyTouchBoard extends SystemBoard {
             [131, { name: 'ET4P', part: 'ET-4P', desc: 'EasyTouch 4P', circuits: 4, single: true, shared: false }]
         ]);
     }
+    public initValves(eq) {
+        if (typeof sys.valves.find((v) => v.id === 1) === 'undefined') {
+            let valve = sys.valves.getItemById(1, true);
+            valve.isIntake = false;
+            valve.isReturn = false;
+            valve.type = 0;
+            valve.master = 0;
+            valve.isActive = true;
+            valve.name = 'Valve A';
+            logger.info(`Initializing EasyTouch Valve A`);
+
+        }
+        if (typeof sys.valves.find((v) => v.id === 2) === 'undefined') {
+            let valve = sys.valves.getItemById(2, true);
+            valve.isIntake = false;
+            valve.isReturn = false;
+            valve.type = 0;
+            valve.master = 0;
+            valve.isActive = true;
+            valve.name = 'Valve B';
+            logger.info(`Initializing EasyTouch Valve B`);
+        }
+        if (eq.intakeReturnValves) {
+            logger.info(`Initializing EasyTouch Intake/Return Valves`);
+            let valve = sys.valves.getItemById(3, true);
+            valve.isIntake = true;
+            valve.isReturn = false;
+            valve.circuit = 6;
+            valve.type = 0;
+            valve.master = 0;
+            valve.isActive = true;
+            valve.name = 'Intake';
+
+            valve = sys.valves.getItemById(4, true);
+            valve.isIntake = false;
+            valve.isReturn = true;
+            valve.circuit = 6;
+            valve.type = 0;
+            valve.master = 0;
+            valve.isActive = true;
+            valve.name = 'Return';
+        }
+    }
     public initHeaterDefaults() {
         sys.board.heaters.updateHeaterServices();
         // RKS: 03-03-22 This is not correct.  As it turns out there is a case where the only heater installed is not
@@ -428,7 +471,7 @@ export class EasyTouchBoard extends SystemBoard {
         eq.maxChlorinators = md.chlorinators = 1;
         eq.maxChemControllers = md.chemControllers = 1;
         eq.maxCustomNames = 10;
-        eq.intakeReturnValves = md.intakeReturnValves = typeof mt.intakeReturnValves !== 'undefined' ? mt.intakeReturnValves : false;
+        eq.intakeReturnValves = md.intakeReturnValves = typeof mt.intakeReturnValves !== 'undefined' ? mt.intakeReturnValves : mt.shared;
         // Calculate out the invalid ids.
         sys.board.equipmentIds.invalidIds.set([]);
         if (!eq.shared) sys.board.equipmentIds.invalidIds.merge([1]);
@@ -438,6 +481,7 @@ export class EasyTouchBoard extends SystemBoard {
         state.equipment.controllerType = 'easytouch';
         this.initBodyDefaults();
         this.initHeaterDefaults();
+        this.initValves(eq);
         sys.board.bodies.initFilters();
         sys.equipment.shared ? sys.board.equipmentIds.circuits.start = 1 : sys.board.equipmentIds.circuits.start = 2;
         (async () => {
@@ -2026,11 +2070,25 @@ class TouchPumpCommands extends PumpCommands {
     //}
     // RKS: 05-20-22 This was moved out of systemBoard it does not belong there and probably should not 
     // be called in any current form since it was not being called as part of a message result.
-    private setType(pump: Pump, pumpType: number) {
+    private async setType(pump: Pump, pumpType: number) {
         // if we are changing pump types, need to clear out circuits
         // and props that aren't for this pump type
         let _id = pump.id;
         if (pump.type !== pumpType || pumpType === 0) {
+            if (pump.type === 65) { // This used to be a two-speed pump.  We need to remove the high speed circuits.
+                let outc = Outbound.create({
+                    action: 158,
+                    retries: 2,
+                    response: Response.create({ action: 1, payload: [158] })
+                });
+                outc.appendPayloadBytes(0, 16);
+                if (sys.controllerType !== ControllerType.IntelliTouch) {
+                    outc.setPayloadByte(4, 1);
+                    outc.setPayloadByte(5, 72);
+                    outc.setPayloadByte(13, 2);
+                }
+                await outc.sendAsync();
+            }
             let _p = pump.get(true);
             sys.pumps.removeItemById(_id);
             pump = sys.pumps.getItemById(_id, true);
@@ -2054,7 +2112,6 @@ class TouchPumpCommands extends PumpCommands {
             spump.emitData('pumpExt', spump.getExtended());
         }
     }
-
     public async setPumpAsync(data: any, send: boolean = true): Promise<Pump> {
         // Rules regarding Pumps in *Touch
         // In *Touch there are basically three classifications of pumps. These include those under control of RS485, Dual Speed, and Single Speed.
@@ -2083,28 +2140,26 @@ class TouchPumpCommands extends PumpCommands {
                 if (type.equipmentMaster > 0 || data.master > 0) return await super.setPumpAsync(data);
                 data.master = 0;
                 if (typeof data.type === 'undefined' || isNaN(ntype) || typeof type.name === 'undefined') return Promise.reject(new InvalidEquipmentDataError('You must supply a pump type when creating a new pump', 'Pump', data));
+                // Do not rely on the address for the id.  This will not work overall since more than
+                // one pump type that exists in the ET and IT realm.
+                id = sys.pumps.getNextEquipmentId(new EquipmentIdRange(1, 255));
                 if (type.name === 'ds') {
-                    id = 9;
                     if (sys.pumps.find(elem => elem.type === ntype)) return Promise.reject(new InvalidEquipmentDataError(`You may add only one ${type.desc} pump`, 'Pump', data));
                 }
                 else if (type.name === 'ss') {
-                    id = 10;
                     if (sys.pumps.find(elem => elem.type === ntype)) return Promise.reject(new InvalidEquipmentDataError(`You may add only one ${type.desc} pump`, 'Pump', data));
                 }
-                else if (type.name === 'none') return Promise.reject(new InvalidEquipmentDataError('You must supply a valid id when removing a pump.', 'Pump', data));
+                else if (type.name === 'none') // This is a mis-guided relic.  None should simply not exist.
+                    return Promise.reject(new InvalidEquipmentDataError('You must supply a valid type when adding a pump.', 'Pump', data));
                 else {
-                    // Under most circumstances the id will = the address minus 95.
                     if (typeof data.address !== 'undefined') {
                         data.address = parseInt(data.address, 10);
                         if (isNaN(data.address)) return Promise.reject(new InvalidEquipmentDataError(`You must supply a valid pump address to add a ${type.desc} pump.`, 'Pump', data));
-                        id = data.address - 95;
                         // Make sure it doesn't already exist.
                         if (sys.pumps.find(elem => elem.address === data.address)) return Promise.reject(new InvalidEquipmentDataError(`A pump already exists at address ${data.address - 95}`, 'Pump', data));
                     }
                     else {
                         if (typeof id === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`You may not add another ${type.desc} pump.  Max number of pumps exceeded.`, 'Pump', data));
-                        id = sys.pumps.getNextEquipmentId(sys.board.equipmentIds.pumps);
-                        data.address = id + 95;
                     }
                 }
                 isAdd = true;
@@ -2112,24 +2167,42 @@ class TouchPumpCommands extends PumpCommands {
             }
             else {
                 pump = sys.pumps.getItemById(id, false);
-                if (data.master > 0 || pump.master > 0) return await super.setPumpAsync(data);
                 data.master = 0;
                 ntype = typeof data.type === 'undefined' ? pump.type : parseInt(data.type, 10);
                 if (isNaN(ntype)) return Promise.reject(new InvalidEquipmentDataError(`Pump type ${data.type} is not valid`, 'Pump', data));
                 type = sys.board.valueMaps.pumpTypes.transform(ntype);
+                data.master = type.name in ['ss', 'hwvs', 'hwrly', 'sf'] ? 1 : 0;
+                if (data.master > 0 || pump.master > 0) return await super.setPumpAsync(data);
+
                 // changing type?  clear out all props and add as new
                 if (ntype !== pump.type) {
                     isAdd = true;
-                    this.setType(pump, ntype);
+                    await this.setType(pump, ntype);
                     pump = sys.pumps.getItemById(id, false); // refetch pump with new value
                 }
             }
             // Validate all the ids since in *Touch the address is determined from the id.
+            // RKS: 05-07-23 - The pump address is no longer determined by the id.  This was such a twisted effort to try to match these to the id.
+            // while the order of the pump coming out of the config messages determine the address the id is not relevant since *Touch panels should simply
+            // search for the address using byte index + 96.  All of this was becoming too much.
             if (!isAdd) isAdd = sys.pumps.find(elem => elem.id === id) === undefined;
+            if (type.name === 'ss') {
+                data.master = 1; // All single speed pumps are Nixie controlled.
+                return await super.setPumpAsync(data);
+            }
+
+            if (isAdd) {
+                // The ids for dual speed and single speed pumps have been mixed up in the past.  Originally, the code relied on ss id === 10 and ds === 9.  However, when the screenLogic
+                // code was added these got switched and essentially invalidated all ds and ss pumps.  The way this works now is that the single ds pump for ET and IT will be determined by
+                // type and the id will not matter.
+                data.master = 0;
+                if (type.name === 'ds' && typeof sys.pumps.find(x => x.type === 65) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Only one Two-speed pump may be added`, 'Pump', data));
+                else if (sys.pumps.count(x => x.type in [1, 64, 128, 169]) >= sys.equipment.maxPumps) return Promise.reject(new InvalidEquipmentDataError(`The maximum number of variable pumps have been exceeded for this panel. ${type.desc}`, 'Pump', data));
+            }
             // Now lets validate the ids related to the type.
-            if (id === 9 && type.name !== 'ds') return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} pump must be 9`, 'Pump', data));
-            else if (id === 10 && type.name !== 'ss') return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} pump must be 10`, 'Pump', data));
-            else if (id > sys.equipment.maxPumps) return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} must be less than ${sys.equipment.maxPumps}`, 'Pump', data));
+            //if (id === 10 && type.name !== 'ds') return Promise.reject(new InvalidEquipmentDataError(`The id for a Two-speed pump must be 9`, 'Pump', data));
+            //else if (id === 9 && type.name !== 'ss') return Promise.reject(new InvalidEquipmentDataError(`The id for a Single-Speed pump must be 10`, 'Pump', data));
+            //else if (id > sys.equipment.maxPumps) return Promise.reject(new InvalidEquipmentDataError(`The id for a ${type.desc} must be less than ${sys.equipment.maxPumps}`, 'Pump', data));
 
             // Need to do a check here if we are clearing out the circuits; id data.circuits === []
             // extend will keep the original array
@@ -2180,34 +2253,60 @@ class TouchPumpCommands extends PumpCommands {
             // We will not be sending message for ss type pumps.
             if (type.name === 'ss') {
                 // The OCP doesn't deal with single speed pumps.  Simply add it to the config.
-                data.circuits = [];
-                pump.set(pump);
+                pump.circuits.clear();
                 let spump = state.pumps.getItemById(id, true);
                 for (let prop in spump) {
                     if (typeof data[prop] !== 'undefined') spump[prop] = data[prop];
                 }
-                data.model = typeof data.model === 'undefined' ? sys.board.valueMaps.pumpSSModels.encode(data.model) : pump.model || 0;
+                spump.type = pump.type = type.val;
+                pump.model = typeof data.model === 'undefined' ? sys.board.valueMaps.pumpSSModels.encode(data.model) : pump.model || 0;
                 spump.emitEquipmentChange();
+
                 return pump;
             }
             else if (type.name === 'ds') {
                 // We are going to set all the high speed circuits.
                 // RSG: TODO I don't know what the message is to set the high speed circuits.  The following should
                 // be moved into the onComplete for the outbound message to set high speed circuits.
-                data.model = typeof data.model === 'undefined' ? sys.board.valueMaps.pumpDSModels.encode(data.model) : pump.model || 0;
-                for (let prop in pump) {
-                    if (typeof data[prop] !== 'undefined') pump[prop] = data[prop];
+                // RKS: 05-06-23 - Send the message for high speed circuits.
+                let outc = Outbound.create({
+                    action: 158,
+                    retries: 2,
+                    response: Response.create({ action: 1, payload: [158] })
+                });
+                outc.appendPayloadBytes(0, 16);
+                if (sys.controllerType !== ControllerType.IntelliTouch) {
+                    outc.setPayloadByte(4, 1);
+                    outc.setPayloadByte(5, 72);
+                    outc.setPayloadByte(13, 2);
                 }
-                let spump = state.pumps.getItemById(id, true);
-                for (let prop in spump) {
-                    if (typeof data[prop] !== 'undefined') spump[prop] = data[prop];
+                let maxCircuits = typeof data.circuits !== 'undefined' ? Math.min(data.circuits.length, sys.controllerType === ControllerType.IntelliTouch ? 8 : 4) : 0;
+                for (let i = 0; i < maxCircuits; i++) {
+                    outc.setPayloadByte(i, data.circuits[i].circuit, 0);
                 }
-                spump.emitEquipmentChange();
+                // So lets send the message for setting the high speed circuits.
+                if (await outc.sendAsync()) {
+                    let spump = state.pumps.getItemById(id, true);
+                    pump.model = typeof data.model === 'undefined' ? sys.board.valueMaps.pumpDSModels.encode(data.model) : pump.model || 0;
+                    let circs = [];
+                    // Lets do this to rearrange cases where 0s are sent.
+                    for (let i = 0; i < maxCircuits; i++) {
+                        if (data.circuits[i].circuit > 0) {
+                            circs.push(data.circuits[i].circuit);
+                        }
+                    }
+                    pump.circuits.clear();
+                    for (let i = 0; i < circs.length; i++) {
+                        pump.circuits.getItemById(i + 1, true, { id: i + 1, circuit: circs[i] });
+                    }
+                    spump.emitEquipmentChange();
+                }
                 return pump;
             }
             else {
                 let arrCircuits = [];
-                data.address = id + 95;
+                // Look to see if there is another pump at the same address.
+                if (typeof sys.pumps.find(x => x.id !== id && x.address === data.address) !== 'undefined') return Promise.reject(new InvalidEquipmentDataError(`A pump already exists at address ${data.address - 95}`, 'Pump', data));
                 if (isVersion1) {
                     if (data.address !== 96) return Promise.reject(new InvalidEquipmentDataError(`EasyTouch Version 1 controllers only support VS pumps at the first address`, 'Pump', data));
                     if (type.name !== 'vs') return Promise.reject(new InvalidEquipmentDataError(`EasyTouch Version 1 controllers only support VS pump types. ${type.desc} pumps are not supported`, 'Pump', data));
@@ -2544,30 +2643,50 @@ class TouchPumpCommands extends PumpCommands {
         if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`deletePumpAsync: Pump ${id} is not valid.`, 0, `pump`));
         let pump = sys.pumps.getItemById(id, false);
         if (pump.master === 1) return super.deletePumpAsync(data);
-        const outc = Outbound.create({
-            action: 155,
-            payload: [id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            retries: 2,
-            response: true
-        });
-        return new Promise<Pump>(async (resolve, reject) => {
-            outc.onComplete = (err, msg) => {
-                if (err) reject(err);
-                else {
-                    sys.pumps.removeItemById(id);
-                    state.pumps.removeItemById(id);
-                    resolve(sys.pumps.getItemById(id, false));
-                    const pumpConfigRequest = Outbound.create({
-                        action: 216,
-                        payload: [id],
-                        retries: 2,
-                        response: true
-                    });
-                    (async () => { await pumpConfigRequest.sendAsync(); });
-                }
-            };
+        else if (pump.type === 65) { // Dual speed pump.
+            let outc = Outbound.create({
+                action: 158,
+                retries: 2,
+                response: Response.create({ action: 1, payload: [158] })
+            });
+            outc.appendPayloadBytes(0, 16);
+            if (sys.controllerType !== ControllerType.IntelliTouch) {
+                outc.setPayloadByte(4, 1);
+                outc.setPayloadByte(5, 72);
+                outc.setPayloadByte(13, 2);
+            }
             await outc.sendAsync();
-        });
+            pump.isActive = false;
+            sys.pumps.removeItemById(id);
+            state.pumps.removeItemById(id);
+            return pump;
+        }
+        else {
+            const outc = Outbound.create({
+                action: 155,
+                payload: [id, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                retries: 2,
+                response: true
+            });
+            return new Promise<Pump>(async (resolve, reject) => {
+                outc.onComplete = (err, msg) => {
+                    if (err) reject(err);
+                    else {
+                        sys.pumps.removeItemById(id);
+                        state.pumps.removeItemById(id);
+                        resolve(sys.pumps.getItemById(id, false));
+                        const pumpConfigRequest = Outbound.create({
+                            action: 216,
+                            payload: [id],
+                            retries: 2,
+                            response: true
+                        });
+                        (async () => { await pumpConfigRequest.sendAsync(); });
+                    }
+                };
+                await outc.sendAsync();
+            });
+        }
     }
 }
 class TouchHeaterCommands extends HeaterCommands {

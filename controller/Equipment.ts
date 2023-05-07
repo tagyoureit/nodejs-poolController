@@ -1390,13 +1390,20 @@ export class PumpCollection extends EqItemCollection<Pump> {
     constructor(data: any, name?: string) { super(data, name || "pumps"); }
     public createItem(data: any): Pump { return new Pump(data); }
     public getDualSpeed(add?: boolean): Pump {
-        return this.getItemById(10, add, { id: 10, type: 65, name: 'Two Speed' });
+        let ds = sys.board.valueMaps.pumpTypes.getValue('ds');
+        let pump = this.find(x => x.type === ds);
+        return typeof pump !== 'undefined' ? pump : this.getItemById(10, add, { id: 10, type: ds, name: 'Two Speed', master: 0 });
     }
-    public getPumpByAddress(address: number, add?: boolean, data?: any) {
+    public removePumpByAddress(address: number) {
         let pmp = this.find(elem => elem.address === address);
-        if (typeof pmp !== 'undefined') return this.createItem(pmp);
+        if (typeof pmp !== 'undefined') return this.removeItemById(pmp.id);
+        return pmp;
+    }
+    public getPumpByAddress(address: number, add?: boolean, data?: any) : Pump {
+        let pmp = this.find(elem => elem.address === address);
+        if (typeof pmp !== 'undefined') return pmp;
         if (typeof add !== 'undefined' && add) return this.add(data || { id: this.data.length + 1, address: address });
-        return this.createItem(data || { id: this.data.length + 1, address: address });
+        return this.createItem(data || { id: this.getNextEquipmentId(), address: address });
     }
     public getNextEquipmentId(range?: EquipmentIdRange, exclude?: number[]): number { return super.getNextEquipmentId(typeof range === 'undefined' ? sys.board.equipmentIds.pumps : range, exclude); }
 }

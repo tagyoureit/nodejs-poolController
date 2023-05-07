@@ -912,21 +912,21 @@ class Controller {
           }
         ], */
   }
-  public static decodeHighSpeed(highSpeed: number[]) {
-    let maxCircuits = sys.controllerType === ControllerType.IntelliTouch ? 8 : 4;
-    let arrCircuits = [];
-    let pump = sys.pumps.getDualSpeed(true);
-    for (let i = 0; i < maxCircuits && i < highSpeed.length; i++) {
-      let val = highSpeed[i];
-      if (val > 0) arrCircuits.push(val);
-      else pump.circuits.removeItemById(i);
+    public static decodeHighSpeed(highSpeed: number[]) {
+        let maxCircuits = sys.controllerType === ControllerType.IntelliTouch ? 8 : 4;
+        let arrCircuits = [];
+        let pump = sys.pumps.find(x => { return x.master !== 1 && x.type === 65 });
+        for (let i = 0; i < maxCircuits && i < highSpeed.length; i++) {
+            let val = highSpeed[i];
+            if (val > 0) arrCircuits.push(val);
+            else if (typeof pump !== 'undefined') pump.circuits.removeItemById(i);
+        }
+        if (arrCircuits.length > 0) {
+            let pump = sys.pumps.getDualSpeed(true);
+            for (let j = 1; j <= arrCircuits.length; j++) pump.circuits.getItemById(j, true).circuit = arrCircuits[j - 1];
+        }
+        else if (typeof pump !== 'undefined') sys.pumps.removeItemById(pump.id);
     }
-    if (arrCircuits.length > 0) {
-      let pump = sys.pumps.getDualSpeed(true);
-      for (let j = 1; j <= arrCircuits.length; j++) pump.circuits.getItemById(j, true).circuit = arrCircuits[j - 1];
-    }
-    else sys.pumps.removeItemById(10);
-  }
   public static decodeRemote(remoteDataArray) {
     if (sys.controllerType === ControllerType.EasyTouch) {
 
@@ -1071,35 +1071,38 @@ class Controller {
       await sys.board.pumps.setPumpAsync(pData, false);
     })
   }
-  public static async decodePumpStatusAsync(id: number, slpump: SLPumpStatusData) {
-    /*   {
-        pumpCircuits: [
-          { circuitId: 6,speed: 2000,isRPMs: true, },
-          { circuitId: 8, speed:2700,isRPMs: true, },
-          { circuitId: 2,speed: 2710,isRPMs: true, },
-          { circuitId: 2,speed:1000, isRPMs: true,},
-          { circuitId: 5,speed:2830, isRPMs: true,},
-          { circuitId: 0,speed: 30,isRPMs: false,},
-          { circuitId: 0,speed: 30,isRPMs: false,},
-          { circuitId: 0,speed: 30,isRPMs: false,},
-        ],
-        pumpType: 4,
-        isRunning: false,
-        pumpWatts: 0,
-        pumpRPMs: 0,
-        pumpUnknown1: 0,
-        pumpGPMs: 0,
-        pumpUnknown2: 255,
-      }
-    */
-  
-    let pstate = state.pumps.getItemById(id);
-    pstate.watts = slpump.pumpWatts;
-    pstate.rpm = slpump.pumpRPMs;
-    pstate.flow = slpump.pumpGPMs === 255 ? 0 : slpump.pumpGPMs;
-    pstate.command = (pstate.rpm > 0 || pstate.watts > 0) ? 10 : 0;
-    state.emitEquipmentChanges();
-  }
+    public static async decodePumpStatusAsync(id: number, slpump: SLPumpStatusData) {
+        /*   {
+            pumpCircuits: [
+              { circuitId: 6,speed: 2000,isRPMs: true, },
+              { circuitId: 8, speed:2700,isRPMs: true, },
+              { circuitId: 2,speed: 2710,isRPMs: true, },
+              { circuitId: 2,speed:1000, isRPMs: true,},
+              { circuitId: 5,speed:2830, isRPMs: true,},
+              { circuitId: 0,speed: 30,isRPMs: false,},
+              { circuitId: 0,speed: 30,isRPMs: false,},
+              { circuitId: 0,speed: 30,isRPMs: false,},
+            ],
+            pumpType: 4,
+            isRunning: false,
+            pumpWatts: 0,
+            pumpRPMs: 0,
+            pumpUnknown1: 0,
+            pumpGPMs: 0,
+            pumpUnknown2: 255,
+          }
+        */
+        // RKS: 05-07-23 - This process of getting the pump by its id is flawed.  We need to pull this information by its address.
+        //let pstate = state.pumps.getItemById(id);
+        let pstate = state.pumps.find(x => x.address === 95 + id);
+        if (typeof pstate !== 'undefined') {
+            pstate.watts = slpump.pumpWatts;
+            pstate.rpm = slpump.pumpRPMs;
+            pstate.flow = slpump.pumpGPMs === 255 ? 0 : slpump.pumpGPMs;
+            pstate.command = (pstate.rpm > 0 || pstate.watts > 0) ? 10 : 0;
+            state.emitEquipmentChanges();
+        }
+    }
   public static async decodeSchedules(slrecurring: SLScheduleData, slrunonce: SLScheduleData) {
     /*     reccuring schedules: [{"scheduleId":1,"circuitId":6,"startTime":"1800","stopTime":"0700","dayMask":127,"flags":0,"heatCmd":4,"heatSetPoint":70,"days":["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]},
     

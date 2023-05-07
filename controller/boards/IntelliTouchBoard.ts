@@ -86,7 +86,7 @@ export class IntelliTouchBoard extends EasyTouchBoard {
 
         }
         if (typeof sys.valves.find((v) => v.id === 2) === 'undefined') {
-            let valve = sys.valves.getItemById(1, true);
+            let valve = sys.valves.getItemById(2, true);
             valve.isIntake = false;
             valve.isReturn = false;
             valve.type = 0;

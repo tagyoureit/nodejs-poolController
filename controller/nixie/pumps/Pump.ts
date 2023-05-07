@@ -226,7 +226,7 @@ export class NixiePump extends NixieEquipment {
                         case 'ds':
                         case 'sf':
                         case 'hwrly':
-                            c.units = 'undefined';
+                            c.units = undefined;
                             break;
                     }
                     if (isNaN(units)) units = typeof cd !== 'undefined' ? cd.units : sys.board.valueMaps.pumpUnits.getValue('rpm');
@@ -245,6 +245,7 @@ export class NixiePump extends NixieEquipment {
                         c.relay = relay;
                 }
             }
+            else data.circuits = [];
             this.pump.set(data); // Sets all the data back to the pump.  This also sets the relays should it exist on the data.
             let spump = state.pumps.getItemById(this.pump.id, true);
             spump.name = this.pump.name;

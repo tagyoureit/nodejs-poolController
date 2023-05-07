@@ -575,6 +575,39 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
+        app.put('/config/pumpCircuit', async (req, res, next) => {
+            try {
+                let pmpId = parseInt(req.body.pumpId, 10);
+                let circId = parseInt(req.body.circuitId, 10);
+                let pmp: Pump;
+                if (isNaN(pmpId)) {
+                    let pmpAddress = parseInt(req.body.address, 10);
+                    if (!isNaN(pmpAddress)) pmp = sys.pumps.find(x => x.address === pmpAddress);
+                }
+                else
+                    pmp = sys.pumps.find(x => x.id === pmpId);
+                if (typeof pmp === 'undefined') throw new ServiceProcessError(`Pump not found`, '/config/pumpCircuit', 'Set circuit speed');
+                let data = pmp.get(true);
+                let c = typeof data.circuits !== 'undefined' && typeof data.circuits.find !== 'undefined' ? data.circuits.find(x => x.circuit === circId) : undefined;
+                if (typeof c === 'undefined') throw new ServiceProcessError(`Circuit not found`, '/config/pumpCircuit', 'Set circuit speed');
+                if (typeof req.body.speed !== 'undefined') {
+                    let speed = parseInt(req.body.speed, 10);
+                    if (isNaN(speed)) throw new ServiceProcessError(`Invalid circuit speed supplied`, '/config/pumpCircuit', 'Set circuit speed');
+                    c.speed = speed;
+                }
+                else if (typeof req.body.flow !== 'undefined') {
+                    let flow = parseInt(req.body.flow, 10);
+                    if (isNaN(flow)) throw new ServiceProcessError(`Invalid circuit flow supplied`, '/config/pumpCircuit', 'Set circuit flow');
+                    c.flow = flow;
+                }
+                else {
+                    throw new ServiceProcessError(`You must supply a target flow or speed`, '/config/pumpCircuit', 'Set circuit flow');
+                }
+                await sys.board.pumps.setPumpAsync(data);
+                return res.status(200).send((pmp).get(true));
+            } catch (err) { next(err); }
+
+        });
         // RKS: 05-20-22 This is a remnant of the old web ui.  It is not called and the setType method needed to go away.
         //app.delete('/config/pump/:pumpId', async (req, res, next) => {
         //    try {
