@@ -3452,7 +3452,7 @@ export class FilterState extends EqState {
             this.hasChanged = true;
         }
     }
-    public get pressureUnits(): number { return this.data.pressureUnits; }
+    public get pressureUnits(): number { return typeof this.data.pressureUnits === 'undefined' ? 0 : this.data.pressureUnits.val; }
     public set pressureUnits(val: number) {
         if (this.pressureUnits !== val) {
             this.setDataVal('pressureUnits', sys.board.valueMaps.pressureUnits.transform(val));

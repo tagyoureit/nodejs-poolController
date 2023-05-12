@@ -739,6 +739,30 @@ export class NixiePumpVF extends NixiePumpRS485 {
         if (this._targetSpeed !== 0) Math.min(Math.max(this.pump.minFlow, this._targetSpeed), this.pump.maxFlow);
         if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed} GPM.`);
     }
+    public async setPumpStateAsync(pstate: PumpState) {
+        // Don't poll while we are seting the state.
+        this.suspendPolling = true;
+        try {
+            let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
+            if (state.mode === 0) {
+                // Since these process are async the closing flag can be set
+                // between calls.  We need to check it in between each call.
+                if (!this.closing) await this.setDriveStateAsync();
+                if (!this.closing) await this.setPumpGPMAsync();
+                if (!this.closing) await this.setPumpFeatureAsync(6);;
+                if (!this.closing) await setTimeout(1000);;
+                if (!this.closing) await this.requestPumpStatusAsync();;
+                if (!this.closing) await this.setPumpToRemoteControlAsync();;
+            }
+            return new InterfaceServerResponse(200, 'Success');
+        }
+        catch (err) {
+            logger.error(`Error running pump sequence for ${this.pump.name}: ${err.message}`);
+            return Promise.reject(err);
+        }
+        finally { this.suspendPolling = false; }
+    };
+
 }
 export class NixiePumpVSF extends NixiePumpRS485 {
     public setTargetSpeed(pState: PumpState) {
