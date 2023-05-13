@@ -158,52 +158,57 @@ export class RemoteMessage {
         // RKS: 12-1-22 This message is a message that has been mis-interpreted for quite some time
         // it appears that early versions of EasyTouch did not include the ability to add more than one pump and only 4 potential
         // circuits could be set.  This comes as 3 bytes per pump setting.  If there are no circuits assigned then the pump is not installed.
-        let isActive = (msg.extractPayloadByte(1, 0) + msg.extractPayloadByte(4, 0) + msg.extractPayloadByte(7, 0) + msg.extractPayloadByte(10, 0)) > 0;
-        let pump = sys.pumps.find(x => x.address === 96 && (x.master || 0) === 0);
-        if (!isActive) {
-            if (typeof pump !== 'undefined') {
-                let spump = state.pumps.getItemById(pump.id, false);
-                spump.address = 96;
-                spump.isActive = false;
-                sys.pumps.removeItemById(pump.id);
-                state.pumps.removeItemById(pump.id);
+        // RKS: 05-13-23 - As it turns out ScreenLogic always asks for this bullshit and all panels return it.  However, if the firmware version is
+        // greater than 1.6 it should be ignored.
+        let fwVersion = parseFloat(sys.equipment.controllerFirmware);
+        if (!isNaN(fwVersion) && fwVersion <= 1.6) {
+            let isActive = (msg.extractPayloadByte(1, 0) + msg.extractPayloadByte(4, 0) + msg.extractPayloadByte(7, 0) + msg.extractPayloadByte(10, 0)) > 0;
+            let pump = sys.pumps.find(x => x.address === 96 && (x.master || 0) === 0);
+            if (!isActive) {
+                if (typeof pump !== 'undefined') {
+                    let spump = state.pumps.getItemById(pump.id, false);
+                    spump.address = 96;
+                    spump.isActive = false;
+                    sys.pumps.removeItemById(pump.id);
+                    state.pumps.removeItemById(pump.id);
+                    spump.emitEquipmentChange();
+                }
+            }
+            else {
+                if (typeof pump === 'undefined') pump = sys.pumps.getPumpByAddress(96, true,
+                    {
+                        id: sys.pumps.getNextEquipmentId(),
+                        master: 0,
+                        address: 96,
+                        type: 128,
+                        name: `Pump${sys.pumps.length + 1}`,
+                        flowStepSize: 1,
+                        primingTime: 0,
+                        primingSpeed: 450,
+                        minSpeed: 450,
+                        maxSpeed: 3450
+                    }
+                );
+                let spump = state.pumps.getItemById(pump.id, true);
+                spump.name = pump.name;
+                spump.address = pump.address = 96;
+                spump.type = pump.type = 128;
+                pump.isActive = spump.isActive = true;
+                // Set the circuits on the pump.
+                let cid = 0;
+                for (let i = 1; i <= 10; i += 3) {
+                    let circuitId = msg.extractPayloadByte(i, 0);
+                    if (circuitId > 0) {
+                        cid++;
+                        let circ = pump.circuits.getItemById(cid, true);
+                        circ.circuit = circuitId;
+                        circ.speed = (msg.extractPayloadByte(i + 1, 0) * 256) + msg.extractPayloadByte(i + 2, 0);
+                        circ.units = 0;
+                    }
+                }
+                if (cid < 4) for (let i = 4; i > cid && i > 0; i--) pump.circuits.removeItemById(i);
                 spump.emitEquipmentChange();
             }
-        }
-        else {
-            if (typeof pump === 'undefined') pump = sys.pumps.getPumpByAddress(96, true,
-                {
-                    id: sys.pumps.getNextEquipmentId(),
-                    master: 0,
-                    address: 96,
-                    type: 128,
-                    name: `Pump${sys.pumps.length + 1}`,
-                    flowStepSize: 1,
-                    primingTime: 0,
-                    primingSpeed: 450,
-                    minSpeed: 450,
-                    maxSpeed: 3450
-                }
-            );
-            let spump = state.pumps.getItemById(pump.id, true);
-            spump.name = pump.name;
-            spump.address = pump.address = 96;
-            spump.type = pump.type = 128;
-            pump.isActive = spump.isActive = true;
-            // Set the circuits on the pump.
-            let cid = 0;
-            for (let i = 1; i <= 10; i += 3) {
-                let circuitId = msg.extractPayloadByte(i, 0);
-                if (circuitId > 0) {
-                    cid++;
-                    let circ = pump.circuits.getItemById(cid, true);
-                    circ.circuit = circuitId;
-                    circ.speed = (msg.extractPayloadByte(i + 1, 0) * 256) + msg.extractPayloadByte(i + 2, 0);
-                    circ.units = 0;
-                }
-            }
-            if (cid < 4) for (let i = 4; i > cid && i > 0; i--) pump.circuits.removeItemById(i);
-            spump.emitEquipmentChange();
         }
     }
     private static processRemoteType(msg: Inbound) {
