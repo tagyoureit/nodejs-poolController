@@ -217,15 +217,26 @@ export class PoolSystem implements IPoolSystem {
     }
 
     public resetSystem() {
-        conn.pauseAll();
-        this.resetData();
-        state.resetData();
-        this.data.controllerType === 'unknown';
-        state.equipment.controllerType = ControllerType.Unknown;
-        this.controllerType = ControllerType.Unknown;
-        state.status = 0;
-        this.board = BoardFactory.fromControllerType(ControllerType.Unknown, this);
-        setTimeout(function () { state.status = 0; conn.resumeAll(); }, 0);
+        if (this.controllerType === ControllerType.Nixie) {
+            (async () => {
+                await this.board.closeAsync();
+                this.board = BoardFactory.fromControllerType(ControllerType.Nixie, this);
+                let board = sys.board as NixieBoard;
+                await board.initNixieBoard();
+            })();
+            state.status = 0;
+        }
+        else {
+            conn.pauseAll();
+            this.resetData();
+            state.resetData();
+            this.data.controllerType === 'unknown';
+            state.equipment.controllerType = ControllerType.Unknown;
+            this.controllerType = ControllerType.Unknown;
+            state.status = 0;
+            this.board = BoardFactory.fromControllerType(ControllerType.Unknown, this);
+            setTimeout(function () { state.status = 0; conn.resumeAll(); }, 0);
+        }
     }
     public get anslq25ControllerType(): ControllerType { return this.data.anslq25.controllerType as ControllerType; }
     public set anslq25ControllerType(val: ControllerType) {
@@ -252,6 +263,7 @@ export class PoolSystem implements IPoolSystem {
             state.resetData(); // Clear the state data.
             this.data.controllerType = val;
             EquipmentStateMessage.initDefaults();
+           
             // We are actually changing the config so lets clear out all the data.
             this.board = BoardFactory.fromControllerType(val, this);
             if (this.data.controllerType === ControllerType.Unknown) setTimeout(() => { self.initNixieController(); }, 7500);

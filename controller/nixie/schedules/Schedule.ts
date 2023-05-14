@@ -77,6 +77,19 @@ export class NixieSchedule extends NixieEquipment {
         super(ncp);
         this.schedule = schedule;
         this.pollEquipmentAsync();
+        let ssched = state.schedules.getItemById(schedule.id, true);
+        ssched.circuit = schedule.circuit;
+        ssched.scheduleDays = schedule.scheduleDays;
+        ssched.scheduleType = schedule.scheduleType;
+        ssched.changeHeatSetpoint = schedule.changeHeatSetpoint;
+        ssched.heatSetpoint = schedule.heatSetpoint;
+        ssched.coolSetpoint = schedule.coolSetpoint;
+        ssched.heatSource = schedule.heatSource;
+        ssched.startTime = schedule.startTime;
+        ssched.endTime = schedule.endTime;
+        ssched.startTimeType = schedule.startTimeType;
+        ssched.endTimeType = schedule.endTimeType;
+        ssched.startDate = schedule.startDate;
     }
     public get id(): number { return typeof this.schedule !== 'undefined' ? this.schedule.id : -1; }
     public async setScheduleAsync(data: any) {

@@ -266,9 +266,35 @@ export class NixieBoard extends SystemBoard {
             [4, { name: 'spaCommand', desc: 'Spa Command', maxButtons: 10 }]
         ]);
     }
+    public async closeAsync() {
+        logger.info(`Closing Nixie Board`);
+        await ncp.closeAsync();
+    }
     public async checkConfiguration() {
         state.status = sys.board.valueMaps.controllerStatus.transform(0, 0);
         state.emitControllerChange();
+        // Set all the schedule data based upon the config.
+        for (let i = 0; i < sys.schedules.length; i++) {
+            let sched = sys.schedules.getItemByIndex(i);
+            let ssched = state.schedules.getItemById(sched.id, true);
+            ssched.circuit = sched.circuit;
+            ssched.scheduleDays = sched.scheduleDays;
+            ssched.scheduleType = sched.scheduleType;
+            ssched.changeHeatSetpoint = sched.changeHeatSetpoint;
+            ssched.heatSetpoint = sched.heatSetpoint;
+            ssched.coolSetpoint = sched.coolSetpoint;
+            ssched.heatSource = sched.heatSource;
+            ssched.startTime = sched.startTime;
+            ssched.endTime = sched.endTime;
+            ssched.startTimeType = sched.startTimeType;
+            ssched.endTimeType = sched.endTimeType;
+            ssched.startDate = sched.startDate;
+            ssched.isActive = sched.isActive = true;
+            sched.disabled = sched.disabled;
+            ssched.display = sched.display;
+
+        }
+
         state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
         state.emitControllerChange();
     }

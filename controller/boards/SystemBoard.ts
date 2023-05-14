@@ -861,7 +861,8 @@ export class SystemBoard {
   protected _statusInterval: number = 3000;
 
   // TODO: (RSG) Do we even need to pass in system?  We don't seem to be using it and we're overwriting the var with the SystemCommands anyway.
-  constructor(system: PoolSystem) { }
+    constructor(system: PoolSystem) { }
+    public async closeAsync() { };
   protected _modulesAcquired: boolean = true;
   public needsConfigChanges: boolean = false;
   public valueMaps: byteValueMaps = new byteValueMaps();

@@ -140,6 +140,9 @@ export class NixieCircuit extends NixieEquipment {
         let cstate = state.circuits.getItemById(circuit.id);
         cstate.startDelay = false;
         cstate.stopDelay = false;
+        cstate.name = circuit.name;
+        cstate.type = circuit.type;
+        cstate.showInFeatures = circuit.showInFeatures;
     }
     public async setServiceModeAsync() {
         let cstate = state.circuits.getItemById(this.circuit.id);
