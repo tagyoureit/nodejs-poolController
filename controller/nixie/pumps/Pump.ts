@@ -773,6 +773,32 @@ export class NixiePumpVF extends NixiePumpRS485 {
         }
         finally { this.suspendPolling = false; }
     };
+    protected async setDriveStateAsync(running: boolean = true) {
+        try {
+            if (conn.isPortEnabled(this.pump.portId || 0)) {
+                let out = Outbound.create({
+                    portId: this.pump.portId || 0,
+                    protocol: Protocol.Pump,
+                    dest: this.pump.address,
+                    action: 6,
+                    payload: [10],
+                    retries: 1,
+                    response: true
+                });
+                try {
+                    await out.sendAsync();
+                }
+                catch (err) {
+                    logger.error(`Error sending setDriveState for ${this.pump.name}: ${err.message}`);
+                }
+            }
+            else {
+                let pstate = state.pumps.getItemById(this.pump.id);
+                pstate.command = pstate.rpm > 0 || pstate.flow > 0 ? 10 : 0;
+            }
+        } catch (err) { logger.error(err); }
+    };
+
 }
 export class NixiePumpVSF extends NixiePumpRS485 {
     public setTargetSpeed(pState: PumpState) {
