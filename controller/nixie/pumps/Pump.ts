@@ -757,13 +757,15 @@ export class NixiePumpVF extends NixiePumpRS485 {
             let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
             if (state.mode === 0) {
                 // Since these process are async the closing flag can be set
-                // between calls.  We need to check it in between each call.
-                if (!this.closing) await this.setDriveStateAsync();
-                if (!this.closing) await this.setPumpGPMAsync();
-                if (!this.closing) await this.setPumpFeatureAsync(6);;
-                if (!this.closing) await setTimeout(1000);;
-                if (!this.closing) await this.requestPumpStatusAsync();;
-                if (!this.closing) await this.setPumpToRemoteControlAsync();;
+                // between calls.  We need to check it in between each call. // 4, 6, 5,  7
+                // When we are 0 then it sends 4[255], 6[4], 5[6]
+                // When we are not 0 then it sends 4[255], 6[10], 5[6], 1[flow]
+                if (!this.closing) await this.setPumpToRemoteControlAsync(); // Action 4
+                if (!this.closing) await this.setDriveStateAsync();         // Action 6
+                if (!this.closing) await this.setPumpFeatureAsync(6); // Action 5
+                if (!this.closing && this._targetSpeed > 0) await this.setPumpGPMAsync(); // Action 1
+                if (!this.closing) await setTimeout(200);
+                if (!this.closing) await this.requestPumpStatusAsync(); // Action 7
             }
             return new InterfaceServerResponse(200, 'Success');
         }
@@ -773,32 +775,6 @@ export class NixiePumpVF extends NixiePumpRS485 {
         }
         finally { this.suspendPolling = false; }
     };
-    protected async setDriveStateAsync(running: boolean = true) {
-        try {
-            if (conn.isPortEnabled(this.pump.portId || 0)) {
-                let out = Outbound.create({
-                    portId: this.pump.portId || 0,
-                    protocol: Protocol.Pump,
-                    dest: this.pump.address,
-                    action: 6,
-                    payload: [10],
-                    retries: 1,
-                    response: true
-                });
-                try {
-                    await out.sendAsync();
-                }
-                catch (err) {
-                    logger.error(`Error sending setDriveState for ${this.pump.name}: ${err.message}`);
-                }
-            }
-            else {
-                let pstate = state.pumps.getItemById(this.pump.id);
-                pstate.command = pstate.rpm > 0 || pstate.flow > 0 ? 10 : 0;
-            }
-        } catch (err) { logger.error(err); }
-    };
-
 }
 export class NixiePumpVSF extends NixiePumpRS485 {
     public setTargetSpeed(pState: PumpState) {
