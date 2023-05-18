@@ -145,13 +145,21 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
         // loop through all pumps and update rates based on circuit changes
         // this would happen in <2s anyway based on pollAsync but this is immediate.
         for (let i = this.length - 1; i >= 0; i--) {
+            let pump = this[i] as NixiePump;
+            if (!pump.suspendPolling) setTimeoutSync(async () => { await pump.pollEquipmentAsync(); }, 100);
+            else {
+                pump.setTargetSpeed(state.pumps.getItemById(pump.id));
+            }
+            // RKS: 05-16-23 - Below backs up the processing.
+            /*
+             
             setTimeoutSync(async () => {
                 let pump = this[i] as NixiePump;
                 try {
                     if (!pump.closing) await pump.pollEquipmentAsync();
                 } catch (err) { }
             }, 100);
-
+            */
         }
     }
 }
@@ -162,7 +170,10 @@ export class NixiePump extends NixieEquipment {
     protected _targetSpeed: number;
     protected _suspendPolling = 0;
     public get suspendPolling(): boolean { return this._suspendPolling > 0; }
-    public set suspendPolling(val: boolean) { this._suspendPolling = Math.max(0, this._suspendPolling + (val ? 1 : -1)); }
+    public set suspendPolling(val: boolean) {
+        this._suspendPolling = Math.max(0, this._suspendPolling + (val ? 1 : -1));
+        if (this._suspendPolling > 1) console.log(`Suspend Polling ${this._suspendPolling}`);
+    }
     public closing = false;
     public async setServiceModeAsync() {
         let pstate = state.pumps.getItemById(this.pump.id);
@@ -197,7 +208,6 @@ export class NixiePump extends NixieEquipment {
     }
     public async setPumpAsync(data: any): Promise<InterfaceServerResponse> {
         try {
-
             this.pump.master = 1;
             // if (typeof data.isVirtual !== 'undefined') this.pump.isVirtual = data.isVirtual;
             this.pump.isActive = true;
@@ -282,7 +292,7 @@ export class NixiePump extends NixieEquipment {
             await this.setPumpStateAsync(pstate);
         }
         catch (err) { logger.error(`Nixie Error running pump sequence - ${err}`); }
-        finally { if (!this.closing) this._pollTimer = setTimeoutSync(async () => await self.pollEquipmentAsync(), this.pollingInterval || 2000); }
+        finally { if (!self.closing) this._pollTimer = setTimeoutSync(async () => await self.pollEquipmentAsync(), self.pollingInterval || 2000); }
     }
     private async checkHardwareStatusAsync(connectionId: string, deviceBinding: string) {
         try {
@@ -313,7 +323,7 @@ export class NixiePump extends NixieEquipment {
         catch (err) { logger.error(`Nixie Pump closeAsync: ${err.message}`); return Promise.reject(err); }
     }
     public logData(filename: string, data: any) { this.controlPanel.logData(filename, data); }
-    protected setTargetSpeed(pstate: PumpState) { };
+    public setTargetSpeed(pstate: PumpState) { };
     protected isBodyOn(bodyCode: number) {
         let assoc = sys.board.valueMaps.pumpBodies.transform(bodyCode);
         switch (assoc.name) {
@@ -762,7 +772,7 @@ export class NixiePumpVF extends NixiePumpRS485 {
                 // When we are not 0 then it sends 4[255], 6[10], 5[6], 1[flow]
                 if (!this.closing) await this.setPumpToRemoteControlAsync(); // Action 4
                 if (!this.closing) await this.setDriveStateAsync();         // Action 6
-                if (!this.closing) await this.setPumpFeatureAsync(6); // Action 5
+                if (!this.closing) await this.setPumpFeatureAsync(this._targetSpeed > 0 ? 6 : undefined); // Action 5
                 if (!this.closing && this._targetSpeed > 0) await this.setPumpGPMAsync(); // Action 1
                 if (!this.closing) await setTimeout(200);
                 if (!this.closing) await this.requestPumpStatusAsync(); // Action 7
