@@ -896,7 +896,7 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
         this._targetSpeed = 0;
         await this.setPumpRPMAsync();
     }
-    public async setDriveStateAsync(running: boolean = false) { }
+    public async setDriveStateAsync(running: boolean = false) { return Promise.resolve(); }
     public async setPumpStateAsync(pstate: PumpState) {
         // Don't poll while we are seting the state.
         this.suspendPolling = true;
@@ -915,29 +915,31 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
     protected async requestPumpStatusAsync() { return Promise.resolve(); };
     protected setPumpFeatureAsync(feature?: number) { return Promise.resolve(); }
     protected async setPumpToRemoteControlAsync(running: boolean = true) {
-        // We do nothing on this pump to set it to remote control.  That is unless we are turning it off.
-        if (conn.isPortEnabled(this.pump.portId || 0)) {
-            if (!running) {
-                let out = Outbound.create({
-                    portId: this.pump.portId || 0,
-                    protocol: Protocol.Hayward,
-                    source: 12, // Use the broadcast address
-                    dest: this.pump.address,
-                    action: 1,
-                    payload: [0], // when stopAsync is called, pass false to return control to pump panel
-                    // payload: spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running') ? [255] : [0],
-                    retries: 1,
-                    response: Response.create({ protocol: Protocol.Hayward, action: 12, source: this.pump.address - 96 })
-                });
-                try {
-                    await out.sendAsync();
-                }
-                catch (err) {
-                    logger.error(`Error sending setPumpToRemoteControl for ${this.pump.name}: ${err.message}`);
+        try {
+            // We do nothing on this pump to set it to remote control.  That is unless we are turning it off.
+            if (conn.isPortEnabled(this.pump.portId || 0)) {
+                if (!running) {
+                    let out = Outbound.create({
+                        portId: this.pump.portId || 0,
+                        protocol: Protocol.Hayward,
+                        source: 12, // Use the broadcast address
+                        dest: this.pump.address,
+                        action: 1,
+                        payload: [0], // when stopAsync is called, pass false to return control to pump panel
+                        // payload: spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running') ? [255] : [0],
+                        retries: 1,
+                        response: Response.create({ protocol: Protocol.Hayward, action: 12, source: this.pump.address - 96 })
+                    });
+                    try {
+                        await out.sendAsync();
+                    }
+                    catch (err) {
+                        logger.error(`Error sending setPumpToRemoteControl for ${this.pump.name}: ${err.message}`);
 
+                    }
                 }
             }
-        }
+        } catch(err) { `Error sending setPumpToRemoteControl message for ${this.pump.name}: ${err.message}` };
     }
     protected async setPumpRPMAsync() {
         // Address 1
