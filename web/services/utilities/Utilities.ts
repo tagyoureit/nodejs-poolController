@@ -223,7 +223,7 @@ export class UtilitiesRoute {
                     } catch (e) {
                         err = new ServiceProcessError(`Error uploading file: ${e.message}`, 'POST: app/backup/file', 'uploadFile');
                         next(err);
-                        logger.error(e);
+                        logger.error(`File upload error: ${e.message}`);
                     }
                 });
             } catch (err) { next(err); }

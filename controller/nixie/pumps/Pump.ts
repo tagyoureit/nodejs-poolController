@@ -596,7 +596,7 @@ export class NixiePumpRS485 extends NixiePump {
                 let pstate = state.pumps.getItemById(this.pump.id);
                 pstate.command = pstate.rpm > 0 || pstate.flow > 0 ? 10 : 0;
             }
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error setting driveState for ${this.pump.name}: ${err.message}`); }
     };
     protected async requestPumpStatusAsync() {
         if (conn.isPortEnabled(this.pump.portId || 0)) {
@@ -636,7 +636,7 @@ export class NixiePumpRS485 extends NixiePump {
                     logger.error(`Error sending setPumpToRemoteControl for ${this.pump.name}: ${err.message}`);
                 }
             }
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error setting pump to Remote Control for ${this.pump.name}: ${err.message}`); }
     }
     protected async setPumpFeatureAsync(feature?: number) {
         // empty payload (possibly 0?, too) is no feature
@@ -659,7 +659,7 @@ export class NixiePumpRS485 extends NixiePump {
                     logger.error(`Error sending setPumpFeature for ${this.pump.name}: ${err.message}`);
                 }
             }
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Error setting pump feature for ${this.pump.name}: ${err.message}`); }
     };
     protected async setPumpRPMAsync() {
         if (conn.isPortEnabled(this.pump.portId || 0)) {

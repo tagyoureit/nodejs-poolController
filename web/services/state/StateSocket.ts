@@ -72,7 +72,7 @@ export class StateSocket {
         sock.on('/temps', async (data: any) => {
             try {
                 data = JSON.parse(data);
-                await sys.board.system.setTempsAsync(data).catch(err => logger.error(err));
+                await sys.board.system.setTempsAsync(data).catch(err => logger.error(`setTempsAsync: ${err.message}`));
             }
             catch (err) { logger.error(`Socket processing error /temps: ${err.message}`); }
         });
@@ -197,7 +197,7 @@ export class StateSocket {
                     await sys.board.circuits.setCircuitStateAsync(id, utils.makeBool(data.isOn || typeof data.state));
                 }
             }
-            catch (err) { logger.error(err); }
+            catch (err) { logger.error(`Socket /circuit error: ${err.message}`); }
         });
         sock.on('/feature', async (data: any) => {
             try {

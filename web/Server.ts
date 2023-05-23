@@ -1636,7 +1636,7 @@ export class REMInterfaceServer extends ProtoServer {
             }
             return (response.status.code === 200) ? JSON.parse(response.data) : [];
         }
-        catch (err) { logger.error(err); }
+        catch (err) { logger.error(`getDevices: ${err.message}`); }
     }
 }
 export class BackupFile {

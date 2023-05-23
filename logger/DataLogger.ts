@@ -35,7 +35,7 @@ export class DataLogger {
                 } catch (err) { logger.error(`Skipping invalid dose history entry: ${err.message}`); }
             }
             return arr;
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`Skipping dose history ${err.message}`); }
     }
     // This method uses a callback to end the file read from the end of the file.  If the callback returns false then the iteration through the
     // file will end and the log entries will be returned.  If the callback returns true then the entry will be added to the
@@ -103,11 +103,11 @@ export class DataLogger {
                     }
                     catch (err) { return Promise.reject(err); }
                     finally { if (typeof file !== 'undefined') await new Promise<boolean>((resolve, reject) => fs.close(file, (err) => { if (err) reject(err); else resolve(true); })); }
-                } catch (err) { logger.error(err); }
+                } catch (err) { logger.error(`readFromEndAsync: ${err.message}`); }
             }
             return arr;
         }
-        catch (err) { logger.error(err); }
+        catch (err) { logger.error(`readFromEndAsync: ${logFile} ${err.message}`); }
 
     }
     // This method uses a callback to end the file read from the end of the file.  If the callback returns false then the iteration through the
@@ -235,11 +235,11 @@ export class DataLogger {
                     }
                     catch (err) { return Promise.reject(err); }
                     finally { if (typeof file !== 'undefined') await new Promise<boolean>((resolve, reject) => fs.close(file, (err) => { if (err) reject(err); else resolve(true); })); }
-                } catch (err) { logger.error(err); }
+                } catch (err) { logger.error(`readFromStart: ${err.message}`); }
             }
             return arr;
         }
-        catch (err) { logger.error(err); }
+        catch (err) { logger.error(`readFromStart ${logFile}: ${err.message}`); }
 
     }
 
@@ -316,7 +316,7 @@ export class DataLogger {
             else
                 lines.unshift(data.toString());
             fs.writeFileSync(logPath, lines.join('\n'));
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`writeStart ${logFile}: ${err.message}`); }
     }
     public static writeEnd(logFile: string, entry: DataLoggerEntry) {
         try {
@@ -384,7 +384,7 @@ export class DataLogger {
                 finally { if (typeof file !== 'undefined') await new Promise<boolean>((resolve, reject) => fs.close(file, (err) => { if (err) reject(err); else resolve(true); })); }
             }
             return lines;
-        } catch (err) { logger.error(err); }
+        } catch (err) { logger.error(`readEnd ${logFile}: ${err.message}`); }
     }
     private static makeLogFilePath(logFile: string) { return `${DataLogger.ensureLogPath()}/${logFile}`; }
     private static ensureLogPath(): string {

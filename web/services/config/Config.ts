@@ -1017,7 +1017,7 @@ export class ConfigRoute {
                     } catch (e) {
                         err = new ServiceProcessError(`Error uploading file: ${e.message}`, 'POST: app/backup/file', 'uploadFile');
                         next(err);
-                        logger.error(e);
+                        logger.error(`Error uploading file ${e.message}`);
                     }
                 });
             } catch (err) { next(err); }

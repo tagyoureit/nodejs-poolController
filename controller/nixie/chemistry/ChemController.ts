@@ -1370,8 +1370,7 @@ export class NixieChemPump extends NixieChildEquipment {
                         await self.dose(schem);
                     }
                     catch (err) {
-                        logger.error(`self.dose error in finally:`);
-                        logger.error(err);
+                        logger.error(`self.dose error in finally: ${err.message}`);
                         //return Promise.reject(err); // this isn't a promise we should be returning
                     }
                 }, 1000);
@@ -1383,8 +1382,7 @@ export class NixieChemPump extends NixieChildEquipment {
                         await this.chemical.cancelDosing(schem, 'completed');
                     }
                     catch (err) {
-                        logger.error(`this.chemical.cancelDosing error in finally:`);
-                        logger.error(err);
+                        logger.error(`this.chemical.cancelDosing error in finally: ${err.message}`);
                     }
                     schem.pump.isDosing = this.isOn = false;
                     schem.manualDosing = false;
@@ -1538,7 +1536,7 @@ export class NixieChemChlor extends NixieChildEquipment {
                 this._dosingTimer = setTimeout(async () => {
                     try { await self.dose(schem); }
                     catch (err) {
-                        logger.error(err);
+                        logger.error(`Chem dosing error: ${err.message}`);
                         // return Promise.reject(err); // should not be returning a promise in a finally 
                     }
                 }, 1000);
@@ -1818,7 +1816,7 @@ export class NixieChemicalPh extends NixieChemical {
                 }
             }
         }
-        catch (err) { logger.error(err); return Promise.reject(err); }
+        catch (err) { logger.error(`Error checking for dosing: ${err.message}`); return Promise.reject(err); }
         finally {
             logger.debug(`End check ${sph.chemType} dosing status = ${sys.board.valueMaps.chemControllerDosingStatus.getName(sph.dosingStatus)}`);
         }
@@ -1870,7 +1868,7 @@ export class NixieChemicalPh extends NixieChemical {
             logger.verbose(`Chem acid manual calibration dose activate pump`);
             await this.pump.dose(sph);
         }
-        catch (err) { logger.error(`calibrateDoseAsync: ${err.message}`); logger.error(err); return Promise.reject(err); }
+        catch (err) { logger.error(`calibrateDoseAsync: ${err.message}`); return Promise.reject(err); }
     }
     public async manualDoseVolumeAsync(sph: ChemicalPhState, volume: number) {
         try {
@@ -1903,7 +1901,7 @@ export class NixieChemicalPh extends NixieChemical {
                 await this.pump.dose(sph);
             }
         }
-        catch (err) { logger.error(`manualDoseVolumeAsync: ${err.message}`); logger.error(err); return Promise.reject(err); }
+        catch (err) { logger.error(`manualDoseVolumeAsync: ${err.message}`); return Promise.reject(err); }
     }
     public async initDose(sph: ChemicalPhState) {
         try {
@@ -2024,7 +2022,7 @@ export class NixieChemicalORP extends NixieChemical {
                 await this.pump.dose(sorp);
             }
         }
-        catch (err) { logger.error(`manualDoseVolumeAsync ORP: ${err.message}`); logger.error(err); return Promise.reject(err); }
+        catch (err) { logger.error(`manualDoseVolumeAsync ORP: ${err.message}`); return Promise.reject(err); }
     }
     public async calibrateDoseAsync(sorp: ChemicalORPState, time: number) {
         try {
@@ -2055,7 +2053,7 @@ export class NixieChemicalORP extends NixieChemical {
             logger.verbose(`Chem acid manual dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
             await this.pump.dose(sorp);
         }
-        catch (err) { logger.error(`calibrateDoseAsync: ${err.message}`); logger.error(err); return Promise.reject(err); }
+        catch (err) { logger.error(`calibrateDoseAsync: ${err.message}`); return Promise.reject(err); }
     }
 
     public async cancelDosing(sorp: ChemicalORPState, reason: string): Promise<void> {

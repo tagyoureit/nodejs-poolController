@@ -62,7 +62,7 @@ export class NixieEquipment {
     public async closeAsync() {
         try {
         }
-        catch (err) { logger.error(err); }
+        catch (err) { logger.error(`Error closing Nixie Equipment: ${err.message}`); }
     }
 }
 export class NixieChildEquipment extends NixieEquipment {
