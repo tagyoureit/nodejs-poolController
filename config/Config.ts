@@ -36,7 +36,7 @@ class Config {
         // RKS 05-18-20: This originally had multiple points of failure where it was not in the try/catch.
         try {
             this._isLoading = true;
-            this._cfg = fs.existsSync(this.cfgPath) ? JSON.parse(fs.readFileSync(this.cfgPath, "utf8")) : {};
+            this._cfg = fs.existsSync(this.cfgPath) ? JSON.parse(fs.readFileSync(this.cfgPath, "utf8").trim()) : {};
             const def = JSON.parse(fs.readFileSync(path.join(process.cwd(), "/defaultConfig.json"), "utf8").trim());
             const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), "/package.json"), "utf8").trim());
             this._cfg = extend(true, {}, def, this._cfg, { appVersion: packageJson.version });
