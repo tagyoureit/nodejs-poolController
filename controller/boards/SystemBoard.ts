@@ -1295,6 +1295,7 @@ export class SystemCommands extends BoardCommands {
                                 else temp = parseFloat(obj[prop]);
                             }
                             if (isNaN(temp)) return reject(new InvalidEquipmentDataError(`Invalid value for ${prop} ${obj[prop]}`, `Temps:${prop}`, obj[prop]));
+                            state.temps.waterSensor4 = sys.equipment.tempSensors.getCalibration('water4') + temp;
                             let body = state.temps.bodies.getItemById(4);
                             if (body.isOn) body.temp = state.temps.waterSensor4;
                         }
