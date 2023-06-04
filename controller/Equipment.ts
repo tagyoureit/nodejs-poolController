@@ -2459,6 +2459,7 @@ export class ChemicalPh extends Chemical {
     public getExtended() {
         let chem = super.getExtended();
         chem.probe = this.probe.getExtended();
+        chem.tank = this.tank.getExtended();
         chem.phSupply = sys.board.valueMaps.phSupplyTypes.transform(this.phSupply);
         chem.doserType = sys.board.valueMaps.phDoserTypes.transform(this.doserType);
         return chem;
@@ -2489,6 +2490,7 @@ export class ChemicalORP extends Chemical {
     public getExtended() {
         let chem = super.getExtended();
         chem.probe = this.probe.getExtended();
+        chem.tank = this.tank.getExtended();
         chem.doserType = sys.board.valueMaps.orpDoserTypes.transform(this.doserType);
         return chem;
     }

@@ -699,7 +699,6 @@ export class NixieChemController extends NixieChemControllerBase {
             schem.ph.enabled = this.chem.ph.enabled;
             let probeType = chem.orp.probe.type;
             if (this.chem.orp.enabled) {
-
                 let useChlorinator = chem.orp.useChlorinator;
                 let pumpType = chem.orp.pump.type;
                 let currLevelPercent = schem.orp.tank.level / schem.orp.tank.capacity * 100;
@@ -773,7 +772,6 @@ export class NixieChemController extends NixieChemControllerBase {
                 else schem.alarms.pH = 0;
                 schem.ph.freezeProtect = (state.freeze && chem.ph.disableOnFreeze && schem.isBodyOn);
             }
-
             else {
                 schem.alarms.pHTank = 0;
                 schem.warnings.pHDailyLimitReached = 0;
@@ -1130,10 +1128,10 @@ export class NixieChemTank extends NixieChildEquipment {
         try {
             if (typeof data !== 'undefined') {
                 stank.level = typeof data.level !== 'undefined' ? parseFloat(data.level) : stank.level;
-                stank.capacity = this.tank.capacity = typeof data.capacity !== 'undefined' ? parseFloat(data.capacity) : stank.capacity;
+                stank.capacity = this.tank.capacity = typeof data.capacity !== 'undefined' ? parseFloat(data.capacity) : this.tank.capacity;
                 stank.units = this.tank.units = typeof data.units !== 'undefined' ? sys.board.valueMaps.volumeUnits.encode(data.units) : this.tank.units;
-                stank.alarmEmptyEnabled = this.tank.alarmEmptyEnabled = typeof data.alarmEmptyEnabled !== 'undefined' ? data.alarmEmptyEnabled : stank.alarmEmptyEnabled;
-                stank.alarmEmptyLevel = this.tank.alarmEmptyLevel = typeof data.alarmEmptyLevel !== 'undefined' ? data.alarmEmptyLevel : stank.alarmEmptyLevel;
+                stank.alarmEmptyEnabled = this.tank.alarmEmptyEnabled = typeof data.alarmEmptyEnabled !== 'undefined' ? data.alarmEmptyEnabled : this.tank.alarmEmptyEnabled;
+                stank.alarmEmptyLevel = this.tank.alarmEmptyLevel = typeof data.alarmEmptyLevel !== 'undefined' ? data.alarmEmptyLevel : this.tank.alarmEmptyLevel;
             }
         }
         catch (err) { logger.error(`setTankAsync: ${err.message}`); return Promise.reject(err); }
