@@ -1,3 +1,6 @@
+```diff
+- INTELLICENTER USERS: Do not upgrade to 2.006.  Rollback to 1.064 to use this application. 
+```
 # nodejs-poolController - Version 8.0
 
 ## What is nodejs-poolController
