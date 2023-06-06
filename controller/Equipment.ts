@@ -75,10 +75,11 @@ interface IPoolSystem {
 export class PoolSystem implements IPoolSystem {
     public _hasChanged: boolean = false;
     public isReady: boolean = false;
+    private _startOCPTimer: NodeJS.Timeout;
     constructor() {
         this.cfgPath = path.posix.join(process.cwd(), '/data/poolConfig.json');
     }
-    public getAvailableControllerTypes(include:string[] = ['easytouch', 'intellitouch', 'intellicenter', 'nixie']) {
+    public getAvailableControllerTypes(include:string[] = ['easytouch', 'intellitouch', 'intellicenter', 'suntouch', 'nixie']) {
         let arr = [];
         if (include.indexOf('easytouch')>=0) arr.push({
             type: 'easytouch', name: 'EasyTouch',
@@ -124,7 +125,14 @@ export class PoolSystem implements IPoolSystem {
                 { val: 7, name: 'i10D', part: '523029Z', desc: 'IntelliCenter i10D', bodies: 2, valves: 2, circuits: 11, shared: false, dual: true, chlorinators: 2, chemControllers: 2 },
             ]
         });
-        if (include.indexOf('nixie')>=0) arr.push({
+        if (include.indexOf('suntouch') >= 0) arr.push({
+            type: 'suntouch', name: 'SunTouch',
+            models: [
+                { val: 41, name: 'stshared', part: '520820', desc: 'Pool and Spa controller', bodies: 2, valves: 4, circuits: 5, single: false, shared: true, dual: false, features: 4, chlorinators: 1, chemControllers: 1 },
+                { val: 40, name: 'stsingle', part: '520819', desc: 'Pool or Spa controller', bodies: 2, valves: 4, circuits: 5, single: true, shared: true, dual: false, features: 4, chlorinators: 1, chemControllers: 1 }
+            ]
+        })
+        if (include.indexOf('nixie') >= 0) arr.push({
             type: 'nixie', name: 'Nixie', canChange: true,
             models: [
                 { val: 0, name: 'nxp', part: 'NXP', desc: 'Nixie Single Body', bodies: 1, shared: false, dual: false },
@@ -143,7 +151,9 @@ export class PoolSystem implements IPoolSystem {
         if (this.controllerType === 'unknown' || typeof this.controllerType === 'undefined') {
             // Delay for 7.5 seconds to give any OCPs a chance to start emitting messages.
             logger.info(`Listening for any installed OCPs`);
-            setTimeout(() => { self.initNixieController(); }, 7500);
+            if (this._startOCPTimer) clearTimeout(this._startOCPTimer);
+            this._startOCPTimer = null;
+            this._startOCPTimer = setTimeout(() => { self.initNixieController(); }, 7500);
         }
         else
             this.initNixieController();
@@ -217,6 +227,15 @@ export class PoolSystem implements IPoolSystem {
     }
 
     public resetSystem() {
+        logger.info(`Resetting System to initial defaults`);
+        (async () => {
+            await this.board.closeAsync();
+            logger.info(`Closed ${this.controllerType} board`);
+            this.controllerType = ControllerType.Unknown;
+        })();
+
+        /*
+        let self = this;
         if (this.controllerType === ControllerType.Nixie) {
             (async () => {
                 await this.board.closeAsync();
@@ -225,6 +244,10 @@ export class PoolSystem implements IPoolSystem {
                 await board.initNixieBoard();
             })();
             state.status = 0;
+
+            logger.info(`Listening for any installed OCPs`);
+            setTimeout(() => { self.initNixieController(); }, 7500);
+
         }
         else {
             conn.pauseAll();
@@ -237,6 +260,7 @@ export class PoolSystem implements IPoolSystem {
             this.board = BoardFactory.fromControllerType(ControllerType.Unknown, this);
             setTimeout(function () { state.status = 0; conn.resumeAll(); }, 0);
         }
+        */
     }
     public get anslq25ControllerType(): ControllerType { return this.data.anslq25.controllerType as ControllerType; }
     public set anslq25ControllerType(val: ControllerType) {
@@ -261,12 +285,17 @@ export class PoolSystem implements IPoolSystem {
             // Only go in here if there is a change to the controller type.
             this.resetData(); // Clear the configuration data.
             state.resetData(); // Clear the state data.
+            state.status = 0; // We are performing a re-initialize.
             this.data.controllerType = val;
             EquipmentStateMessage.initDefaults();
            
             // We are actually changing the config so lets clear out all the data.
             this.board = BoardFactory.fromControllerType(val, this);
-            if (this.data.controllerType === ControllerType.Unknown) setTimeout(() => { self.initNixieController(); }, 7500);
+            if (this.data.controllerType === ControllerType.Unknown) {
+                if (this._startOCPTimer) clearTimeout(this._startOCPTimer);
+                this._startOCPTimer = null;
+                this._startOCPTimer = setTimeout(() => { self.initNixieController(); }, 7500);
+            }
         }
     }
     public resetData() {

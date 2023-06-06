@@ -437,10 +437,11 @@ export class NixieBoard extends SystemBoard {
             sys.board.heaters.updateHeaterServices();
             state.cleanupState();
             logger.info(`${sys.equipment.model} control board initialized`);
-            state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
+            //state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
             state.mode = sys.board.valueMaps.panelModes.encode('auto');
             // At this point we should have the start of a board so lets check to see if we are ready or if we are stuck initializing.
             await setTimeout(5000);
+            state.status = sys.board.valueMaps.controllerStatus.transform(1, 100);
             await self.processStatusAsync();
         } catch (err) { state.status = 255; logger.error(`Error Initializing Nixie Control Panel ${err.message}`); }
     }

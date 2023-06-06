@@ -68,12 +68,12 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                     // make sure status is up to date immediately
                     // especially in the case of a re-connect
                     this.bindEvent("controller", state.controllerState);
-                } catch (err) { logger.error(err); }
+                } catch (err) { logger.error(`Error connecting to MQTT Broker ${this.cfg.name} ${err.message}`); }
             });
             this.client.on('reconnect', () => {
                 try {
                     logger.info(`Re-connecting to MQTT broker ${this.cfg.name}`);
-                } catch (err) { logger.error(err); }
+                } catch (err) { logger.error(`Error reconnecting to MQTT Brokder ${this.cfg.name} ${err.message}`); }
 
             });
             this.client.on('error', (error) => {
@@ -374,7 +374,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             }
         }
         catch (err) {
-            logger.error(err);
+            logger.error(`Error binding MQTT event ${evt}: ${err.message}`);
         }
     }
     // This needed to be refactored so we could extract it from an anonymous function.  We want to be able to unbind
@@ -415,7 +415,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                                 try {
                                     if(typeof isOn !== 'undefined') await sys.board.circuits.setCircuitStateAsync(id, isOn);
                                 }
-                                catch (err) { logger.error(err); }
+                                catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                                 break;
                             }
                             case 'features':
@@ -423,7 +423,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                                 try {
                                     if (typeof isOn !== 'undefined') await sys.board.features.setFeatureStateAsync(id, isOn);
                                 }
-                                catch (err) { logger.error(err); }
+                                catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                                 break;
                             }
                             case 'lightgroups':
@@ -431,7 +431,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                                 try {
                                     if (typeof isOn !== 'undefined') await sys.board.circuits.setLightGroupStateAsync(id, isOn);
                                 }
-                                catch (err) { logger.error(err); }
+                                catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                                 break;
                             }
                             case 'circuitgroups':
@@ -439,7 +439,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                                 try {
                                     if (typeof isOn !== 'undefined') await sys.board.circuits.setCircuitGroupStateAsync(id, isOn);
                                 }
-                                catch (err) { logger.error(err); }
+                                catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                                 break;
                             }
                             default:
@@ -459,14 +459,14 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                                     try {
                                         await sys.board.circuits.toggleCircuitStateAsync(id);
                                     }
-                                    catch (err) { logger.error(err); }
+                                    catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                                     break;
                                 case 'features':
                                 case 'feature':
                                     try {
                                         await sys.board.features.toggleFeatureStateAsync(id);
                                     }
-                                    catch (err) { logger.error(err); }
+                                    catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                                     break;
                                 default:
                                     logger.warn(`MQTT: Inbound topic ${topics[topics.length - 1]} not matched to event ${topics[topics.length - 2].toLowerCase()}. Message ${msg} `)
@@ -489,7 +489,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                                 }
                             }
                         }
-                        catch (err) { logger.error(err); }
+                        catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                         break;
                     case 'coolsetpoint':
                         try {
@@ -506,7 +506,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                                     }
                                 }
                             }
-                        } catch (err) { logger.error(err); }
+                        } catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                         break;
                     case 'setpoint':
                         try {
@@ -530,7 +530,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                                 }
                             }
                         }
-                        catch (err) { logger.error(err); }
+                        catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                         break;
                     case 'heatmode':
                         try {
@@ -553,39 +553,39 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                             }
                             let tbody = await sys.board.bodies.setHeatModeAsync(body, mode);
                         }
-                        catch (err) { logger.error(err); }
+                        catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                         break;
                     case 'chlorinator':
                         try {
                             let schlor = await sys.board.chlorinator.setChlorAsync(msg);
                         }
-                        catch (err) { logger.error(err); }
+                        catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                         break;
                     case 'chemcontroller':
                         try {
                             await sys.board.chemControllers.setChemControllerAsync(msg);
                         }
-                        catch (err) { logger.error(err); }
+                        catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                         break;
                     case 'settheme':
                         try {
                             let theme = await state.circuits.setLightThemeAsync(parseInt(msg.id, 10), sys.board.valueMaps.lightThemes.encode(msg.theme));
                         }
-                        catch (err) { logger.error(err); }
+                        catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                         break;
                     case 'temp':
                     case 'temps':
                         try {
                             await sys.board.system.setTempsAsync(msg);
                         }
-                        catch (err) { logger.error(err); }
+                        catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                         break;
                     case 'tempsensor':
                     case 'tempsensors':
                         try {
                             await sys.board.system.setTempSensorsAsync(msg);
                         }
-                        catch (err) { logger.error(err); }
+                        catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                         break;
                     default:
                         logger.silly(`MQTT: Inbound MQTT topic not matched: ${topic}: ${message.toString()}`)

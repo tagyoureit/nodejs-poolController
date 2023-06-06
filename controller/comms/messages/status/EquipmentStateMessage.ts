@@ -121,8 +121,12 @@ export class EquipmentStateMessage {
             // Start over because we didn't have communication before but we now do.  This will fall into the if
             // below so that it goes through the intialization process.  In this case we didn't see an OCP when we started
             // but there clearly is one now.
-            sys.controllerType = ControllerType.Unknown;
-            state.status = 0;
+            (async () => {
+                await sys.board.closeAsync();
+                logger.info(`Closed ${sys.controllerType} board`);
+                sys.controllerType = ControllerType.Unknown;
+                state.status = 0;
+            })();
         }
         if (!state.isInitialized) {
             msg.isProcessed = true;
