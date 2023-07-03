@@ -52,7 +52,7 @@ This is only the server code.  See [clients](#module_nodejs-poolController--clie
 ### Prerequisites
 If you don't know anything about NodeJS, these directions might be helpful.
 
-1. Install Nodejs (v12 recommended). (https://nodejs.org/en/download/)
+1. Install Nodejs (v16+ required). (https://nodejs.org/en/download/)
 1. Update NPM (https://docs.npmjs.com/getting-started/installing-node).
 1. It is recommended to clone the source code as updates are frequently pushed while releases are infrequent
    clone with `git clone https://github.com/tagyoureit/nodejs-poolController.git`
