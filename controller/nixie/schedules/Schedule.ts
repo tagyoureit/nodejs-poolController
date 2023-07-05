@@ -212,6 +212,9 @@ export class NixieSchedule extends NixieEquipment {
                 this.running = true;
             }
             else if (shouldBeOn && this.running) {
+                // Check to see if circuit is on, if not, turn it on
+                if (!cstate.isOn) ctx.setCircuit(circuit.id, true);
+
                 // With mOP, we need to see if the schedule will come back into play and also set the circut
                 if (this.suspended && cstate.isOn) {
                     if (sys.general.options.manualPriority) {
