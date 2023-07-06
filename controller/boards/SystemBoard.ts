@@ -4269,12 +4269,13 @@ export class HeaterCommands extends BoardCommands {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
                                                 isHeating = true;
+						isCooling = false;
                                             }
                                             else if (heater.coolingEnabled && body.temp > cfgBody.coolSetpoint && state.heliotrope.isNight &&
-                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                                                state.temps.solar < cfgBody.coolSetpoint + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
-                                                isHeating = true;
+                                                isHeating = false;
                                                 isCooling = true;
                                             }
                                         }
