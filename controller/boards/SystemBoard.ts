@@ -3734,7 +3734,7 @@ export class ScheduleCommands extends BoardCommands {
 
         if (scirc.isOn && !mOP &&
           (ssched.scheduleDays & sd.bitval) > 0 &&
-          tmNowMins >= tmStartMins && tmNowMins < tmEndMins) schedIsOn = true
+          (tmNowMins >= tmStartMins && tmNowMins < tmEndMins) || (tmStartMins == tmEndMins)) schedIsOn = true
         else schedIsOn = false;
 
         if (schedIsOn !== ssched.isOn) {

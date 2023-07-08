@@ -286,18 +286,23 @@ export class NixieSchedule extends NixieEquipment {
         // [0, {name: 'manual', desc: 'Manual }]
         // [1, { name: 'sunrise', desc: 'Sunrise' }],
         // [2, { name: 'sunset', desc: 'Sunset' }]
-        let tmStart = this.calcTime(sod, this.schedule.startTimeType, this.schedule.startTime).getTime();
-        if (isNaN(tmStart)) return false;
-        let tmStartDate = new Date(tmStart);
-        let tmStartMins = tmStartDate.getHours() * 60 + tmStartDate.getMinutes();
+        let tmStartMins = 0;
+        if (this.schedule.startTimeType == 0) // manual
+            tmStartMins = this.schedule.startTime;
+        else if (this.schedule.startTimeType == 1) // sunrise
+            tmStartMins = state.heliotrope.sunrise.getHours() * 60 + state.heliotrope.sunrise.getMinutes();
+        else if (this.schedule.startTimeType == 2) // sunset
+            tmStartMins = state.heliotrope.sunset.getHours() * 60 + state.heliotrope.sunset.getMinutes();
 
-        let tmEnd = this.calcTime(sod, this.schedule.endTimeType, this.schedule.endTime).getTime();
-        if (isNaN(tmEnd)) return false;
-        let tmEndDate = new Date(tmEnd);
-        let tmEndMins = tmEndDate.getHours() * 60 + tmEndDate.getMinutes();
-
-        let tmNow = state.time.getTime();
-        let tmNowDate = new Date(tmNow);
+        let tmEndMins = 0;
+        if (this.schedule.endTimeType == 0) // manual
+            tmEndMins = this.schedule.endTime;
+        else if (this.schedule.endTimeType == 1) // sunrise
+            tmEndMins = state.heliotrope.sunrise.getHours() * 60 + state.heliotrope.sunrise.getMinutes();
+        else if (this.schedule.endTimeType == 2) // sunset
+            tmEndMins = state.heliotrope.sunset.getHours() * 60 + state.heliotrope.sunset.getMinutes();
+            
+        let tmNowDate = new Date();
         let tmNowMins = tmNowDate.getHours() * 60 + tmNowDate.getMinutes();
 
         // Normalize timeStartMins to 0, and adjust tmEndMins and tmNowMins the same amount to avoid comparing across the midnight boundary
@@ -307,9 +312,13 @@ export class NixieSchedule extends NixieEquipment {
         tmEndMins = (tmEndMins + adjMins) % 1440;
         tmNowMins = (tmNowMins + adjMins) % 1440;
 
+        // If start and end is the same, then this is a round the clock schedule
+        if (tmStartMins == tmEndMins) return true;
+
         // Check if now is between start and end
         if (tmNowMins >= tmStartMins && tmNowMins < tmEndMins) return true;
-        else return false;
+        
+        return false;
     }
 
     public async closeAsync() {
