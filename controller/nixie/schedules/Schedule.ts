@@ -287,21 +287,30 @@ export class NixieSchedule extends NixieEquipment {
         // [1, { name: 'sunrise', desc: 'Sunrise' }],
         // [2, { name: 'sunset', desc: 'Sunset' }]
         let tmStart = this.calcTime(sod, this.schedule.startTimeType, this.schedule.startTime).getTime();
-        let tmEnd = this.calcTime(sod, this.schedule.endTimeType, this.schedule.endTime).getTime();
-
         if (isNaN(tmStart)) return false;
+        let tmStartDate = new Date(tmStart);
+        let tmStartMins = tmStartDate.getHours() * 60 + tmStartDate.getMinutes();
+
+        let tmEnd = this.calcTime(sod, this.schedule.endTimeType, this.schedule.endTime).getTime();
         if (isNaN(tmEnd)) return false;
-        // If we are past our window we should be off.
-        let tm = state.time.getTime();
-        if (tm >= tmEnd) return false;
-        if (tm <= tmStart) return false;
+        let tmEndDate = new Date(tmEnd);
+        let tmEndMins = tmEndDate.getHours() * 60 + tmEndDate.getMinutes();
 
-        // Let's now check to see 
+        let tmNow = state.time.getTime();
+        let tmNowDate = new Date(tmNow);
+        let tmNowMins = tmNowDate.getHours() * 60 + tmNowDate.getMinutes();
 
-        // If we make it here we should be on.
-        return true;
+        // Normalize timeStartMins to 0, and adjust tmEndMins and tmNowMins the same amount to avoid comparing across the midnight boundary
+        // Modulo 1440 to ensure all values are between 0 and 1339
+        let adjMins = 1440 - tmStartMins;
+        tmStartMins = (tmStartMins + adjMins) % 1440;
+        tmEndMins = (tmEndMins + adjMins) % 1440;
+        tmNowMins = (tmNowMins + adjMins) % 1440;
+
+        // Check if now is between start and end
+        if (tmNowMins >= tmStartMins && tmNowMins < tmEndMins) return true;
+        else return false;
     }
-    
 
     public async closeAsync() {
         try {

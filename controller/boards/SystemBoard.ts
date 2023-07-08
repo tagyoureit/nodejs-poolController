@@ -3724,10 +3724,19 @@ export class ScheduleCommands extends BoardCommands {
         let ssched = state.schedules.getItemByIndex(i);
         let scirc = state.circuits.getInterfaceById(ssched.circuit);
         let mOP = sys.board.schedules.manualPriorityActive(ssched);  //sys.board.schedules.manualPriorityActiveByProxy(scirc.id);
+        
+	// Normalize start time to 0, and adjust end and now the same amount to avoid comparing across the midnight boundary
+        // Modulo 1440 to ensure all values are between 0 and 1339
+        let adjMins = 1440 - ssched.startTime;
+        let tmStartMins = (ssched.startTime + adjMins) % 1440;
+        let tmEndMins = (ssched.endTime + adjMins) % 1440;
+        let tmNowMins = (ts + adjMins) % 1440;
+
         if (scirc.isOn && !mOP &&
           (ssched.scheduleDays & sd.bitval) > 0 &&
-          ts >= ssched.startTime && ts <= ssched.endTime) schedIsOn = true
+          tmNowMins >= tmStartMins && tmNowMins < tmEndMins) schedIsOn = true
         else schedIsOn = false;
+
         if (schedIsOn !== ssched.isOn) {
           // if the schedule state changes, it may affect the end time
           ssched.isOn = schedIsOn;
