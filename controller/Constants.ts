@@ -126,12 +126,16 @@ export class Heliotrope {
         return dtLocal;
     }
     public get isNight(): boolean {
+        if (!this.isValid) return false;
+
         let times = this.calculatedTimes;
-        if (this.isValid) {
-            let time = new Date().getTime();
-            if (time >= times.sunset.getTime() && time < times.sunrise.getTime()) return true;
-        }
-        return false;
+        let sunriseMins = times.sunrise.getHours() * 60 + times.sunrise.getMinutes();
+        let sunsetMins = times.sunset.getHours() * 60 + times.sunset.getMinutes();
+        let now = new Date()
+        let nowMins = now.getHours() * 60 + now.getMinutes();
+
+        if (nowMins > sunriseMins && nowMins <= sunsetMins) return false;
+        else return true;
     }
     public calculate() {
         if (typeof this.dt !== 'undefined'
