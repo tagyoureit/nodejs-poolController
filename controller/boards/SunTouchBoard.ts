@@ -222,8 +222,10 @@ class SunTouchConfigQueue extends TouchConfigQueue {
         // 196 - [0-2]
         // 198 - [0-2]
         // 199 - [0-2]
+        // 200 - Heat/Temperature Status
         // 201 - [0-2]
         // 202 - [0-2] - Custom Names
+        // 203 - Circuit Functions
         // 204 - [0-2]
         // 205 - [0-2]
         // 206 - [0-2]
@@ -238,13 +240,16 @@ class SunTouchConfigQueue extends TouchConfigQueue {
         // 218 - [0-2]
         // 219 - [0-2]
         // 220 - [0-2]
+        // 221 - Valve Assignments
         // 223 - [0-2]
         // 224 - [1-2]
-        // 226 - [0]
+        // 225 - Spa side remote
+        // 226 - [0] - Solar/HeatPump config
         // 228 - [0-2]
         // 229 - [0-2]
         // 230 - [0-2]
         // 231 - [0-2]
+        // 232 - Settings (Amazed that there is none of this)
         // 233 - [0-2]
         // 234 - [0-2]
         // 235 - [0-2]
@@ -264,6 +269,7 @@ class SunTouchConfigQueue extends TouchConfigQueue {
         // 249 - [0-2]
         // 250 - [0-2]
         // 251 - [0-2]
+        // 253 - Software Version
 
         this.queueItems(GetTouchConfigCategories.version); // 252
         this.queueItems(GetTouchConfigCategories.dateTime, [0]); //197
