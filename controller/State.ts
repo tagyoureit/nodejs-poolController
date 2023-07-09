@@ -212,6 +212,8 @@ export class State implements IState {
             model: sys.equipment.model,
             sunrise: self.data.sunrise || '',
             sunset: self.data.sunset || '',
+            nextSunrise: self.data.nextSunrise || '',
+            nextSunset: self.data.nextSunset || '',
             alias: sys.general.alias,
             freeze: utils.makeBool(self.data.freeze),
             valveMode: self.data.valveMode || {},
@@ -387,6 +389,8 @@ export class State implements IState {
             let times = self.heliotrope.calculatedTimes;
             self.data.sunrise = times.isValid ? Timestamp.toISOLocal(times.sunrise) : '';
             self.data.sunset = times.isValid ? Timestamp.toISOLocal(times.sunset) : '';
+            self.data.nextSunrise = times.isValid ? Timestamp.toISOLocal(times.nextSunrise) : '';
+            self.data.nextSunset = times.isValid ? Timestamp.toISOLocal(times.nextSunset) : '';
             versionCheck.checkGitRemote();
         });
         this.status = 0; // Initializing
