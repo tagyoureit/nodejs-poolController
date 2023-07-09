@@ -3717,7 +3717,7 @@ export class ScheduleCommands extends BoardCommands {
       let dow = dt.getDay();
       // Convert the dow to the bit value.
       let sd = sys.board.valueMaps.scheduleDays.toArray().find(elem => elem.dow === dow);
-      let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
+      //let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
       let ts = dt.getHours() * 60 + dt.getMinutes();
       for (let i = 0; i < state.schedules.length; i++) {
         let schedIsOn: boolean;
@@ -3725,7 +3725,7 @@ export class ScheduleCommands extends BoardCommands {
         let scirc = state.circuits.getInterfaceById(ssched.circuit);
         let mOP = sys.board.schedules.manualPriorityActive(ssched);  //sys.board.schedules.manualPriorityActiveByProxy(scirc.id);
         if (scirc.isOn && !mOP &&
-          (ssched.scheduleDays & dayVal) > 0 &&
+          (ssched.scheduleDays & sd.bitval) > 0 &&
           ts >= ssched.startTime && ts <= ssched.endTime) schedIsOn = true
         else schedIsOn = false;
         if (schedIsOn !== ssched.isOn) {

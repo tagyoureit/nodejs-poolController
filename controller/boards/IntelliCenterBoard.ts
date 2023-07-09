@@ -2258,9 +2258,9 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     let dow = dt.getDay();
                     // Convert the dow to the bit value.
                     let sd = sys.board.valueMaps.scheduleDays.toArray().find(elem => elem.dow === dow);
-                    let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
+                    //let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
                     let ts = dt.getHours() * 60 + dt.getMinutes();
-                    if ((sched.scheduleDays & dayVal) > 0 && ts >= sched.startTime && ts <= sched.endTime) byte = byte | (1 << bit);
+                    if ((sched.scheduleDays & sd.bitval) > 0 && ts >= sched.startTime && ts <= sched.endTime) byte = byte | (1 << bit);
                 }
             }
             else if (sched.isOn) byte = byte | (1 << bit);

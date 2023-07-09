@@ -275,9 +275,9 @@ export class NixieSchedule extends NixieEquipment {
         else {
             // Convert the dow to the bit value.
             let sd = sys.board.valueMaps.scheduleDays.toArray().find(elem => elem.dow === dow);
-            let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
+            //let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
             // First check to see if today is one of our days.
-            if ((this.schedule.scheduleDays & dayVal) === 0) return false;
+            if ((this.schedule.scheduleDays & sd.bitval) === 0) return false;
         }
         // Next normalize our start and end times.  Fortunately, the start and end times are normalized here so that
         // [0, {name: 'manual', desc: 'Manual }]
