@@ -9,6 +9,7 @@ import { setTimeout, clearTimeout } from 'timers';
 import { NixieControlPanel } from '../Nixie';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
 import { delayMgr } from '../../../controller/Lockouts';
+import { time } from 'console';
 
 
 export class NixieScheduleCollection extends NixieEquipmentCollection<NixieSchedule> {
@@ -167,8 +168,7 @@ export class NixieSchedule extends NixieEquipment {
                 ssched.isOn = false;
                 return;
             }
-            let shouldBeOn = this.shouldBeOn(); // This should also set the validity for the schedule if there are errors.
-            
+            let shouldBeOn = ssched.shouldBeOn(); // This should also set the validity for the schedule if there are errors.
             let manualPriorityActive: boolean = shouldBeOn ? sys.board.schedules.manualPriorityActive(ssched) : false;
             //console.log(`Processing schedule ${this.schedule.id} - ${circuit.name} : ShouldBeOn: ${shouldBeOn} ManualPriorityActive: ${manualPriorityActive} Running: ${this.running} Suspended: ${this.suspended} Resumed: ${this.resumed}`);
 
@@ -212,6 +212,11 @@ export class NixieSchedule extends NixieEquipment {
                 this.running = true;
             }
             else if (shouldBeOn && this.running) {
+                // Check to see if circuit is on, if not turn it on.
+                // RKS: 07-09-23 - This was in PR#819 buut this needs further review since the circuit states are not to be set here. This would
+                // trash delays and manualPriority.
+                // if(!cstate.isOn) ctx.setCircuit(circuit.id, true);
+
                 // With mOP, we need to see if the schedule will come back into play and also set the circut
                 if (this.suspended && cstate.isOn) {
                     if (sys.general.options.manualPriority) {
@@ -221,7 +226,7 @@ export class NixieSchedule extends NixieEquipment {
                     this.resumed = true;
                 }
                 this.suspended = !cstate.isOn;
-                if (manualPriorityActive){
+                if (manualPriorityActive) {
                     ssched.isOn = false;
                     ssched.manualPriorityActive = true;
                 }
@@ -250,56 +255,6 @@ export class NixieSchedule extends NixieEquipment {
         } catch (err) { logger.error(`Error processing schedule: ${err.message}`); }
 
     }
-    protected calcTime(dt: Timestamp, type: number, offset: number): Timestamp {
-        let tt = sys.board.valueMaps.scheduleTimeTypes.transform(type);
-        switch (tt.name) {
-            case 'sunrise':
-                return new Timestamp(state.heliotrope.sunrise);
-            case 'sunset':
-                return new Timestamp(state.heliotrope.sunset);
-            default:
-                return dt.startOfDay().addMinutes(offset);
-        }
-    }
-    protected shouldBeOn(): boolean {
-        if (this.schedule.isActive === false) return false;
-        if (this.schedule.disabled) return false;
-        // Be careful with toDate since this returns a mutable date object from the state timestamp.  startOfDay makes it immutable.
-        let sod = state.time.startOfDay()
-        let dow = sod.toDate().getDay();
-        let type = sys.board.valueMaps.scheduleTypes.transform(this.schedule.scheduleType);
-        if (type.name === 'runonce') {
-            // If we are not matching up with the day then we shouldn't be running.
-            if (sod.fullYear !== this.schedule.startYear || sod.month + 1 !== this.schedule.startMonth || sod.date !== this.schedule.startDay) return false;
-        }
-        else {
-            // Convert the dow to the bit value.
-            let sd = sys.board.valueMaps.scheduleDays.toArray().find(elem => elem.dow === dow);
-            //let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
-            // First check to see if today is one of our days.
-            if ((this.schedule.scheduleDays & sd.bitval) === 0) return false;
-        }
-        // Next normalize our start and end times.  Fortunately, the start and end times are normalized here so that
-        // [0, {name: 'manual', desc: 'Manual }]
-        // [1, { name: 'sunrise', desc: 'Sunrise' }],
-        // [2, { name: 'sunset', desc: 'Sunset' }]
-        let tmStart = this.calcTime(sod, this.schedule.startTimeType, this.schedule.startTime).getTime();
-        let tmEnd = this.calcTime(sod, this.schedule.endTimeType, this.schedule.endTime).getTime();
-
-        if (isNaN(tmStart)) return false;
-        if (isNaN(tmEnd)) return false;
-        // If we are past our window we should be off.
-        let tm = state.time.getTime();
-        if (tm >= tmEnd) return false;
-        if (tm <= tmStart) return false;
-
-        // Let's now check to see 
-
-        // If we make it here we should be on.
-        return true;
-    }
-    
-
     public async closeAsync() {
         try {
             if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);

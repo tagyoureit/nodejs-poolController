@@ -27,6 +27,7 @@ import { sys, Chemical, ChemController, ChemicalTank, ChemicalPump } from './Equ
 import { versionCheck } from '../config/VersionCheck';
 import { DataLogger, DataLoggerEntry } from '../logger/DataLogger';
 import { delayMgr } from './Lockouts';
+import { time } from 'console';
 
 export class State implements IState {
     statePath: string;
@@ -1156,11 +1157,71 @@ export class ScheduleState extends EqState {
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get manualPriorityActive(): boolean { return this.data.manualPriorityActive; }
     public set manualPriorityActive(val: boolean) { this.setDataVal('manualPriorityActive', val); }
+    public calcScheduleTimes(): { startTime: Date, endTime: Date } {
+        let tt = sys.board.valueMaps.scheduleTimeTypes.transform(this.startTimeType);
+        let times: { startTime: Date, endTime: Date } = { startTime: null, endTime: null };
+        switch (tt.name) {
+            case 'sunrise':
+                times.startTime = state.heliotrope.sunrise;
+                break;
+            case 'sunset':
+                times.startTime = state.heliotrope.sunset;
+                break;
+            default:
+                times.startTime = state.time.startOfDay().addMinutes(this.startTime).toDate();
+                break;
+        }
+        tt = sys.board.valueMaps.scheduleTimeTypes.transform(this.endTimeType);
+        switch (tt.name) {
+            case 'sunrise':
+                times.endTime = times.startTime >= state.heliotrope.sunrise ? state.heliotrope.nextSunrise : state.heliotrope.sunrise;
+                break;
+            case 'sunset':
+                times.endTime = times.startTime >= state.heliotrope.sunset ? state.heliotrope.nextSunset : state.heliotrope.nextSunset;
+                break;
+            default:
+                times.endTime = state.time.startOfDay().addMinutes(this.endTime).toDate();
+                if (times.endTime <= times.startTime) times.endTime = state.time.startOfDay().addHours(24).addMinutes(this.endTime).toDate();
+                break;
+        }
+        times.startTime.setSeconds(0, 0);  // Set the start time to the beginning of the minute.
+        times.endTime.setSeconds(59, 999); // Set the end time to the end of the minute.
+        return times;
+    }
+    public shouldBeOn(): boolean {
+        let sched = sys.schedules.getItemById(this.id);
+        if (sched.isActive === false) return false;
+        if (sched.disabled) return false;
+        // Be careful with toDate since this returns a mutable date object from the state timestamp.  startOfDay makes it immutable.
+        let sod = state.time.startOfDay()
+        let dow = sod.toDate().getDay();
+        let type = sys.board.valueMaps.scheduleTypes.transform(this.scheduleType);
+        if (type.name === 'runonce') {
+            // If we are not matching up with the day then we shouldn't be running.
+            if (sod.fullYear !== sched.startYear || sod.month + 1 !== sched.startMonth || sod.date !== sched.startDay) return false;
+        }
+        else {
+            // Convert the dow to the bit value.
+            let sd = sys.board.valueMaps.scheduleDays.toArray().find(elem => elem.dow === dow);
+            //let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
+            // First check to see if today is one of our days.
+            if ((sched.scheduleDays & sd.bitval) === 0) return false;
+        }
+        let times = this.calcScheduleTimes();
+        let tm = state.time.getTime();
+        let tmStart = times.startTime.getTime();
+        let tmEnd = times.endTime.getTime();
+        // Do not check for equal on the end time.  This will allow the schedule to be continuous.
+        if (isNaN(tmStart) || isNaN(tmEnd) || tm <= tmStart || tm > tmEnd) return false;
+        return true;
+    }
     public getExtended() {
         let sched = this.get(true); // Always operate on a copy.
         //if (typeof this.circuit !== 'undefined')
         sched.circuit = state.circuits.getInterfaceById(this.circuit).get(true);
-        //else sched.circuit = {};
+        sched.clockMode = sys.board.valueMaps.clockModes.transform(sys.general.options.clockMode) || {};
+        let times = this.calcScheduleTimes();
+        sched.times = { startTime: Timestamp.toISOLocal(times.startTime), endTime: Timestamp.toISOLocal(times.endTime) };
         return sched;
     }
     public emitEquipmentChange() {
@@ -3458,8 +3519,9 @@ export class FilterState extends EqState {
     }
     public get pressureUnits(): number { return typeof this.data.pressureUnits === 'undefined' ? 0 : this.data.pressureUnits.val; }
     public set pressureUnits(val: number) {
-        if (this.pressureUnits !== val) {
+        if (this.pressureUnits !== val || typeof this.data.pressureUnits === 'undefined') {
             this.setDataVal('pressureUnits', sys.board.valueMaps.pressureUnits.transform(val));
+            this.hasChanged = true;
         }
     }
     public get pressure(): number { return this.data.pressure; }

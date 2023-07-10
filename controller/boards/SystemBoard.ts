@@ -26,6 +26,7 @@ import { BodyTempState, ChemControllerState, ChemDoserState, ChlorinatorState, C
 import { RestoreResults } from '../../web/Server';
 import { setTimeout } from 'timers/promises';
 import { setTimeout as setTimeoutSync } from 'timers';
+import { time } from 'console';
 
 
 export class byteValueMap extends Map<number, any> {
@@ -3024,74 +3025,70 @@ export class CircuitCommands extends BoardCommands {
   public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
     return sys.board.circuits.setCircuitGroupStateAsync(id, val);
   }
-  public setEndTime(thing: ICircuit, thingState: ICircuitState, isOn: boolean, bForce: boolean = false) {
-    /*
-    this is a generic fn for circuits, features, circuitGroups, lightGroups
-    to set the end time based on the egg timer.
-    it will be called from set[]StateAsync calls as well as when then state is 
-    eval'ed from status packets/external messages and schedule changes.
-    instead of maintaining timers here which would increase the amount of 
-    emits substantially, let the clients keep their own local timers
-    or just display the end time.
-
-    bForce is an override sent by the syncScheduleStates.  It gets set after the circuit gets set but we need to know if the sched is on.  This allows the circuit end time to be 
-    re-evaluated even though it already has an end time.
-
-    Logic gets fun here... 
-    0. If the circuit is off, or has don't stop enabled, don't set an end time 
-    0.1. If the circuit state hasn't changed, abort (unless bForce is true).
-    1. If the schedule is on, the egg timer does not come into play
-    2. If the schedule is off...
-    2.1.  and the egg timer will turn off the circuit off before the schedule starts, use egg timer time
-    2.2.  else if the schedule will start before the egg timer turns it off, use the schedule end time
-    3. Iterate over each schedule for 1-2 above; nearest end time wins
-    */
-    try {
-      if (thing.dontStop || !isOn) {
-        thingState.endTime = undefined;
-      }
-      else if (!thingState.isOn && isOn || bForce) {
-        let endTime: Timestamp;
-        let eggTimerEndTime: Timestamp;
-        // let remainingDuration: number;
-        if (typeof thing.eggTimer !== 'undefined') {
-          eggTimerEndTime = state.time.clone().addHours(0, thing.eggTimer);
-        }
-        // egg timers don't come into play if a schedule will control the circuit
-        // schedules don't come into play if the circuit is in manualPriority
-        if (!thingState.manualPriorityActive) {
-
-          for (let i = 0; i < sys.schedules.length; i++) {
-            let sched = sys.schedules.getItemByIndex(i);
-            let ssched = state.schedules.getItemById(sched.id);
-            if (sched.isActive && sys.board.schedules.includesCircuit(sched, thing.id)) {
-              let nearestStartTime = sys.board.schedules.getNearestStartTime(sched);
-              let nearestEndTime = sys.board.schedules.getNearestEndTime(sched);
-              // if the schedule doesn't have an end date (eg no days)...
-              if (nearestEndTime.getTime() === 0) continue;
-              if (ssched.isOn) {
-                if (typeof endTime === 'undefined' || nearestEndTime.getTime() < endTime.getTime()) {
-                  endTime = nearestEndTime.clone();
-                  eggTimerEndTime = undefined;
-                }
-              }
-              else {
-                if (typeof eggTimerEndTime !== 'undefined' && eggTimerEndTime.getTime() < nearestStartTime.getTime()) {
-                  if (typeof endTime === 'undefined' || eggTimerEndTime.getTime() < endTime.getTime()) endTime = eggTimerEndTime.clone();
-                }
-                else if (typeof endTime === 'undefined' || nearestEndTime.getTime() < endTime.getTime()) endTime = nearestEndTime.clone();
-              }
+    public setEndTime(thing: ICircuit, thingState: ICircuitState, isOn: boolean, bForce: boolean = false) {
+        /*
+        this is a generic fn for circuits, features, circuitGroups, lightGroups
+        to set the end time based on the egg timer.
+        it will be called from set[]StateAsync calls as well as when then state is 
+        eval'ed from status packets/external messages and schedule changes.
+        instead of maintaining timers here which would increase the amount of 
+        emits substantially, let the clients keep their own local timers
+        or just display the end time.
+    
+        bForce is an override sent by the syncScheduleStates.  It gets set after the circuit gets set but we need to know if the sched is on.  This allows the circuit end time to be 
+        re-evaluated even though it already has an end time.
+    
+        Logic gets fun here... 
+        0. If the circuit is off, or has don't stop enabled, don't set an end time 
+        0.1. If the circuit state hasn't changed, abort (unless bForce is true).
+        1. If the schedule is on, the egg timer does not come into play
+        2. If the schedule is off...
+        2.1.  and the egg timer will turn off the circuit off before the schedule starts, use egg timer time
+        2.2.  else if the schedule will start before the egg timer turns it off, use the schedule end time
+        3. Iterate over each schedule for 1-2 above; nearest end time wins
+        */
+        try {
+            if (thing.dontStop || !isOn) {
+                thingState.endTime = undefined;
             }
-          }
+            else if (!thingState.isOn && isOn || bForce) {
+                let endTime: Timestamp;
+                let eggTimerEndTime: Timestamp;
+                // let remainingDuration: number;
+                if (typeof thing.eggTimer !== 'undefined') {
+                    eggTimerEndTime = state.time.clone().addHours(0, thing.eggTimer);
+                }
+                // egg timers don't come into play if a schedule will control the circuit
+                // schedules don't come into play if the circuit is in manualPriority
+                if (!thingState.manualPriorityActive) {
+                    for (let i = 0; i < sys.schedules.length; i++) {
+                        let sched = sys.schedules.getItemByIndex(i);
+                        let ssched = state.schedules.getItemById(sched.id);
+                        if (sched.isActive && sys.board.schedules.includesCircuit(sched, thing.id)) {
+                            let times = ssched.calcScheduleTimes();
+                            if (ssched.isOn) {
+                                endTime = new Timestamp(times.endTime);
+                                eggTimerEndTime = undefined;
+                            }
+                            else {
+                                // If the schedule isn't running then the egg time will be in play but only if the start time
+                                // for the schedule is > the end time of the egg timer.  Otherwise the schedule end time will be in play.
+                                if (typeof eggTimerEndTime !== 'undefined' && eggTimerEndTime.getTime() < times.startTime.getTime()) {
+                                    if (typeof endTime === 'undefined' && eggTimerEndTime.getTime() < times.endTime.getTime()) endTime = eggTimerEndTime.clone();
+                                }
+                                else if (typeof endTime === 'undefined' || times.endTime.getTime() < endTime.getTime()) endTime = new Timestamp(times.endTime);
+                            }
+                        }
+                    }
+                }
+                if (typeof endTime !== 'undefined') thingState.endTime = endTime;
+                else if (typeof eggTimerEndTime !== 'undefined') thingState.endTime = eggTimerEndTime;
+            }
         }
-        if (typeof endTime !== 'undefined') thingState.endTime = endTime;
-        else if (typeof eggTimerEndTime !== 'undefined') thingState.endTime = eggTimerEndTime;
-      }
+        catch (err) {
+            logger.error(`Error setting end time for ${thing.id}: ${err}`)
+        }
     }
-    catch (err) {
-      logger.error(`Error setting end time for ${thing.id}: ${err}`)
-    }
-  }
   public async turnOffDrainCircuits(ignoreDelays: boolean) {
     try {
       {
@@ -3710,33 +3707,31 @@ export class ScheduleCommands extends BoardCommands {
     ssched.emitEquipmentChange();
     return new Promise<Schedule>((resolve, reject) => { resolve(sched); });
   }
-  public syncScheduleStates() {
-    try {
-      ncp.schedules.triggerSchedules();
-      let dt = state.time.toDate();
-      let dow = dt.getDay();
-      // Convert the dow to the bit value.
-      let sd = sys.board.valueMaps.scheduleDays.toArray().find(elem => elem.dow === dow);
-      //let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
-      let ts = dt.getHours() * 60 + dt.getMinutes();
-      for (let i = 0; i < state.schedules.length; i++) {
-        let schedIsOn: boolean;
-        let ssched = state.schedules.getItemByIndex(i);
-        let scirc = state.circuits.getInterfaceById(ssched.circuit);
-        let mOP = sys.board.schedules.manualPriorityActive(ssched);  //sys.board.schedules.manualPriorityActiveByProxy(scirc.id);
-        if (scirc.isOn && !mOP &&
-          (ssched.scheduleDays & sd.bitval) > 0 &&
-          ts >= ssched.startTime && ts <= ssched.endTime) schedIsOn = true
-        else schedIsOn = false;
-        if (schedIsOn !== ssched.isOn) {
-          // if the schedule state changes, it may affect the end time
-          ssched.isOn = schedIsOn;
-          sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(ssched.circuit), scirc, scirc.isOn, true);
-        }
-        ssched.emitEquipmentChange();
-      }
-    } catch (err) { logger.error(`Error synchronizing schedule states`); }
-  }
+    public syncScheduleStates() {
+        try {
+            ncp.schedules.triggerSchedules();
+            let dt = state.time.toDate();
+            let dow = dt.getDay();
+            // Convert the dow to the bit value.
+            let sd = sys.board.valueMaps.scheduleDays.toArray().find(elem => elem.dow === dow);
+            //let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
+            let ts = dt.getHours() * 60 + dt.getMinutes();
+            for (let i = 0; i < state.schedules.length; i++) {
+                let schedIsOn: boolean;
+                let ssched = state.schedules.getItemByIndex(i);
+                let scirc = state.circuits.getInterfaceById(ssched.circuit);
+                let mOP = sys.board.schedules.manualPriorityActive(ssched);  //sys.board.schedules.manualPriorityActiveByProxy(scirc.id);
+                if (scirc.isOn && !mOP && ssched.shouldBeOn()) schedIsOn = true
+                else schedIsOn = false;
+                if (schedIsOn !== ssched.isOn) {
+                    // if the schedule state changes, it may affect the end time
+                    ssched.isOn = schedIsOn;
+                    sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(ssched.circuit), scirc, scirc.isOn, true);
+                }
+                ssched.emitEquipmentChange();
+            }
+        } catch (err) { logger.error(`Error synchronizing schedule states`); }
+    }
   public async setEggTimerAsync(data?: any, send: boolean = true): Promise<EggTimer> { return Promise.resolve(sys.eggTimers.getItemByIndex(1)); }
   public async deleteEggTimerAsync(data?: any): Promise<EggTimer> { return Promise.resolve(sys.eggTimers.getItemByIndex(1)); }
   public includesCircuit(sched: Schedule, circuit: number) {
@@ -3749,7 +3744,8 @@ export class ScheduleCommands extends BoardCommands {
       }
     }
     return bIncludes;
-  }
+    }
+    /* RKS: 07-10-23 - Deprecated: The schedule state calculates the start/end times.
   public getNearestEndTime(sched: Schedule): Timestamp {
     let nearestEndTime = new Timestamp(new Date(0))
     let today = new Timestamp().startOfDay();
@@ -3784,6 +3780,7 @@ export class ScheduleCommands extends BoardCommands {
     }
     return nearestStartTime;
   }
+  */
   public manualPriorityForThisCircuit(circuit: number): boolean {
     // This fn will test if this circuit/light group has any circuit group circuits that have manual priority active
     let grp: ICircuitGroup;
@@ -5198,47 +5195,47 @@ export class FilterCommands extends BoardCommands {
     catch (err) { logger.error(`setFilterPressure: Error setting filter #${id} pressure to ${pressure}${units || ''}`); }
   }
   public async setFilterStateAsync(filter: Filter, fstate: FilterState, isOn: boolean) { fstate.isOn = isOn; }
-  public async setFilterAsync(data: any): Promise<Filter> {
-    let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
-    if (id <= 0) id = sys.filters.length + 1; // set max filters?
-    if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid filter id: ${data.id}`, data.id, 'Filter'));
-    let filter = sys.filters.getItemById(id, id > 0);
-    let sfilter = state.filters.getItemById(id, id > 0);
-    let filterType = typeof data.filterType !== 'undefined' ? parseInt(data.filterType, 10) : filter.filterType;
-    if (typeof filterType === 'undefined') filterType = sys.board.valueMaps.filterTypes.getValue('unknown');
+    public async setFilterAsync(data: any): Promise<Filter> {
+        let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
+        if (id <= 0) id = sys.filters.length + 1; // set max filters?
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid filter id: ${data.id}`, data.id, 'Filter'));
+        let filter = sys.filters.getItemById(id, id > 0);
+        let sfilter = state.filters.getItemById(id, id > 0);
+        let filterType = typeof data.filterType !== 'undefined' ? parseInt(data.filterType, 10) : filter.filterType;
+        if (typeof filterType === 'undefined') filterType = sys.board.valueMaps.filterTypes.getValue('unknown');
 
-    // The only way to delete a filter is to call deleteFilterAsync.
-    //if (typeof data.isActive !== 'undefined') {
-    //    if (utils.makeBool(data.isActive) === false) {
-    //        sys.filters.removeItemById(id);
-    //        state.filters.removeItemById(id);
-    //        return;
-    //    }
-    //}
+        // The only way to delete a filter is to call deleteFilterAsync.
+        //if (typeof data.isActive !== 'undefined') {
+        //    if (utils.makeBool(data.isActive) === false) {
+        //        sys.filters.removeItemById(id);
+        //        state.filters.removeItemById(id);
+        //        return;
+        //    }
+        //}
 
-    let body = typeof data.body !== 'undefined' ? data.body : filter.body;
-    let name = typeof data.name !== 'undefined' ? data.name : filter.name;
-    if (typeof body === 'undefined') body = 32;
-    // At this point we should have all the data.  Validate it.
-    if (!sys.board.valueMaps.filterTypes.valExists(filterType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid filter type; ${filterType}`, 'Filter', filterType));
+        let body = typeof data.body !== 'undefined' ? data.body : filter.body;
+        let name = typeof data.name !== 'undefined' ? data.name : filter.name;
+        if (typeof body === 'undefined') body = 32;
+        // At this point we should have all the data.  Validate it.
+        if (!sys.board.valueMaps.filterTypes.valExists(filterType)) return Promise.reject(new InvalidEquipmentDataError(`Invalid filter type; ${filterType}`, 'Filter', filterType));
 
-    filter.pressureUnits = typeof data.pressureUnits !== 'undefined' ? data.pressureUnits || 0 : filter.pressureUnits || 0;
-    filter.pressureCircuitId = parseInt(data.pressureCircuitId || filter.pressureCircuitId || 6, 10);
-    filter.cleanPressure = parseFloat(data.cleanPressure || filter.cleanPressure || 0);
-    filter.dirtyPressure = parseFloat(data.dirtyPressure || filter.dirtyPressure || 0);
+        filter.pressureUnits = typeof data.pressureUnits !== 'undefined' ? data.pressureUnits || 0 : filter.pressureUnits || 0;
+        filter.pressureCircuitId = parseInt(data.pressureCircuitId || filter.pressureCircuitId || 6, 10);
+        filter.cleanPressure = parseFloat(data.cleanPressure || filter.cleanPressure || 0);
+        filter.dirtyPressure = parseFloat(data.dirtyPressure || filter.dirtyPressure || 0);
 
-    filter.filterType = sfilter.filterType = filterType;
-    filter.body = sfilter.body = body;
-    filter.name = sfilter.name = name;
-    filter.capacity = typeof data.capacity === 'number' ? data.capacity : filter.capacity;
-    filter.capacityUnits = typeof data.capacityUnits !== 'undefined' ? data.capacityUnits : filter.capacity;
-    filter.connectionId = typeof data.connectionId !== 'undefined' ? data.connectionId : filter.connectionId;
-    filter.deviceBinding = typeof data.deviceBinding !== 'undefined' ? data.deviceBinding : filter.deviceBinding;
-    sfilter.pressureUnits = filter.pressureUnits;
-    sfilter.calcCleanPercentage();
-    sfilter.emitEquipmentChange();
-    return filter; // Always return the config when we are dealing with the config not state.
-  }
+        filter.filterType = sfilter.filterType = filterType;
+        filter.body = sfilter.body = body;
+        filter.name = sfilter.name = name;
+        filter.capacity = typeof data.capacity === 'number' ? data.capacity : filter.capacity;
+        filter.capacityUnits = typeof data.capacityUnits !== 'undefined' ? data.capacityUnits : filter.capacity;
+        filter.connectionId = typeof data.connectionId !== 'undefined' ? data.connectionId : filter.connectionId;
+        filter.deviceBinding = typeof data.deviceBinding !== 'undefined' ? data.deviceBinding : filter.deviceBinding;
+        sfilter.pressureUnits = filter.pressureUnits;
+        sfilter.calcCleanPercentage();
+        sfilter.emitEquipmentChange();
+        return filter; // Always return the config when we are dealing with the config not state.
+    }
   public async deleteFilterAsync(data: any): Promise<Filter> {
     try {
       let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
