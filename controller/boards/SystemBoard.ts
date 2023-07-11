@@ -121,357 +121,357 @@ export class EquipmentIds {
   public invalidIds: InvalidEquipmentIdArray = new InvalidEquipmentIdArray([]);
 }
 export class byteValueMaps {
-  constructor() {
-    this.pumpStatus.transform = function (byte) {
-      // if (byte === 0) return this.get(0);
-      if (byte === 0) return extend(true, {}, this.get(0), { val: byte });
-      for (let b = 16; b > 0; b--) {
-        let bit = (1 << (b - 1));
-        if ((byte & bit) > 0) {
-          let v = this.get(b);
-          if (typeof v !== 'undefined') {
-            return extend(true, {}, v, { val: byte });
-          }
+    constructor() {
+        this.pumpStatus.transform = function (byte) {
+            // if (byte === 0) return this.get(0);
+            if (byte === 0) return extend(true, {}, this.get(0), { val: byte });
+            for (let b = 16; b > 0; b--) {
+                let bit = (1 << (b - 1));
+                if ((byte & bit) > 0) {
+                    let v = this.get(b);
+                    if (typeof v !== 'undefined') {
+                        return extend(true, {}, v, { val: byte });
+                    }
+                }
+            }
+            return { val: byte, name: 'error' + byte, desc: 'Unspecified Error ' + byte };
+        };
+        this.chlorinatorStatus.transform = function (byte) {
+            if (byte === 128) return { val: 128, name: 'commlost', desc: 'Communication Lost' };
+            else if (byte === 0) return { val: 0, name: 'ok', desc: 'Ok' };
+            for (let b = 8; b > 0; b--) {
+                let bit = (1 << (b - 1));
+                if ((byte & bit) > 0) {
+                    let v = this.get(b);
+                    if (typeof v !== "undefined") {
+                        return extend(true, {}, v, { val: byte & 0x00FF });
+                    }
+                }
+            }
+            return { val: byte, name: 'unknown' + byte, desc: 'Unknown status ' + byte };
+        };
+        this.scheduleTypes.transform = function (byte) {
+            return (byte & 128) > 0 ? extend(true, { val: 128 }, this.get(128)) : extend(true, { val: 0 }, this.get(0));
+        };
+        this.scheduleDays.transform = function (byte) {
+            let days = [];
+            let b = byte & 0x007F;
+            for (let bit = 7; bit >= 0; bit--) {
+                if ((byte & (1 << (bit - 1))) > 0) days.push(extend(true, {}, this.get(bit)));
+            }
+            return { val: b, days: days };
+        };
+        this.scheduleDays.toArray = function () {
+            let arrKeys = Array.from(this.keys());
+            let arr = [];
+            for (let i = 0; i < arrKeys.length; i++) arr.push(extend(true, { val: arrKeys[i] }, this.get(arrKeys[i])));
+            return arr;
+        };
+        this.virtualCircuits.transform = function (byte) {
+            return extend(true, {}, { val: byte, name: 'Unknown ' + byte }, this.get(byte), { val: byte });
+        };
+        this.tempUnits.transform = function (byte) { return extend(true, {}, { val: byte & 0x04 }, this.get(byte & 0x04)); };
+        this.panelModes.transform = function (byte) { return extend(true, { val: byte & 0x83 }, this.get(byte & 0x83)); };
+        this.controllerStatus.transform = function (byte: number, percent?: number) {
+            let v = extend(true, {}, this.get(byte) || this.get(0));
+            if (typeof percent !== 'undefined') v.percent = percent;
+            return v;
+        };
+        this.lightThemes.transform = function (byte) { return typeof byte === 'undefined' ? this.get(255) : extend(true, { val: byte }, this.get(byte) || this.get(255)); };
+        this.timeZones.findItem = function (val: string | number | { val: any, name: string }) {
+            if (typeof val === null || typeof val === 'undefined') return;
+            else if (typeof val === 'number') {
+                if (val <= 12) {  // We are looking for timezones based upon the utcOffset.
+                    let arr = this.toArray();
+                    let tz = arr.find(elem => elem.utcOffset === val);
+                    return typeof tz !== 'undefined' ? this.transform(tz.val) : undefined;
+                }
+                return this.transform(val);
+            }
+            else if (typeof val === 'string') {
+                let v = parseInt(val, 10);
+                if (!isNaN(v)) {
+                    if (v <= 12) {
+                        let arr = this.toArray();
+                        let tz = arr.find(elem => elem.utcOffset === val);
+                        return typeof tz !== 'undefined' ? this.transform(tz.val) : undefined;
+                    }
+                    return this.transform(v);
+                }
+                else {
+                    let arr = this.toArray();
+                    let tz = arr.find(elem => elem.abbrev === val || elem.name === val);
+                    return typeof tz !== 'undefined' ? this.transform(tz.val) : undefined;
+                }
+            }
+            else if (typeof val === 'object') {
+                if (typeof val.val !== 'undefined') return this.transform(parseInt(val.val, 10));
+                else if (typeof val.name !== 'undefined') return this.transformByName(val.name);
+            }
         }
-      }
-      return { val: byte, name: 'error' + byte, desc: 'Unspecified Error ' + byte };
-    };
-    this.chlorinatorStatus.transform = function (byte) {
-      if (byte === 128) return { val: 128, name: 'commlost', desc: 'Communication Lost' };
-      else if (byte === 0) return { val: 0, name: 'ok', desc: 'Ok' };
-      for (let b = 8; b > 0; b--) {
-        let bit = (1 << (b - 1));
-        if ((byte & bit) > 0) {
-          let v = this.get(b);
-          if (typeof v !== "undefined") {
-            return extend(true, {}, v, { val: byte & 0x00FF });
-          }
-        }
-      }
-      return { val: byte, name: 'unknown' + byte, desc: 'Unknown status ' + byte };
-    };
-    this.scheduleTypes.transform = function (byte) {
-      return (byte & 128) > 0 ? extend(true, { val: 128 }, this.get(128)) : extend(true, { val: 0 }, this.get(0));
-    };
-    this.scheduleDays.transform = function (byte) {
-      let days = [];
-      let b = byte & 0x007F;
-      for (let bit = 7; bit >= 0; bit--) {
-        if ((byte & (1 << (bit - 1))) > 0) days.push(extend(true, {}, this.get(bit)));
-      }
-      return { val: b, days: days };
-    };
-    this.scheduleDays.toArray = function () {
-      let arrKeys = Array.from(this.keys());
-      let arr = [];
-      for (let i = 0; i < arrKeys.length; i++) arr.push(extend(true, { val: arrKeys[i] }, this.get(arrKeys[i])));
-      return arr;
-    };
-    this.virtualCircuits.transform = function (byte) {
-      return extend(true, {}, { val: byte, name: 'Unknown ' + byte }, this.get(byte), { val: byte });
-    };
-    this.tempUnits.transform = function (byte) { return extend(true, {}, { val: byte & 0x04 }, this.get(byte & 0x04)); };
-    this.panelModes.transform = function (byte) { return extend(true, { val: byte & 0x83 }, this.get(byte & 0x83)); };
-    this.controllerStatus.transform = function (byte: number, percent?: number) {
-      let v = extend(true, {}, this.get(byte) || this.get(0));
-      if (typeof percent !== 'undefined') v.percent = percent;
-      return v;
-    };
-    this.lightThemes.transform = function (byte) { return typeof byte === 'undefined' ? this.get(255) : extend(true, { val: byte }, this.get(byte) || this.get(255)); };
-    this.timeZones.findItem = function (val: string | number | { val: any, name: string }) {
-      if (typeof val === null || typeof val === 'undefined') return;
-      else if (typeof val === 'number') {
-        if (val <= 12) {  // We are looking for timezones based upon the utcOffset.
-          let arr = this.toArray();
-          let tz = arr.find(elem => elem.utcOffset === val);
-          return typeof tz !== 'undefined' ? this.transform(tz.val) : undefined;
-        }
-        return this.transform(val);
-      }
-      else if (typeof val === 'string') {
-        let v = parseInt(val, 10);
-        if (!isNaN(v)) {
-          if (v <= 12) {
-            let arr = this.toArray();
-            let tz = arr.find(elem => elem.utcOffset === val);
-            return typeof tz !== 'undefined' ? this.transform(tz.val) : undefined;
-          }
-          return this.transform(v);
-        }
-        else {
-          let arr = this.toArray();
-          let tz = arr.find(elem => elem.abbrev === val || elem.name === val);
-          return typeof tz !== 'undefined' ? this.transform(tz.val) : undefined;
-        }
-      }
-      else if (typeof val === 'object') {
-        if (typeof val.val !== 'undefined') return this.transform(parseInt(val.val, 10));
-        else if (typeof val.name !== 'undefined') return this.transformByName(val.name);
-      }
     }
-  }
-  public expansionBoards: byteValueMap = new byteValueMap();
-  // Identifies which controller manages the underlying equipment.
-  public equipmentMaster: byteValueMap = new byteValueMap([
-    [0, { val: 0, name: 'ocp', desc: 'Outdoor Control Panel' }],
-    [1, { val: 1, name: 'ncp', desc: 'Nixie Control Panel' }],
-    [2, { val: 2, name: 'ext', desc: 'External Control Panel' }]
-  ]);
-  public equipmentCommStatus: byteValueMap = new byteValueMap([
-    [0, { val: 0, name: 'ready', desc: 'Ready' }],
-    [1, { val: 1, name: 'commerr', desc: 'Communication Error' }]
-  ]);
-  public panelModes: byteValueMap = new byteValueMap([
-    [0, { val: 0, name: 'auto', desc: 'Auto' }],
-    // [1, { val: 1, name: 'service', desc: 'Service' }],
-    // [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
-    // [128, { val: 128, name: 'timeout', desc: 'Timeout' }],
-    // [129, { val: 129, name: 'service-timeout', desc: 'Service/Timeout' }],
-    [255, { name: 'error', desc: 'System Error' }]
-  ]);
-  public controllerStatus: byteValueMap = new byteValueMap([
-    [0, { val: 0, name: 'initializing', desc: 'Initializing', percent: 0 }],
-    [1, { val: 1, name: 'ready', desc: 'Ready', percent: 100 }],
-    [2, { val: 2, name: 'loading', desc: 'Loading', percent: 0 }],
-    [3, { val: 255, name: 'Error', desc: 'Error', percent: 0 }]
-  ]);
+    public expansionBoards: byteValueMap = new byteValueMap();
+    // Identifies which controller manages the underlying equipment.
+    public equipmentMaster: byteValueMap = new byteValueMap([
+        [0, { val: 0, name: 'ocp', desc: 'Outdoor Control Panel' }],
+        [1, { val: 1, name: 'ncp', desc: 'Nixie Control Panel' }],
+        [2, { val: 2, name: 'ext', desc: 'External Control Panel' }]
+    ]);
+    public equipmentCommStatus: byteValueMap = new byteValueMap([
+        [0, { val: 0, name: 'ready', desc: 'Ready' }],
+        [1, { val: 1, name: 'commerr', desc: 'Communication Error' }]
+    ]);
+    public panelModes: byteValueMap = new byteValueMap([
+        [0, { val: 0, name: 'auto', desc: 'Auto' }],
+        // [1, { val: 1, name: 'service', desc: 'Service' }],
+        // [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
+        // [128, { val: 128, name: 'timeout', desc: 'Timeout' }],
+        // [129, { val: 129, name: 'service-timeout', desc: 'Service/Timeout' }],
+        [255, { name: 'error', desc: 'System Error' }]
+    ]);
+    public controllerStatus: byteValueMap = new byteValueMap([
+        [0, { val: 0, name: 'initializing', desc: 'Initializing', percent: 0 }],
+        [1, { val: 1, name: 'ready', desc: 'Ready', percent: 100 }],
+        [2, { val: 2, name: 'loading', desc: 'Loading', percent: 0 }],
+        [3, { val: 255, name: 'Error', desc: 'Error', percent: 0 }]
+    ]);
 
-  public circuitFunctions: byteValueMap = new byteValueMap([
-    [0, { name: 'generic', desc: 'Generic' }],
-    [1, { name: 'spa', desc: 'Spa', hasHeatSource: true, body: 2 }],
-    [2, { name: 'pool', desc: 'Pool', hasHeatSource: true, body: 1 }],
-    [5, { name: 'mastercleaner', desc: 'Master Cleaner', body: 1 }],
-    [7, { name: 'light', desc: 'Light', isLight: true }],
-    [9, { name: 'samlight', desc: 'SAM Light', isLight: true }],
-    [10, { name: 'sallight', desc: 'SAL Light', isLight: true }],
-    [11, { name: 'photongen', desc: 'Photon Gen', isLight: true }],
-    [12, { name: 'colorwheel', desc: 'Color Wheel', isLight: true }],
-    [13, { name: 'valve', desc: 'Valve' }],
-    [14, { name: 'spillway', desc: 'Spillway' }],
-    [15, { name: 'floorcleaner', desc: 'Floor Cleaner', body: 1 }],  // This circuit function does not seem to exist in IntelliTouch.
-    [16, { name: 'intellibrite', desc: 'Intellibrite', isLight: true, theme: 'intellibrite' }],
-    [17, { name: 'magicstream', desc: 'Magicstream', isLight: true, theme: 'magicstream' }],
-    [19, { name: 'notused', desc: 'Not Used' }],
-    [65, { name: 'lotemp', desc: 'Lo-Temp' }],
-    [66, { name: 'hightemp', desc: 'Hi-Temp' }]
-  ]);
+    public circuitFunctions: byteValueMap = new byteValueMap([
+        [0, { name: 'generic', desc: 'Generic' }],
+        [1, { name: 'spa', desc: 'Spa', hasHeatSource: true, body: 2 }],
+        [2, { name: 'pool', desc: 'Pool', hasHeatSource: true, body: 1 }],
+        [5, { name: 'mastercleaner', desc: 'Master Cleaner', body: 1 }],
+        [7, { name: 'light', desc: 'Light', isLight: true }],
+        [9, { name: 'samlight', desc: 'SAM Light', isLight: true }],
+        [10, { name: 'sallight', desc: 'SAL Light', isLight: true }],
+        [11, { name: 'photongen', desc: 'Photon Gen', isLight: true }],
+        [12, { name: 'colorwheel', desc: 'Color Wheel', isLight: true }],
+        [13, { name: 'valve', desc: 'Valve' }],
+        [14, { name: 'spillway', desc: 'Spillway' }],
+        [15, { name: 'floorcleaner', desc: 'Floor Cleaner', body: 1 }],  // This circuit function does not seem to exist in IntelliTouch.
+        [16, { name: 'intellibrite', desc: 'Intellibrite', isLight: true, theme: 'intellibrite' }],
+        [17, { name: 'magicstream', desc: 'Magicstream', isLight: true, theme: 'magicstream' }],
+        [19, { name: 'notused', desc: 'Not Used' }],
+        [65, { name: 'lotemp', desc: 'Lo-Temp' }],
+        [66, { name: 'hightemp', desc: 'Hi-Temp' }]
+    ]);
 
-  // Feature functions are used as the available options to define a circuit.
-  public featureFunctions: byteValueMap = new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
-  public virtualCircuits: byteValueMap = new byteValueMap([
-    [128, { name: 'solar', desc: 'Solar', assignableToPumpCircuit: true }],
-    [129, { name: 'heater', desc: 'Either Heater', assignableToPumpCircuit: true }],
-    [130, { name: 'poolHeater', desc: 'Pool Heater', assignableToPumpCircuit: true }],
-    [131, { name: 'spaHeater', desc: 'Spa Heater', assignableToPumpCircuit: true }],
-    [132, { name: 'freeze', desc: 'Freeze', assignableToPumpCircuit: true }],
-    [133, { name: 'heatBoost', desc: 'Heat Boost', assignableToPumpCircuit: false }],
-    [134, { name: 'heatEnable', desc: 'Heat Enable', assignableToPumpCircuit: false }],
-    [135, { name: 'pumpSpeedUp', desc: 'Pump Speed +', assignableToPumpCircuit: false }],
-    [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -', assignableToPumpCircuit: false }],
-    [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true }],
-    [258, { name: 'anyHeater', desc: 'Any Heater' }],
-  ]);
-  public lightThemes: byteValueMap = new byteValueMap([
-    [0, { name: 'off', desc: 'Off' }],
-    [1, { name: 'on', desc: 'On' }],
-    [128, { name: 'colorsync', desc: 'Color Sync' }],
-    [144, { name: 'colorswim', desc: 'Color Swim' }],
-    [160, { name: 'colorset', desc: 'Color Set' }],
-    [177, { name: 'party', desc: 'Party', types: ['intellibrite'], sequence: 2 }],
-    [178, { name: 'romance', desc: 'Romance', types: ['intellibrite'], sequence: 3 }],
-    [179, { name: 'caribbean', desc: 'Caribbean', types: ['intellibrite'], sequence: 4 }],
-    [180, { name: 'american', desc: 'American', types: ['intellibrite'], sequence: 5 }],
-    [181, { name: 'sunset', desc: 'Sunset', types: ['intellibrite'], sequence: 6 }],
-    [182, { name: 'royal', desc: 'Royal', types: ['intellibrite'], sequence: 7 }],
-    [190, { name: 'save', desc: 'Save', types: ['intellibrite'], sequence: 13 }],
-    [191, { name: 'recall', desc: 'Recall', types: ['intellibrite'], sequence: 14 }],
-    [193, { name: 'blue', desc: 'Blue', types: ['intellibrite'], sequence: 8 }],
-    [194, { name: 'green', desc: 'Green', types: ['intellibrite'], sequence: 9 }],
-    [195, { name: 'red', desc: 'Red', types: ['intellibrite'], sequence: 10 }],
-    [196, { name: 'white', desc: 'White', types: ['intellibrite'], sequence: 11 }],
-    [197, { name: 'magenta', desc: 'Magenta', types: ['intellibrite'], sequence: 12 }],
-    [208, { name: 'thumper', desc: 'Thumper', types: ['magicstream'] }],
-    [209, { name: 'hold', desc: 'Hold', types: ['magicstream'] }],
-    [210, { name: 'reset', desc: 'Reset', types: ['magicstream'] }],
-    [211, { name: 'mode', desc: 'Mode', types: ['magicstream'] }],
-    [254, { name: 'unknown', desc: 'unknown' }],
-    [255, { name: 'none', desc: 'None' }]
-  ]);
-  public colorLogicThemes = new byteValueMap([
-    [0, { name: 'cloudwhite', desc: 'Cloud White', types: ['colorlogic'], sequence: 7 }],
-    [1, { name: 'deepsea', desc: 'Deep Sea', types: ['colorlogic'], sequence: 2 }],
-    [2, { name: 'royalblue', desc: 'Royal Blue', types: ['colorlogic'], sequence: 3 }],
-    [3, { name: 'afernoonskies', desc: 'Afternoon Skies', types: ['colorlogic'], sequence: 4 }],
-    [4, { name: 'aquagreen', desc: 'Aqua Green', types: ['colorlogic'], sequence: 5 }],
-    [5, { name: 'emerald', desc: 'Emerald', types: ['colorlogic'], sequence: 6 }],
-    [6, { name: 'warmred', desc: 'Warm Red', types: ['colorlogic'], sequence: 8 }],
-    [7, { name: 'flamingo', desc: 'Flamingo', types: ['colorlogic'], sequence: 9 }],
-    [8, { name: 'vividviolet', desc: 'Vivid Violet', types: ['colorlogic'], sequence: 10 }],
-    [9, { name: 'sangria', desc: 'Sangria', types: ['colorlogic'], sequence: 11 }],
-    [10, { name: 'twilight', desc: 'Twilight', types: ['colorlogic'], sequence: 12 }],
-    [11, { name: 'tranquility', desc: 'Tranquility', types: ['colorlogic'], sequence: 13 }],
-    [12, { name: 'gemstone', desc: 'Gemstone', types: ['colorlogic'], sequence: 14 }],
-    [13, { name: 'usa', desc: 'USA', types: ['colorlogic'], sequence: 15 }],
-    [14, { name: 'mardigras', desc: 'Mardi Gras', types: ['colorlogic'], sequence: 16 }],
-    [15, { name: 'cabaret', desc: 'Cabaret', types: ['colorlogic'], sequence: 17 }],
-    [255, { name: 'none', desc: 'None' }]
-  ]);
-  public lightCommands = new byteValueMap([
-    [4, { name: 'colorhold', desc: 'Hold', types: ['intellibrite', 'magicstream'], command: 'colorHold', sequence: 13 }],
-    [5, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite', 'magicstream'], command: 'colorRecall', sequence: 14 }],
-    [6, {
-      name: 'lightthumper', desc: 'Thumper', types: ['magicstream'], command: 'lightThumper', message: 'Toggling Thumper',
-      sequence: [ // Cycle party mode 3 times.
-        { isOn: false, timeout: 100 },
-        { isOn: true, timeout: 100 },
-        { isOn: false, timeout: 100 },
-        { isOn: true, timeout: 5000 },
-        { isOn: false, timeout: 100 },
-        { isOn: true, timeout: 100 },
-        { isOn: false, timeout: 100 },
-        { isOn: true, timeout: 5000 },
-        { isOn: false, timeout: 100 },
-        { isOn: true, timeout: 100 },
-        { isOn: false, timeout: 100 }
-      ]
-      }],
-      [7, {
-          name: 'colorsync', desc: 'Sync', types: ['colorlogic'], command: 'colorSync', message: 'Synchronizing Lights', endingTheme: 'voodoolounge',
-          sequence: [
-              { isOn: true, timeout: 1000 },
-              { isOn: false, timeout: 12000 },
-              { isOn: true }
-          ]
-      }],
-      [100, { name: 'settheme', types: ['all'], desc: 'Set Theme', message: 'Sequencing Theme' }]
-  ]);
-  public lightGroupCommands = new byteValueMap([
-    [1, { name: 'colorsync', desc: 'Sync', types: ['intellibrite'], command: 'colorSync', message:'Synchronizing' }],
-    [2, { name: 'colorset', desc: 'Set', types: ['intellibrite'], command: 'colorSet', message: 'Sequencing Set Operation' }],
-    [3, { name: 'colorswim', desc: 'Swim', types: ['intellibrite'], command: 'colorSwim', message:'Sequencing Swim Operation' }],
-    [4, { name: 'colorhold', desc: 'Hold', types: ['intellibrite', 'magicstream'], command: 'colorHold', message: 'Saving Current Colors', sequence: 13 }],
-    [5, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite', 'magicstream'], command: 'colorRecall', message: 'Recalling Saved Colors', sequence: 14 }],
-    [6, {
-      name: 'lightthumper', desc: 'Thumper', types: ['magicstream'], command: 'lightThumper', message: 'Toggling Thumper',
-      sequence: [ // Cycle party mode 3 times.
-        { isOn: false, timeout: 100 },
-        { isOn: true, timeout: 100 },
-        { isOn: false, timeout: 100 },
-        { isOn: true, timeout: 5000 },
-        { isOn: false, timeout: 100 },
-        { isOn: true, timeout: 100 },
-        { isOn: false, timeout: 100 },
-        { isOn: true, timeout: 5000 },
-        { isOn: false, timeout: 100 },
-        { isOn: true, timeout: 100 },
-        { isOn: false, timeout: 100 },
-        { isOn: true, timeout: 1000 },
-      ]
-    }]
-  ]);
-  public circuitActions: byteValueMap = new byteValueMap([
-    [0, { name: 'ready', desc: 'Ready' }],
-    [1, { name: 'colorsync', desc: 'Synchronizing' }],
-    [2, { name: 'colorset', desc: 'Sequencing Set Operation' }],
-    [3, { name: 'colorswim', desc: 'Sequencing Swim Operation' }],
-    [4, { name: 'lighttheme', desc: 'Sequencing Theme/Color Operation' }],
-    [5, { name: 'colorhold', desc: 'Saving Current Color' }],
-    [6, { name: 'colorrecall', desc: 'Recalling Saved Color' }],
-    [7, { name: 'lightthumper', desc: 'Setting Light Thumper' }],
-    [100, { name: 'settheme', desc: 'Setting Light Theme' }]
-  ]);
-  public lightColors: byteValueMap = new byteValueMap([
-    [0, { name: 'white', desc: 'White' }],
-    [2, { name: 'lightgreen', desc: 'Light Green' }],
-    [4, { name: 'green', desc: 'Green' }],
-    [6, { name: 'cyan', desc: 'Cyan' }],
-    [8, { name: 'blue', desc: 'Blue' }],
-    [10, { name: 'lavender', desc: 'Lavender' }],
-    [12, { name: 'magenta', desc: 'Magenta' }],
-    [14, { name: 'lightmagenta', desc: 'Light Magenta' }]
-  ]);
-  public scheduleDays: byteValueMap = new byteValueMap([
-    [1, { name: 'sat', desc: 'Saturday', dow: 6 }],
-    [2, { name: 'fri', desc: 'Friday', dow: 5 }],
-    [3, { name: 'thu', desc: 'Thursday', dow: 4 }],
-    [4, { name: 'wed', desc: 'Wednesday', dow: 3 }],
-    [5, { name: 'tue', desc: 'Tuesday', dow: 2 }],
-    [6, { name: 'mon', desc: 'Monday', dow: 1 }],
-    [7, { name: 'sun', desc: 'Sunday', dow: 0 }]
-  ]);
-  public scheduleTimeTypes: byteValueMap = new byteValueMap([
-    [0, { name: 'manual', desc: 'Manual' }]
-  ]);
-  public scheduleDisplayTypes: byteValueMap = new byteValueMap([
-    [0, { name: 'always', desc: 'Always' }],
-    [1, { name: 'active', desc: 'When Active' }],
-    [2, { name: 'never', desc: 'Never' }]
-  ]);
-  public pumpTypes: byteValueMap = new byteValueMap([
-    [1, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
-    [64, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
-    [65, { name: 'ds', desc: 'Two-Speed', maxCircuits: 40, hasAddress: false, hasBody: true }],
-    [128, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true }],
-    [169, { name: 'vssvrs', desc: 'IntelliFlo VS+SVRS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true }]
-  ]);
-  public pumpSSModels: byteValueMap = new byteValueMap([
-    [0, { name: 'unspecified', desc: 'Unspecified', amps: 0, pf: 0, volts: 0, watts: 0 }],
-    [1, { name: 'wf1hpE', desc: '1hp WhisperFlo E+', amps: 7.4, pf: .9, volts: 230, watts: 1532 }],
-    [2, { name: 'wf1hpMax', desc: '1hp WhisperFlo Max', amps: 9, pf: .87, volts: 230, watts: 1600 }],
-    [3, { name: 'generic15hp', desc: '1.5hp Pump', amps: 9.3, pf: .9, volts: 230, watts: 1925 }],
-    [4, { name: 'generic2hp', desc: '2hp Pump', amps: 12, pf: .9, volts: 230, watts: 2484 }],
-    [5, { name: 'generic25hp', desc: '2.5hp Pump', amps: 12.5, pf: .9, volts: 230, watts: 2587 }],
-    [6, { name: 'generic3hp', desc: '3hp Pump', amps: 13.5, pf: .9, volts: 230, watts: 2794 }]
-  ]);
-  public pumpDSModels: byteValueMap = new byteValueMap([
-    [0, { name: 'unspecified', desc: 'Unspecified', loAmps: 0, hiAmps: 0, pf: 0, volts: 0, loWatts: 0, hiWatts: 0 }],
-    [1, { name: 'generic1hp', desc: '1hp Pump', loAmps: 2.4, hiAmps: 6.5, pf: .9, volts: 230, loWatts: 497, hiWatts: 1345 }],
-    [2, { name: 'generic15hp', desc: '1.5hp Pump', loAmps: 2.7, hiAmps: 9.3, pf: .9, volts: 230, loWatts: 558, hiWatts: 1925 }],
-    [3, { name: 'generic2hp', desc: '2hp Pump', loAmps: 2.9, hiAmps: 12, pf: .9, volts: 230, loWatts: 600, hiWatts: 2484 }],
-    [4, { name: 'generic25hp', desc: '2.5hp Pump', loAmps: 3.1, hiAmps: 12.5, pf: .9, volts: 230, loWatts: 642, hiWatts: 2587 }],
-    [5, { name: 'generic3hp', desc: '3hp Pump', loAmps: 3.3, hiAmps: 13.5, pf: .9, volts: 230, loWatts: 683, hiWatts: 2794 }]
-  ]);
-  public pumpVSModels: byteValueMap = new byteValueMap([
-    [0, { name: 'intelliflovs', desc: 'IntelliFlo VS' }]
-  ]);
-  public pumpVFModels: byteValueMap = new byteValueMap([
-    [0, { name: 'intelliflovf', desc: 'IntelliFlo VF' }]
-  ]);
-  public pumpVSFModels: byteValueMap = new byteValueMap([
-    [0, { name: 'intelliflovsf', desc: 'IntelliFlo VSF' }]
-  ]);
-  public pumpVSSVRSModels: byteValueMap = new byteValueMap([
-    [0, { name: 'intelliflovssvrs', desc: 'IntelliFlo VS+SVRS' }]
-  ]);
-  // These are used for single-speed pump definitions.  Essentially the way this works is that when
-  // the body circuit is running the single speed pump is on.
-  public pumpBodies: byteValueMap = new byteValueMap([
-    [0, { name: 'pool', desc: 'Pool' }],
-    [101, { name: 'spa', desc: 'Spa' }],
-    [255, { name: 'poolspa', desc: 'Pool/Spa' }]
-  ]);
-  public heaterTypes: byteValueMap = new byteValueMap([
-    [1, { name: 'gas', desc: 'Gas Heater', hasAddress: false }],
-    [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false, hasCoolSetpoint: true, hasPreference: true }],
-    [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true, hasPreference: true }],
-    [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true, hasCoolSetpoint: true, hasPreference: true }],
-    [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
-    [6, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }],
-    [7, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
-  ]);
-  public heatModes: byteValueMap = new byteValueMap([
-    [0, { name: 'off', desc: 'Off' }],
-    [3, { name: 'heater', desc: 'Heater' }],
-    [5, { name: 'solar', desc: 'Solar Only' }],
-    [12, { name: 'solarpref', desc: 'Solar Preferred' }]
-  ]);
-  public heatSources: byteValueMap = new byteValueMap([
-    [0, { name: 'off', desc: 'No Heater' }],
-    [3, { name: 'heater', desc: 'Heater' }],
-    [5, { name: 'solar', desc: 'Solar Only' }],
-    [21, { name: 'solarpref', desc: 'Solar Preferred' }],
-    [32, { name: 'nochange', desc: 'No Change' }]
-  ]);
+    // Feature functions are used as the available options to define a circuit.
+    public featureFunctions: byteValueMap = new byteValueMap([[0, { name: 'generic', desc: 'Generic' }], [1, { name: 'spillway', desc: 'Spillway' }]]);
+    public virtualCircuits: byteValueMap = new byteValueMap([
+        [128, { name: 'solar', desc: 'Solar', assignableToPumpCircuit: true }],
+        [129, { name: 'heater', desc: 'Either Heater', assignableToPumpCircuit: true }],
+        [130, { name: 'poolHeater', desc: 'Pool Heater', assignableToPumpCircuit: true }],
+        [131, { name: 'spaHeater', desc: 'Spa Heater', assignableToPumpCircuit: true }],
+        [132, { name: 'freeze', desc: 'Freeze', assignableToPumpCircuit: true }],
+        [133, { name: 'heatBoost', desc: 'Heat Boost', assignableToPumpCircuit: false }],
+        [134, { name: 'heatEnable', desc: 'Heat Enable', assignableToPumpCircuit: false }],
+        [135, { name: 'pumpSpeedUp', desc: 'Pump Speed +', assignableToPumpCircuit: false }],
+        [136, { name: 'pumpSpeedDown', desc: 'Pump Speed -', assignableToPumpCircuit: false }],
+        [255, { name: 'notused', desc: 'NOT USED', assignableToPumpCircuit: true }],
+        [258, { name: 'anyHeater', desc: 'Any Heater' }],
+    ]);
+    public lightThemes: byteValueMap = new byteValueMap([
+        [0, { name: 'off', desc: 'Off' }],
+        [1, { name: 'on', desc: 'On' }],
+        [128, { name: 'colorsync', desc: 'Color Sync' }],
+        [144, { name: 'colorswim', desc: 'Color Swim' }],
+        [160, { name: 'colorset', desc: 'Color Set' }],
+        [177, { name: 'party', desc: 'Party', types: ['intellibrite'], sequence: 2 }],
+        [178, { name: 'romance', desc: 'Romance', types: ['intellibrite'], sequence: 3 }],
+        [179, { name: 'caribbean', desc: 'Caribbean', types: ['intellibrite'], sequence: 4 }],
+        [180, { name: 'american', desc: 'American', types: ['intellibrite'], sequence: 5 }],
+        [181, { name: 'sunset', desc: 'Sunset', types: ['intellibrite'], sequence: 6 }],
+        [182, { name: 'royal', desc: 'Royal', types: ['intellibrite'], sequence: 7 }],
+        [190, { name: 'save', desc: 'Save', types: ['intellibrite'], sequence: 13 }],
+        [191, { name: 'recall', desc: 'Recall', types: ['intellibrite'], sequence: 14 }],
+        [193, { name: 'blue', desc: 'Blue', types: ['intellibrite'], sequence: 8 }],
+        [194, { name: 'green', desc: 'Green', types: ['intellibrite'], sequence: 9 }],
+        [195, { name: 'red', desc: 'Red', types: ['intellibrite'], sequence: 10 }],
+        [196, { name: 'white', desc: 'White', types: ['intellibrite'], sequence: 11 }],
+        [197, { name: 'magenta', desc: 'Magenta', types: ['intellibrite'], sequence: 12 }],
+        [208, { name: 'thumper', desc: 'Thumper', types: ['magicstream'] }],
+        [209, { name: 'hold', desc: 'Hold', types: ['magicstream'] }],
+        [210, { name: 'reset', desc: 'Reset', types: ['magicstream'] }],
+        [211, { name: 'mode', desc: 'Mode', types: ['magicstream'] }],
+        [254, { name: 'unknown', desc: 'unknown' }],
+        [255, { name: 'none', desc: 'None' }]
+    ]);
+    public colorLogicThemes = new byteValueMap([
+        [0, { name: 'cloudwhite', desc: 'Cloud White', types: ['colorlogic'], sequence: 7 }],
+        [1, { name: 'deepsea', desc: 'Deep Sea', types: ['colorlogic'], sequence: 2 }],
+        [2, { name: 'royalblue', desc: 'Royal Blue', types: ['colorlogic'], sequence: 3 }],
+        [3, { name: 'afernoonskies', desc: 'Afternoon Skies', types: ['colorlogic'], sequence: 4 }],
+        [4, { name: 'aquagreen', desc: 'Aqua Green', types: ['colorlogic'], sequence: 5 }],
+        [5, { name: 'emerald', desc: 'Emerald', types: ['colorlogic'], sequence: 6 }],
+        [6, { name: 'warmred', desc: 'Warm Red', types: ['colorlogic'], sequence: 8 }],
+        [7, { name: 'flamingo', desc: 'Flamingo', types: ['colorlogic'], sequence: 9 }],
+        [8, { name: 'vividviolet', desc: 'Vivid Violet', types: ['colorlogic'], sequence: 10 }],
+        [9, { name: 'sangria', desc: 'Sangria', types: ['colorlogic'], sequence: 11 }],
+        [10, { name: 'twilight', desc: 'Twilight', types: ['colorlogic'], sequence: 12 }],
+        [11, { name: 'tranquility', desc: 'Tranquility', types: ['colorlogic'], sequence: 13 }],
+        [12, { name: 'gemstone', desc: 'Gemstone', types: ['colorlogic'], sequence: 14 }],
+        [13, { name: 'usa', desc: 'USA', types: ['colorlogic'], sequence: 15 }],
+        [14, { name: 'mardigras', desc: 'Mardi Gras', types: ['colorlogic'], sequence: 16 }],
+        [15, { name: 'cabaret', desc: 'Cabaret', types: ['colorlogic'], sequence: 17 }],
+        [255, { name: 'none', desc: 'None' }]
+    ]);
+    public lightCommands = new byteValueMap([
+        [4, { name: 'colorhold', desc: 'Hold', types: ['intellibrite', 'magicstream'], command: 'colorHold', sequence: 13 }],
+        [5, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite', 'magicstream'], command: 'colorRecall', sequence: 14 }],
+        [6, {
+            name: 'lightthumper', desc: 'Thumper', types: ['magicstream'], command: 'lightThumper', message: 'Toggling Thumper',
+            sequence: [ // Cycle party mode 3 times.
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 100 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 5000 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 100 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 5000 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 100 },
+                { isOn: false, timeout: 100 }
+            ]
+        }],
+        [7, {
+            name: 'colorsync', desc: 'Sync', types: ['colorlogic'], command: 'colorSync', message: 'Synchronizing Lights', endingTheme: 'voodoolounge',
+            sequence: [
+                { isOn: true, timeout: 1000 },
+                { isOn: false, timeout: 12000 },
+                { isOn: true }
+            ]
+        }],
+        [100, { name: 'settheme', types: ['all'], desc: 'Set Theme', message: 'Sequencing Theme' }]
+    ]);
+    public lightGroupCommands = new byteValueMap([
+        [1, { name: 'colorsync', desc: 'Sync', types: ['intellibrite'], command: 'colorSync', message: 'Synchronizing' }],
+        [2, { name: 'colorset', desc: 'Set', types: ['intellibrite'], command: 'colorSet', message: 'Sequencing Set Operation' }],
+        [3, { name: 'colorswim', desc: 'Swim', types: ['intellibrite'], command: 'colorSwim', message: 'Sequencing Swim Operation' }],
+        [4, { name: 'colorhold', desc: 'Hold', types: ['intellibrite', 'magicstream'], command: 'colorHold', message: 'Saving Current Colors', sequence: 13 }],
+        [5, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite', 'magicstream'], command: 'colorRecall', message: 'Recalling Saved Colors', sequence: 14 }],
+        [6, {
+            name: 'lightthumper', desc: 'Thumper', types: ['magicstream'], command: 'lightThumper', message: 'Toggling Thumper',
+            sequence: [ // Cycle party mode 3 times.
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 100 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 5000 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 100 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 5000 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 100 },
+                { isOn: false, timeout: 100 },
+                { isOn: true, timeout: 1000 },
+            ]
+        }]
+    ]);
+    public circuitActions: byteValueMap = new byteValueMap([
+        [0, { name: 'ready', desc: 'Ready' }],
+        [1, { name: 'colorsync', desc: 'Synchronizing' }],
+        [2, { name: 'colorset', desc: 'Sequencing Set Operation' }],
+        [3, { name: 'colorswim', desc: 'Sequencing Swim Operation' }],
+        [4, { name: 'lighttheme', desc: 'Sequencing Theme/Color Operation' }],
+        [5, { name: 'colorhold', desc: 'Saving Current Color' }],
+        [6, { name: 'colorrecall', desc: 'Recalling Saved Color' }],
+        [7, { name: 'lightthumper', desc: 'Setting Light Thumper' }],
+        [100, { name: 'settheme', desc: 'Setting Light Theme' }]
+    ]);
+    public lightColors: byteValueMap = new byteValueMap([
+        [0, { name: 'white', desc: 'White' }],
+        [2, { name: 'lightgreen', desc: 'Light Green' }],
+        [4, { name: 'green', desc: 'Green' }],
+        [6, { name: 'cyan', desc: 'Cyan' }],
+        [8, { name: 'blue', desc: 'Blue' }],
+        [10, { name: 'lavender', desc: 'Lavender' }],
+        [12, { name: 'magenta', desc: 'Magenta' }],
+        [14, { name: 'lightmagenta', desc: 'Light Magenta' }]
+    ]);
+    public scheduleDays: byteValueMap = new byteValueMap([
+        [1, { name: 'sat', desc: 'Saturday', dow: 6 }],
+        [2, { name: 'fri', desc: 'Friday', dow: 5 }],
+        [3, { name: 'thu', desc: 'Thursday', dow: 4 }],
+        [4, { name: 'wed', desc: 'Wednesday', dow: 3 }],
+        [5, { name: 'tue', desc: 'Tuesday', dow: 2 }],
+        [6, { name: 'mon', desc: 'Monday', dow: 1 }],
+        [7, { name: 'sun', desc: 'Sunday', dow: 0 }]
+    ]);
+    public scheduleTimeTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'manual', desc: 'Manual' }]
+    ]);
+    public scheduleDisplayTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'always', desc: 'Always' }],
+        [1, { name: 'active', desc: 'When Active' }],
+        [2, { name: 'never', desc: 'Never' }]
+    ]);
+    public pumpTypes: byteValueMap = new byteValueMap([
+        [1, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
+        [64, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
+        [65, { name: 'ds', desc: 'Two-Speed', maxCircuits: 40, hasAddress: false, hasBody: true }],
+        [128, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true }],
+        [169, { name: 'vssvrs', desc: 'IntelliFlo VS+SVRS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true }]
+    ]);
+    public pumpSSModels: byteValueMap = new byteValueMap([
+        [0, { name: 'unspecified', desc: 'Unspecified', amps: 0, pf: 0, volts: 0, watts: 0 }],
+        [1, { name: 'wf1hpE', desc: '1hp WhisperFlo E+', amps: 7.4, pf: .9, volts: 230, watts: 1532 }],
+        [2, { name: 'wf1hpMax', desc: '1hp WhisperFlo Max', amps: 9, pf: .87, volts: 230, watts: 1600 }],
+        [3, { name: 'generic15hp', desc: '1.5hp Pump', amps: 9.3, pf: .9, volts: 230, watts: 1925 }],
+        [4, { name: 'generic2hp', desc: '2hp Pump', amps: 12, pf: .9, volts: 230, watts: 2484 }],
+        [5, { name: 'generic25hp', desc: '2.5hp Pump', amps: 12.5, pf: .9, volts: 230, watts: 2587 }],
+        [6, { name: 'generic3hp', desc: '3hp Pump', amps: 13.5, pf: .9, volts: 230, watts: 2794 }]
+    ]);
+    public pumpDSModels: byteValueMap = new byteValueMap([
+        [0, { name: 'unspecified', desc: 'Unspecified', loAmps: 0, hiAmps: 0, pf: 0, volts: 0, loWatts: 0, hiWatts: 0 }],
+        [1, { name: 'generic1hp', desc: '1hp Pump', loAmps: 2.4, hiAmps: 6.5, pf: .9, volts: 230, loWatts: 497, hiWatts: 1345 }],
+        [2, { name: 'generic15hp', desc: '1.5hp Pump', loAmps: 2.7, hiAmps: 9.3, pf: .9, volts: 230, loWatts: 558, hiWatts: 1925 }],
+        [3, { name: 'generic2hp', desc: '2hp Pump', loAmps: 2.9, hiAmps: 12, pf: .9, volts: 230, loWatts: 600, hiWatts: 2484 }],
+        [4, { name: 'generic25hp', desc: '2.5hp Pump', loAmps: 3.1, hiAmps: 12.5, pf: .9, volts: 230, loWatts: 642, hiWatts: 2587 }],
+        [5, { name: 'generic3hp', desc: '3hp Pump', loAmps: 3.3, hiAmps: 13.5, pf: .9, volts: 230, loWatts: 683, hiWatts: 2794 }]
+    ]);
+    public pumpVSModels: byteValueMap = new byteValueMap([
+        [0, { name: 'intelliflovs', desc: 'IntelliFlo VS' }]
+    ]);
+    public pumpVFModels: byteValueMap = new byteValueMap([
+        [0, { name: 'intelliflovf', desc: 'IntelliFlo VF' }]
+    ]);
+    public pumpVSFModels: byteValueMap = new byteValueMap([
+        [0, { name: 'intelliflovsf', desc: 'IntelliFlo VSF' }]
+    ]);
+    public pumpVSSVRSModels: byteValueMap = new byteValueMap([
+        [0, { name: 'intelliflovssvrs', desc: 'IntelliFlo VS+SVRS' }]
+    ]);
+    // These are used for single-speed pump definitions.  Essentially the way this works is that when
+    // the body circuit is running the single speed pump is on.
+    public pumpBodies: byteValueMap = new byteValueMap([
+        [0, { name: 'pool', desc: 'Pool' }],
+        [101, { name: 'spa', desc: 'Spa' }],
+        [255, { name: 'poolspa', desc: 'Pool/Spa' }]
+    ]);
+    public heaterTypes: byteValueMap = new byteValueMap([
+        [1, { name: 'gas', desc: 'Gas Heater', hasAddress: false }],
+        [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false, hasCoolSetpoint: true, hasPreference: true }],
+        [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true, hasPreference: true }],
+        [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true, hasCoolSetpoint: true, hasPreference: true }],
+        [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
+        [6, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }],
+        [7, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
+    ]);
+    public heatModes: byteValueMap = new byteValueMap([
+        [0, { name: 'off', desc: 'Off' }],
+        [3, { name: 'heater', desc: 'Heater' }],
+        [5, { name: 'solar', desc: 'Solar Only' }],
+        [12, { name: 'solarpref', desc: 'Solar Preferred' }]
+    ]);
+    public heatSources: byteValueMap = new byteValueMap([
+        [0, { name: 'off', desc: 'No Heater' }],
+        [3, { name: 'heater', desc: 'Heater' }],
+        [5, { name: 'solar', desc: 'Solar Only' }],
+        [21, { name: 'solarpref', desc: 'Solar Preferred' }],
+        [32, { name: 'nochange', desc: 'No Change' }]
+    ]);
     public heatStatus: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
         [1, { name: 'heater', desc: 'Heater' }],
@@ -481,75 +481,77 @@ export class byteValueMaps {
         [5, { name: 'dual', desc: 'Dual' }],
         [128, { name: 'cooldown', desc: 'Cooldown' }]
     ]);
-  public pumpStatus: byteValueMap = new byteValueMap([
-    [0, { name: 'off', desc: 'Off' }], // When the pump is disconnected or has no power then we simply report off as the status.  This is not the recommended wiring
-    // for a VS/VF pump as is should be powered at all times.  When it is, the status will always report a value > 0.
-    [1, { name: 'ok', desc: 'Ok' }], // Status is always reported when the pump is not wired to a relay regardless of whether it is on or not
-    // as is should be if this is a VS / VF pump.  However if it is wired to a relay most often filter, the pump will report status
-    // 0 if it is not running.  Essentially this is no error but it is not a status either.
-    [2, { name: 'filter', desc: 'Filter warning' }],
-    [3, { name: 'overcurrent', desc: 'Overcurrent condition' }],
-    [4, { name: 'priming', desc: 'Priming' }],
-    [5, { name: 'blocked', desc: 'System blocked' }],
-    [6, { name: 'general', desc: 'General alarm' }],
-    [7, { name: 'overtemp', desc: 'Overtemp condition' }],
-    [8, { name: 'power', dec: 'Power outage' }],
-    [9, { name: 'overcurrent2', desc: 'Overcurrent condition 2' }],
-    [10, { name: 'overvoltage', desc: 'Overvoltage condition' }],
-    [11, { name: 'error11', desc: 'Unspecified Error 11' }],
-    [12, { name: 'error12', desc: 'Unspecified Error 12' }],
-    [13, { name: 'error13', desc: 'Unspecified Error 13' }],
-    [14, { name: 'error14', desc: 'Unspecified Error 14' }],
-    [15, { name: 'error15', desc: 'Unspecified Error 15' }],
-    [16, { name: 'commfailure', desc: 'Communication failure' }]
-  ]);
-  public pumpUnits: byteValueMap = new byteValueMap([
-    [0, { name: 'rpm', desc: 'RPM' }],
-    [1, { name: 'gpm', desc: 'GPM' }]
-  ]);
-  public bodyTypes: byteValueMap = new byteValueMap([
-    [0, { name: 'pool', desc: 'Pool' }],
-    [1, { name: 'spa', desc: 'Spa' }],
-    [2, { name: 'spa', desc: 'Spa' }],
-    [3, { name: 'spa', desc: 'Spa' }]
-  ]);
-  public bodies: byteValueMap = new byteValueMap([
-    [0, { name: 'pool', desc: 'Pool' }],
-    [1, { name: 'spa', desc: 'Spa' }],
-    [2, { name: 'body3', desc: 'Body 3' }],
-    [3, { name: 'body4', desc: 'Body 4' }],
-    [32, { name: 'poolspa', desc: 'Pool/Spa' }]
-  ]);
-  public chlorinatorStatus: byteValueMap = new byteValueMap([
-    [0, { name: 'ok', desc: 'Ok' }],
-    [1, { name: 'lowflow', desc: 'Low Flow' }],
-    [2, { name: 'lowsalt', desc: 'Low Salt' }],
-    [3, { name: 'verylowsalt', desc: 'Very Low Salt' }],
-    [4, { name: 'highcurrent', desc: 'High Current' }],
-    [5, { name: 'clean', desc: 'Clean Cell' }],
-    [6, { name: 'lowvoltage', desc: 'Low Voltage' }],
-    [7, { name: 'lowtemp', desc: 'Water Temp Low' }],
-    [8, { name: 'commlost', desc: 'Communication Lost' }]
-  ]);
-  public chlorinatorType: byteValueMap = new byteValueMap([
-    [0, { name: 'pentair', desc: 'Pentair' }],
-    [1, { name: 'unknown', desc: 'unknown' }],
-    [2, { name: 'aquarite', desc: 'Aquarite' }],
-    [3, { name: 'unknown', desc: 'unknown' }]
-  ]);
-  public chlorinatorModel: byteValueMap = new byteValueMap([
-    [0, { name: 'unknown', desc: 'unknown', capacity: 0, chlorinePerDay: 0, chlorinePerSec: 0 }],
-    [1, { name: 'intellichlor--15', desc: 'IntelliChlor IC15', capacity: 15000, chlorinePerDay: 0.60, chlorinePerSec: 0.60 / 86400 }],
-    [2, { name: 'intellichlor--20', desc: 'IntelliChlor IC20', capacity: 20000, chlorinePerDay: 0.70, chlorinePerSec: 0.70 / 86400 }],
-    [3, { name: 'intellichlor--40', desc: 'IntelliChlor IC40', capacity: 40000, chlorinePerDay: 1.40, chlorinePerSec: 1.4 / 86400 }],
-    [4, { name: 'intellichlor--60', desc: 'IntelliChlor IC60', capacity: 60000, chlorinePerDay: 2, chlorinePerSec: 2 / 86400 }],
-    [5, { name: 'aquarite-t15', desc: 'AquaRite T15', capacity: 40000, chlorinePerDay: 1.47, chlorinePerSec: 1.47 / 86400 }],
-    [6, { name: 'aquarite-t9', desc: 'AquaRite T9', capacity: 30000, chlorinePerDay: 0.98, chlorinePerSec: 0.98 / 86400 }],
-    [7, { name: 'aquarite-t5', desc: 'AquaRite T5', capacity: 20000, chlorinePerDay: 0.735, chlorinePerSec: 0.735 / 86400 }],
-    [8, { name: 'aquarite-t3', desc: 'AquaRite T3', capacity: 15000, chlorinePerDay: 0.53, chlorinePerSec: 0.53 / 86400 }],
-    [9, { name: 'aquarite-925', desc: 'AquaRite 925', capacity: 25000, chlorinePerDay: 0.98, chlorinePerSec: 0.98 / 86400 }],
-    [10, { name: 'aquarite-940', desc: 'AquaRite 940', capacity: 40000, chlorinePerDay: 1.47, chlorinePerSec: 1.47 / 86400 }]
-  ])
+    public pumpStatus: byteValueMap = new byteValueMap([
+        [0, { name: 'off', desc: 'Off' }], // When the pump is disconnected or has no power then we simply report off as the status.  This is not the recommended wiring
+        // for a VS/VF pump as is should be powered at all times.  When it is, the status will always report a value > 0.
+        [1, { name: 'ok', desc: 'Ok' }], // Status is always reported when the pump is not wired to a relay regardless of whether it is on or not
+        // as is should be if this is a VS / VF pump.  However if it is wired to a relay most often filter, the pump will report status
+        // 0 if it is not running.  Essentially this is no error but it is not a status either.
+        [2, { name: 'filter', desc: 'Filter warning' }],
+        [3, { name: 'overcurrent', desc: 'Overcurrent condition' }],
+        [4, { name: 'priming', desc: 'Priming' }],
+        [5, { name: 'blocked', desc: 'System blocked' }],
+        [6, { name: 'general', desc: 'General alarm' }],
+        [7, { name: 'overtemp', desc: 'Overtemp condition' }],
+        [8, { name: 'power', dec: 'Power outage' }],
+        [9, { name: 'overcurrent2', desc: 'Overcurrent condition 2' }],
+        [10, { name: 'overvoltage', desc: 'Overvoltage condition' }],
+        [11, { name: 'error11', desc: 'Unspecified Error 11' }],
+        [12, { name: 'error12', desc: 'Unspecified Error 12' }],
+        [13, { name: 'error13', desc: 'Unspecified Error 13' }],
+        [14, { name: 'error14', desc: 'Unspecified Error 14' }],
+        [15, { name: 'error15', desc: 'Unspecified Error 15' }],
+        [16, { name: 'commfailure', desc: 'Communication failure' }]
+    ]);
+    public pumpUnits: byteValueMap = new byteValueMap([
+        [0, { name: 'rpm', desc: 'RPM' }],
+        [1, { name: 'gpm', desc: 'GPM' }]
+    ]);
+    public bodyTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'pool', desc: 'Pool' }],
+        [1, { name: 'spa', desc: 'Spa' }],
+        [2, { name: 'spa', desc: 'Spa' }],
+        [3, { name: 'spa', desc: 'Spa' }]
+    ]);
+    public bodies: byteValueMap = new byteValueMap([
+        [0, { name: 'pool', desc: 'Pool' }],
+        [1, { name: 'spa', desc: 'Spa' }],
+        [2, { name: 'body3', desc: 'Body 3' }],
+        [3, { name: 'body4', desc: 'Body 4' }],
+        [32, { name: 'poolspa', desc: 'Pool/Spa' }]
+    ]);
+    public chlorinatorStatus: byteValueMap = new byteValueMap([
+        [0, { name: 'ok', desc: 'Ok' }],
+        [1, { name: 'lowflow', desc: 'Low Flow' }],
+        [2, { name: 'lowsalt', desc: 'Low Salt' }],
+        [3, { name: 'verylowsalt', desc: 'Very Low Salt' }],
+        [4, { name: 'highcurrent', desc: 'High Current' }],
+        [5, { name: 'clean', desc: 'Clean Cell' }],
+        [6, { name: 'lowvoltage', desc: 'Low Voltage' }],
+        [7, { name: 'lowtemp', desc: 'Water Temp Low' }],
+        [8, { name: 'commlost', desc: 'Communication Lost' }]
+    ]);
+    public chlorinatorType: byteValueMap = new byteValueMap([
+        [0, { name: 'pentair', desc: 'Pentair' }],
+        [1, { name: 'unknown', desc: 'unknown' }],
+        [2, { name: 'aquarite', desc: 'Aquarite' }],
+        [3, { name: 'unknown', desc: 'unknown' }]
+    ]);
+    public chlorinatorModel: byteValueMap = new byteValueMap([
+        [0, { name: 'unknown', desc: 'unknown', capacity: 0, chlorinePerDay: 0, chlorinePerSec: 0 }],
+        [1, { name: 'intellichlor--15', desc: 'IntelliChlor IC15', capacity: 15000, chlorinePerDay: 0.60, chlorinePerSec: 0.60 / 86400 }],
+        [2, { name: 'intellichlor--20', desc: 'IntelliChlor IC20', capacity: 20000, chlorinePerDay: 0.70, chlorinePerSec: 0.70 / 86400 }],
+        [3, { name: 'intellichlor--40', desc: 'IntelliChlor IC40', capacity: 40000, chlorinePerDay: 1.40, chlorinePerSec: 1.4 / 86400 }],
+        [4, { name: 'intellichlor--60', desc: 'IntelliChlor IC60', capacity: 60000, chlorinePerDay: 2.0, chlorinePerSec: 2.0 / 86400 }],
+        [5, { name: 'aquarite-t15', desc: 'AquaRite T15', capacity: 40000, chlorinePerDay: 1.47, chlorinePerSec: 1.47 / 86400 }],
+        [6, { name: 'aquarite-t9', desc: 'AquaRite T9', capacity: 30000, chlorinePerDay: 0.98, chlorinePerSec: 0.98 / 86400 }],
+        [7, { name: 'aquarite-t5', desc: 'AquaRite T5', capacity: 20000, chlorinePerDay: 0.735, chlorinePerSec: 0.735 / 86400 }],
+        [8, { name: 'aquarite-t3', desc: 'AquaRite T3', capacity: 15000, chlorinePerDay: 0.53, chlorinePerSec: 0.53 / 86400 }],
+        [9, { name: 'aquarite-925', desc: 'AquaRite 925', capacity: 25000, chlorinePerDay: 0.98, chlorinePerSec: 0.98 / 86400 }],
+        [10, { name: 'aquarite-940', desc: 'AquaRite 940', capacity: 40000, chlorinePerDay: 1.47, chlorinePerSec: 1.47 / 86400 }],
+        [11, { name: 'ichlor-ic15', desc: 'iChlor IC15', capacity: 15000, chlorinePerDay: 0.6, chlorinePerSec: 0.6 / 86400 }],
+        [12, { name: 'ichlor-ic30', desc: 'iChlor IC30', capacity: 30000, chlorinePerDay: 1.0, chlorinePerSec: 1.0 / 86400 }]
+    ]);
   public customNames: byteValueMap = new byteValueMap();
   public circuitNames: byteValueMap = new byteValueMap();
   public scheduleTypes: byteValueMap = new byteValueMap([
@@ -3419,7 +3421,7 @@ export class ChlorinatorCommands extends BoardCommands {
       }
       else chlor = sys.chlorinators.getItemById(id, false);
 
-      if (chlor.master === 1)
+      if (chlor.master >= 1)
         await ncp.chlorinators.setChlorinatorAsync(chlor, obj);
       else {
         let body = sys.board.bodies.mapBodyAssociation(typeof obj.body !== 'undefined' ? parseInt(obj.body, 10) : chlor.body);

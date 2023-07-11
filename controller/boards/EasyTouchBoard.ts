@@ -1963,14 +1963,18 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
                 if (typeof superChlorinate === 'undefined') superChlorinate = utils.makeBool(chlor.superChlor);
             }
             if (typeof obj.disabled !== 'undefined') chlor.disabled = utils.makeBool(obj.disabled);
+            if (typeof obj.body !== 'undefined') chlor.body = parseInt(obj.body, 10);
             if (typeof chlor.body === 'undefined') chlor.body = parseInt(obj.body, 10) || 32;
             // Verify the data.
-            let body = sys.board.bodies.mapBodyAssociation(chlor.body).val;
-            if (typeof body === 'undefined') {
+            let bdy = sys.board.bodies.mapBodyAssociation(chlor.body || 0);
+            let body;
+            if (typeof bdy === 'undefined') {
                 if (sys.equipment.shared) body = 32;
                 else if (!sys.equipment.dual) body = 0;
                 else return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body association is not valid: ${body}`, 'chlorinator', body));
             }
+            else
+                body = bdy.val;
             if (poolSetpoint > 100 || poolSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator poolSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.poolSetpoint));
             if (spaSetpoint > 100 || spaSetpoint < 0) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator spaSetpoint is out of range: ${chlor.poolSetpoint}`, 'chlorinator', chlor.spaSetpoint));
             if (typeof obj.ignoreSaltReading !== 'undefined') chlor.ignoreSaltReading = utils.makeBool(obj.ignoreSaltReading);
@@ -2032,7 +2036,7 @@ class TouchChlorinatorCommands extends ChlorinatorCommands {
             let id = parseInt(obj.id, 10);
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentDataError(`Chlorinator id is not valid: ${obj.id}`, 'chlorinator', obj.id));
             let chlor = sys.chlorinators.getItemById(id);
-            if (chlor.master === 1) return await super.deleteChlorAsync(obj);
+            if (chlor.master >= 1) return await super.deleteChlorAsync(obj);
             if (sl.enabled) {
                 await sl.chlor.setChlorEnabledAsync(false);
             }
