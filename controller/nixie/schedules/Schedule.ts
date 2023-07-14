@@ -4,7 +4,7 @@ import { logger } from '../../../logger/Logger';
 
 import { NixieEquipment, NixieChildEquipment, NixieEquipmentCollection, INixieControlPanel } from "../NixieEquipment";
 import { CircuitGroup, CircuitGroupCircuit, ICircuitGroup, ICircuitGroupCircuit, LightGroup, LightGroupCircuit, Schedule, ScheduleCollection, sys } from "../../../controller/Equipment";
-import { CircuitGroupState, ICircuitGroupState, ScheduleState, state, } from "../../State";
+import { ICircuitState, CircuitGroupState, ICircuitGroupState, ScheduleState, ScheduleTime, state, } from "../../State";
 import { setTimeout, clearTimeout } from 'timers';
 import { NixieControlPanel } from '../Nixie';
 import { webApp, InterfaceServerResponse } from "../../../web/Server";
@@ -24,9 +24,8 @@ export class NixieScheduleCollection extends NixieEquipmentCollection<NixieSched
                 await c.setScheduleAsync(data);
                 logger.info(`A Schedule was not found for id #${schedule.id} creating Schedule`);
             }
-            else {
+            else 
                 await c.setScheduleAsync(data);
-            }
         }
         catch (err) { logger.error(`setScheduleAsync: ${err.message}`); return Promise.reject(err); }
     }
@@ -47,24 +46,155 @@ export class NixieScheduleCollection extends NixieEquipmentCollection<NixieSched
     }
     public async triggerSchedules() {
         try {
-            let ctx = new NixieScheduleContext();
-            for (let i = 0; i < this.length; i++) {
-                (this[i] as NixieSchedule).triggerScheduleAsync(ctx);
+            // This is a listing of all the active schedules that are either currently on or should be on.
+            let sscheds: ScheduleState[] = state.schedules.getActiveSchedules();
+            // Go through all the schedules and hash them by circuit id.
+            let circuits: { circuitId: number, cstate: ICircuitState, sscheds: ScheduleState[] }[] = []
+            for (let i = 0; i < sscheds.length; i++) {
+                let circ = circuits.find(elem => elem.circuitId === sscheds[i].circuit);
+                if (typeof circ === 'undefined') circuits.push({
+                    circuitId: sscheds[i].circuit,
+                    cstate: state.circuits.getInterfaceById(sscheds[i].circuit), sscheds: [sscheds[i]]
+                });
+                else circ.sscheds.push(sscheds[i]);
             }
-            // Set the heat modes for the bodies.
-            for (let i = 0; i < ctx.heatModes.length; i++) {
-                let mode = ctx.heatModes[i];
-                let body = sys.bodies.getItemById(mode.id);
-                await sys.board.bodies.setHeatModeAsync(sys.bodies.getItemById(mode.id), mode.heatMode);
-                if (typeof mode.heatSetpoint !== 'undefined') await sys.board.bodies.setHeatSetpointAsync(body, mode.heatSetpoint);
-                if (typeof mode.coolSetpoint !== 'undefined') await sys.board.bodies.setCoolSetpointAsync(body, mode.coolSetpoint);
+            /*
+            RSG 5-8-22
+            Manual OP needs to play a role here.From the IC manual: 
+            # Manual OP General
+
+            From the manual: 
+            Manual OP Priority: ON: This feature allows for a circuit to be manually switched OFF and switched ON within a scheduled program, 
+            the circuit will continue to run for a maximum of 12 hours or whatever that circuit Egg Timer is set to, after which the scheduled 
+            program will resume. This feature will turn off any scheduled program to allow manual pump override.The Default setting is OFF.
+
+            ## When on
+            1.  If a schedule should be on and the user turns the schedule off then the schedule expires until such time as the time off has 
+            expired.When that occurs the schedule should be reset to run at the designated time.If the user resets the schedule by turning the 
+            circuit back on again ~~then the schedule will resume and turn off at the specified time~~then the schedule will be ignored and 
+            the circuit will run until the egg timer expires or the circuit / feature is manually turned off.This setting WILL affect 
+            other schedules that may impact this circuit.
+
+            ## When off
+            1. "Normal" = If a schedule should be on and the user turns the schedule off then the schedule expires until such time as the time 
+            off has expired.When that occurs the schedule should be reset to run at the designated time.If the user resets the schedule by 
+            turning the circuit back on again then the schedule will resume and turn off at the specified time.
+            */
+
+            let mOP = sys.general.options.manualPriority;
+
+            // Now lets evaluate the schedules by virtue of their state related to the circuits.
+            for (let i = 0; i < circuits.length; i++) {
+                let c = circuits[i];
+                let shouldBeOn = typeof c.sscheds.find(elem => elem.scheduleTime.shouldBeOn === true) !== 'undefined';
+                // 1. If the feature is currently running and the schedule is not on then it will set the priority for the circuit to [scheduled].
+                // 2. If the feature is currently running but there are overlapping schedules then this will catch any schedules that need to be turned off.
+                if (c.cstate.isOn && shouldBeOn) {
+                    c.cstate.priority = shouldBeOn ? 'scheduled' : 'manual';
+                    for (let j = 0; j < c.sscheds.length; j++) {
+                        let ssched = c.sscheds[j];
+                        ssched.triggered = ssched.scheduleTime.shouldBeOn;
+                        if (mOP && ssched.manualPriorityActive) {
+                            ssched.isOn = false;
+                            // Not sure what setting a delay for this does but ok.
+                            if (!c.cstate.manualPriorityActive) delayMgr.setManualPriorityDelay(c.cstate);
+                        }
+                        else ssched.isOn = ssched.scheduleTime.shouldBeOn && !ssched.manualPriorityActive;
+                    }
+                }
+                // 3. If the schedule should be on and it isn't and the schedule has not been triggered then we need to 
+                // turn the schedule and circuit on.
+                else if (!c.cstate.isOn && shouldBeOn) {
+                    // The circuit is not on but it should be. Check to ensure all schedules have been triggered.
+                    let untriggered = false;
+                    // If this schedule has been triggered then mOP comes into play if manualPriority has been set in the config.
+                    for (let j = 0; j < c.sscheds.length; j++) {
+                        let ssched = c.sscheds[j];
+                        // If this schedule is turned back on then the egg timer will come into play.  This is all that is required
+                        // for the mOP function.  The setEndDate for the circuit makes the determination as to when off will occur.
+                        if (mOP && ssched.scheduleTime.shouldBeOn && ssched.triggered) {
+                            ssched.manualPriorityActive = true;
+                        }
+                        // The reason we check to see if anything has not been triggered is so we do not have to perform the circuit changes
+                        // if the schedule has already been triggered.
+                        else if (!ssched.triggered) untriggered = true;
+                    }
+                    let heatSource = { heatMode: 'nochange', heatSetpoint: undefined, coolSetpoint: undefined };
+                    // Check to see if any of the schedules have not been triggered.  If they haven't then trigger them and turn the circuit on.
+                    if (untriggered) {
+                        // Get the heat modes and temps for all the schedules that have not been triggered.
+                        let body = sys.bodies.find(elem => elem.circuit === c.circuitId);
+                        if (typeof body !== 'undefined') {
+                            // If this is a body circuit then we need to set the heat mode and the temperature but only do this once. If
+                            // the user changes it later then that is on them.
+                            for (let j = 0; j < c.sscheds.length; j++) {
+                                if (sscheds[j].triggered) continue;
+                                let ssched = sscheds[j];
+                                let hs = sys.board.valueMaps.heatSources.transform(c.sscheds[i].heatSource);
+                                switch (hs.name) {
+                                    case 'nochange':
+                                    case 'dontchange':
+                                        break;
+                                    case 'off':
+                                        // If the heatsource setting is off only change it if it is currently don't change.
+                                        if (heatSource.heatMode === 'nochange') heatSource.heatMode = hs.name;
+                                        break;
+                                    default:
+                                        switch (heatSource.heatMode) {
+                                            case 'off':
+                                            case 'nochange':
+                                            case 'dontchange':
+                                                heatSource.heatMode = hs.name;
+                                                heatSource.heatSetpoint = ssched.heatSetpoint;
+                                                heatSource.coolSetpoint = hs.hasCoolSetpoint ? ssched.coolSetpoint : undefined;
+                                                break;
+                                        }
+                                        break;
+                                }
+                                // Ok if we need to change the setpoint or the heatmode then lets do it.
+                                if (heatSource.heatMode !== 'nochange') {
+                                    await sys.board.bodies.setHeatModeAsync(body, sys.board.valueMaps.heatSources.getValue(heatSource.heatMode));
+                                    if (typeof heatSource.heatSetpoint !== 'undefined') await sys.board.bodies.setHeatSetpointAsync(body, heatSource.heatSetpoint);
+                                    if (typeof heatSource.coolSetpoint !== 'undefined') await sys.board.bodies.setCoolSetpointAsync(body, heatSource.coolSetpoint);
+                                }
+                            }
+                        }
+                        // By now we have everything we need to turn on the circuit.
+                        for (let j = 0; j < c.sscheds.length; j++) {
+                            let ssched = c.sscheds[j];
+                            if (!ssched.triggered && ssched.scheduleTime.shouldBeOn) {
+                                if (!c.cstate.isOn) {
+                                    await sys.board.circuits.setCircuitStateAsync(c.circuitId, true);
+                                }
+                                let ssched = c.sscheds[j];
+                                c.cstate.priority = 'scheduled';
+                                ssched.triggered = ssched.isOn = ssched.scheduleTime.shouldBeOn;
+                                ssched.manualPriorityActive = false;
+                            }
+                        }
+                    }
+                }
+                else if (c.cstate.isOn && !shouldBeOn) {
+                    // Time to turn off the schedule.
+                    for (let j = 0; j < c.sscheds.length; j++) {
+                        let ssched = c.sscheds[j];
+                        // Only turn off the schedule if it is not actively mOP.
+                        if (c.cstate.isOn && !ssched.manualPriorityActive) await sys.board.circuits.setCircuitStateAsync(c.circuitId, false);
+                        c.cstate.priority = 'manual';
+                        // The schedule has expired we need to clear all the info for it.
+                        ssched.manualPriorityActive = ssched.triggered = ssched.isOn = c.sscheds[j].scheduleTime.shouldBeOn;
+                    }
+                }
+                else if (!c.cstate.isOn && !shouldBeOn) {
+                    // Everything is off so lets clear it all.
+                    for (let j = 0; j < c.sscheds.length; j++) {
+                        let ssched = c.sscheds[j];
+                        ssched.isOn = ssched.manualPriorityActive = ssched.triggered = false;
+                    }
+                }
+                state.emitEquipmentChanges();
             }
-            // Alright now that we are done with that we need to set all the circuit states that need changing.
-            for (let i = 0; i < ctx.circuits.length; i++) {
-                let circuit = ctx.circuits[i];
-                await sys.board.circuits.setCircuitStateAsync(circuit.id, circuit.isOn);
-            }
-        } catch (err) { logger.error(`Error triggering schedules: ${err}`); }
+        } catch (err) { logger.error(`Error triggering nixie schedules: ${err.message}`); }
     }
 }
 export class NixieSchedule extends NixieEquipment {
@@ -96,24 +226,26 @@ export class NixieSchedule extends NixieEquipment {
     public async setScheduleAsync(data: any) {
         try {
             let schedule = this.schedule;
+            let sschedule = state.schedules.getItemById(schedule.id);
+            sschedule.scheduleTime.calculated = false;
         }
         catch (err) { logger.error(`Nixie setScheduleAsync: ${err.message}`); return Promise.reject(err); }
     }
-    public async pollEquipmentAsync() {
-        let self = this;
-        try {
-            if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
-            this._pollTimer = null;
-            let success = false;
-        }
-        catch (err) { logger.error(`Nixie Error polling Schedule - ${err}`); }
-        finally { this._pollTimer = setTimeout(async () => await self.pollEquipmentAsync(), this.pollingInterval || 10000); }
-    }
+    public async pollEquipmentAsync() {}
     public async validateSetupAsync(Schedule: Schedule, temp: ScheduleState) {
         try {
             // The validation will be different if the Schedule is on or not.  So lets get that information.
         } catch (err) { logger.error(`Nixie Error checking Schedule Hardware ${this.schedule.id}: ${err.message}`); return Promise.reject(err); }
     }
+    public async closeAsync() {
+        try {
+            if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
+            this._pollTimer = null;
+        }
+        catch (err) { logger.error(`Nixie Schedule closeAsync: ${err.message}`); return Promise.reject(err); }
+    }
+    public logData(filename: string, data: any) { this.controlPanel.logData(filename, data); }
+    /*
     public async triggerScheduleAsync(ctx: NixieScheduleContext) {
         try {
             if (this.schedule.isActive === false) return;
@@ -123,22 +255,20 @@ export class NixieSchedule extends NixieEquipment {
             // Schedules can be overridden so it is important that when the 
             // state is changed for the schedule if it is currently active that
             // Nixie does not override the state of the scheduled circuit or feature.
-            /*
-            RSG 5-8-22
-            Manual OP needs to play a role here.  From the IC manual: 
-            # Manual OP General
+            //RSG 5-8-22
+            //Manual OP needs to play a role here.  From the IC manual: 
+            //# Manual OP General
 
-            From the manual: 
-            Manual OP Priority: ON: This feature allows for a circuit to be manually switched OFF and switched ON within a scheduled program, the circuit will continue to run for a maximum of 12 hours or whatever that circuit Egg Timer is set to, after which the scheduled program will resume. This feature will turn off any scheduled program to allow manual pump override. The Default setting is OFF.
+            //From the manual: 
+            //Manual OP Priority: ON: This feature allows for a circuit to be manually switched OFF and switched ON within a scheduled program, the circuit will continue to run for a maximum of 12 hours or whatever that circuit Egg Timer is set to, after which the scheduled program will resume. This feature will turn off any scheduled program to allow manual pump override. The Default setting is OFF.
 
-            ## When on
-            1.  If a schedule should be on and the user turns the schedule off then the schedule expires until such time as the time off has expired.  When that occurs the schedule should be reset to run at the designated time.  If the user resets the schedule by turning the circuit back on again ~~then the schedule will resume and turn off at the specified time~~ then the schedule will be ignored and the circuit will run until the egg timer expires or the circuit/feature is manually turned off.  This setting WILL affect other schedules that may impact this circuit.
+            //## When on
+            //1.  If a schedule should be on and the user turns the schedule off then the schedule expires until such time as the time off has expired.  When that occurs the schedule should be reset to run at the designated time.  If the user resets the schedule by turning the circuit back on again ~~then the schedule will resume and turn off at the specified time~~ then the schedule will be ignored and the circuit will run until the egg timer expires or the circuit/feature is manually turned off.  This setting WILL affect other schedules that may impact this circuit.
 
-            ## When off
-            1. "Normal" = If a schedule should be on and the user turns the schedule off then the schedule expires until such time as the time off has expired.  When that occurs the schedule should be reset to run at the designated time.  If the user resets the schedule by turning the circuit back on again then the schedule will resume and turn off at the specified time.
+            //## When off
+            //1. "Normal" = If a schedule should be on and the user turns the schedule off then the schedule expires until such time as the time off has expired.  When that occurs the schedule should be reset to run at the designated time.  If the user resets the schedule by turning the circuit back on again then the schedule will resume and turn off at the specified time.
 
-            Interestingly, there also seems to be a schedule level setting for this.  We will ignore that for now as the logic could get much more complicated.
-            */
+            //Interestingly, there also seems to be a schedule level setting for this.  We will ignore that for now as the logic could get much more complicated.
             // 1. If the feature happens to be running and the schedule is not yet turned on then
             // it should not override what the user says.
             // 2. If a schedule is running and the state of the circuit changes to off then the new state should suspend the schedule
@@ -232,7 +362,7 @@ export class NixieSchedule extends NixieEquipment {
                 }
                 else {
                     ssched.isOn = cstate.isOn;
-                    ssched.manualPriorityActive = false;  
+                    ssched.manualPriorityActive = false;
                 }
             }
             // Our schedule has expired it is time to turn it off, but only if !manualPriorityActive.
@@ -253,36 +383,6 @@ export class NixieSchedule extends NixieEquipment {
             }
             ssched.emitEquipmentChange();
         } catch (err) { logger.error(`Error processing schedule: ${err.message}`); }
-
     }
-    public async closeAsync() {
-        try {
-            if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
-            this._pollTimer = null;
-        }
-        catch (err) { logger.error(`Nixie Schedule closeAsync: ${err.message}`); return Promise.reject(err); }
-    }
-    public logData(filename: string, data: any) { this.controlPanel.logData(filename, data); }
-}
-class NixieScheduleContext {
-    constructor() {
-
-    }
-    public circuits: { id: number, isOn: boolean }[] = [];
-    public heatModes: { id: number, heatMode: number, heatSetpoint?: number, coolSetpoint?: number }[] = [];
-    public setCircuit(id: number, isOn: boolean) {
-        let c = this.circuits.find(elem => elem.id === id);
-        if (typeof c === 'undefined') this.circuits.push({ id: id, isOn: isOn });
-        else c.isOn = isOn;
-    }
-    public setHeatMode(id: number, heatMode: string, heatSetpoint?: number, coolSetpoint?: number) {
-        let mode = sys.board.valueMaps.heatModes.transformByName(heatMode);
-        let hm = this.heatModes.find(elem => elem.id == id);
-        if (typeof hm === 'undefined') this.heatModes.push({ id: id, heatMode: mode.val, heatSetpoint: heatSetpoint, coolSetpoint: coolSetpoint });
-        else {
-            hm.heatMode = mode.val;
-            if (typeof heatSetpoint !== 'undefined') hm.heatSetpoint = heatSetpoint;
-            if (typeof coolSetpoint !== 'undefined') hm.coolSetpoint = coolSetpoint;
-        }
-    }
+    */
 }

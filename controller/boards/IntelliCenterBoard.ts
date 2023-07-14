@@ -3141,6 +3141,8 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
             let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays);
             let display = typeof data.display !== 'undefined' ? data.display : sched.display || 0;
+            let endTimeOffset = typeof data.endTimeOffset !== 'undefined' ? data.endTimeOffset : sched.endTimeOffset;
+            let startTimeOffset = typeof data.startTimeOffset !== 'undefined' ? data.startTimeOffset : sched.startTimeOffset;
 
             // Ensure all the defaults.
             if (isNaN(startDate.getTime())) startDate = new Date();
@@ -3216,6 +3218,8 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             ssched.isActive = sched.isActive = true;
             ssched.display = sched.display = display;
             ssched.emitEquipmentChange();
+            ssched.startTimeOffset = sched.startTimeOffset = startTimeOffset;
+            ssched.endTimeOffset = sched.endTimeOffset = endTimeOffset;
             return sched;
         }
         else
@@ -3484,7 +3488,7 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[2, { name: 'heater', desc: 'Heater' }]]);
             if (mastertempInstalled) sys.board.valueMaps.heatSources.merge([[11, { name: 'mtheater', desc: 'MasterTemp' }]]);
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar Only', hasCoolSetpoint: htypes.hasCoolSetpoint }], [4, { name: 'solarpref', desc: 'Solar Preferred', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
-            else if (solarInstalled) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar', hasCoolsetpoint: htypes.hasCoolSetpoint }]]);
+            else if (solarInstalled) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
             if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Pref' }]]);
             else if (heatPumpInstalled) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
             if (ultratempInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'ultratemp', desc: 'UltraTemp Only', hasCoolSetpoint: htypes.hasCoolSetpoint }], [6, { name: 'ultratemppref', desc: 'UltraTemp Pref', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);

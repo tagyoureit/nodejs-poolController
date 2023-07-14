@@ -169,6 +169,8 @@ export class Heliotrope {
     private _dtSunset: Date;
     private _dtNextSunrise: Date;
     private _dtNextSunset: Date;
+    private _dtPrevSunrise: Date;
+    private _dtPrevSunset: Date;
     public get isNight(): boolean {
         let times = this.calculatedTimes;
         if (this.isValid) {
@@ -183,16 +185,19 @@ export class Heliotrope {
         }
         return false;
     }
-    public calculate(dt: Date): { isValid: boolean, dt: Date, sunrise: Date, sunset: Date, nextSunrise: Date, nextSunset: Date } {
+    public calculate(dt: Date): { isValid: boolean, dt: Date, sunrise: Date, sunset: Date, nextSunrise: Date, nextSunset: Date, prevSunrise: Date, prevSunset: Date } {
         let ctx = new HeliotropeContext(this.longitude, this.latitude, this.zenith);
-        let ret = { isValid: ctx.isValid, dt: dt, sunrise: undefined, sunset: undefined, nextSunrise: undefined, nextSunset: undefined };
+        let ret = { isValid: ctx.isValid, dt: dt, sunrise: undefined, sunset: undefined, nextSunrise: undefined, nextSunset: undefined, prevSunrise: undefined, prevSunset: undefined };
         if (ctx.isValid) {
-            let tToday = ctx.calculate(this.dt);
-            let tTom = ctx.calculate(new Date(this.dt.getTime() + 864e5));
+            let tToday = ctx.calculate(dt);
+            let tTom = ctx.calculate(new Date(dt.getTime() + 86400000));
+            let tYesterday = ctx.calculate(new Date(dt.getTime() - 86400000));
             ret.sunrise = tToday.sunrise;
             ret.sunset = tToday.sunset;
             ret.nextSunrise = tTom.sunrise;
             ret.nextSunset = tTom.sunset;
+            ret.prevSunrise = tYesterday.sunrise;
+            ret.prevSunset = tYesterday.sunset;
         }
         return ret;
     }
@@ -203,6 +208,8 @@ export class Heliotrope {
             this._dtSunset = times.sunset;
             this._dtNextSunrise = times.nextSunrise;
             this._dtNextSunset = times.nextSunset;
+            this._dtPrevSunrise = times.prevSunrise;
+            this._dtPrevSunset = times.prevSunset;
             this.isCalculated = true;
             logger.verbose(`Calculated Heliotrope: sunrise:${Timestamp.toISOLocal(this._dtSunrise)} sunset:${Timestamp.toISOLocal(this._dtSunset)}`);
         }
@@ -225,7 +232,41 @@ export class Heliotrope {
         if (!this.isCalculated) this.calcInternal();
         return this._dtNextSunset;
     }
-    public get calculatedTimes(): { sunrise?: Date, sunset?: Date, nextSunrise?: Date, nextSunset?:Date, isValid: boolean } { return { sunrise: this.sunrise, sunset: this.sunset, nextSunrise: this.nextSunrise, nextSunset: this.nextSunset, isValid: this.isValid }; }
+    public get prevSunrise(): Date {
+        if (!this.isCalculated) this.calcInternal();
+        return this._dtPrevSunrise;
+    }
+    public get prevSunset(): Date {
+        if (!this.isCalculated) this.calcInternal();
+        return this._dtPrevSunset;
+    }
+    public get calculatedTimes(): { sunrise?: Date, sunset?: Date, nextSunrise?: Date, nextSunset?: Date, prevSunrise?: Date, prevSunset: Date, isValid: boolean } { return { sunrise: this.sunrise, sunset: this.sunset, nextSunrise: this.nextSunrise, nextSunset: this.nextSunset, prevSunrise: this.prevSunrise, prevSunset: this.prevSunset, isValid: this.isValid }; }
+    public calcAdjustedTimes(dt: Date, hours = 0, min = 0): { sunrise?: Date, sunset?: Date, nextSunrise?: Date, nextSunset?: Date, prevSunrise?: Date, prevSunset: Date, isValid: boolean } {
+        if (this.dt.getFullYear() === dt.getFullYear() && this.dt.getMonth() === dt.getMonth() && this.dt.getDate() === dt.getDate()) return this.getAdjustedTimes(hours, min);
+        let ms = (hours * 3600000) + (min * 60000);
+        let times = this.calculate(dt);
+        return {
+            sunrise: new Date(times.sunrise.getTime() + ms),
+            sunset: new Date(times.sunset.getTime() + ms),
+            nextSunrise: new Date(times.nextSunrise.getTime() + ms),
+            nextSunset: new Date(times.nextSunset.getTime() + ms),
+            prevSunrise: new Date(times.prevSunrise.getTime() + ms),
+            prevSunset: new Date(times.prevSunset.getTime() + ms),
+            isValid: this.isValid
+        } 
+    }
+    public getAdjustedTimes(hours = 0, min = 0): { sunrise?: Date, sunset?: Date, nextSunrise?: Date, nextSunset?: Date, prevSunrise?: Date, prevSunset: Date, isValid: boolean } {
+        let ms = (hours * 3600000) + (min * 60000);
+        return {
+            sunrise: new Date(this.sunrise.getTime() + ms),
+            sunset: new Date(this.sunset.getTime() + ms),
+            nextSunrise: new Date(this.nextSunrise.getTime() + ms),
+            nextSunset: new Date(this.nextSunset.getTime() + ms),
+            prevSunrise: new Date(this.prevSunrise.getTime() + ms),
+            prevSunset: new Date(this.prevSunset.getTime() + ms),
+            isValid: this.isValid
+        } 
+    }
 }
 export class Timestamp {
     private static dateTextISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
@@ -240,7 +281,7 @@ export class Timestamp {
     }
     private _isUpdating: boolean = false;
     public static get now(): Timestamp { return new Timestamp(); }
-    public toDate() { return this._dt; }
+    public toDate(): Date { return this._dt; }
     public get isValid() {
         return this._dt instanceof Date && !isNaN(this._dt.getTime());
     }
@@ -298,7 +339,8 @@ export class Timestamp {
     public getDay(): number { return this._dt.getDay(); }
     public getTime() { return this._dt.getTime(); }
     public format(): string { return Timestamp.toISOLocal(this._dt); }
-    public static toISOLocal(dt): string {
+    public static toISOLocal(dt: Date): string {
+        if (typeof dt === 'undefined' || typeof dt.getTime !== 'function' || isNaN(dt.getTime())) return '';
         let tzo = dt.getTimezoneOffset();
         var pad = function (n) {
             var t = Math.floor(Math.abs(n));

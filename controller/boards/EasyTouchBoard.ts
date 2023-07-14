@@ -721,7 +721,8 @@ export class TouchScheduleCommands extends ScheduleCommands {
             let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays || 255); // default to all days
             let changeHeatSetpoint = typeof (data.changeHeatSetpoint !== 'undefined') ? utils.makeBool(data.changeHeatSetpoint) : sched.changeHeatSetpoint;
             let display = typeof data.display !== 'undefined' ? data.display : sched.display || 0;
-
+            let endTimeOffset = typeof data.endTimeOffset !== 'undefined' ? data.endTimeOffset : sched.endTimeOffset;
+            let startTimeOffset = typeof data.startTimeOffset !== 'undefined' ? data.startTimeOffset : sched.startTimeOffset;
             // Ensure all the defaults.
             // if (isNaN(startDate.getTime())) startDate = new Date();
             if (typeof startTime === 'undefined') startTime = 480; // 8am
@@ -766,10 +767,10 @@ export class TouchScheduleCommands extends ScheduleCommands {
             if (state.heliotrope.isCalculated) {
                 const sunrise = state.heliotrope.sunrise.getHours() * 60 + state.heliotrope.sunrise.getMinutes();
                 const sunset = state.heliotrope.sunset.getHours() * 60 + state.heliotrope.sunset.getMinutes();
-                if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) startTime = sunrise;
-                else if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) startTime = sunset;
-                if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) endTime = sunrise;
-                else if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) endTime = sunset;
+                if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) startTime = (sunrise + startTimeOffset);
+                else if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) startTime = (sunset + startTimeOffset);
+                if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) endTime = (sunrise + endTimeOffset);
+                else if (endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset')) endTime = (sunset + endTimeOffset);
             }
 
 
@@ -813,6 +814,8 @@ export class TouchScheduleCommands extends ScheduleCommands {
             sched.endTimeType = ssched.endTimeType = endTimeType;
             sched.isActive = ssched.isActive = true;
             ssched.display = sched.display = display;
+            sched.startTimeOffset = ssched.startTimeOffset = startTimeOffset;
+            sched.endTimeOffset = ssched.endTimeOffset = endTimeOffset;
             ssched.emitEquipmentChange();
             // For good measure russ is sending out a config request for
             // the schedule in question.  If there was a failure on the
@@ -969,19 +972,19 @@ export class TouchScheduleCommands extends ScheduleCommands {
             let sUpdated = false;
             let sched = sys.schedules.getItemByIndex(i);
             if (sched.startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise') && sched.startTime !== sunrise) {
-                sched.startTime = sunrise;
+                sched.startTime = sunrise + (sched.startTimeOffset || 0);
                 anyUpdated = sUpdated = true;
             }
             else if (sched.startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset') && sched.startTime !== sunset) {
-                sched.startTime = sunset;
+                sched.startTime = sunset + (sched.startTimeOffset || 0);
                 anyUpdated = sUpdated = true;
             }
             if (sched.endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise') && sched.endTime !== sunrise) {
-                sched.endTime = sunrise;
+                sched.endTime = sunrise + (sched.endTimeOffset || 0);
                 anyUpdated = sUpdated = true;
             }
             else if (sched.endTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunset') && sched.endTime !== sunset) {
-                sched.endTime = sunset;
+                sched.endTime = sunset + (sched.endTimeOffset || 0);
                 anyUpdated = sUpdated = true;
             }
             if (sUpdated) {
