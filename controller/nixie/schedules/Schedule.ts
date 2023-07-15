@@ -49,12 +49,13 @@ export class NixieScheduleCollection extends NixieEquipmentCollection<NixieSched
             // This is a listing of all the active schedules that are either currently on or should be on.
             let sscheds: ScheduleState[] = state.schedules.getActiveSchedules();
             // Go through all the schedules and hash them by circuit id.
-            let circuits: { circuitId: number, cstate: ICircuitState, sscheds: ScheduleState[] }[] = []
+            let circuits: { circuitId: number, cstate: ICircuitState, hasNixie: boolean, sscheds: ScheduleState[] }[] = []
             for (let i = 0; i < sscheds.length; i++) {
                 let circ = circuits.find(elem => elem.circuitId === sscheds[i].circuit);
+                let sched = sys.schedules.getItemById(sscheds[i].id)
                 if (typeof circ === 'undefined') circuits.push({
                     circuitId: sscheds[i].circuit,
-                    cstate: state.circuits.getInterfaceById(sscheds[i].circuit), sscheds: [sscheds[i]]
+                    cstate: state.circuits.getInterfaceById(sscheds[i].circuit), hasNixie:sched.master !== 0, sscheds: [sscheds[i]]
                 });
                 else circ.sscheds.push(sscheds[i]);
             }
@@ -86,6 +87,7 @@ export class NixieScheduleCollection extends NixieEquipmentCollection<NixieSched
             // Now lets evaluate the schedules by virtue of their state related to the circuits.
             for (let i = 0; i < circuits.length; i++) {
                 let c = circuits[i];
+                if (!c.hasNixie) continue; // If this has nothing to do with Nixie move on.
                 let shouldBeOn = typeof c.sscheds.find(elem => elem.scheduleTime.shouldBeOn === true) !== 'undefined';
                 // 1. If the feature is currently running and the schedule is not on then it will set the priority for the circuit to [scheduled].
                 // 2. If the feature is currently running but there are overlapping schedules then this will catch any schedules that need to be turned off.
