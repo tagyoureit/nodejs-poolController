@@ -55,9 +55,12 @@ export class NixieScheduleCollection extends NixieEquipmentCollection<NixieSched
                 let sched = sys.schedules.getItemById(sscheds[i].id)
                 if (typeof circ === 'undefined') circuits.push({
                     circuitId: sscheds[i].circuit,
-                    cstate: state.circuits.getInterfaceById(sscheds[i].circuit), hasNixie:sched.master !== 0, sscheds: [sscheds[i]]
+                    cstate: state.circuits.getInterfaceById(sscheds[i].circuit), hasNixie: sched.master !== 0, sscheds: [sscheds[i]]
                 });
-                else circ.sscheds.push(sscheds[i]);
+                else {
+                    if (sched.master !== 0) circ.hasNixie = true;
+                    circ.sscheds.push(sscheds[i]);
+                }
             }
             /*
             RSG 5-8-22
