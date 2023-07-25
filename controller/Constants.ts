@@ -316,7 +316,8 @@ export class Timestamp {
     public set fullYear(val: number) { this._dt.setFullYear(val); }
     public get year(): number { return this._dt.getFullYear(); }
     public set year(val: number) {
-        let y = val < 100 ? (Math.floor(this._dt.getFullYear() / 100) * 100) + val : val;
+        let dt = new Date();
+        let y = val < 100 ? (Math.floor(dt.getFullYear() / 100) * 100) + val : val;
         if (y !== this.year) {
             this._dt.setFullYear(y);
             this.emitter.emit('change');

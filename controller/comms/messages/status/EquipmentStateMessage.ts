@@ -596,9 +596,9 @@ export class EquipmentStateMessage {
             case 204: // IntelliCenter only.
                 state.batteryVoltage = msg.extractPayloadByte(2) / 50;
                 state.comms.keepAlives = msg.extractPayloadInt(4);
-                state.time.date = msg.extractPayloadByte(6);
-                state.time.month = msg.extractPayloadByte(7);
                 state.time.year = msg.extractPayloadByte(8);
+                state.time.month = msg.extractPayloadByte(7);
+                state.time.date = msg.extractPayloadByte(6);
                 sys.equipment.controllerFirmware = (msg.extractPayloadByte(42) + (msg.extractPayloadByte(43) / 1000)).toString();
                 if (sys.chlorinators.length > 0) {
                     if (msg.extractPayloadByte(37, 255) !== 255) {
