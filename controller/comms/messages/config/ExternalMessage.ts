@@ -354,7 +354,12 @@ export class ExternalMessage {
                 if (schedule.isActive) {
                     if (schedule.circuit > 0) { // Don't get the schedule state if we haven't determined the entire config for it yet.
                         let sstate = state.schedules.getItemById(scheduleId, schedule.isActive);
-                        sstate.isOn = ((byte & (1 << (j))) >> j) > 0;
+                        let isOn = ((byte & (1 << (j))) >> j) > 0;
+                        if (sstate.isOn !== isOn) {
+                            // Recalculate the schedule times.
+                            sstate.recalculate(true);
+                        }
+                        sstate.isOn = isOn;
                         sstate.circuit = schedule.circuit;
                         sstate.endTime = schedule.endTime;
                         sstate.startDate = schedule.startDate;
@@ -365,6 +370,7 @@ export class ExternalMessage {
                         sstate.heatSource = schedule.heatSource;
                         sstate.startTimeType = schedule.startTimeType;
                         sstate.endTimeType = schedule.endTimeType;
+                        sstate.startDate = schedule.startDate;
                     }
                 }
                 else

@@ -1388,6 +1388,10 @@ export class ScheduleState extends EqState {
     public get manualPriorityActive(): boolean { return this.data.manualPriorityActive; }
     public set manualPriorityActive(val: boolean) { this.setDataVal('manualPriorityActive', val); }
     public get scheduleTime(): ScheduleTime { return new ScheduleTime(this.data, 'scheduleTime', this); }
+    public recalculate(force?: boolean) {
+        if (force === true) this.scheduleTime.calculated = false;
+        this.scheduleTime.calcSchedule(state.time, sys.schedules.getItemById(this.id));
+    }
     public getExtended() {
         let sched = this.get(true); // Always operate on a copy.
         //if (typeof this.circuit !== 'undefined')
