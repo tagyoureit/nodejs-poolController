@@ -641,6 +641,7 @@ export class EquipmentStateMessage {
                     scover2.name = cover2.name;
                     state.temps.bodies.getItemById(cover2.body + 1).isCovered = scover2.isClosed = (msg.extractPayloadByte(30) & 0x0002) > 0;
                 }
+                sys.board.schedules.syncScheduleStates();
                 msg.isProcessed = true;
                 state.emitEquipmentChanges();
                 break;

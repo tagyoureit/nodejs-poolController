@@ -3119,6 +3119,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
     }
 }
 class IntelliCenterScheduleCommands extends ScheduleCommands {
+    _lastScheduleCheck: number = 0;
     public async setScheduleAsync(data: any): Promise<Schedule> {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
@@ -3224,6 +3225,17 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
         }
         else
             return Promise.reject(new InvalidEquipmentIdError('No schedule information provided', undefined, 'Schedule'));
+    }
+    public syncScheduleStates() {
+        // This is triggered from the 204 message in IntelliCenter.  We will
+        // be checking to ensure it does not load the server so we only do this every 10 seconds.
+        if (this._lastScheduleCheck > new Date().getTime() - 10000) return;
+        try {
+            // The call below also calculates the schedule window either the current or next.
+            ncp.schedules.triggerSchedules();  // At this point we are not adding Nixie schedules to IntelliCenter but this will trigger
+            // the proper time windows if they exist.
+            this._lastScheduleCheck = new Date().getTime();
+        } catch (err) { logger.error(`Error synchronizing schedule states`); }
     }
     public async deleteScheduleAsync(data: any): Promise<Schedule> {
         if (typeof data.id !== 'undefined') {
