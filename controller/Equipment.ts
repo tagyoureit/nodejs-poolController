@@ -1225,7 +1225,10 @@ export class Schedule extends EqItem {
     public set startDay(val: number) { if (typeof this._startDate === 'undefined') this._startDate = new Date(); this._startDate.setDate(val); this._saveStartDate(); }
     public get startYear(): number { if (typeof this._startDate === 'undefined') this._startDate = new Date(); return this._startDate.getFullYear(); }
     public set startYear(val: number) { if (typeof this._startDate === 'undefined') this._startDate = new Date(); this._startDate.setFullYear(val < 100 ? val + 2000 : val); this._saveStartDate(); }
-    public get startDate(): Date { return typeof this._startDate === 'undefined' ? this._startDate = new Date() : this._startDate; }
+    public get startDate(): Date {
+        this._startDate = typeof this._startDate === 'undefined' ? new Date(this.data.startDate) : this._startDate;
+        return typeof this._startDate === 'undefined' || isNaN(this._startDate.getTime()) ? new Date() : this._startDate;
+    }
     public set startDate(val: Date) { this._startDate = val; }
     public get scheduleType(): number | any { return this.data.scheduleType; }
     public set scheduleType(val: number | any) { this.setDataVal('scheduleType', sys.board.valueMaps.scheduleTypes.encode(val)); }
