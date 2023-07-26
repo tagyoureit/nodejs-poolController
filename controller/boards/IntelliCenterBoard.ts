@@ -26,6 +26,7 @@ import { state, ChlorinatorState, LightGroupState, VirtualCircuitState, ICircuit
 import { utils } from '../../controller/Constants';
 import { InvalidEquipmentIdError, InvalidEquipmentDataError, EquipmentNotFoundError, MessageError, InvalidOperationError } from '../Errors';
 import { ncp } from '../nixie/Nixie';
+import { Timestamp } from "../Constants"
 export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
     constructor(system: PoolSystem) {
@@ -3234,6 +3235,27 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             // The call below also calculates the schedule window either the current or next.
             ncp.schedules.triggerSchedules();  // At this point we are not adding Nixie schedules to IntelliCenter but this will trigger
             // the proper time windows if they exist.
+            // Check each running circuit/feature to see when it will be going off.
+            let scheds = state.schedules.getActiveSchedules();
+            let circs: { state: ICircuitState, endTime: number }[] = [];
+            for (let i = 0; i < scheds.length; i++) {
+                let ssched = scheds[i];
+                if (!ssched.isOn || ssched.disabled || !ssched.isActive) continue;
+                let c = circs.find(x => x.state.id === ssched.circuit);
+                if (typeof c === 'undefined') {
+                    let cstate = state.circuits.getInterfaceById(ssched.circuit);
+                    c = { state: cstate, endTime: cstate.endTime.getTime() };
+                    circs.push;
+                }
+                if (c.endTime < ssched.scheduleTime.endTime.getTime()) c.endTime = ssched.scheduleTime.endTime.getTime();
+            }
+            for (let i = 0; i < circs.length; i++) {
+                let c = circs[i];
+                if (c.state.endTime.getTime() !== c.endTime) {
+                    c.state.endTime = new Timestamp(new Date(c.endTime));
+                    c.state.emitEquipmentChange();
+                }
+            }
             this._lastScheduleCheck = new Date().getTime();
         } catch (err) { logger.error(`Error synchronizing schedule states`); }
     }
