@@ -3244,7 +3244,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
                 let c = circs.find(x => x.state.id === ssched.circuit);
                 if (typeof c === 'undefined') {
                     let cstate = state.circuits.getInterfaceById(ssched.circuit);
-                    c = { state: cstate, endTime: cstate.endTime.getTime() };
+                    c = { state: cstate, endTime: ssched.scheduleTime.endTime.getTime() };
                     circs.push;
                 }
                 if (c.endTime < ssched.scheduleTime.endTime.getTime()) c.endTime = ssched.scheduleTime.endTime.getTime();
