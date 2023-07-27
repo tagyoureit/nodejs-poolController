@@ -3052,36 +3052,33 @@ export class CircuitCommands extends BoardCommands {
         try {
             if (!isOn) thingState.endTime = undefined;
             else if (!thingState.isOn && isOn || bForce) {
-                let endTime: Date = null;
-                let startTime: Date = new Date();
-                let eggTimerEndTime: Date = !thing.dontStop ? new Timestamp(startTime).addHours(0, typeof thing.eggTimer !== 'undefined' && thing.eggTimer ? thing.eggTimer : 12).toDate() : null;
-                // Egg timers don't come into play if a schedule will control the circuit
-                // schedules don't come into play if the circuit is in manualPriority
+                let schedTime: Date;
+                let eggTime: Date = thing.dontStop ? undefined : new Date(new Date().getTime() + ((thing.eggTimer || 720) * 60000));
                 if (!thingState.manualPriorityActive) {
-                    let sscheds = state.schedules.toArray();
+                    let sscheds = state.schedules.getActiveSchedules();
+                    // If a schedule happens to be on for this circuit then we will be turning it off at the max end time for the
+                    // circuit.
                     for (let i = 0; i < sscheds.length; i++) {
-                        let ssched: ScheduleState = sscheds[i];
-                        if (ssched.manualPriorityActive) continue;
-                        let sched: Schedule = sys.schedules.getItemById(ssched.id);
-                        if (sched.isActive && !sched.disabled && sys.board.schedules.includesCircuit(sched, thing.id)) {
-                            if (ssched.scheduleTime.shouldBeOn) {
-                                if (typeof endTime === 'undefined' || !endTime || endTime < ssched.scheduleTime.endTime) endTime = ssched.scheduleTime.endTime;
-                                eggTimerEndTime = undefined;
-                            }
-                            else {
-                                // If the schedule isn't running then we need to check its next schedule date.  If the start time of the
-                                // next scheduled run is less than the egg timer end time then the circuit will turn off at the end
-                                // of that schedule.
-                                if (typeof ssched.scheduleTime.startTime !== 'undefined' && ssched.scheduleTime.startTime) {
-                                    if (eggTimerEndTime && eggTimerEndTime.getTime() >= ssched.scheduleTime.startTime.getTime())
-                                        if (typeof endTime === 'undefined' || !endTime || endTime < ssched.scheduleTime.endTime) endTime = ssched.scheduleTime.endTime;
-                                }
+                        let ssched = sscheds[i];
+                        let st = ssched.scheduleTime;
+                        // Don't thrown an error on uncalculable schedules.
+                        if (typeof st === 'undefined' || typeof st.startTime === 'undefined' || typeof st.endTime === 'undefined') continue;
+                        if (ssched.isOn ||
+                            (typeof eggTime !== 'undefined' && st.startTime.getTime() < eggTime.getTime())) {
+                            // If the schedule is on or it will start within the egg timer then we need the max end time of the schedule.
+                            let sched = sys.schedules.getItemById(ssched.id);
+                            if (sys.board.schedules.includesCircuit(sched, thing.id)) {
+                                if (typeof schedTime === 'undefined' || st.endTime.getTime() > schedTime.getTime()) schedTime = st.endTime;
                             }
                         }
+                        else
+                            console.log(st);
                     }
+                    console.log({ eggTime: Timestamp.toISOLocal(eggTime), schedTime: Timestamp.toISOLocal(schedTime) });
                 }
-                if (endTime) thingState.endTime = new Timestamp(endTime);
-                else if (eggTimerEndTime) thingState.endTime = new Timestamp(eggTimerEndTime);
+                if (typeof schedTime !== 'undefined') thingState.endTime = new Timestamp(schedTime);
+                else if (typeof thingState.endTime !== 'undefined') thingState.endTime = new Timestamp(eggTime);
+                else thingState.endTime = undefined;
             }
         }
         catch (err) {

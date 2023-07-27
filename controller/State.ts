@@ -1088,8 +1088,13 @@ export class ScheduleStateCollection extends EqStateCollection<ScheduleState> {
         for (let i = 0; i < this.length; i++) {
             let ssched = this.getItemByIndex(i);
             let st = ssched.scheduleTime;
+            let sched = sys.schedules.getItemById(ssched.id);
+            if (!sched.isActive || ssched.disabled) {
+                continue;
+            }
             st.calcSchedule(state.time, sys.schedules.getItemById(ssched.id));
-            if (ssched.isOn || st.shouldBeOn) activeScheds.push(ssched);
+            if (typeof st.startTime === 'undefined') continue;
+            if (ssched.isOn || st.shouldBeOn || st.startTime.getTime() > new Date().getTime()) activeScheds.push(ssched);
         }
         return activeScheds;
     }
@@ -1211,7 +1216,8 @@ export class ScheduleTime extends ChildEqState {
                     return times;
                 }
             }
-            // Then check if we are running today
+            // Then check if we are running today.  If we have already run then get net next run
+            // time.
             if (tm <= ttimes.startTime.getTime()) {
                 let sd = schedDays.find(elem => elem.dow === ttimes.startTime.getDay());
                 if (typeof sd !== 'undefined' && (sched.scheduleDays & sd.bitval) !== 0) {
@@ -1260,7 +1266,7 @@ export class ScheduleTime extends ChildEqState {
             // If this is a runonce schedule we need to check for the rundate
             let type = sys.board.valueMaps.scheduleTypes.transform(sched.scheduleType);
             let times = type.name === 'runonce' ? this.calcScheduleDate(new Timestamp(sched.startDate), sched) : this.calcScheduleDate(state.time.clone(), sched);
-            if (times.startTime) {
+            if (times.startTime && times.endTime.getTime() > currentTime.getTime()) {
                 // Check to see if it should be on.
                 this.startTime = times.startTime;
                 this.endTime = times.endTime;
