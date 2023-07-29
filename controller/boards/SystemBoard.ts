@@ -2234,6 +2234,8 @@ export class CircuitCommands extends BoardCommands {
             // This also removes virtual circuits depending on whether heaters exsits on the bodies.  Not sure why we are doing this
             // as the body data contains whether a body is heated or not.  Perhapse some attached interface is using
             // the virtual circuit list as a means to determine whether solar is available.  That is totally flawed if that is the case.
+            let solarType = sys.board.valueMaps.heaterTypes.encode('solar', -1);
+
             for (let i = 0; i < arrCircuits.length; i++) {
                 let vc = arrCircuits[i];
                 let remove = false;
@@ -2250,7 +2252,7 @@ export class CircuitCommands extends BoardCommands {
                             // Determine whether the pool heater is on.
                             for (let j = 0; j < poolStates.length; j++) {
                                 let hstatus = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
-                                if (hstatus !== 'off' && hstatus !== 'solar') {
+                                if (hstatus !== 'off' && hstatus !== 'solar' && hstatus !== 'cooling') {
                                     // In this instance we may have a delay underway.
                                     let hstate = state.heaters.find(x => x.bodyId === 1 && x.startupDelay === true && x.type.name !== 'solar');
                                     bState = typeof hstate === 'undefined';
@@ -2267,7 +2269,7 @@ export class CircuitCommands extends BoardCommands {
                             // Determine whether the spa heater is on.
                             for (let j = 0; j < spaStates.length; j++) {
                                 let hstatus = sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus);
-                                if (hstatus !== 'off' && hstatus !== 'solar') {
+                                if (hstatus !== 'off' && hstatus !== 'solar' && hstatus !== 'cooling') {
                                     // In this instance we may have a delay underway.
                                     let hstate = state.heaters.find(x => x.bodyId === 2 && x.startupDelay === true && x.type.name !== 'solar');
                                     bState = typeof hstate === 'undefined';
@@ -2333,110 +2335,58 @@ export class CircuitCommands extends BoardCommands {
                         if (!remove) {
                             for (let j = 0; j < poolStates.length && !bState; j++) {
                                 if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'solar') bState = true;
+                                else if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'cooling') {
+                                    // Check to see if there are any solar heaters on the body that are currently cooling.
+                                    let hstate = state.heaters.find(x => x.bodyId === poolStates[j].id && x.startupDelay !== true && x.type === solarType && x.isCooling === true);
+                                    bState = typeof hstate !== 'undefined';
+                                    if (bState) break;
+                                }
                             }
-                            for (let j = 0; j < spaStates.length && !bState; j++) {
-                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') bState = true;
+                            if (!bState) {
+                                for (let j = 0; j < spaStates.length && !bState; j++) {
+                                    if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') bState = true;
+                                    else if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'cooling') {
+                                        let hstate = state.heaters.find(x => x.bodyId === spaStates[j].id && x.startupDelay !== true && x.type === solarType && x.isCooling === true);
+                                        bState = typeof hstate !== 'undefined';
+                                        if (bState) break;
+                                    }
+                                }
                             }
                         }
                         break;
                     case 'solar1':
+                    case 'solar2':
+                    case 'solar3':
+                    case 'solar4':
                         remove = true;
+                        let solarBody = parseInt(vc.name.substring(5), 10);
                         for (let j = 0; j < poolStates.length; j++) {
-                            if (poolStates[j].id === 1 && poolStates[j].heaterOptions.solar) {
+                            if (poolStates[j].id === solarBody && poolStates[j].heaterOptions.solar) {
                                 remove = false;
                                 vc.desc = `${poolStates[j].name} Solar`;
                                 if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'solar') {
                                     // In this instance we may have a delay underway.
-                                    let hstate = state.heaters.find(x => x.bodyId === 1 && x.startupDelay === true && x.type.name === 'solar');
-                                    bState = typeof hstate === 'undefined';
+                                    let hstate = state.heaters.find(x => x.bodyId === solarBody && x.startupDelay !== true && x.type === solarType && x.isOn === true);
+                                    bState = typeof hstate !== 'undefined';
+                                }
+                                else if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'cooling') {
+                                    let hstate = state.heaters.find(x => x.bodyId === solarBody && x.startupDelay !== true && x.type === solarType && x.isCooling === true)
+                                    bState = typeof hstate !== 'undefined';
                                 }
                             }
                         }
                         for (let j = 0; j < spaStates.length; j++) {
-                            if (spaStates[j].id === 1 && spaStates[j].heaterOptions.solar) {
+                            if (spaStates[j].id === solarBody && spaStates[j].heaterOptions.solar) {
                                 remove = false;
                                 vc.desc = `${spaStates[j].name} Solar`;
                                 if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') {
                                     // In this instance we may have a delay underway.
-                                    let hstate = state.heaters.find(x => x.bodyId === 1 && x.startupDelay === true && x.type.name === 'solar');
-                                    bState = typeof hstate === 'undefined';
+                                    let hstate = state.heaters.find(x => x.bodyId === solarBody && x.startupDelay !== true && x.type === solarType && x.isOn === true);
+                                    bState = typeof hstate !== 'undefined';
                                 }
-                            }
-                        }
-
-                        break;
-                    case 'solar2':
-                        remove = true;
-                        for (let j = 0; j < poolStates.length; j++) {
-                            if (poolStates[j].id === 2 && poolStates[j].heaterOptions.solar) {
-                                remove = false;
-                                vc.desc = `${poolStates[j].name} Solar`;
-                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') {
-                                    // In this instance we may have a delay underway.
-                                    let hstate = state.heaters.find(x => x.bodyId === 2 && x.startupDelay === true && x.type.name === 'solar');
-                                    bState = typeof hstate === 'undefined';
-                                }
-                            }
-                        }
-                        for (let j = 0; j < spaStates.length; j++) {
-                            if (spaStates[j].id === 2 && spaStates[j].heaterOptions.solar) {
-                                remove = false;
-                                vc.desc = `${spaStates[j].name} Solar`;
-                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') {
-                                    // In this instance we may have a delay underway.
-                                    let hstate = state.heaters.find(x => x.bodyId === 2 && x.startupDelay === true && x.type.name === 'solar');
-                                    bState = typeof hstate === 'undefined';
-                                }
-                            }
-                        }
-                        break;
-                    case 'solar3':
-                        remove = true;
-                        for (let j = 0; j < poolStates.length; j++) {
-                            if (poolStates[j].id === 3 && poolStates[j].heaterOptions.solar) {
-                                remove = false;
-                                vc.desc = `${poolStates[j].name} Solar`;
-                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') {
-                                    // In this instance we may have a delay underway.
-                                    let hstate = state.heaters.find(x => x.bodyId === 3 && x.startupDelay === true && x.type.name === 'solar');
-                                    bState = typeof hstate === 'undefined';
-                                }
-                            }
-                        }
-                        for (let j = 0; j < spaStates.length; j++) {
-                            if (spaStates[j].id === 3 && spaStates[j].heaterOptions.solar) {
-                                remove = false;
-                                vc.desc = `${spaStates[j].name} Solar`;
-                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') {
-                                    // In this instance we may have a delay underway.
-                                    let hstate = state.heaters.find(x => x.bodyId === 3 && x.startupDelay === true && x.type.name === 'solar');
-                                    bState = typeof hstate === 'undefined';
-                                }
-                            }
-                        }
-
-                        break;
-                    case 'solar4':
-                        remove = true;
-                        for (let j = 0; j < poolStates.length; j++) {
-                            if (poolStates[j].id === 4 && poolStates[j].heaterOptions.solar) {
-                                remove = false;
-                                vc.desc = `${poolStates[j].name} Solar`;
-                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') {
-                                    // In this instance we may have a delay underway.
-                                    let hstate = state.heaters.find(x => x.bodyId === 4 && x.startupDelay === true && x.type.name === 'solar');
-                                    bState = typeof hstate === 'undefined';
-                                }
-                            }
-                        }
-                        for (let j = 0; j < spaStates.length; j++) {
-                            if (spaStates[j].id === 4 && spaStates[j].heaterOptions.solar) {
-                                remove = false;
-                                vc.desc = `${spaStates[j].name} Solar`;
-                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') {
-                                    // In this instance we may have a delay underway.
-                                    let hstate = state.heaters.find(x => x.bodyId === 4 && x.startupDelay === true && x.type.name === 'solar');
-                                    bState = typeof hstate === 'undefined';
+                                else if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'cooling') {
+                                    let hstate = state.heaters.find(x => x.bodyId === solarBody && x.startupDelay !== true && x.type === solarType && x.isCooling === true)
+                                    bState = typeof hstate !== 'undefined';
                                 }
                             }
                         }
@@ -3071,10 +3021,8 @@ export class CircuitCommands extends BoardCommands {
                                 if (typeof schedTime === 'undefined' || st.endTime.getTime() > schedTime.getTime()) schedTime = st.endTime;
                             }
                         }
-                        else
-                            console.log(st);
                     }
-                    console.log({ eggTime: Timestamp.toISOLocal(eggTime), schedTime: Timestamp.toISOLocal(schedTime) });
+                    //console.log({ eggTime: Timestamp.toISOLocal(eggTime), schedTime: Timestamp.toISOLocal(schedTime) });
                 }
                 if (typeof schedTime !== 'undefined') thingState.endTime = new Timestamp(schedTime);
                 else if (typeof thingState.endTime !== 'undefined') thingState.endTime = new Timestamp(eggTime);
