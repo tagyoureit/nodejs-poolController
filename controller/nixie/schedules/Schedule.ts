@@ -51,7 +51,8 @@ export class NixieScheduleCollection extends NixieEquipmentCollection<NixieSched
             // Go through all the schedules and hash them by circuit id.
             let circuits: { circuitId: number, cstate: ICircuitState, hasNixie: boolean, sscheds: ScheduleState[] }[] = []
             for (let i = 0; i < sscheds.length; i++) {
-                if (!sscheds[i].isOn || sscheds[i].scheduleTime.shouldBeOn) continue;
+                // We only care about schedules that are currently running or should be running.
+                if (!sscheds[i].isOn && !sscheds[i].scheduleTime.shouldBeOn) continue;
                 let circ = circuits.find(elem => elem.circuitId === sscheds[i].circuit);
                 let sched = sys.schedules.getItemById(sscheds[i].id)
                 if (typeof circ === 'undefined') circuits.push({
