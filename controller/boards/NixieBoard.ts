@@ -221,6 +221,21 @@ export class NixieBoard extends SystemBoard {
             [53, { name: 'greenblue', desc: 'Green-Blue', types: ['pooltone'], sequence: 14 }],
             [54, { name: 'redgreen', desc: 'Red-Green', types: ['pooltone'], sequence: 15 }],
             [55, { name: 'bluered', desc: 'Blue-red', types: ['pooltone'], sequence: 16 }],
+            // Jandy Pro Series WaterColors Themes
+            [56, { name: 'alpinewhite', desc: 'Alpine White', types: ['watercolors'], sequence: 1 }],
+            [57, { name: 'skyblue', desc: 'Sky Blue', types: ['watercolors'], sequence: 2 }],
+            [58, { name: 'cobaltblue', desc: 'Cobalt Blue', types: ['watercolors'], sequence: 3 }],
+            [59, { name: 'caribbeanblue', desc: 'Caribbean Blue', types: ['watercolors'], sequence: 4 }],
+            [60, { name: 'springgreen', desc: 'Spring Green', types: ['watercolors'], sequence: 5 }],
+            [61, { name: 'emeraldgreen', desc: 'Emerald Green', types: ['watercolors'], sequence: 6 }],
+            [62, { name: 'emeraldrose', desc: 'Emerald Rose', types: ['watercolors'], sequence: 7 }],
+            [63, { name: 'magenta', desc: 'Magenta', types: ['watercolors'], sequence: 8 }],
+            [64, { name: 'violet', desc: 'Violet', types: ['watercolors'], sequence: 9 }],
+            [65, { name: 'slowcolorsplash', desc: 'Slow Color Splash', types: ['watercolors'], sequence: 10 }],
+            [66, { name: 'fastcolorsplash', desc: 'Fast Color Splash', types: ['watercolors'], sequence: 11 }],
+            [67, { name: 'americathebeautiful', desc: 'America the Beautiful', types: ['watercolors'], sequence: 12 }],
+            [68, { name: 'fattuesday', desc: 'Fat Tuesday', types: ['watercolors'], sequence: 13 }],
+            [69, { name: 'discotech', desc: 'Disco Tech', types: ['watercolors'], sequence: 14 }],
             [255, { name: 'none', desc: 'None' }]
         ]);
         this.valueMaps.lightColors = new byteValueMap([
