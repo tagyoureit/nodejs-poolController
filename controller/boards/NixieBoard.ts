@@ -1610,8 +1610,11 @@ export class NixieFeatureCommands extends FeatureCommands {
                     }
                 }
                 let sgrp = state.circuitGroups.getItemById(grp.id);
+                if (bIsOn && typeof sgrp.endTime === 'undefined') {
+                    sys.board.circuits.setEndTime(grp, sgrp, bIsOn, true);
+                }
                 sgrp.isOn = bIsOn;
-                if (sgrp.isOn && typeof sgrp.endTime === 'undefined') sys.board.circuits.setEndTime(grp, sgrp, sgrp.isOn, true);
+
                 if (!sgrp.isOn && sgrp.manualPriorityActive){
                     delayMgr.cancelManualPriorityDelays();
                     sgrp.manualPriorityActive = false; // if the delay was previously cancelled, still need to turn this off

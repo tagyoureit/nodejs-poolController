@@ -2337,7 +2337,7 @@ export class CircuitCommands extends BoardCommands {
                                 if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'solar') bState = true;
                                 else if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'cooling') {
                                     // Check to see if there are any solar heaters on the body that are currently cooling.
-                                    let hstate = state.heaters.find(x => x.bodyId === poolStates[j].id && x.startupDelay !== true && x.type === solarType && x.isCooling === true);
+                                    let hstate = state.heaters.find(x => x.bodyId === poolStates[j].id && x.startupDelay !== true && x.type.val === solarType && x.isCooling === true);
                                     bState = typeof hstate !== 'undefined';
                                     if (bState) break;
                                 }
@@ -2346,7 +2346,7 @@ export class CircuitCommands extends BoardCommands {
                                 for (let j = 0; j < spaStates.length && !bState; j++) {
                                     if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') bState = true;
                                     else if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'cooling') {
-                                        let hstate = state.heaters.find(x => x.bodyId === spaStates[j].id && x.startupDelay !== true && x.type === solarType && x.isCooling === true);
+                                        let hstate = state.heaters.find(x => x.bodyId === spaStates[j].id && x.startupDelay !== true && x.type.val === solarType && x.isCooling === true);
                                         bState = typeof hstate !== 'undefined';
                                         if (bState) break;
                                     }
@@ -2364,14 +2364,11 @@ export class CircuitCommands extends BoardCommands {
                             if (poolStates[j].id === solarBody && poolStates[j].heaterOptions.solar) {
                                 remove = false;
                                 vc.desc = `${poolStates[j].name} Solar`;
-                                if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'solar') {
-                                    // In this instance we may have a delay underway.
-                                    let hstate = state.heaters.find(x => x.bodyId === solarBody && x.startupDelay !== true && x.type === solarType && x.isOn === true);
-                                    bState = typeof hstate !== 'undefined';
-                                }
+                                if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'solar') bState = true;
                                 else if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'cooling') {
-                                    let hstate = state.heaters.find(x => x.bodyId === solarBody && x.startupDelay !== true && x.type === solarType && x.isCooling === true)
+                                    let hstate = state.heaters.find(x => x.bodyId === solarBody && x.startupDelay !== true && x.type.val === solarType && x.isCooling === true)
                                     bState = typeof hstate !== 'undefined';
+                                    if (bState) break;
                                 }
                             }
                         }
@@ -2379,13 +2376,9 @@ export class CircuitCommands extends BoardCommands {
                             if (spaStates[j].id === solarBody && spaStates[j].heaterOptions.solar) {
                                 remove = false;
                                 vc.desc = `${spaStates[j].name} Solar`;
-                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') {
-                                    // In this instance we may have a delay underway.
-                                    let hstate = state.heaters.find(x => x.bodyId === solarBody && x.startupDelay !== true && x.type === solarType && x.isOn === true);
-                                    bState = typeof hstate !== 'undefined';
-                                }
+                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') bState = true;
                                 else if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'cooling') {
-                                    let hstate = state.heaters.find(x => x.bodyId === solarBody && x.startupDelay !== true && x.type === solarType && x.isCooling === true)
+                                    let hstate = state.heaters.find(x => x.bodyId === solarBody && x.startupDelay !== true && x.type.val === solarType && x.isCooling === true)
                                     bState = typeof hstate !== 'undefined';
                                 }
                             }
@@ -3000,8 +2993,9 @@ export class CircuitCommands extends BoardCommands {
         3. Iterate over each schedule for 1-2 above; nearest end time wins
         */
         try {
-            if (!isOn) thingState.endTime = undefined;
+            if (!isOn) thingState.startTime = thingState.endTime = undefined;
             else if (!thingState.isOn && isOn || bForce) {
+                if (!thingState.isOn && isOn && typeof thingState.startTime === 'undefined') thingState.startTime = new Timestamp(new Date());
                 let schedTime: Date;
                 let eggTime: Date = thing.dontStop ? undefined : new Date(new Date().getTime() + ((thing.eggTimer || 720) * 60000));
                 if (!thingState.manualPriorityActive) {
@@ -3022,10 +3016,10 @@ export class CircuitCommands extends BoardCommands {
                             }
                         }
                     }
-                    //console.log({ eggTime: Timestamp.toISOLocal(eggTime), schedTime: Timestamp.toISOLocal(schedTime) });
                 }
-                if (typeof schedTime !== 'undefined') thingState.endTime = new Timestamp(schedTime);
-                else if (typeof thingState.endTime !== 'undefined') thingState.endTime = new Timestamp(eggTime);
+                //console.log({ f: bForce, isOn:isOn, eggTime: Timestamp.toISOLocal(eggTime), schedTime: Timestamp.toISOLocal(schedTime) });
+                if (typeof schedTime !== 'undefined' && schedTime) thingState.endTime = new Timestamp(schedTime);
+                else if (typeof eggTime !== 'undefined' && eggTime) thingState.endTime = new Timestamp(eggTime);
                 else thingState.endTime = undefined;
             }
         }
@@ -3678,15 +3672,14 @@ export class ScheduleCommands extends BoardCommands {
     public async setEggTimerAsync(data?: any, send: boolean = true): Promise<EggTimer> { return Promise.resolve(sys.eggTimers.getItemByIndex(1)); }
     public async deleteEggTimerAsync(data?: any): Promise<EggTimer> { return Promise.resolve(sys.eggTimers.getItemByIndex(1)); }
     public includesCircuit(sched: Schedule, circuit: number) {
-        let bIncludes = false;
-        if (circuit === sched.circuit) bIncludes = true;
+        if (circuit === sched.circuit) return true;
         else if (sys.board.equipmentIds.circuitGroups.isInRange(sched.circuit)) {
             let circs = sys.circuitGroups.getItemById(sched.circuit).getExtended().circuits;
             for (let i = 0; i < circs.length; i++) {
-                if (circs[i].circuit.id === circuit) bIncludes = true;
+                if (circs[i].circuit.id === circuit) return true;
             }
         }
-        return bIncludes;
+        return false;
     }
     /* RKS: 07-10-23 - Deprecated: The schedule state calculates the start/end times.
   public getNearestEndTime(sched: Schedule): Timestamp {
