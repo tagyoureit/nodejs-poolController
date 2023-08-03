@@ -267,7 +267,7 @@ export class NixieSolarHeater extends NixieHeaterBase {
             let origState = hstate.isOn;
             // Initialize the desired state.
             this.isOn = isOn;
-            this.isCooling = isCooling;
+            hstate.isCooling = this.isCooling = isCooling;
             let target = hstate.startupDelay === false && isOn;
             if (target && typeof hstate.endTime !== 'undefined') {
                 // Calculate a short cycle time so that the solar heater does not cycle
