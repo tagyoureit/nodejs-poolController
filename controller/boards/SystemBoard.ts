@@ -22,11 +22,10 @@ import { Timestamp, utils } from '../Constants';
 import { Body, ChemController, ChemDoser, Chlorinator, Circuit, CircuitGroup, CircuitGroupCircuit, ConfigVersion, ControllerType, CustomName, CustomNameCollection, EggTimer, Equipment, Feature, Filter, General, Heater, ICircuit, ICircuitGroup, ICircuitGroupCircuit, LightGroup, LightGroupCircuit, Location, Options, Owner, PoolSystem, Pump, Schedule, sys, TempSensorCollection, Valve } from '../Equipment';
 import { EquipmentNotFoundError, InvalidEquipmentDataError, InvalidEquipmentIdError, BoardProcessError, InvalidOperationError } from '../Errors';
 import { ncp } from "../nixie/Nixie";
-import { BodyTempState, ChemControllerState, ChemDoserState, ChlorinatorState, CircuitGroupState, FilterState, ICircuitGroupState, ICircuitState, LightGroupState, ScheduleState, state, TemperatureState, ValveState, VirtualCircuitState } from '../State';
+import { HeaterState, BodyTempState, ChemControllerState, ChemDoserState, ChlorinatorState, CircuitGroupState, FilterState, ICircuitGroupState, ICircuitState, LightGroupState, ScheduleState, state, TemperatureState, ValveState, VirtualCircuitState } from '../State';
 import { RestoreResults } from '../../web/Server';
 import { setTimeout } from 'timers/promises';
 import { setTimeout as setTimeoutSync } from 'timers';
-import { time } from 'console';
 
 
 export class byteValueMap extends Map<number, any> {
@@ -2334,22 +2333,23 @@ export class CircuitCommands extends BoardCommands {
                         }
                         if (!remove) {
                             for (let j = 0; j < poolStates.length && !bState; j++) {
-                                if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'solar') bState = true;
-                                else if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'cooling') {
-                                    // Check to see if there are any solar heaters on the body that are currently cooling.
-                                    let hstate = state.heaters.find(x => x.bodyId === poolStates[j].id && x.startupDelay !== true && x.type.val === solarType && x.isCooling === true);
-                                    bState = typeof hstate !== 'undefined';
-                                    if (bState) break;
-                                }
+                                let bodyState = poolStates[j];
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(bodyState.heatStatus);
+                                let hstate: HeaterState;
+                                if (hstatus === 'solar') hstate = state.heaters.find(x => x.bodyId === bodyState.id && x.startupDelay !== true && x.type.val === solarType && x.isOn === true);
+                                else if (hstatus === 'cooling') hstate = state.heaters.find(x => x.bodyId === bodyState.id && x.startupDelay !== true && x.type.val === solarType && x.isCooling === true);
+                                bState = typeof hstate !== 'undefined';
+                                if (bState) break;
                             }
                             if (!bState) {
                                 for (let j = 0; j < spaStates.length && !bState; j++) {
-                                    if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') bState = true;
-                                    else if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'cooling') {
-                                        let hstate = state.heaters.find(x => x.bodyId === spaStates[j].id && x.startupDelay !== true && x.type.val === solarType && x.isCooling === true);
-                                        bState = typeof hstate !== 'undefined';
-                                        if (bState) break;
-                                    }
+                                    let bodyState = spaStates[j];
+                                    let hstatus = sys.board.valueMaps.heatStatus.getName(bodyState.heatStatus);
+                                    let hstate: HeaterState;
+                                    if (hstatus === 'solar') hstate = state.heaters.find(x => x.bodyId === bodyState.id && x.startupDelay !== true && x.type.val === solarType && x.isOn === true);
+                                    else if (hstatus === 'cooling') hstate = state.heaters.find(x => x.bodyId === bodyState.id && x.startupDelay !== true && x.type.val === solarType && x.isCooling === true);
+                                    bState = typeof hstate !== 'undefined';
+                                    if (bState) break;
                                 }
                             }
                         }
@@ -2361,26 +2361,29 @@ export class CircuitCommands extends BoardCommands {
                         remove = true;
                         let solarBody = parseInt(vc.name.substring(5), 10);
                         for (let j = 0; j < poolStates.length; j++) {
-                            if (poolStates[j].id === solarBody && poolStates[j].heaterOptions.solar) {
+                            let bodyState = poolStates[j];
+                            if (bodyState.id === solarBody && bodyState.heaterOptions.solar) {
                                 remove = false;
-                                vc.desc = `${poolStates[j].name} Solar`;
-                                if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'solar') bState = true;
-                                else if (sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus) === 'cooling') {
-                                    let hstate = state.heaters.find(x => x.bodyId === solarBody && x.startupDelay !== true && x.type.val === solarType && x.isCooling === true)
-                                    bState = typeof hstate !== 'undefined';
-                                    if (bState) break;
-                                }
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(bodyState.heatStatus);
+                                vc.desc = `${bodyState.name} Solar`;
+                                let hstate: HeaterState;
+                                if (hstatus === 'solar') hstate = state.heaters.find(x => x.bodyId === bodyState.id && x.startupDelay !== true && x.type.val === solarType && x.isOn === true);
+                                else if (hstatus === 'cooling') hstate = state.heaters.find(x => x.bodyId === bodyState.id && x.startupDelay !== true && x.type.val === solarType && x.isCooling === true);
+                                bState = typeof hstate !== 'undefined';
+                                if (bState) break;
                             }
                         }
                         for (let j = 0; j < spaStates.length; j++) {
-                            if (spaStates[j].id === solarBody && spaStates[j].heaterOptions.solar) {
+                            let bodyState = spaStates[j];
+                            if (bodyState.id === solarBody && bodyState.heaterOptions.solar) {
                                 remove = false;
-                                vc.desc = `${spaStates[j].name} Solar`;
-                                if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'solar') bState = true;
-                                else if (sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus) === 'cooling') {
-                                    let hstate = state.heaters.find(x => x.bodyId === solarBody && x.startupDelay !== true && x.type.val === solarType && x.isCooling === true)
-                                    bState = typeof hstate !== 'undefined';
-                                }
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(bodyState.heatStatus);
+                                vc.desc = `${bodyState.name} Solar`;
+                                let hstate: HeaterState;
+                                if (hstatus === 'solar') hstate = state.heaters.find(x => x.bodyId === bodyState.id && x.startupDelay !== true && x.type.val === solarType && x.isOn === true);
+                                else if (hstatus === 'cooling') hstate = state.heaters.find(x => x.bodyId === bodyState.id && x.startupDelay !== true && x.type.val === solarType && x.isCooling === true);
+                                bState = typeof hstate !== 'undefined';
+                                if (bState) break;
                             }
                         }
                         break;
