@@ -415,9 +415,16 @@ export class StateRoute {
                 let val;
                 if (isNaN(mode)) mode = parseInt(req.body.heatMode, 10);
                 if (!isNaN(mode)) val = sys.board.valueMaps.heatModes.transform(mode);
-                else val = sys.board.valueMaps.heatModes.transformByName(req.body.mode || req.body.heatMode);
-                if (typeof val.val === 'undefined') {
-                    return next(new ServiceParameterError(`Invalid value for heatMode: ${req.body.mode}`, 'body', 'heatMode', mode));
+                else {
+                    let smode = req.body.mode || req.body.heatMode;
+                    if (typeof smode === 'string') smode = smode.toLowerCase();
+                    else {
+                        return next(new ServiceParameterError(`Invalid mode supplied ${req.body.mode || req.body.heatMode}.`, 'body', 'heatmode', smode));
+                    }
+                    val = sys.board.valueMaps.heatModes.transformByName(smode);
+                    if (typeof val.val === 'undefined') {
+                        return next(new ServiceParameterError(`Invalid value for heatMode: ${req.body.mode}`, 'body', 'heatMode', mode));
+                    }
                 }
                 mode = val.val;
                 let body = sys.bodies.findByObject(req.body);
