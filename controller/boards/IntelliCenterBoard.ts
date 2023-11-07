@@ -2863,21 +2863,28 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 retries: 2,
                 response: IntelliCenterBoard.getAckResponse(168)
             });
-            await out.sendAsync();
-            let body1 = sys.bodies.getItemById(1);
-            let sbody1 = state.temps.bodies.getItemById(1);
-            body1.heatMode = sbody1.heatMode = bhs.body1.heatMode;
-            body1.heatSetpoint = sbody1.heatSetpoint = bhs.body1.heatSetpoint;
-            body1.coolSetpoint = sbody1.coolSetpoint = bhs.body1.coolSetpoint;
-            if (sys.equipment.dual || sys.equipment.shared) {
-                let body2 = sys.bodies.getItemById(2);
-                let sbody2 = state.temps.bodies.getItemById(2);
-                body2.heatMode = sbody2.heatMode = bhs.body2.heatMode;
-                body2.heatSetpoint = sbody2.heatSetpoint = bhs.body2.heatSetpoint;
-                body2.coolSetpoint = sbody2.coolSetpoint = bhs.body2.coolSetpoint;
+            try {
+                await out.sendAsync();
+                let body1 = sys.bodies.getItemById(1);
+                let sbody1 = state.temps.bodies.getItemById(1);
+                body1.heatMode = sbody1.heatMode = bhs.body1.heatMode;
+                body1.heatSetpoint = sbody1.heatSetpoint = bhs.body1.heatSetpoint;
+                body1.coolSetpoint = sbody1.coolSetpoint = bhs.body1.coolSetpoint;
+                if (sys.equipment.dual || sys.equipment.shared) {
+                    let body2 = sys.bodies.getItemById(2);
+                    let sbody2 = state.temps.bodies.getItemById(2);
+                    body2.heatMode = sbody2.heatMode = bhs.body2.heatMode;
+                    body2.heatSetpoint = sbody2.heatSetpoint = bhs.body2.heatSetpoint;
+                    body2.coolSetpoint = sbody2.coolSetpoint = bhs.body2.coolSetpoint;
+                }
+                state.emitEquipmentChanges();
+            } catch (err) {
+                bhs.processing = false;
+                throw (err);
             }
-            bhs.processing = false;
-            state.emitEquipmentChanges();
+            finally {
+                bhs.processing = false;
+            }
             return true;
         }
         else {
