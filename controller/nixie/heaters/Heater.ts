@@ -582,6 +582,7 @@ export class NixieMastertemp extends NixieGasHeater {
         // Set the polling interval to 3 seconds.
         this.pollEquipmentAsync();
         this.pollingInterval = 3000;
+
     }
     /*     public getCooldownTime(): number {
             // Delays are always in terms of seconds so convert the minute to seconds.
@@ -593,12 +594,26 @@ export class NixieMastertemp extends NixieGasHeater {
     public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean) {
         try {
             // Initialize the desired state.
+            this.isOn = isOn;
             this.isCooling = false;
-            // Here we go we need to set the firemans switch state.
-            if (hstate.isOn !== isOn) {
-                logger.info(`Nixie: Set Heater ${hstate.id}-${hstate.name} to ${isOn}`);
+            let target = hstate.startupDelay === false && isOn;
+            if (target && typeof hstate.endTime !== 'undefined') {
+                // Calculate a short cycle time so that the gas heater does not cycle
+                // too often.  For gas heaters this is 60 seconds.  This gives enough time
+                // for the heater control circuit to make a full cycle.
+                if (new Date().getTime() - hstate.endTime.getTime() < this.heater.minCycleTime * 60000) {
+                    logger.verbose(`${hstate.name} short cycle detected deferring turn on state`);
+                    target = false;
+                }
             }
-            if (isOn && !hstate.startupDelay) this.lastHeatCycle = new Date();
+            // Here we go we need to set the state.
+            if (hstate.isOn !== target) {
+                logger.info(`Nixie: Set Mastertemp ${hstate.id}-${hstate.name} to ${isOn}`);
+            }
+            if (typeof this._lastState === 'undefined' || target || this._lastState !== target) {
+                this._lastState = hstate.isOn = target;
+                if (target) this.lastHeatCycle = new Date();
+            }
             hstate.isOn = isOn;
         } catch (err) { return logger.error(`Nixie Error setting heater state ${hstate.id}-${hstate.name}: ${err.message}`); }
     }
