@@ -801,12 +801,12 @@ export class NixiePumpVSF extends NixiePumpRS485 {
             // the GPM to RPM but if there is none then it will use GPM.
             let toRPM = (flowRate: number, minSpeed: number = 450, maxSpeed: number = 3450) => {
                 let eff = .03317 * maxSpeed;
-                let rpm = Math.min((flowRate * maxSpeed) / eff, maxSpeed);
+                let rpm = Math.min(Math.round((flowRate * maxSpeed) / eff), maxSpeed);
                 return rpm > 0 ? Math.max(rpm, minSpeed) : 0;
             };
             let toGPM = (speed: number, maxSpeed: number = 3450, minFlow: number = 15, maxFlow: number = 140) => {
                 let eff = .03317 * maxSpeed;
-                let gpm = Math.min((eff * speed) / maxSpeed, maxFlow);
+                let gpm = Math.min(Math.round((eff * speed) / maxSpeed), maxFlow);
                 return gpm > 0 ? Math.max(gpm, minFlow) : 0;
             }
             for (let i = 0; i < pumpCircuits.length; i++) {
