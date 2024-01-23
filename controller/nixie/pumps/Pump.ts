@@ -791,8 +791,7 @@ export class NixiePumpVSF extends NixiePumpRS485 {
         let _newSpeed = 0;
         let maxRPM = 0;
         let maxGPM = 0;
-        let flows = 0;
-        let speeds = 0;
+        let useFlow = false;
         if (!pState.pumpOnDelay) {
             let pumpCircuits = this.pump.circuits.get();
             let pt = sys.board.valueMaps.pumpTypes.get(this.pump.type);
@@ -800,11 +799,17 @@ export class NixiePumpVSF extends NixiePumpRS485 {
             // if there is a mix in the circuit array then they will not work.  In IntelliCenter if there is an RPM setting in the mix it will use RPM by converting
             // the GPM to RPM but if there is none then it will use GPM.
             let toRPM = (flowRate: number, minSpeed: number = 450, maxSpeed: number = 3450) => {
+                // eff = 114.4365
+                // gpm = 80
+                // speed = 2412
                 let eff = .03317 * maxSpeed;
                 let rpm = Math.min(Math.round((flowRate * maxSpeed) / eff), maxSpeed);
                 return rpm > 0 ? Math.max(rpm, minSpeed) : 0;
             };
             let toGPM = (speed: number, maxSpeed: number = 3450, minFlow: number = 15, maxFlow: number = 140) => {
+                // eff = 114.4365
+                // speed = 1100
+                // gpm = (114.4365 * 1100)/3450 = 36
                 let eff = .03317 * maxSpeed;
                 let gpm = Math.min(Math.round((eff * speed) / maxSpeed), maxFlow);
                 return gpm > 0 ? Math.max(gpm, minFlow) : 0;
@@ -814,23 +819,24 @@ export class NixiePumpVSF extends NixiePumpRS485 {
                 let pc = pumpCircuits[i];
                 if (circ.isOn) {
                     if (pc.units > 0) {
+                        let rpm = toRPM(pc.flow, pt.minSpeed, pt.MaxSpeed);
+                        if (rpm > maxRPM) useFlow = true;
                         maxGPM = Math.max(maxGPM, pc.flow);
-                        // Calculate an RPM from this flow.
-                        maxRPM = Math.max(maxGPM, toRPM(pc.flow, pt.minSpeed, pt.maxSpeed));
-                        flows++;
+                        rpm = Math.max(maxRPM, rpm);
                     }
                     else {
+                        let gpm = toGPM(pc.speed, pt.maxSpeed, pt.minFlow, pt.maxFlow);
+                        if (gpm > maxGPM) useFlow = false;
                         maxRPM = Math.max(maxRPM, pc.speed);
-                        maxGPM = Math.max(maxGPM, toGPM(pc.speed, pt.maxSpeed, pt.minFlow, pt.maxFlow));
-                        speeds++;
+                        maxGPM = Math.max(maxGPM, gpm);
                     }
                 }
             }
-            _newSpeed = speeds > 0 || flows === 0 ? maxRPM : maxGPM;
+            _newSpeed = useFlow ? maxGPM : maxRPM;
         }
         if (isNaN(_newSpeed)) _newSpeed = 0;
         // Send the flow message if it is flow and the rpm message if it is rpm.
-        if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed} ${flows > 0 ? 'GPM' : 'RPM'}.`);
+        if (this._targetSpeed !== _newSpeed) logger.info(`NCP: Setting Pump ${this.pump.name} to ${_newSpeed} ${useFlow ? 'GPM' : 'RPM'}.`);
         this._targetSpeed = _newSpeed;
     }
     protected async setPumpRPMAsync() {
