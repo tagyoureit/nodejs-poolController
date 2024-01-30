@@ -390,6 +390,10 @@ export class IntelliCenterBoard extends SystemBoard {
         for (let i = 0; i < sys.circuits.length; i++) {
             let c = sys.circuits.getItemByIndex(i);
             if (c.id <= 40) c.master = 0;
+            if (typeof sys.board.valueMaps.circuitFunctions.get(c.type).isLight) {
+                let s = state.circuits.getItemById(c.id);
+                if (s.action !== 0) s.action = 0;
+            }
         }
         for (let i = 0; i < sys.valves.length; i++) {
             let v = sys.valves.getItemByIndex(i);
