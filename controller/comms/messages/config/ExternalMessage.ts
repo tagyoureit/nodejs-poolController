@@ -329,6 +329,7 @@ export class ExternalMessage {
                         case 8: // Intellibrite
                         case 10: // Colorcascade
                             cstate.lightingTheme = circuit.lightingTheme;
+                            if (!isOn) cstate.action = 0;
                             break;
                         case 9: // Dimmer
                             cstate.level = circuit.level;
