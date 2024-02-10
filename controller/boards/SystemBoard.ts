@@ -1913,6 +1913,27 @@ export class BodyCommands extends BoardCommands {
         }
         return false;
     }
+    public getActiveBody(bodyCode: number): number {
+        let assoc = sys.board.valueMaps.bodies.transform(bodyCode);
+        switch (assoc.name) {
+            case 'body1':
+            case 'pool':
+                return 1;
+            case 'body2':
+            case 'spa':
+                return 2;
+            case 'body3':
+                return 3;
+            case 'body4':
+                return 4;
+            case 'poolspa':
+                if (sys.equipment.shared && sys.equipment.maxBodies >= 2) {
+                    return state.temps.bodies.getItemById(2).isOn ? 2 : 1;
+                }
+                else return 1; // Always default to pool.
+        }
+        return 0;
+    }
 }
 export class PumpCommands extends BoardCommands {
     public async restore(rest: { poolConfig: any, poolState: any }, ctx: any, res: RestoreResults): Promise<boolean> {

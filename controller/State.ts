@@ -2627,6 +2627,7 @@ export class ChemDoserState extends EqState implements IChemicalState, IChemCont
 
 export class ChemControllerState extends EqState implements IChemControllerState {
     public initData() {
+        if (typeof this.activeBodyId === 'undefined') this.data.activeBodyId = 0;
         if (typeof this.data.saturationIndex === 'undefined') this.data.saturationIndex = 0;
         if (typeof this.data.flowDetected === 'undefined') this.data.flowDetected = false;
         if (typeof this.data.orp === 'undefined') this.data.orp = {};
@@ -2730,6 +2731,8 @@ export class ChemControllerState extends EqState implements IChemControllerState
     public set address(val: number) { this.setDataVal('address', val); }
     public get isBodyOn(): boolean { return this.data.isBodyOn; }
     public set isBodyOn(val: boolean) { this.data.isBodyOn = val; }
+    public get activeBodyId(): number { return this.data.activeBodyId || 0; }
+    public set activeBodyId(val: number) { this.data.activeBodyId = val; }
     public get flowDetected(): boolean { return this.data.flowDetected; }
     public set flowDetected(val: boolean) { this.data.flowDetected = val; }
     public get status(): number {
