@@ -164,7 +164,7 @@
           "username": "",
           "password": "",
           "selfSignedCertificate": false,
-          "rootTopic": "@bind=(state.equipment.model).replace(' ','-').replace('/','').toLowerCase();",
+          "rootTopic": "@bind=(state.equipment.model).replace(/ /g,'-').replace('/','').toLowerCase();",
           "retain": true,
           "qos": 0,
           "changesOnly": true
@@ -204,7 +204,7 @@
           "port": 1883,
           "username": "",
           "password": "",
-          "rootTopic": "@bind=(state.equipment.model).replace(' ','-').replace('/','').toLowerCase();Alt",
+          "rootTopic": "@bind=(state.equipment.model).replace(/ /,'-').replace('/','').toLowerCase();Alt",
           "retain": true,
           "qos": 0,
           "changesOnly": true
@@ -230,7 +230,7 @@
         "vars": {
           "_note": "hassTopic is the topic that HASS reads for configuration and should not be changed.  mqttTopic should match the topic in the MQTT binding (do not use MQTTAlt for HASS).",
           "hassTopic": "homeassistant",
-          "mqttTopic": "@bind=(state.equipment.model).replace(' ','-').replace('/','').toLowerCase();"
+          "mqttTopic": "@bind=(state.equipment.model).replace(/ /g,'-').replace('/','').toLowerCase();"
         }
       },
       "rem": {

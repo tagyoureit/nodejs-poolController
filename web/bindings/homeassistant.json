@@ -34,7 +34,7 @@
         }
       ],
       "rootTopic-DIRECTIONS": "rootTopic in config.json is ingored. Instead set the two topic variables in the vars section",
-      "_rootTopic": "@bind=(state.equipment.model).replace(' ','-').replace(' / ','').toLowerCase();",
+      "_rootTopic": "@bind=(state.equipment.model).replace(/ /g,'-').replace(' / ','').toLowerCase();",
       "clientId": "@bind=`hass_njsPC_${webApp.mac().replace(/:/g, '_'}-${webApp.httpPort()}`;"
     }
   },

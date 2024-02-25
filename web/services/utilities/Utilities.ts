@@ -103,7 +103,7 @@ export class UtilitiesRoute {
                             options: {
                                 protocol: 'mqtt://', host: '', port: 1883, username: '', password: '',
                                 selfSignedCertificate: false,
-                                rootTopic: "pool/@bind=(state.equipment.model).replace(' ','-').replace(' / ','').toLowerCase();",
+                                rootTopic: "pool/@bind=(state.equipment.model).replace(/ /g,'-').replace(' / ','').toLowerCase();",
                                 retain: true, qos: 0, changesOnly: true
                             }
                         }
