@@ -431,7 +431,7 @@ export class NixieBoard extends SystemBoard {
                 sys.circuits.removeItemById(6);
                 state.circuits.removeItemById(6);
             }
-            
+
             sys.equipment.setEquipmentIds();
             sys.board.bodies.initFilters();
             state.status = sys.board.valueMaps.controllerStatus.transform(2, 0);
@@ -571,11 +571,11 @@ export class NixieSystemCommands extends SystemCommands {
         state.delay = sys.board.valueMaps.delay.getValue('nodelay');
         return Promise.resolve(state.data.delay);
     }
-    public setManualOperationPriority(id: number): Promise<any> { 
+    public setManualOperationPriority(id: number): Promise<any> {
         let cstate = state.circuits.getInterfaceById(id);
         delayMgr.setManualPriorityDelay(cstate);
-        return Promise.resolve(cstate); 
-     }
+        return Promise.resolve(cstate);
+    }
     public setDateTimeAsync(obj: any): Promise<any> { return Promise.resolve(); }
     public getDOW() { return this.board.valueMaps.scheduleDays.toArray(); }
     public async setGeneralAsync(obj: any): Promise<General> {
@@ -711,7 +711,6 @@ export class NixieCircuitCommands extends CircuitCommands {
                     break;
                 default:
                     await ncp.circuits.setCircuitStateAsync(circ, newState);
-                    await sys.board.processStatusAsync();
                     break;
             }
             // Let the main nixie controller set the circuit state and affect the relays if it needs to.
@@ -722,6 +721,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             state.emitEquipmentChanges();
             ncp.pumps.syncPumpStates();
             sys.board.suspendStatus(false);
+            await sys.board.processStatusAsync();
         }
     }
     protected async setCleanerCircuitStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<ICircuitState> {
@@ -1009,7 +1009,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             return cstate;
         } catch (err) { logger.error(`Nixie: Error setDrainCircuitStateAsync ${err.message}`); return Promise.reject(new BoardProcessError(`Nixie: Error setDrainCircuitStateAsync ${err.message}`, 'setDrainCircuitStateAsync')); }
     }
-    
+
     public toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
         let circ = state.circuits.getInterfaceById(id);
         return this.setCircuitStateAsync(id, !(circ.isOn || false));
@@ -1154,7 +1154,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             if (typeof obj.eggTimer !== 'undefined') group.eggTimer = Math.min(Math.max(parseInt(obj.eggTimer, 10), 0), 1440);
             if (typeof obj.showInFeatures !== 'undefined') sgroup.showInFeatures = group.showInFeatures = utils.makeBool(obj.showInFeatures);
             sgroup.type = group.type;
-            
+
             group.dontStop = group.eggTimer === 1440;
             group.isActive = sgroup.isActive = true;
 
@@ -1221,7 +1221,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                 // group.circuits.length = obj.circuits.length; // RSG - removed as this will delete circuits that were not changed
                 group.circuits.length = obj.circuits.length;
                 sgroup.emitEquipmentChange();
-                
+
             }
             resolve(group);
         });
@@ -1308,7 +1308,7 @@ export class NixieCircuitCommands extends CircuitCommands {
         //grp.lightingTheme = sgrp.lightingTheme = theme;
         let thm = sys.board.valueMaps.lightThemes.transform(theme);
         sgrp.action = sys.board.valueMaps.circuitActions.getValue('lighttheme');
-       
+
         try {
             // Go through and set the theme for all lights in the group.
             for (let i = 0; i < grp.circuits.length; i++) {
@@ -1422,7 +1422,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             else if (circuit.desiredState === 5){
                 // off/ignore
                 if (val) cval = false;
-                else continue; 
+                else continue;
             }
             await sys.board.circuits.setCircuitStateAsync(circuit.circuit, cval);
             //arr.push(sys.board.circuits.setCircuitStateAsync(circuit.circuit, cval));
@@ -1444,13 +1444,23 @@ export class NixieCircuitCommands extends CircuitCommands {
         let arr = [];
         for (let i = 0; i < circuits.length; i++) {
             let circuit = circuits[i];
-            arr.push(sys.board.circuits.setCircuitStateAsync(circuit.circuit, val));
+            // RSG 4/3/24 - This function was executing and returing the results to the array; not pushing the fn to the array.
+            //arr.push(sys.board.circuits.setCircuitStateAsync(circuit.circuit, val));
+            arr.push(async () => { await sys.board.circuits.setCircuitStateAsync(circuit.circuit, val) });
         }
+        // return new Promise<ICircuitGroupState>(async (resolve, reject) => {
+        //     await Promise.all(arr).catch((err) => { reject(err) });
+        //     resolve(gstate);
+        // });
         return new Promise<ICircuitGroupState>(async (resolve, reject) => {
-            await Promise.all(arr).catch((err) => { reject(err) });
-            resolve(gstate);
+            try {
+                Promise.all(arr.map(async func => await func()));
+                resolve(gstate);
+            } catch (err) {
+                reject(err);
+            };
         });
-    }
+     };
 }
 export class NixieFeatureCommands extends FeatureCommands {
     public async setFeatureAsync(obj: any): Promise<Feature> {
@@ -1526,7 +1536,7 @@ export class NixieFeatureCommands extends FeatureCommands {
             if (!val){
                 if (fstate.manualPriorityActive) delayMgr.cancelManualPriorityDelay(fstate.id);
                 fstate.manualPriorityActive = false; // if the delay was previously cancelled, still need to turn this off
-            } 
+            }
             state.emitEquipmentChanges();
             return fstate;
         } catch (err) { return Promise.reject(new Error(`Error setting feature state ${err.message}`)); }
@@ -1614,7 +1624,7 @@ export class NixieFeatureCommands extends FeatureCommands {
                     let circuit: CircuitGroupCircuit = grp.circuits.getItemByIndex(j);
                     let cstate = state.circuits.getInterfaceById(circuit.circuit);
                     // RSG: desiredState for Nixie is 1=on, 2=off, 3=ignore
-                    if (circuit.desiredState === 1 || circuit.desiredState === 4) { 
+                    if (circuit.desiredState === 1 || circuit.desiredState === 4) {
                         // The circuit should be on if the value is 1.
                         // If we are on 'ignore' we should still only treat the circuit as 
                         // desiredstate = 1.
@@ -1633,7 +1643,7 @@ export class NixieFeatureCommands extends FeatureCommands {
                 if (!sgrp.isOn && sgrp.manualPriorityActive){
                     delayMgr.cancelManualPriorityDelays();
                     sgrp.manualPriorityActive = false; // if the delay was previously cancelled, still need to turn this off
-                } 
+                }
             }
             sys.board.valves.syncValveStates();
         }
@@ -1655,9 +1665,9 @@ export class NixieFeatureCommands extends FeatureCommands {
                 if (!sgrp.isOn && sgrp.manualPriorityActive){
                     delayMgr.cancelManualPriorityDelay(grp.id);
                     sgrp.manualPriorityActive = false; // if the delay was previously cancelled, still need to turn this off
-                } 
+                }
             }
-            
+
             sys.board.valves.syncValveStates();
         }
         state.emitEquipmentChanges();
@@ -1689,8 +1699,8 @@ export class NixiePumpCommands extends PumpCommands {
                             // to bodies.
                             console.log(`Body: ${pump.body} Pump: ${pump.name} Pool: ${circuitIds.includes(6)} `);
                             if ((pump.body === 255 && (circuitIds.includes(6) || circuitIds.includes(1))) ||
-                            (pump.body === 0 && circuitIds.includes(6)) ||
-                            (pump.body === 101 && circuitIds.includes(1))) {
+                                (pump.body === 0 && circuitIds.includes(6)) ||
+                                (pump.body === 101 && circuitIds.includes(1))) {
                                 delayMgr.setPumpValveDelay(pstate);
                             }
                             break;
@@ -1869,7 +1879,7 @@ export class NixieHeaterCommands extends HeaterCommands {
         else if (ultratempInstalled) sys.board.valueMaps.heatSources.merge([[5, { name: 'ultratemp', desc: 'UltraTemp', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
         sys.board.valueMaps.heatSources.merge([[0, { name: 'nochange', desc: 'No Change' }]]);
 
-            
+
         if (gasHeaterInstalled) sys.board.valueMaps.heatModes.merge([[2, { name: 'heater', desc: 'Heater' }]]);
         if (mastertempInstalled) sys.board.valueMaps.heatModes.merge([[11, { name: 'mtheater', desc: 'MasterTemp' }]]);
         if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled || mastertempInstalled)) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar Only' }], [4, { name: 'solarpref', desc: 'Solar Preferred' }]]);

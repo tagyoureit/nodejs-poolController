@@ -961,10 +961,12 @@ export class SystemBoard {
             await sys.board.circuits.checkEggTimerExpirationAsync();
             state.emitControllerChange();
             state.emitEquipmentChanges();
-        } catch (err) { state.status = 255; logger.error(`Error performing processStatusAsync ${err.message}`); }
-        finally {
+            // RSG 4.3.24 - suspendStatus(false) should not be in the finally because it would decrement the _statusCheckRef 
+            // when it should be the job of the calling function (eg setCircuitStateAsync)
             this.suspendStatus(false);
-            if (this.statusInterval > 0) this._statusTimer = setTimeoutSync(async () => await self.processStatusAsync(), this.statusInterval);
+        } catch (err) { this.suspendStatus(false); state.status = 255; logger.error(`Error performing processStatusAsync ${err.message}`); }
+        finally {
+            if (this._statusCheckRef === 0) this._statusTimer = setTimeoutSync(async () => await self.processStatusAsync(), this.statusInterval);
         }
     }
     public async syncEquipmentItems() {
