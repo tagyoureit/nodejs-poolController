@@ -711,7 +711,7 @@ export class NixieChemController extends NixieChemControllerBase {
                 else schem.alarms.orpTank = 0;
                 // Alright we need to determine whether we need to adjust the volume any so that we get at least 3 seconds out of the pump.
                 let padj = this.chem.orp.pump.type > 0 && !this.chem.orp.useChlorinator ? (this.chem.orp.pump.ratedFlow / 60) * 3 : 0;
-                if (this.chem.orp.maxDailyVolume <= schem.orp.dailyVolumeDosed && !this.chem.orp.useChlorinator) {
+                if (this.chem.orp.dosingMethod !== 0 && this.chem.orp.maxDailyVolume <= schem.orp.dailyVolumeDosed && !this.chem.orp.useChlorinator) {
                     schem.warnings.orpDailyLimitReached = 4;
                     schem.orp.dailyLimitReached = true;
                 }
@@ -765,7 +765,7 @@ export class NixieChemController extends NixieChemControllerBase {
                 schem.warnings.pHDailyLimitReached = 0;
                 // Alright we need to determine whether we need to adjust the volume any so that we get at least 3 seconds out of the pump.
                 let padj = this.chem.ph.pump.type > 0 ? (this.chem.ph.pump.ratedFlow / 60) * 3 : 0;
-                if (this.chem.ph.maxDailyVolume <= schem.ph.dailyVolumeDosed + padj) {
+                if (this.chem.ph.dosingMethod !== 0 && this.chem.ph.maxDailyVolume <= schem.ph.dailyVolumeDosed + padj) {
                     schem.warnings.pHDailyLimitReached = 2;
                     schem.ph.dailyLimitReached = true;
                 }
