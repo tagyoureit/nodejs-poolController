@@ -1,5 +1,5 @@
 ```diff
-- INTELLICENTER USERS: Do not upgrade to 2.006.  Rollback to 1.064 to use this application. 
+- INTELLICENTER USERS: Do not upgrade Intellicenter to 2.006.  Rollback to 1.064 to use this application. 
 ```
 # nodejs-poolController - Version 8.0
 
