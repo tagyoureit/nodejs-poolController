@@ -507,7 +507,7 @@ export class Inbound extends Message {
                     ndx = bytes.length - 5;
                     let arr = bytes.slice(0, ndx);
                     // Remove all but the last 4 bytes.  This will result in nothing anyway.
-                    logger.verbose(`Tossed Inbound Bytes ${arr} due to an unrecoverable collision.`);
+                    logger.verbose(`[Port ${this.portId}] Tossed Inbound Bytes ${arr} due to an unrecoverable collision.`);
                 }
                 this.padding = [];
                 break;

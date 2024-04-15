@@ -4225,14 +4225,12 @@ export class HeaterCommands extends BoardCommands {
                                     case 'solar':
                                         if (mode === 'solar' || mode === 'solarpref') {
                                             // Measure up against start and stop temp deltas for effective solar heating.
-                                            if (body.temp < cfgBody.heatSetpoint &&
-                                                state.temps.solar > body.temp + (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                                            if ((body.temp < cfgBody.heatSetpoint + heater.stopTempDelta && body.temp > cfgBody.heatSetpoint - heater.startTempDelta) && state.temps.solar > body.temp ) {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
                                                 isHeating = true;
                                             }
-                                            else if (heater.coolingEnabled && body.temp > cfgBody.coolSetpoint && state.heliotrope.isNight &&
-                                                state.temps.solar < body.temp - (hstate.isOn ? heater.stopTempDelta : heater.startTempDelta)) {
+                                            else if (heater.coolingEnabled && (body.temp > cfgBody.coolSetpoint -  heater.stopTempDelta && body.temp < cfgBody.coolSetpoint - heater.startTempDelta) && state.heliotrope.isNight && state.temps.solar < body.temp) {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
                                                 isHeating = true;
