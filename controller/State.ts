@@ -1833,6 +1833,12 @@ export class HeaterState extends EqState {
             this.hasChanged = true;
         }
     }
+    public get prevHeaterOffTemp(): number { return this.data.prevHeaterOffTemp; }
+    public set prevHeaterOffTemp(val: number) {
+        if (this.prevHeaterOffTemp !== val) {
+            this.data.prevHeaterOffTemp = val;
+        }
+    }
     public get startupDelay(): boolean { return this.data.startupDelay; }
     public set startupDelay(val: boolean) { this.setDataVal('startupDelay', val); }
     public get shutdownDelay(): boolean { return this.data.shutdownDelay; }

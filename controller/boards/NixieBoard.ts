@@ -906,6 +906,7 @@ export class NixieCircuitCommands extends CircuitCommands {
                 // circuit is already under delay it should have been processed out earlier.
                 delayMgr.cancelPumpValveDelays();
                 delayMgr.cancelHeaterStartupDelays();
+                sys.board.heaters.clearPrevHeaterOffTemp();
                 if (cstate.startDelay) delayMgr.clearBodyStartupDelay(bstate);
                 await this.turnOffCleanerCircuits(bstate);
                 if (sys.equipment.shared && bstate.id === 2) await this.turnOffDrainCircuits(ignoreDelays);
