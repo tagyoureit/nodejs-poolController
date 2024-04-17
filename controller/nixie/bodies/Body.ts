@@ -79,7 +79,7 @@ export class NixieBody extends NixieEquipment {
         try {
             // Here we go we need to set the valve state.
             if (bstate.isOn !== isOn) {
-                logger.info(`Nixie: Set Body ${bstate.id}-${bstate.name} to ${isOn}`);
+                logger.info(`Nixie: Set Body ${bstate.id}-${bstate.name} to ${isOn}`); 
             }
             bstate.isOn = isOn;
         } catch (err) { logger.error(`Nixie Error setting body state ${bstate.id}-${bstate.name}: ${err.message}`); }

@@ -4161,7 +4161,7 @@ export class HeaterCommands extends BoardCommands {
             let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
             // only setting this for solar now; expand it to other heater types if applicable  #925
             if (htype.name === 'solar'){
-                heater.prevHeaterOffTemp === undefined;
+                heater.prevHeaterOffTemp = undefined;
             }
         }
     }

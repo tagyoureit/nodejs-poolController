@@ -681,6 +681,10 @@ export class HttpServer extends ProtoServer {
                 logger.error(`Error replaying packet: ${err.message}`);
             }
         });
+        sock.on('rawbytes', (data:any)=>{
+            let port = conn.findPortById(0);
+            port.pushIn(Buffer.from(data));
+        })
         sock.on('sendLogMessages', function (sendMessages: boolean) {
             console.log(`sendLogMessages set to ${sendMessages}`);
             if (!sendMessages) sock.leave('msgLogger');

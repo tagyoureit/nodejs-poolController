@@ -21,6 +21,8 @@ export interface INixieChemical extends NixieEquipment {
     chemController: INixieChemController;
     chemical: IChemical;
 }
+
+//#region 
 export class NixieChemControllerCollection extends NixieEquipmentCollection<NixieChemControllerBase> {
     public async manualDoseAsync(id: number, data: any) {
         try {
