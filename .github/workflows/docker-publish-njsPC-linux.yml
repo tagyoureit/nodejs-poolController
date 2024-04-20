@@ -32,7 +32,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
-          file: ./Dockerfile
+          file: ./Dockerfile.linux
           push: true
           tags: |
             tagyoureit/njspc-njspcdp-combined-app:latest
