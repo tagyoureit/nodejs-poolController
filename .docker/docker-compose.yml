@@ -22,7 +22,7 @@ services:
       - "5150:5150"
     volumes:
       - /data/poolcontroller-dashpanel/config.json:/app/config.json
-    image: tagyoureit/nodejs-poolcontroller-dashpanel
+    image: rstrouse/nodejs-poolcontroller-dashpanel:latest
     depends_on:
       - poolcontroller
 

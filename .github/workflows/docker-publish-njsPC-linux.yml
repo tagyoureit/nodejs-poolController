@@ -37,7 +37,7 @@ jobs:
           file: ./.docker/Dockerfile.linux
           push: true
           tags: |
-            rstrouse/nodejs-poolcontroller-dashPanel:latest
+            rstrouse/nodejs-poolcontroller-dashpanel:latest
 
       # - name: Build and push ARMv7 Docker image
       #   uses: docker/build-push-action@v4
