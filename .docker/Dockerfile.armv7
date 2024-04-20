@@ -1,14 +1,17 @@
 # Use a base image compatible with ARMv7 architecture
 FROM arm32v7/node:14-alpine
 
+# Install necessary build dependencies
+RUN apk add --no-cache make gcc g++ python3 linux-headers udev tzdata git
+
 # Set the working directory
 WORKDIR /app
 
 # Copy package.json and package-lock.json
 COPY package*.json ./
 
-# Install dependencies
-RUN npm install
+# Install dependencies (both development and production)
+RUN npm ci
 
 # Copy the rest of the application
 COPY . .
@@ -16,8 +19,11 @@ COPY . .
 # Build the application
 RUN npm run build
 
-# Expose the port
+# Set environment variables
+ENV NODE_ENV=production
+
+# Expose the port (if applicable)
 EXPOSE 4200
 
 # Command to run the application
-CMD ["npm", "start"]
+CMD ["node", "dist/app.js"]

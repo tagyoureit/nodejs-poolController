@@ -24,7 +24,7 @@ jobs:
       - name: Build and push Linux Docker image (x86_64)
         uses: docker/build-push-action@v4
         with:
-          context: .
+          context: ./.docker
           file: ./Dockerfile.linux
           push: true
           tags: |
@@ -33,7 +33,7 @@ jobs:
       - name: Build and push ARMv7 Docker image
         uses: docker/build-push-action@v4
         with:
-          context: .
+          context: ./.docker
           file: ./Dockerfile.armv7  # Adjust the path to your ARMv7 Dockerfile
           push: true
           tags: |
@@ -42,8 +42,14 @@ jobs:
       - name: Build and push ARMv6 Docker image
         uses: docker/build-push-action@v4
         with:
-          context: .
+          context: ./.docker
           file: ./Dockerfile.armv6  # Adjust the path to your ARMv6 Dockerfile
           push: true
           tags: |
             tagyoureit/nodejs-poolcontroller-armv6:latest
+
+            # Example of how to run docker-compose with the working directory specified
+            
+      - name: Run Docker Compose
+        run: docker-compose up -d
+        working-directory: .docker  # Specify the working directory here
