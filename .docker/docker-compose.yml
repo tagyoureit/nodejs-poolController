@@ -12,16 +12,16 @@ services:
     ports:
       - "4200:4200"
     volumes:
-      - /data/poolcontroller/config.json:/app/config.json
-      - /data/poolcontroller/data:/app/data
-      - /data/poolcontroller/logs:/app/logs
+      - /data/poolcontroller/config.json:/app/nodejs-poolcontroller/config.json
+      - /data/poolcontroller/data:/app/nodejs-poolcontroller/data
+      - /data/poolcontroller/logs:/app/nodejs-poolcontroller/logs
   poolcontroller-dashpanel:
     restart: always
     container_name: poolcontroller-dashpanel
     ports:
       - "5150:5150"
     volumes:
-      - /data/poolcontroller-dashpanel/config.json:/app/config.json
+      - /data/poolcontroller-dashpanel/config.json:/app/nodejs-poolcontroller-dashpanel/config.json
     image: rstrouse/nodejs-poolcontroller-dashpanel:latest
     depends_on:
       - poolcontroller

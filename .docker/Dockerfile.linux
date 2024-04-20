@@ -10,10 +10,13 @@ RUN mkdir -p /app/nodejs-poolcontroller && chown node:node /app/nodejs-poolcontr
 # Set the working directory for the first application
 WORKDIR /app/nodejs-poolcontroller
 
-# # Copy the source code and necessary files for the first application
-# COPY ./nodejs-poolcontroller/package*.json ./
+# Copy the source code and necessary files for the first application
 COPY ./nodejs-poolcontroller/defaultConfig.json ./config.json
 COPY ./nodejs-poolcontroller ./
+RUN "echo pwd"
+RUN "echo $(pwd)"
+RUN "echo ls"
+RUN "echo $(ls -al)"
 
 # Install dependencies and build the first application
 RUN npm ci
@@ -28,8 +31,7 @@ RUN mkdir -p /app/nodejs-poolcontroller-dashpanel && chown node:node /app/nodejs
 # Set the working directory for the second application
 WORKDIR /app/nodejs-poolcontroller-dashpanel
 
-# # Copy the source code and necessary files for the second application
-# COPY ./nodejs-poolcontroller-dashpanel/package*.json ./
+# Copy the source code and necessary files for the second application
 COPY ./nodejs-poolcontroller-dashpanel ./
 
 # Install dependencies and build the second application
