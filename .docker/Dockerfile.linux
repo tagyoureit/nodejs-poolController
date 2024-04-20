@@ -22,6 +22,9 @@ RUN echo "$(ls -al)"
 RUN npm ci
 RUN npm run build
 
+# Install PM2 globally
+RUN npm install pm2 -g
+
 # Second stage for the second application
 FROM node:lts-alpine AS build-njspc-dp
 
@@ -38,6 +41,9 @@ COPY ./nodejs-poolcontroller-dashpanel ./
 RUN npm ci
 RUN npm run build
 
+# Install PM2 globally
+RUN npm install pm2 -g
+
 # Third stage for the final combined image
 FROM node:lts-alpine AS final
 
@@ -52,7 +58,7 @@ COPY --from=build-njspc /app/nodejs-poolcontroller ./nodejs-poolcontroller
 COPY --from=build-njspc-dp /app/nodejs-poolcontroller-dashpanel ./nodejs-poolcontroller-dashpanel
 
 # Expose any necessary ports
-EXPOSE 4200
+EXPOSE 4200 5150
 
-# Define the command to run both applications
-CMD ["node", "nodejs-poolcontroller/dist/app.js", "&&", "node", "nodejs-poolcontroller-dashpanel/dist/app.js"]
+# Define the command to run both applications using PM2
+CMD ["pm2-runtime", "start", "/app/nodejs-poolcontroller-dashpanel/ecosystem.config.js", "--", "start", "/app/nodejs-poolcontroller/ecosystem.config.js"]
