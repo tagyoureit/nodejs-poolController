@@ -1,0 +1,43 @@
+# Use a Windows-based image as the build stage
+FROM mcr.microsoft.com/windows/servercore:ltsc2019 AS build
+
+# Set the working directory
+WORKDIR C:\app
+
+# Copy package.json and package-lock.json files
+COPY package*.json ./
+COPY defaultConfig.json config.json
+
+# Install Node.js
+RUN curl -sL https://nodejs.org/dist/v14.17.6/node-v14.17.6-x64.msi -o node.msi
+RUN msiexec /i node.msi /quiet
+
+# Install npm dependencies
+RUN npm ci
+
+# Copy the rest of the application files
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Second stage for the production image
+FROM mcr.microsoft.com/windows/servercore:ltsc2019 as prod
+
+# Install git
+RUN powershell -Command "Invoke-WebRequest -Uri https://github.com/git-for-windows/git/releases/download/v2.33.1.windows.1/Git-2.33.1-64-bit.exe -OutFile git.exe" && .\git.exe /VERYSILENT /NORESTART
+
+# Create the app directory
+RUN mkdir C:\app
+
+# Set the working directory
+WORKDIR C:\app
+
+# Copy built application from the build stage
+COPY --from=build C:\app .
+
+# Set environment variables
+ENV NODE_ENV=production
+
+# Define the entrypoint
+CMD ["node", "dist/app.js"]

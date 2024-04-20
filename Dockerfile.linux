@@ -1,0 +1,48 @@
+# Use a Linux-based image as the build stage
+FROM node:lts-alpine AS build
+
+# Install necessary build dependencies
+RUN apk add --no-cache make gcc g++ python3 linux-headers udev tzdata
+
+# Set the working directory
+WORKDIR /app
+
+# Copy package.json and package-lock.json files
+COPY package*.json ./
+COPY defaultConfig.json config.json
+
+# Install dependencies
+RUN npm ci
+
+# Copy the rest of the application files
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Install production dependencies
+RUN npm ci --omit=dev
+
+# Second stage for the production image
+FROM node:lts-alpine as prod
+
+# Install git
+RUN apk add git
+
+# Create the app directory and set ownership
+RUN mkdir /app && chown node:node /app
+
+# Set the working directory
+WORKDIR /app
+
+# Copy built application from the build stage
+COPY --from=build --chown=node:node /app .
+
+# Switch to non-root user
+USER node
+
+# Set environment variables
+ENV NODE_ENV=production
+
+# Define the entrypoint
+ENTRYPOINT ["node", "dist/app.js"]
