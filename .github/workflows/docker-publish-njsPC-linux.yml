@@ -1,10 +1,10 @@
 name: Publish Docker Image - Ubuntu
-]
 
 on:
   push:
     branches:
       - main
+      - docker
   workflow_dispatch:
     
 
