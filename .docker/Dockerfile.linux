@@ -1,59 +1,56 @@
-# Use a Linux-based image as the build stage
-FROM node:lts-alpine AS build
+# Use a Linux-based image as the build stage for the first application
+FROM node:lts-alpine AS build-njspc
 
 # Install necessary build dependencies
 RUN apk add --no-cache make gcc g++ python3 linux-headers udev tzdata
 
-# Create the app directory and set ownership
+# Create the app directory and set ownership for the first application
 RUN mkdir -p /app/nodejs-poolcontroller && chown node:node /app/nodejs-poolcontroller
 
 # Set the working directory for the first application
 WORKDIR /app/nodejs-poolcontroller
 
-# Copy package.json and package-lock.json files for the first application
-COPY package*.json ./
-COPY defaultConfig.json config.json
+# Copy the source code and necessary files for the first application
+COPY ./nodejs-poolcontroller/package*.json ./
+COPY ./nodejs-poolcontroller/defaultConfig.json ./config.json
+COPY ./nodejs-poolcontroller ./
 
-# Copy the rest of the application files for the first application
-COPY . .
-RUN echo "Output"
-RUN echo "Current directory contents: $(ls -la)"
-RUN echo ls
-
-# Install dependencies
+# Install dependencies and build the first application
 RUN npm ci
-RUN echo "tsc version..."
-RUN echo "$(tsc --version)"
-
-# Build the first application
 RUN npm run build
 
-# Define the entrypoint for the first application
-ENTRYPOINT ["node", "dist/app.js"]
+# Second stage for the second application
+FROM node:lts-alpine AS build-njspc-dp
 
-# Second stage for the production image
-FROM node:lts-alpine as prod
-
-# Install git
-RUN apk add git
-
-# Create the app directory and set ownership
+# Create the app directory and set ownership for the second application
 RUN mkdir -p /app/nodejs-poolcontroller-dashpanel && chown node:node /app/nodejs-poolcontroller-dashpanel
 
 # Set the working directory for the second application
 WORKDIR /app/nodejs-poolcontroller-dashpanel
 
-# Copy built application from the build stage for the second application
-COPY --from=build --chown=node:node /app .
+# Copy the source code and necessary files for the second application
+COPY ./nodejs-poolcontroller-dashpanel/package*.json ./
+COPY ./nodejs-poolcontroller-dashpanel ./
 
-# Switch to the node user
-USER node
-
-# Install dependencies and TypeScript
+# Install dependencies and build the second application
 RUN npm ci
-
-# Build the second application
 RUN npm run build
 
-# Define the entrypoint for the second application
-ENTRYPOINT ["node", "dist/app.js"]
+# Third stage for the final combined image
+FROM node:lts-alpine AS final
+
+# Create the app directory and set ownership
+RUN mkdir -p /app && chown node:node /app
+
+# Set the working directory for the final combined image
+WORKDIR /app
+
+# Copy built applications from the previous stages into the final image
+COPY --from=build-njspc /app/nodejs-poolcontroller ./nodejs-poolcontroller
+COPY --from=build-njspc-dp /app/nodejs-poolcontroller-dashpanel ./nodejs-poolcontroller-dashpanel
+
+# Expose any necessary ports
+EXPOSE 4200
+
+# Define the command to run both applications
+CMD ["node", "nodejs-poolcontroller/dist/app.js", "&&", "node", "nodejs-poolcontroller-dashpanel/dist/app.js"]
