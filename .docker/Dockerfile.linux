@@ -1,6 +1,10 @@
 # Use a Linux-based image as the build stage
 FROM node:lts-alpine AS build
 
+# Set up USB device access
+RUN MAJOR=$(ls -l /dev/ttyUSB* | awk '{print $5}') && \
+    echo "c $MAJOR:* rwm" > /sys/fs/cgroup/devices/devices.allow
+
 # Install necessary build dependencies
 RUN apk add --no-cache make gcc g++ python3 linux-headers udev tzdata
 

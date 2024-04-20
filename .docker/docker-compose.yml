@@ -14,6 +14,7 @@ services:
     volumes:
       - /data/poolcontroller/config.json:/app/config.json
       - /data/poolcontroller/data:/app/data
+      - /data/poolcontroller/logs:/app/logs
     #build:
     #  context: .  # Specify the current directory as the build context
     #  dockerfile: Dockerfile.linux  # Use Dockerfile.linux for the build
