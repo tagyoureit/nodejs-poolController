@@ -58,7 +58,3 @@ jobs:
       #       tagyoureit/nodejs-poolcontroller-armv6:latest
 
       #       # Example of how to run docker-compose with the working directory specified
-
-      - name: Run Docker Compose
-        run: docker-compose up -d
-        working-directory: .docker  # Specify the working directory here
