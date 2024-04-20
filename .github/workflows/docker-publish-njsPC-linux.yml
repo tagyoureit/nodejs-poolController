@@ -25,7 +25,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: ./.docker
-          file: ./Dockerfile.linux
+          file: ./.docker/Dockerfile.linux
           push: true
           tags: |
             tagyoureit/nodejs-poolcontroller:latest
@@ -34,7 +34,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: ./.docker
-          file: ./Dockerfile.armv7  # Adjust the path to your ARMv7 Dockerfile
+          file: ./.docker/Dockerfile.armv7  # Adjust the path to your ARMv7 Dockerfile
           push: true
           tags: |
             tagyoureit/nodejs-poolcontroller-armv7:latest
@@ -43,13 +43,13 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: ./.docker
-          file: ./Dockerfile.armv6  # Adjust the path to your ARMv6 Dockerfile
+          file: ./.docker/Dockerfile.armv6  # Adjust the path to your ARMv6 Dockerfile
           push: true
           tags: |
             tagyoureit/nodejs-poolcontroller-armv6:latest
 
             # Example of how to run docker-compose with the working directory specified
-            
+
       - name: Run Docker Compose
         run: docker-compose up -d
         working-directory: .docker  # Specify the working directory here

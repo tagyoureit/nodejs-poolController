@@ -24,7 +24,7 @@ services:
     container_name: poolcontroller-armv7
     restart: always
     ports:
-      - "4201:4201"
+      - "4200:4200"
     volumes:
       - /data/poolcontroller/config.json:/app/config.json
       - /data/poolcontroller/data:/app/data
@@ -38,7 +38,7 @@ services:
     container_name: poolcontroller-armv6
     restart: always
     ports:
-      - "4202:4202"
+      - "4200:4200"
     volumes:
       - /data/poolcontroller/config.json:/app/config.json
       - /data/poolcontroller/data:/app/data
