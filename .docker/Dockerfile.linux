@@ -6,7 +6,9 @@ RUN apk add --no-cache make gcc g++ python3 linux-headers udev tzdata
 
 # Set the working directory for the first application
 WORKDIR /app/nodejs-poolcontroller
-RUN ls
+RUN echo "Output"
+RUN echo "Current directory contents: $(ls -la)"
+RUN echo ls
 
 # Copy package.json and package-lock.json files for the first application
 COPY package*.json ./
@@ -17,6 +19,8 @@ COPY . .
 
 # Install dependencies
 RUN npm ci
+RUN echo "tsc version..."
+RUN echo tsc --version
 
 # Build the first application
 RUN npm run build
