@@ -11,11 +11,11 @@ WORKDIR /app/tagyoureit/nodejs-poolcontroller
 COPY package*.json ./
 COPY defaultConfig.json config.json
 
+# Install dependencies and TypeScript
+RUN npm install typescript
+
 # Build the first application
 RUN npm run build
-
-# Install production dependencies for the first application
-RUN npm install
 
 # Copy the rest of the application files for the first application
 COPY . .
@@ -38,8 +38,8 @@ WORKDIR /app/rstrouse/nodejs-poolcontroller-dashpanel
 # Copy built application from the build stage for the second application
 COPY --from=build --chown=node:node /app .
 
-# Install dependencies for the second application
-RUN npm install
+# Install dependencies and TypeScript
+RUN npm install typescript
 
 # Build the second application
 RUN npm run build
