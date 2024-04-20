@@ -11,14 +11,15 @@ WORKDIR /app/tagyoureit/nodejs-poolcontroller
 COPY package*.json ./
 COPY defaultConfig.json config.json
 
+# Copy the rest of the application files for the first application
+COPY . .
+
 # Install dependencies and TypeScript
 RUN npm install typescript
 
 # Build the first application
 RUN npm run build
 
-# Copy the rest of the application files for the first application
-COPY . .
 
 # Define the entrypoint for the first application
 ENTRYPOINT ["node", "dist/app.js"]
