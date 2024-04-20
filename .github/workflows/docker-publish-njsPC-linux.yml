@@ -15,10 +15,17 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
     
-      - name: Checkout code from separate repo
+      - name: Checkout code from tagyoureit/nodejs-poolcontroller
         uses: actions/checkout@v3
         with:
-          repository: rstrouse/nodejs-poolcontroller-dashpanel  # Replace with the username and repository name of the separate repository
+          repository: tagyoureit/nodejs-poolcontroller
+          ref: master  # or specify the branch or tag to pull from
+          path: nodejs-poolcontroller
+
+      - name: Checkout code from rstrouse/nodejs-poolcontroller-dashpanel
+        uses: actions/checkout@v3
+        with:
+          repository: rstrouse/nodejs-poolcontroller-dashpanel  # 
           ref: master  # Specify the branch or tag to pull from
           path: nodejs-poolcontroller-dashpanel  # Specify the directory to checkout the code into
 
