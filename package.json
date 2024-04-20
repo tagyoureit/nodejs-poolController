@@ -51,7 +51,6 @@
         "eslint-plugin-import": "^2.26.0",
         "eslint-plugin-node": "^11.1.0",
         "eslint-plugin-promise": "^6.0.0",
-        "eslint-plugin-standard": "^5.0.0",
         "grunt": "^1.5.3",
         "grunt-banner": "^0.6.0",
         "ts-node": "^10.7.0",

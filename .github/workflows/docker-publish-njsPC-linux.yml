@@ -21,7 +21,7 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and push Linux Docker image
+      - name: Build and push Linux Docker image (x86_64)
         uses: docker/build-push-action@v4
         with:
           context: .
@@ -29,3 +29,21 @@ jobs:
           push: true
           tags: |
             tagyoureit/nodejs-poolcontroller:latest
+
+      - name: Build and push ARMv7 Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.armv7  # Adjust the path to your ARMv7 Dockerfile
+          push: true
+          tags: |
+            tagyoureit/nodejs-poolcontroller-armv7:latest
+
+      - name: Build and push ARMv6 Docker image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ./Dockerfile.armv6  # Adjust the path to your ARMv6 Dockerfile
+          push: true
+          tags: |
+            tagyoureit/nodejs-poolcontroller-armv6:latest
