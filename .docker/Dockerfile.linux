@@ -15,7 +15,7 @@ COPY defaultConfig.json config.json
 RUN npm run build
 
 # Install production dependencies for the first application
-RUN npm ci --omit=dev
+RUN npm ci
 
 # Copy the rest of the application files for the first application
 COPY . .
