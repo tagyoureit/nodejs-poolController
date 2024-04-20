@@ -9,9 +9,6 @@ RUN mkdir -p /app/nodejs-poolcontroller && chown node:node /app/nodejs-poolcontr
 
 # Set the working directory for the first application
 WORKDIR /app/nodejs-poolcontroller
-RUN echo "Output"
-RUN echo "Current directory contents: $(ls -la)"
-RUN echo ls
 
 # Copy package.json and package-lock.json files for the first application
 COPY package*.json ./
@@ -19,11 +16,14 @@ COPY defaultConfig.json config.json
 
 # Copy the rest of the application files for the first application
 COPY . .
+RUN echo "Output"
+RUN echo "Current directory contents: $(ls -la)"
+RUN echo ls
 
 # Install dependencies
 RUN npm ci
 RUN echo "tsc version..."
-RUN echo tsc --version
+RUN echo "$(tsc --version)"
 
 # Build the first application
 RUN npm run build
