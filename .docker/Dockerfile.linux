@@ -13,10 +13,10 @@ WORKDIR /app/nodejs-poolcontroller
 # Copy the source code and necessary files for the first application
 COPY ./nodejs-poolcontroller/defaultConfig.json ./config.json
 COPY ./nodejs-poolcontroller ./
-RUN "echo pwd"
-RUN "echo $(pwd)"
-RUN "echo ls"
-RUN "echo $(ls -al)"
+RUN echo "pwd"
+RUN echo "current pwd - $(pwd)"
+RUN echo "ls"
+RUN echo "$(ls -al)"
 
 # Install dependencies and build the first application
 RUN npm ci
