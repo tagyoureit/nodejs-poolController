@@ -15,10 +15,16 @@ services:
       - /data/poolcontroller/config.json:/app/config.json
       - /data/poolcontroller/data:/app/data
       - /data/poolcontroller/logs:/app/logs
-    #build:
-    #  context: .  # Specify the current directory as the build context
-    #  dockerfile: Dockerfile.linux  # Use Dockerfile.linux for the build
-    # Add other configuration options as needed
+  poolcontroller-dashpanel:
+    restart: always
+    container_name: poolcontroller-dashpanel
+    ports:
+      - "5150:5150"
+    volumes:
+      - /data/poolcontroller-dashpanel/config.json:/app/config.json
+    image: tagyoureit/nodejs-poolcontroller-dashpanel
+    depends_on:
+      - poolcontroller
 
   # poolcontroller-armv7:
   #   image: tagyoureit/nodejs-poolcontroller-armv7:latest
@@ -29,10 +35,6 @@ services:
   #   volumes:
   #     - /data/poolcontroller/config.json:/app/config.json
   #     - /data/poolcontroller/data:/app/data
-  #   #build:
-  #   #  context: .  # Specify the current directory as the build context
-  #   #  dockerfile: Dockerfile.linux  # Use Dockerfile.linux for the build
-  #   # Add other configuration options for ARMv7 architecture
 
   # poolcontroller-armv6:
   #   image: tagyoureit/nodejs-poolcontroller-armv6:latest
@@ -43,7 +45,3 @@ services:
   #   volumes:
   #     - /data/poolcontroller/config.json:/app/config.json
   #     - /data/poolcontroller/data:/app/data
-  #   #build:
-  #   #  context: .  # Specify the current directory as the build context
-  #   #  dockerfile: Dockerfile.linux  # Use Dockerfile.linux for the build
-  #   # Add other configuration options for ARMv6 architecture
