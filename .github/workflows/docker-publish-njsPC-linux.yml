@@ -24,7 +24,7 @@ jobs:
       - name: Build and push Linux Docker image (x86_64)
         uses: docker/build-push-action@v4
         with:
-          context: ./.docker
+          context: .
           file: ./.docker/Dockerfile.linux
           push: true
           tags: |
@@ -33,7 +33,7 @@ jobs:
       - name: Build and push ARMv7 Docker image
         uses: docker/build-push-action@v4
         with:
-          context: ./.docker
+          context: .
           file: ./.docker/Dockerfile.armv7  # Adjust the path to your ARMv7 Dockerfile
           push: true
           tags: |
@@ -42,7 +42,7 @@ jobs:
       - name: Build and push ARMv6 Docker image
         uses: docker/build-push-action@v4
         with:
-          context: ./.docker
+          context: .
           file: ./.docker/Dockerfile.armv6  # Adjust the path to your ARMv6 Dockerfile
           push: true
           tags: |
