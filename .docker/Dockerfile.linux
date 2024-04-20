@@ -11,17 +11,14 @@ WORKDIR /app/tagyoureit/nodejs-poolcontroller
 COPY package*.json ./
 COPY defaultConfig.json config.json
 
-# Install dependencies for the first application
-RUN npm ci
-
-# Copy the rest of the application files for the first application
-COPY . .
-
 # Build the first application
 RUN npm run build
 
 # Install production dependencies for the first application
 RUN npm ci --omit=dev
+
+# Copy the rest of the application files for the first application
+COPY . .
 
 # Define the entrypoint for the first application
 ENTRYPOINT ["node", "dist/app.js"]
@@ -42,7 +39,7 @@ WORKDIR /app/rstrouse/nodejs-poolcontroller-dashpanel
 COPY --from=build --chown=node:node /app .
 
 # Install dependencies for the second application
-RUN npm ci
+RUN npm install
 
 # Build the second application
 RUN npm run build
