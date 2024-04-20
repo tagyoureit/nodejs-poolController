@@ -4,6 +4,9 @@ FROM node:lts-alpine AS build
 # Install necessary build dependencies
 RUN apk add --no-cache make gcc g++ python3 linux-headers udev tzdata
 
+# Create the app directory and set ownership
+RUN mkdir -p /app/nodejs-poolcontroller && chown node:node /app/nodejs-poolcontroller
+
 # Set the working directory for the first application
 WORKDIR /app/nodejs-poolcontroller
 RUN echo "Output"
@@ -25,7 +28,6 @@ RUN echo tsc --version
 # Build the first application
 RUN npm run build
 
-
 # Define the entrypoint for the first application
 ENTRYPOINT ["node", "dist/app.js"]
 
@@ -36,13 +38,16 @@ FROM node:lts-alpine as prod
 RUN apk add git
 
 # Create the app directory and set ownership
-RUN mkdir /app && chown node:node /app
+RUN mkdir -p /app/nodejs-poolcontroller-dashpanel && chown node:node /app/nodejs-poolcontroller-dashpanel
 
 # Set the working directory for the second application
 WORKDIR /app/nodejs-poolcontroller-dashpanel
 
 # Copy built application from the build stage for the second application
 COPY --from=build --chown=node:node /app .
+
+# Switch to the node user
+USER node
 
 # Install dependencies and TypeScript
 RUN npm ci
