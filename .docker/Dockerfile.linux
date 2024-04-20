@@ -12,8 +12,8 @@ WORKDIR /app/nodejs-poolcontroller
 
 # # Copy the source code and necessary files for the first application
 # COPY ./nodejs-poolcontroller/package*.json ./
-# COPY ./nodejs-poolcontroller/defaultConfig.json ./config.json
-# COPY ./nodejs-poolcontroller ./
+COPY ./nodejs-poolcontroller/defaultConfig.json ./config.json
+COPY ./nodejs-poolcontroller ./
 
 # Install dependencies and build the first application
 RUN npm ci
@@ -30,7 +30,7 @@ WORKDIR /app/nodejs-poolcontroller-dashpanel
 
 # # Copy the source code and necessary files for the second application
 # COPY ./nodejs-poolcontroller-dashpanel/package*.json ./
-# COPY ./nodejs-poolcontroller-dashpanel ./
+COPY ./nodejs-poolcontroller-dashpanel ./
 
 # Install dependencies and build the second application
 RUN npm ci
