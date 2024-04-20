@@ -19,7 +19,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           repository: rstrouse/nodejs-poolcontroller-dashpanel  # Replace with the username and repository name of the separate repository
-          ref: main  # Specify the branch or tag to pull from
+          ref: master  # Specify the branch or tag to pull from
           path: nodejs-poolcontroller-dashpanel  # Specify the directory to checkout the code into
 
       - name: Login to Docker Hub
