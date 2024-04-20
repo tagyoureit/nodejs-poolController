@@ -19,7 +19,7 @@
     "scripts": {
         "start": "npm run build && node dist/app.js",
         "start:cached": "node dist/app.js",
-        "build": "tsc",
+        "build": "tsc --project tsconfig.json",
         "watch": "tsc -w"
     },
     "dependencies": {
