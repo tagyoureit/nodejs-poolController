@@ -19,30 +19,30 @@ services:
     #  dockerfile: Dockerfile.linux  # Use Dockerfile.linux for the build
     # Add other configuration options as needed
 
-  poolcontroller-armv7:
-    image: tagyoureit/nodejs-poolcontroller-armv7:latest
-    container_name: poolcontroller-armv7
-    restart: always
-    ports:
-      - "4200:4200"
-    volumes:
-      - /data/poolcontroller/config.json:/app/config.json
-      - /data/poolcontroller/data:/app/data
-    #build:
-    #  context: .  # Specify the current directory as the build context
-    #  dockerfile: Dockerfile.linux  # Use Dockerfile.linux for the build
-    # Add other configuration options for ARMv7 architecture
+  # poolcontroller-armv7:
+  #   image: tagyoureit/nodejs-poolcontroller-armv7:latest
+  #   container_name: poolcontroller-armv7
+  #   restart: always
+  #   ports:
+  #     - "4200:4200"
+  #   volumes:
+  #     - /data/poolcontroller/config.json:/app/config.json
+  #     - /data/poolcontroller/data:/app/data
+  #   #build:
+  #   #  context: .  # Specify the current directory as the build context
+  #   #  dockerfile: Dockerfile.linux  # Use Dockerfile.linux for the build
+  #   # Add other configuration options for ARMv7 architecture
 
-  poolcontroller-armv6:
-    image: tagyoureit/nodejs-poolcontroller-armv6:latest
-    container_name: poolcontroller-armv6
-    restart: always
-    ports:
-      - "4200:4200"
-    volumes:
-      - /data/poolcontroller/config.json:/app/config.json
-      - /data/poolcontroller/data:/app/data
-    #build:
-    #  context: .  # Specify the current directory as the build context
-    #  dockerfile: Dockerfile.linux  # Use Dockerfile.linux for the build
-    # Add other configuration options for ARMv6 architecture
+  # poolcontroller-armv6:
+  #   image: tagyoureit/nodejs-poolcontroller-armv6:latest
+  #   container_name: poolcontroller-armv6
+  #   restart: always
+  #   ports:
+  #     - "4200:4200"
+  #   volumes:
+  #     - /data/poolcontroller/config.json:/app/config.json
+  #     - /data/poolcontroller/data:/app/data
+  #   #build:
+  #   #  context: .  # Specify the current directory as the build context
+  #   #  dockerfile: Dockerfile.linux  # Use Dockerfile.linux for the build
+  #   # Add other configuration options for ARMv6 architecture
