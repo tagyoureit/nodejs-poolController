@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import * as extend from 'extend';
 import { ncp } from "../nixie/Nixie";
 import { NixieHeaterBase } from "../nixie/heaters/Heater";
-import { utils } from '../Constants';
+import { Timestamp, utils } from '../Constants';
 import {SystemBoard, byteValueMap, BodyCommands, FilterCommands, PumpCommands, SystemCommands, CircuitCommands, FeatureCommands, ValveCommands, HeaterCommands, ChlorinatorCommands, ChemControllerCommands, EquipmentIdRange} from './SystemBoard';
 import { logger } from '../../logger/Logger';
 import { state, CircuitState, ICircuitState, ICircuitGroupState, LightGroupState, ValveState, FilterState, BodyTempState, FeatureState } from '../State';
@@ -784,8 +784,9 @@ export class NixieCircuitCommands extends CircuitCommands {
                     }
                     if (sys.general.options.cleanerStartDelay && sys.general.options.cleanerStartDelayTime) {
                         let bcstate = state.circuits.getItemById(bstate.circuit);
+                        let stime = typeof bcstate.startTime === 'undefined' ? dtNow : (dtNow - bcstate.startTime.getTime());
                         // So we should be started.  Lets determine whethere there should be any delay.
-                        delayTime = Math.max(Math.round(((sys.general.options.cleanerStartDelayTime * 1000) - (dtNow - bcstate.startTime.getTime())) / 1000), delayTime);
+                        delayTime = Math.max(Math.round(((sys.general.options.cleanerStartDelayTime * 1000) - stime) / 1000), delayTime);
                         logger.info(`Cleaner delay time calculated to ${delayTime}`);
                     }
                 }

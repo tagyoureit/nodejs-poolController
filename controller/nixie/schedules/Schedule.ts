@@ -64,6 +64,12 @@ export class NixieScheduleCollection extends NixieEquipmentCollection<NixieSched
                     circ.sscheds.push(sscheds[i]);
                 }
             }
+            // Sort this so that body circuits are evaluated first.  This is required when there are schedules for things like cleaner
+            // or delay circuits.  If we do not do this then a schedule that requires the pool to be on for instance will never
+            // get triggered.
+            circuits.sort((x, y) => y.circuitId === 6 || y.circuitId === 1 ? 1 : y.circuitId - x.circuitId);
+
+
             /*
             RSG 5-8-22
             Manual OP needs to play a role here.From the IC manual: 
