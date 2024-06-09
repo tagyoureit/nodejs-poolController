@@ -75,4 +75,4 @@ COPY --from=build-njspc /app/nodejs-poolcontroller/ecosystem.config.js ./ecosyst
 EXPOSE 4200 5150
 
 # Define the command to run both applications using PM2
-CMD ["pm2-runtime", "start", "ecosystem.config.js
+CMD ["pm2-runtime", "start", "ecosystem.config.js"]
