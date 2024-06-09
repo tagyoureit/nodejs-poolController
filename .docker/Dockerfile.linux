@@ -13,17 +13,11 @@ WORKDIR /app/nodejs-poolcontroller
 # Copy the source code and necessary files for the first application
 COPY ./nodejs-poolcontroller/defaultConfig.json ./config.json
 COPY ./nodejs-poolcontroller ./
-RUN echo "pwd"
-RUN echo "current pwd - $(pwd)"
-RUN echo "ls"
-RUN echo "$(ls -al)"
+COPY ./nodejs-poolcontroller/.docker/ecosystem.config.js ./ecosystem.config.js
 
 # Install dependencies and build the first application
 RUN npm ci
 RUN npm run build
-
-# Install PM2 globally
-RUN npm install pm2 -g
 
 # Second stage for the second application
 FROM node:lts-alpine AS build-njspc-dp
@@ -41,11 +35,27 @@ COPY ./nodejs-poolcontroller-dashpanel ./
 RUN npm ci
 RUN npm run build
 
+# Third stage for relayEquipmentManager
+# FROM node:lts-alpine AS build-rem
+
+# Create the app directory and set ownership for relayEquipmentManager
+# RUN mkdir -p /app/relayEquipmentManager && chown node:node /app/relayEquipmentManager
+
+# Set the working directory for relayEquipmentManager
+# WORKDIR /app/relayEquipmentManager
+
+# Copy the source code and necessary files for relayEquipmentManager
+# COPY ./relayEquipmentManager ./
+
+# Install dependencies and build relayEquipmentManager
+# RUN npm ci
+# RUN npm run build
+
+# Fourth stage for the final combined image
+FROM node:lts-alpine AS final
+
 # Install PM2 globally
 RUN npm install pm2 -g
-
-# Third stage for the final combined image
-FROM node:lts-alpine AS final
 
 # Create the app directory and set ownership
 RUN mkdir -p /app && chown node:node /app
@@ -56,9 +66,13 @@ WORKDIR /app
 # Copy built applications from the previous stages into the final image
 COPY --from=build-njspc /app/nodejs-poolcontroller ./nodejs-poolcontroller
 COPY --from=build-njspc-dp /app/nodejs-poolcontroller-dashpanel ./nodejs-poolcontroller-dashpanel
+# COPY --from=build-rem /app/relayEquipmentManager ./relayEquipmentManager
+
+# Copy the ecosystem configuration file from the build stage
+COPY --from=build-njspc /app/nodejs-poolcontroller/ecosystem.config.js ./ecosystem.config.js
 
 # Expose any necessary ports
 EXPOSE 4200 5150
 
 # Define the command to run both applications using PM2
-CMD ["pm2-runtime", "start", "/app/nodejs-poolcontroller-dashpanel/ecosystem.config.js", "--", "start", "/app/nodejs-poolcontroller/ecosystem.config.js"]
+CMD ["pm2-runtime", "start", "ecosystem.config.js
