@@ -13,7 +13,7 @@ WORKDIR /app/nodejs-poolcontroller
 # Copy the source code and necessary files for the first application
 COPY ./nodejs-poolcontroller/defaultConfig.json ./config.json
 COPY ./nodejs-poolcontroller ./
-COPY ./nodejs-poolcontroller/.docker/ecosystem.config.js ./ecosystem.config.js
+COPY ./.docker/ecosystem.config.js ./ecosystem.config.js
 
 # Install dependencies and build the first application
 RUN npm ci
