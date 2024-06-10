@@ -35,22 +35,6 @@ COPY ./nodejs-poolcontroller-dashpanel ./
 RUN npm ci
 RUN npm run build
 
-# Third stage for relayEquipmentManager
-# FROM node:lts-alpine AS build-rem
-
-# Create the app directory and set ownership for relayEquipmentManager
-# RUN mkdir -p /app/relayEquipmentManager && chown node:node /app/relayEquipmentManager
-
-# Set the working directory for relayEquipmentManager
-# WORKDIR /app/relayEquipmentManager
-
-# Copy the source code and necessary files for relayEquipmentManager
-# COPY ./relayEquipmentManager ./
-
-# Install dependencies and build relayEquipmentManager
-# RUN npm ci
-# RUN npm run build
-
 # Fourth stage for the final combined image
 FROM node:lts-alpine AS final
 
