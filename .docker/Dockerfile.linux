@@ -1,0 +1,62 @@
+# Use a Linux-based image as the build stage for the first application
+FROM node:lts-alpine AS build-njspc
+
+# Install necessary build dependencies
+RUN apk add --no-cache make gcc g++ python3 linux-headers udev tzdata
+
+# Create the app directory and set ownership for the first application
+RUN mkdir -p /app/nodejs-poolcontroller && chown node:node /app/nodejs-poolcontroller
+
+# Set the working directory for the first application
+WORKDIR /app/nodejs-poolcontroller
+
+# Copy the source code and necessary files for the first application
+COPY ./nodejs-poolcontroller/defaultConfig.json ./config.json
+COPY ./nodejs-poolcontroller ./
+COPY ./.docker/ecosystem.config.js ./ecosystem.config.js
+
+# Install dependencies and build the first application
+RUN npm ci
+RUN npm run build
+
+# Second stage for the second application
+FROM node:lts-alpine AS build-njspc-dp
+
+# Create the app directory and set ownership for the second application
+RUN mkdir -p /app/nodejs-poolcontroller-dashpanel && chown node:node /app/nodejs-poolcontroller-dashpanel
+
+# Set the working directory for the second application
+WORKDIR /app/nodejs-poolcontroller-dashpanel
+
+# Copy the source code and necessary files for the second application
+COPY ./nodejs-poolcontroller-dashpanel ./
+
+# Install dependencies and build the second application
+RUN npm ci
+RUN npm run build
+
+# Fourth stage for the final combined image
+FROM node:lts-alpine AS final
+
+# Install PM2 globally
+RUN npm install pm2 -g
+
+# Create the app directory and set ownership
+RUN mkdir -p /app && chown node:node /app
+
+# Set the working directory for the final combined image
+WORKDIR /app
+
+# Copy built applications from the previous stages into the final image
+COPY --from=build-njspc /app/nodejs-poolcontroller ./nodejs-poolcontroller
+COPY --from=build-njspc-dp /app/nodejs-poolcontroller-dashpanel ./nodejs-poolcontroller-dashpanel
+# COPY --from=build-rem /app/relayEquipmentManager ./relayEquipmentManager
+
+# Copy the ecosystem configuration file from the build stage
+COPY --from=build-njspc /app/nodejs-poolcontroller/ecosystem.config.js ./ecosystem.config.js
+
+# Expose any necessary ports
+EXPOSE 4200 5150
+
+# Define the command to run both applications using PM2
+CMD ["pm2-runtime", "start", "ecosystem.config.js"]

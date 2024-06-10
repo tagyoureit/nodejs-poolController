@@ -1,0 +1,47 @@
+version: '3.8'
+
+services:
+  poolcontroller:
+    image: tagyoureit/nodejs-poolcontroller:latest
+    container_name: poolcontroller
+    restart: always
+    group_add:
+      - dialout
+    devices:
+      - /dev/ttyUSB0
+    ports:
+      - "4200:4200"
+    volumes:
+      - /data/poolcontroller/config.json:/app/nodejs-poolcontroller/config.json
+      - /data/poolcontroller/data:/app/nodejs-poolcontroller/data
+      - /data/poolcontroller/logs:/app/nodejs-poolcontroller/logs
+  poolcontroller-dashpanel:
+    restart: always
+    container_name: poolcontroller-dashpanel
+    ports:
+      - "5150:5150"
+    volumes:
+      - /data/poolcontroller-dashpanel/config.json:/app/nodejs-poolcontroller-dashpanel/config.json
+    image: rstrouse/nodejs-poolcontroller-dashpanel:latest
+    depends_on:
+      - poolcontroller
+
+  # poolcontroller-armv7:
+  #   image: tagyoureit/nodejs-poolcontroller-armv7:latest
+  #   container_name: poolcontroller-armv7
+  #   restart: always
+  #   ports:
+  #     - "4200:4200"
+  #   volumes:
+  #     - /data/poolcontroller/config.json:/app/config.json
+  #     - /data/poolcontroller/data:/app/data
+
+  # poolcontroller-armv6:
+  #   image: tagyoureit/nodejs-poolcontroller-armv6:latest
+  #   container_name: poolcontroller-armv6
+  #   restart: always
+  #   ports:
+  #     - "4200:4200"
+  #   volumes:
+  #     - /data/poolcontroller/config.json:/app/config.json
+  #     - /data/poolcontroller/data:/app/data
