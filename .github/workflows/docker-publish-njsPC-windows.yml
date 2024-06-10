@@ -3,7 +3,7 @@ name: Publish Docker Image - Windows
 on:
   push:
     branches:
-      - main
+      - docker
   workflow_dispatch:
     
 
