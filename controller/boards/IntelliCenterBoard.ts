@@ -2173,6 +2173,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             255, 255, 0, 0, 0, 0], // 30-35
             3);
 
+
         // Circuits are always contiguous so we don't have to worry about
         // them having a strange offset like features and groups. However, in
         // single body systems they start with 2.
@@ -2180,13 +2181,14 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             // We are using the index and setting the circuits based upon
             // the index.  This way it doesn't matter what the sort happens to
             // be and whether there are gaps in the ids or not.  The ordinal is the bit number.
-            let circuit = state.circuits.getItemByIndex(i);
-            let ordinal = circuit.id - 1;
+            let cstate = state.circuits.getItemByIndex(i);
+            let ordinal = cstate.id - 1;
+            if (ordinal >= 40) continue;
             let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 3];
             let bit = ordinal - (ndx * 8);
-            if (circuit.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
-            else if (circuit.isOn) byte = byte | (1 << bit);
+            if (cstate.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
+            else if (cstate.isOn) byte = byte | (1 << bit);
             out.payload[ndx + 3] = byte;
         }
         // Set the bits for the features.
@@ -2196,6 +2198,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             // be and whether there are gaps in the ids or not.  The ordinal is the bit number.
             let feature = state.features.getItemByIndex(i);
             let ordinal = feature.id - sys.board.equipmentIds.features.start;
+            if (ordinal >= 32) continue;
             let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 9];
             let bit = ordinal - (ndx * 8);
@@ -2207,6 +2210,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         for (let i = 0; i < state.data.circuitGroups.length; i++) {
             let group = state.circuitGroups.getItemByIndex(i);
             let ordinal = group.id - sys.board.equipmentIds.circuitGroups.start;
+            if (ordinal >= 16) continue;
             let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 13];
             let bit = ordinal - (ndx * 8);
@@ -2218,6 +2222,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         for (let i = 0; i < state.data.lightGroups.length; i++) {
             let group = state.lightGroups.getItemByIndex(i);
             let ordinal = group.id - sys.board.equipmentIds.circuitGroups.start;
+            if (ordinal >= 16) continue;
             let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 13];
             let bit = ordinal - (ndx * 8);
@@ -2253,6 +2258,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         for (let i = 0; i < state.data.schedules.length; i++) {
             let sched = state.schedules.getItemByIndex(i);
             let ordinal = sched.id - 1;
+            if (ordinal >= 100) continue;
             let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 15];
             let bit = ordinal - (ndx * 8);
