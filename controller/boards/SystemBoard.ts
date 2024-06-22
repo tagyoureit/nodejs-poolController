@@ -1762,6 +1762,7 @@ export class BodyCommands extends BoardCommands {
         let bdy = sys.bodies.getItemById(body.id);
         let bstate = state.temps.bodies.getItemById(body.id);
         bdy.heatMode = bstate.heatMode = mode;
+        sys.board.heaters.clearPrevHeaterOffTemp();
         sys.board.heaters.syncHeaterStates();
         state.emitEquipmentChanges();
         return Promise.resolve(bstate);
@@ -1770,6 +1771,7 @@ export class BodyCommands extends BoardCommands {
         let bdy = sys.bodies.getItemById(body.id);
         let bstate = state.temps.bodies.getItemById(body.id);
         bdy.setPoint = bstate.setPoint = setPoint;
+        sys.board.heaters.clearPrevHeaterOffTemp();
         state.emitEquipmentChanges();
         sys.board.heaters.syncHeaterStates();
         return Promise.resolve(bstate);
@@ -4610,7 +4612,8 @@ export class ValveCommands extends BoardCommands {
             let drain = sys.equipment.shared ? typeof state.circuits.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spadrain' && elem.isOn === true) !== 'undefined' ||
                 typeof state.features.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spadrain' && elem.isOn === true) !== 'undefined' : false;
             // Check to see if there is a spillway circuit or feature on.  If it is on then the return will be diverted no mater what.
-            let spillway = sys.equipment.shared ? typeof state.circuits.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined' ||
+            let spillway = sys.equipment.shared ? 
+                typeof state.circuits.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined' ||
                 typeof state.features.get().find(elem => typeof elem.type !== 'undefined' && elem.type.name === 'spillway' && elem.isOn === true) !== 'undefined' : false;
             let spa = sys.equipment.shared ? state.circuits.getItemById(1).isOn : false;
             let pool = sys.equipment.shared ? state.circuits.getItemById(6).isOn : false;

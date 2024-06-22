@@ -1837,6 +1837,7 @@ export class HeaterState extends EqState {
     public set prevHeaterOffTemp(val: number) {
         if (this.prevHeaterOffTemp !== val) {
             this.data.prevHeaterOffTemp = val;
+            if (typeof val === 'undefined') delete this.data.prevHeaterOffTemp;
         }
     }
     public get startupDelay(): boolean { return this.data.startupDelay; }
