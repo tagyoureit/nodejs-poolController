@@ -2828,6 +2828,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
         body2: { heatMode: number, heatSetpoint: number, coolSetpoint: number }
     };
     private async queueBodyHeatSettings(bodyId?: number, byte?: number, data?: any): Promise<Boolean> {
+        logger.debug(`queueBodyHeatSettings: ${JSON.stringify(this.bodyHeatSettings)}`);  // remove this line if #848 is fixed
         if (typeof this.bodyHeatSettings === 'undefined') {
             let body1 = sys.bodies.getItemById(1);
             let body2 = sys.bodies.getItemById(2);
@@ -2890,10 +2891,12 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 state.emitEquipmentChanges();
             } catch (err) {
                 bhs.processing = false;
+                bhs.bytes = [];
                 throw (err);
             }
             finally {
                 bhs.processing = false;
+                bhs.bytes = [];
             }
             return true;
         }
@@ -2903,7 +2906,10 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 setTimeout(async () => {
                     try {
                         await this.queueBodyHeatSettings();
-                    } catch (err) { logger.error(`Error sending queued body setpoint message: ${err.message}`); }
+                    } catch (err) {
+                        logger.error(`Error sending queued body setpoint message: ${err.message}`);
+                        throw (err);
+                    }
                 }, 3000);
             }
             else bhs.processing = false;

@@ -168,7 +168,7 @@ export class NixieCircuit extends NixieEquipment {
             }
             else arr.push({ isOn: true, timeout: 1000 });
         }
-        console.log(arr);
+        logger.debug(arr);
         let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, arr, 60000);
         // Even though we ended with on we need to make sure that the relay stays on now that we are done.
         if (!res.error) {
