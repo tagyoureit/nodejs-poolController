@@ -158,17 +158,22 @@ export class NixieCircuit extends NixieEquipment {
     }
     protected async setIntelliBriteThemeAsync(cstate: CircuitState, theme: any): Promise<InterfaceServerResponse> {
         let arr = [];
-        if (cstate.isOn) arr.push({ isOn: false, timeout: 1000 });
         let count = typeof theme !== 'undefined' && theme.sequence ? theme.sequence : 0;
-        if (cstate.isOn) arr.push({ isOn: false, timeout: 1000 });
+		
+		// Removing this. No need to turn the light off first.  We actually need it on to start the sequence for theme setting to work correctly when the light is starting from the off state.
+		// if (cstate.isOn) arr.push({ isOn: false, timeout: 1000 });
+		
+		// Start the sequence of off/on after the light is on.
+        arr.push({ isOn: true, timeout: 100 });
         for (let i = 0; i < count; i++) {
-            if (i < count - 1) {
-                arr.push({ isOn: true, timeout: 100 });
-                arr.push({ isOn: false, timeout: 100 });
-            }
-            else arr.push({ isOn: true, timeout: 1000 });
+			arr.push({ isOn: false, timeout: 100 });
+			arr.push({ isOn: true, timeout: 100 });     
         }
-        logger.debug(arr);
+		// Ensure light stays on long enough for the theme to stick (required for light group theme setting to function correctly).
+		// 2s was too short.
+		arr.push({ isOn: true, timeout: 3000 });
+        
+		logger.debug(arr);
         let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, arr, 60000);
         // Even though we ended with on we need to make sure that the relay stays on now that we are done.
         if (!res.error) {
