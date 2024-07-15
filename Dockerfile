@@ -15,4 +15,5 @@ WORKDIR /app
 COPY --chown=node:node --from=build /app .
 USER node
 ENV NODE_ENV=production
+EXPOSE 5150
 ENTRYPOINT ["node", "dist/app.js"]
