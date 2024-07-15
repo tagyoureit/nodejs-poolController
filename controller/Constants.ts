@@ -18,10 +18,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import { EventEmitter } from 'events';
 import { logger } from "../logger/Logger";
 import * as util from 'util';
-export class Heliotrope {
-    constructor() {
-        this.isCalculated = false;
-        this._zenith = 90 + 50 / 60;
+class HeliotropeContext {
+    constructor(longitude: number, latitude: number, zenith: number) {
+        this._zenith = typeof zenith !== 'undefined' ? zenith : 90 + 50 / 60;
+        this._longitude = longitude;
+        this._latitude = latitude;
     }
     private dMath = {
         sin: function (deg) { return Math.sin(deg * (Math.PI / 180)); },
@@ -31,42 +32,14 @@ export class Heliotrope {
         acos: function (x) { return (180 / Math.PI) * Math.acos(x); },
         atan: function (x) { return (180 / Math.PI) * Math.atan(x); }
     }
-    public isCalculated: boolean = false;
-    public isValid: boolean = false;
-    public get date() { return this.dt; }
-    public set date(dt: Date) {
-        if (typeof this.dt === 'undefined' ||
-            this.dt.getFullYear() !== dt.getFullYear() ||
-            this.dt.getMonth() !== dt.getMonth() ||
-            this.dt.getDate() !== dt.getDate()) {
-            this.isCalculated = false;
-            // Always store a copy since we don't want to create instances where the change doesn't get reflected.  This
-            // also could hold onto references that we don't want held for garbage cleanup.
-            this.dt = typeof dt !== 'undefined' && typeof dt.getMonth === 'function' ? new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(),
-                dt.getHours(), dt.getMinutes(), dt.getSeconds(), dt.getMilliseconds()) : undefined;
-        }
-    }
-    public get longitude() { return this._longitude; }
-    public set longitude(lon: number) {
-        if (this._longitude !== lon) this.isCalculated = false;
-        this._longitude = lon;
-    }
-    public get latitude() { return this._latitude; }
-    public set latitude(lat: number) {
-        if (this._latitude !== lat) this.isCalculated = false;
-        this._latitude = lat;
-    }
-    public get zenith() { return this._zenith; }
-    public set zenith(zen: number) {
-        if (this._zenith !== zen) this.isCalculated = false;
-        this._zenith = zen;
-    }
     private dt: Date;
     private _longitude: number;
     private _latitude: number;
     private _zenith: number;
-    private _dtSunrise: Date;
-    private _dtSunset: Date;
+    public get longitude() { return this._longitude; }
+    public get latitude() { return this._latitude; }
+    public get zenith() { return this._zenith; }
+    public get isValid(): boolean { return typeof this._longitude === 'number' && typeof this._latitude === 'number'; }
     private get longitudeHours(): number { return this.longitude / 15.0; }
     private get doy(): number { return Math.ceil((this.dt.getTime() - new Date(this.dt.getFullYear(), 0, 1).getTime()) / 8.64e7); }
     private get sunriseApproxTime(): number { return this.doy + ((6.0 - this.longitudeHours) / 24.0); }
@@ -125,57 +98,175 @@ export class Heliotrope {
         dtLocal.setFullYear(this.dt.getFullYear(), this.dt.getMonth(), this.dt.getDate());
         return dtLocal;
     }
-    public get isNight(): boolean {
-        let times = this.calculatedTimes;
+    public calculate(dt: Date): { dt: Date, sunrise: Date, sunset: Date } {
+        let times = { dt: this.dt = dt, sunrise: undefined, sunset: undefined };
         if (this.isValid) {
-            let time = new Date().getTime();
-            if (time >= times.sunset.getTime() && time < times.sunrise.getTime()) return true;
-        }
-        return false;
-    }
-    public calculate() {
-        if (typeof this.dt !== 'undefined'
-            && typeof this._latitude !== 'undefined'
-            && typeof this._longitude !== 'undefined'
-            && typeof this._zenith !== 'undefined') {
             let sunriseLocal = this.sunriseLocalTime;
             let sunsetLocal = this.sunsetLocalTime;
             if (typeof sunriseLocal !== 'undefined') {
                 sunriseLocal = (sunriseLocal - this.longitudeHours);
                 while (sunriseLocal >= 24) sunriseLocal -= 24;
                 while (sunriseLocal < 0) sunriseLocal += 24;
-                this._dtSunrise = this.toLocalTime(sunriseLocal);
+                times.sunrise = this.toLocalTime(sunriseLocal);
             }
-            else this._dtSunrise = undefined;
+            else times.sunrise = undefined;
             if (typeof sunsetLocal !== 'undefined') {
                 sunsetLocal = (sunsetLocal - this.longitudeHours);
                 while (sunsetLocal >= 24) sunsetLocal -= 24;
                 while (sunsetLocal < 0) sunsetLocal += 24;
-                this._dtSunset = this.toLocalTime(sunsetLocal);
+                times.sunset = this.toLocalTime(sunsetLocal);
             }
-            else this._dtSunset = undefined;
-            logger.verbose(`sunriseLocal:${sunriseLocal} sunsetLocal:${sunsetLocal} Calculating Heliotrope Valid`);
-            this.isValid = typeof this._dtSunrise !== 'undefined' && typeof this._dtSunset !== 'undefined';
-            this.isCalculated = true;
+            else times.sunset = undefined;
         }
-        else {
-            logger.warn(`dt:${this.dt} lat:${this._latitude} lon:${this._longitude} Not enough information to calculate Heliotrope.  See https://github.com/tagyoureit/nodejs-poolController/issues/245`);
-            this.isValid = false;
-            this._dtSunset = undefined;
-            this._dtSunrise = undefined;
+        return times;
+    }
+
+}
+export class Heliotrope {
+    constructor() {
+        this.isCalculated = false;
+        this._zenith = 90 + 50 / 60;
+    }
+    public isCalculated: boolean = false;
+    public get isValid(): boolean { return typeof this.dt !== 'undefined' && typeof this.dt.getMonth === 'function' && typeof this._longitude === 'number' && typeof this._latitude === 'number'; }
+    public get date() { return this.dt; }
+    public set date(dt: Date) {
+        if (typeof this.dt === 'undefined' ||
+            this.dt.getFullYear() !== dt.getFullYear() ||
+            this.dt.getMonth() !== dt.getMonth() ||
+            this.dt.getDate() !== dt.getDate()) {
+            this.isCalculated = false;
+            // Always store a copy since we don't want to create instances where the change doesn't get reflected.  This
+            // also could hold onto references that we don't want held for garbage cleanup.
+            this.dt = typeof dt !== 'undefined' && typeof dt.getMonth === 'function' ? new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(),
+                dt.getHours(), dt.getMinutes(), dt.getSeconds(), dt.getMilliseconds()) : undefined;
+        }
+    }
+    public get longitude() { return this._longitude; }
+    public set longitude(lon: number) {
+        if (this._longitude !== lon) {
             this.isCalculated = false;
         }
-
+        this._longitude = lon;
+    }
+    public get latitude() { return this._latitude; }
+    public set latitude(lat: number) {
+        if (this._latitude !== lat) {
+            this.isCalculated = false;
+        }
+        this._latitude = lat;
+    }
+    public get zenith() { return this._zenith; }
+    public set zenith(zen: number) {
+        if (this._zenith !== zen) this.isCalculated = false;
+        this._zenith = zen;
+    }
+    private dt: Date;
+    private _longitude: number;
+    private _latitude: number;
+    private _zenith: number;
+    private _dtSunrise: Date;
+    private _dtSunset: Date;
+    private _dtNextSunrise: Date;
+    private _dtNextSunset: Date;
+    private _dtPrevSunrise: Date;
+    private _dtPrevSunset: Date;
+    public get isNight(): boolean {
+        let times = this.calculatedTimes;
+        if (this.isValid) {
+            let time = new Date().getTime();
+            if (time >= times.sunset.getTime()) // We are after sunset.
+                return time < times.nextSunrise.getTime(); // It is night so long as we are less than the next sunrise.  
+                                                           // Normally this would be updated on 1 min after midnight so it should never be true.
+            else
+                return time < times.sunrise.getTime();     // If the Heliotrope is updated then we need to declare pre-sunrise to be night.
+                                                           // This is the normal condition where it would be night since at 1 min after midnight the sunrise/sunset
+                                                           // will get updated.  So it will be before sunrise that it will still be night.
+        }
+        return false;
+    }
+    public calculate(dt: Date): { isValid: boolean, dt: Date, sunrise: Date, sunset: Date, nextSunrise: Date, nextSunset: Date, prevSunrise: Date, prevSunset: Date } {
+        let ctx = new HeliotropeContext(this.longitude, this.latitude, this.zenith);
+        let ret = { isValid: ctx.isValid, dt: dt, sunrise: undefined, sunset: undefined, nextSunrise: undefined, nextSunset: undefined, prevSunrise: undefined, prevSunset: undefined };
+        if (ctx.isValid) {
+            let tToday = ctx.calculate(dt);
+            let tTom = ctx.calculate(new Date(dt.getTime() + 86400000));
+            let tYesterday = ctx.calculate(new Date(dt.getTime() - 86400000));
+            ret.sunrise = tToday.sunrise;
+            ret.sunset = tToday.sunset;
+            ret.nextSunrise = tTom.sunrise;
+            ret.nextSunset = tTom.sunset;
+            ret.prevSunrise = tYesterday.sunrise;
+            ret.prevSunset = tYesterday.sunset;
+        }
+        return ret;
+    }
+    private calcInternal() {
+        if (this.isValid) {
+            let times = this.calculate(this.dt);
+            this._dtSunrise = times.sunrise;
+            this._dtSunset = times.sunset;
+            this._dtNextSunrise = times.nextSunrise;
+            this._dtNextSunset = times.nextSunset;
+            this._dtPrevSunrise = times.prevSunrise;
+            this._dtPrevSunset = times.prevSunset;
+            this.isCalculated = true;
+            logger.verbose(`Calculated Heliotrope: sunrise:${Timestamp.toISOLocal(this._dtSunrise)} sunset:${Timestamp.toISOLocal(this._dtSunset)}`);
+        }
+        else 
+            logger.warn(`dt:${this.dt} lat:${this._latitude} lon:${this._longitude} Not enough information to calculate Heliotrope.  See https://github.com/tagyoureit/nodejs-poolController/issues/245`);
     }
     public get sunrise(): Date {
-        if (!this.isCalculated) this.calculate();
+        if (!this.isCalculated) this.calcInternal();
         return this._dtSunrise;
     }
     public get sunset(): Date {
-        if (!this.isCalculated) this.calculate();
+        if (!this.isCalculated) this.calcInternal();
         return this._dtSunset;
     }
-    public get calculatedTimes(): any { return { sunrise: this.sunrise, sunset: this.sunset, isValid: this.isValid }; }
+    public get nextSunrise(): Date {
+        if (!this.isCalculated) this.calcInternal();
+        return this._dtNextSunrise;
+    }
+    public get nextSunset(): Date {
+        if (!this.isCalculated) this.calcInternal();
+        return this._dtNextSunset;
+    }
+    public get prevSunrise(): Date {
+        if (!this.isCalculated) this.calcInternal();
+        return this._dtPrevSunrise;
+    }
+    public get prevSunset(): Date {
+        if (!this.isCalculated) this.calcInternal();
+        return this._dtPrevSunset;
+    }
+    public get calculatedTimes(): { sunrise?: Date, sunset?: Date, nextSunrise?: Date, nextSunset?: Date, prevSunrise?: Date, prevSunset: Date, isValid: boolean } { return { sunrise: this.sunrise, sunset: this.sunset, nextSunrise: this.nextSunrise, nextSunset: this.nextSunset, prevSunrise: this.prevSunrise, prevSunset: this.prevSunset, isValid: this.isValid }; }
+    public calcAdjustedTimes(dt: Date, hours = 0, min = 0): { sunrise?: Date, sunset?: Date, nextSunrise?: Date, nextSunset?: Date, prevSunrise?: Date, prevSunset: Date, isValid: boolean } {
+        if (this.dt.getFullYear() === dt.getFullYear() && this.dt.getMonth() === dt.getMonth() && this.dt.getDate() === dt.getDate()) return this.getAdjustedTimes(hours, min);
+        let ms = (hours * 3600000) + (min * 60000);
+        let times = this.calculate(dt);
+        return {
+            sunrise: new Date(times.sunrise.getTime() + ms),
+            sunset: new Date(times.sunset.getTime() + ms),
+            nextSunrise: new Date(times.nextSunrise.getTime() + ms),
+            nextSunset: new Date(times.nextSunset.getTime() + ms),
+            prevSunrise: new Date(times.prevSunrise.getTime() + ms),
+            prevSunset: new Date(times.prevSunset.getTime() + ms),
+            isValid: this.isValid
+        } 
+    }
+    public getAdjustedTimes(hours = 0, min = 0): { sunrise?: Date, sunset?: Date, nextSunrise?: Date, nextSunset?: Date, prevSunrise?: Date, prevSunset: Date, isValid: boolean } {
+        let ms = (hours * 3600000) + (min * 60000);
+        return {
+            sunrise: new Date(this.sunrise.getTime() + ms),
+            sunset: new Date(this.sunset.getTime() + ms),
+            nextSunrise: new Date(this.nextSunrise.getTime() + ms),
+            nextSunset: new Date(this.nextSunset.getTime() + ms),
+            prevSunrise: new Date(this.prevSunrise.getTime() + ms),
+            prevSunset: new Date(this.prevSunset.getTime() + ms),
+            isValid: this.isValid
+        } 
+    }
 }
 export class Timestamp {
     private static dateTextISO = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2}(?:\.\d*))(?:Z|(\+|-)([\d|:]*))?$/;
@@ -190,7 +281,7 @@ export class Timestamp {
     }
     private _isUpdating: boolean = false;
     public static get now(): Timestamp { return new Timestamp(); }
-    public toDate() { return this._dt; }
+    public toDate(): Date { return this._dt; }
     public get isValid() {
         return this._dt instanceof Date && !isNaN(this._dt.getTime());
     }
@@ -225,7 +316,8 @@ export class Timestamp {
     public set fullYear(val: number) { this._dt.setFullYear(val); }
     public get year(): number { return this._dt.getFullYear(); }
     public set year(val: number) {
-        let y = val < 100 ? (Math.floor(this._dt.getFullYear() / 100) * 100) + val : val;
+        let dt = new Date();
+        let y = val < 100 ? (Math.floor(dt.getFullYear() / 100) * 100) + val : val;
         if (y !== this.year) {
             this._dt.setFullYear(y);
             this.emitter.emit('change');
@@ -248,7 +340,8 @@ export class Timestamp {
     public getDay(): number { return this._dt.getDay(); }
     public getTime() { return this._dt.getTime(); }
     public format(): string { return Timestamp.toISOLocal(this._dt); }
-    public static toISOLocal(dt): string {
+    public static toISOLocal(dt: Date): string {
+        if (typeof dt === 'undefined' || typeof dt.getTime !== 'function' || isNaN(dt.getTime())) return '';
         let tzo = dt.getTimezoneOffset();
         var pad = function (n) {
             var t = Math.floor(Math.abs(n));

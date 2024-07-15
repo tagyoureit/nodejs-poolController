@@ -26,6 +26,7 @@ import { state, ChlorinatorState, LightGroupState, VirtualCircuitState, ICircuit
 import { utils } from '../../controller/Constants';
 import { InvalidEquipmentIdError, InvalidEquipmentDataError, EquipmentNotFoundError, MessageError, InvalidOperationError } from '../Errors';
 import { ncp } from '../nixie/Nixie';
+import { Timestamp } from "../Constants"
 export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
     constructor(system: PoolSystem) {
@@ -389,6 +390,10 @@ export class IntelliCenterBoard extends SystemBoard {
         for (let i = 0; i < sys.circuits.length; i++) {
             let c = sys.circuits.getItemByIndex(i);
             if (c.id <= 40) c.master = 0;
+            if (typeof sys.board.valueMaps.circuitFunctions.get(c.type).isLight) {
+                let s = state.circuits.getItemById(c.id);
+                if (s.action !== 0) s.action = 0;
+            }
         }
         for (let i = 0; i < sys.valves.length; i++) {
             let v = sys.valves.getItemByIndex(i);
@@ -2168,6 +2173,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             255, 255, 0, 0, 0, 0], // 30-35
             3);
 
+
         // Circuits are always contiguous so we don't have to worry about
         // them having a strange offset like features and groups. However, in
         // single body systems they start with 2.
@@ -2175,13 +2181,14 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             // We are using the index and setting the circuits based upon
             // the index.  This way it doesn't matter what the sort happens to
             // be and whether there are gaps in the ids or not.  The ordinal is the bit number.
-            let circuit = state.circuits.getItemByIndex(i);
-            let ordinal = circuit.id - 1;
+            let cstate = state.circuits.getItemByIndex(i);
+            let ordinal = cstate.id - 1;
+            if (ordinal >= 40) continue;
             let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 3];
             let bit = ordinal - (ndx * 8);
-            if (circuit.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
-            else if (circuit.isOn) byte = byte | (1 << bit);
+            if (cstate.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
+            else if (cstate.isOn) byte = byte | (1 << bit);
             out.payload[ndx + 3] = byte;
         }
         // Set the bits for the features.
@@ -2191,6 +2198,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             // be and whether there are gaps in the ids or not.  The ordinal is the bit number.
             let feature = state.features.getItemByIndex(i);
             let ordinal = feature.id - sys.board.equipmentIds.features.start;
+            if (ordinal >= 32) continue;
             let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 9];
             let bit = ordinal - (ndx * 8);
@@ -2202,6 +2210,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         for (let i = 0; i < state.data.circuitGroups.length; i++) {
             let group = state.circuitGroups.getItemByIndex(i);
             let ordinal = group.id - sys.board.equipmentIds.circuitGroups.start;
+            if (ordinal >= 16) continue;
             let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 13];
             let bit = ordinal - (ndx * 8);
@@ -2213,6 +2222,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         for (let i = 0; i < state.data.lightGroups.length; i++) {
             let group = state.lightGroups.getItemByIndex(i);
             let ordinal = group.id - sys.board.equipmentIds.circuitGroups.start;
+            if (ordinal >= 16) continue;
             let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 13];
             let bit = ordinal - (ndx * 8);
@@ -2248,6 +2258,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         for (let i = 0; i < state.data.schedules.length; i++) {
             let sched = state.schedules.getItemByIndex(i);
             let ordinal = sched.id - 1;
+            if (ordinal >= 100) continue;
             let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 15];
             let bit = ordinal - (ndx * 8);
@@ -2258,9 +2269,9 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     let dow = dt.getDay();
                     // Convert the dow to the bit value.
                     let sd = sys.board.valueMaps.scheduleDays.toArray().find(elem => elem.dow === dow);
-                    let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
+                    //let dayVal = sd.bitVal || sd.val;  // The bitval allows mask overrides.
                     let ts = dt.getHours() * 60 + dt.getMinutes();
-                    if ((sched.scheduleDays & dayVal) > 0 && ts >= sched.startTime && ts <= sched.endTime) byte = byte | (1 << bit);
+                    if ((sched.scheduleDays & sd.bitval) > 0 && ts >= sched.startTime && ts <= sched.endTime) byte = byte | (1 << bit);
                 }
             }
             else if (sched.isOn) byte = byte | (1 << bit);
@@ -2817,6 +2828,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
         body2: { heatMode: number, heatSetpoint: number, coolSetpoint: number }
     };
     private async queueBodyHeatSettings(bodyId?: number, byte?: number, data?: any): Promise<Boolean> {
+        logger.debug(`queueBodyHeatSettings: ${JSON.stringify(this.bodyHeatSettings)}`);  // remove this line if #848 is fixed
         if (typeof this.bodyHeatSettings === 'undefined') {
             let body1 = sys.bodies.getItemById(1);
             let body2 = sys.bodies.getItemById(2);
@@ -2862,21 +2874,30 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 retries: 2,
                 response: IntelliCenterBoard.getAckResponse(168)
             });
-            await out.sendAsync();
-            let body1 = sys.bodies.getItemById(1);
-            let sbody1 = state.temps.bodies.getItemById(1);
-            body1.heatMode = sbody1.heatMode = bhs.body1.heatMode;
-            body1.heatSetpoint = sbody1.heatSetpoint = bhs.body1.heatSetpoint;
-            body1.coolSetpoint = sbody1.coolSetpoint = bhs.body1.coolSetpoint;
-            if (sys.equipment.dual || sys.equipment.shared) {
-                let body2 = sys.bodies.getItemById(2);
-                let sbody2 = state.temps.bodies.getItemById(2);
-                body2.heatMode = sbody2.heatMode = bhs.body2.heatMode;
-                body2.heatSetpoint = sbody2.heatSetpoint = bhs.body2.heatSetpoint;
-                body2.coolSetpoint = sbody2.coolSetpoint = bhs.body2.coolSetpoint;
+            try {
+                await out.sendAsync();
+                let body1 = sys.bodies.getItemById(1);
+                let sbody1 = state.temps.bodies.getItemById(1);
+                body1.heatMode = sbody1.heatMode = bhs.body1.heatMode;
+                body1.heatSetpoint = sbody1.heatSetpoint = bhs.body1.heatSetpoint;
+                body1.coolSetpoint = sbody1.coolSetpoint = bhs.body1.coolSetpoint;
+                if (sys.equipment.dual || sys.equipment.shared) {
+                    let body2 = sys.bodies.getItemById(2);
+                    let sbody2 = state.temps.bodies.getItemById(2);
+                    body2.heatMode = sbody2.heatMode = bhs.body2.heatMode;
+                    body2.heatSetpoint = sbody2.heatSetpoint = bhs.body2.heatSetpoint;
+                    body2.coolSetpoint = sbody2.coolSetpoint = bhs.body2.coolSetpoint;
+                }
+                state.emitEquipmentChanges();
+            } catch (err) {
+                bhs.processing = false;
+                bhs.bytes = [];
+                throw (err);
             }
-            bhs.processing = false;
-            state.emitEquipmentChanges();
+            finally {
+                bhs.processing = false;
+                bhs.bytes = [];
+            }
             return true;
         }
         else {
@@ -2885,7 +2906,10 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 setTimeout(async () => {
                     try {
                         await this.queueBodyHeatSettings();
-                    } catch (err) { logger.error(`Error sending queued body setpoint message: ${err.message}`); }
+                    } catch (err) {
+                        logger.error(`Error sending queued body setpoint message: ${err.message}`);
+                        throw (err);
+                    }
                 }, 3000);
             }
             else bhs.processing = false;
@@ -3119,6 +3143,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
     }
 }
 class IntelliCenterScheduleCommands extends ScheduleCommands {
+    _lastScheduleCheck: number = 0;
     public async setScheduleAsync(data: any): Promise<Schedule> {
         if (typeof data.id !== 'undefined') {
             let id = typeof data.id === 'undefined' ? -1 : parseInt(data.id, 10);
@@ -3141,6 +3166,8 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             let endTime = typeof data.endTime !== 'undefined' ? data.endTime : sched.endTime;
             let schedDays = sys.board.schedules.transformDays(typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : sched.scheduleDays);
             let display = typeof data.display !== 'undefined' ? data.display : sched.display || 0;
+            let endTimeOffset = typeof data.endTimeOffset !== 'undefined' ? data.endTimeOffset : sched.endTimeOffset;
+            let startTimeOffset = typeof data.startTimeOffset !== 'undefined' ? data.startTimeOffset : sched.startTimeOffset;
 
             // Ensure all the defaults.
             if (isNaN(startDate.getTime())) startDate = new Date();
@@ -3216,10 +3243,44 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             ssched.isActive = sched.isActive = true;
             ssched.display = sched.display = display;
             ssched.emitEquipmentChange();
+            ssched.startTimeOffset = sched.startTimeOffset = startTimeOffset;
+            ssched.endTimeOffset = sched.endTimeOffset = endTimeOffset;
             return sched;
         }
         else
             return Promise.reject(new InvalidEquipmentIdError('No schedule information provided', undefined, 'Schedule'));
+    }
+    public syncScheduleStates() {
+        // This is triggered from the 204 message in IntelliCenter.  We will
+        // be checking to ensure it does not load the server so we only do this every 10 seconds.
+        if (this._lastScheduleCheck > new Date().getTime() - 10000) return;
+        try {
+            // The call below also calculates the schedule window either the current or next.
+            ncp.schedules.triggerSchedules();  // At this point we are not adding Nixie schedules to IntelliCenter but this will trigger
+            // the proper time windows if they exist.
+            // Check each running circuit/feature to see when it will be going off.
+            let scheds = state.schedules.getActiveSchedules();
+            let circs: { state: ICircuitState, endTime: number }[] = [];
+            for (let i = 0; i < scheds.length; i++) {
+                let ssched = scheds[i];
+                if (!ssched.isOn || ssched.disabled || !ssched.isActive) continue;
+                let c = circs.find(x => x.state.id === ssched.circuit);
+                if (typeof c === 'undefined') {
+                    let cstate = state.circuits.getInterfaceById(ssched.circuit);
+                    c = { state: cstate, endTime: ssched.scheduleTime.endTime.getTime() };
+                    circs.push;
+                }
+                if (c.endTime < ssched.scheduleTime.endTime.getTime()) c.endTime = ssched.scheduleTime.endTime.getTime();
+            }
+            for (let i = 0; i < circs.length; i++) {
+                let c = circs[i];
+                if (c.state.endTime.getTime() !== c.endTime) {
+                    c.state.endTime = new Timestamp(new Date(c.endTime));
+                    c.state.emitEquipmentChange();
+                }
+            }
+            this._lastScheduleCheck = new Date().getTime();
+        } catch (err) { logger.error(`Error synchronizing schedule states`); }
     }
     public async deleteScheduleAsync(data: any): Promise<Schedule> {
         if (typeof data.id !== 'undefined') {
@@ -3484,7 +3545,7 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[2, { name: 'heater', desc: 'Heater' }]]);
             if (mastertempInstalled) sys.board.valueMaps.heatSources.merge([[11, { name: 'mtheater', desc: 'MasterTemp' }]]);
             if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar Only', hasCoolSetpoint: htypes.hasCoolSetpoint }], [4, { name: 'solarpref', desc: 'Solar Preferred', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
-            else if (solarInstalled) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar', hasCoolsetpoint: htypes.hasCoolSetpoint }]]);
+            else if (solarInstalled) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
             if (heatPumpInstalled && (gasHeaterInstalled || solarInstalled)) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Pref' }]]);
             else if (heatPumpInstalled) sys.board.valueMaps.heatSources.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
             if (ultratempInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[5, { name: 'ultratemp', desc: 'UltraTemp Only', hasCoolSetpoint: htypes.hasCoolSetpoint }], [6, { name: 'ultratemppref', desc: 'UltraTemp Pref', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);

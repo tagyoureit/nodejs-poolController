@@ -507,7 +507,7 @@ export class Inbound extends Message {
                     ndx = bytes.length - 5;
                     let arr = bytes.slice(0, ndx);
                     // Remove all but the last 4 bytes.  This will result in nothing anyway.
-                    logger.verbose(`Tossed Inbound Bytes ${arr} due to an unrecoverable collision.`);
+                    logger.verbose(`[Port ${this.portId}] Tossed Inbound Bytes ${arr} due to an unrecoverable collision.`);
                 }
                 this.padding = [];
                 break;
@@ -1169,12 +1169,12 @@ export class Response extends OutboundCommon {
                     // Scenario 1.  Request for pump status.
                     // Msg In:     [165,0,16, 96, 7,15], [4,0,0,0, 0, 0, 0, 0, 0, 0, 0, 0, 0,17,31], [1,95]
                     // Msg Out:    [165,0,96, 16, 7, 0],[1,28]
-                    if (msgIn.source !== msgOut.dest || msgIn.dest !== msgOut.source) { return false; }
+                    if (msgIn.source !== msgOut.dest || (msgIn.dest !== msgOut.source && msgIn.dest != 16)) { return false; }
                     if (msgIn.action === 7 && msgOut.action === 7) { return true; }
                     return false;
                 default:
                     //Scenario 2, pump messages are mimics of each other but the dest/src are swapped
-                    if (msgIn.source !== msgOut.dest || msgIn.dest !== msgOut.source) { return false; }
+                    if (msgIn.source !== msgOut.dest || (msgIn.dest !== msgOut.source && msgIn.dest != 16)) { return false; }
                     // sub-case                           
                     // Msg In:     [165,0,16, 96, 1, 2], [3,32],[1,59]
                     // Msg Out:    [165,0,96,16, 1,4],[3,39, 3,32], [1,103]

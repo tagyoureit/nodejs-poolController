@@ -158,20 +158,55 @@ export class NixieCircuit extends NixieEquipment {
     }
     protected async setIntelliBriteThemeAsync(cstate: CircuitState, theme: any): Promise<InterfaceServerResponse> {
         let arr = [];
-        if (cstate.isOn) arr.push({ isOn: false, timeout: 1000 });
         let count = typeof theme !== 'undefined' && theme.sequence ? theme.sequence : 0;
-        if (cstate.isOn) arr.push({ isOn: false, timeout: 1000 });
+		
+		// Removing this. No need to turn the light off first.  We actually need it on to start the sequence for theme setting to work correctly when the light is starting from the off state.
+		// if (cstate.isOn) arr.push({ isOn: false, timeout: 1000 });
+		
+		// Start the sequence of off/on after the light is on.
+        arr.push({ isOn: true, timeout: 100 });
         for (let i = 0; i < count; i++) {
-            if (i < count - 1) {
-                arr.push({ isOn: true, timeout: 100 });
-                arr.push({ isOn: false, timeout: 100 });
-            }
-            else arr.push({ isOn: true, timeout: 1000 });
+			arr.push({ isOn: false, timeout: 100 });
+			arr.push({ isOn: true, timeout: 100 });     
         }
-        console.log(arr);
+		// Ensure light stays on long enough for the theme to stick (required for light group theme setting to function correctly).
+		// 2s was too short.
+		arr.push({ isOn: true, timeout: 3000 });
+        
+		logger.debug(arr);
         let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, arr, 60000);
         // Even though we ended with on we need to make sure that the relay stays on now that we are done.
         if (!res.error) {
+            this._sequencing = false;
+            await this.setCircuitStateAsync(cstate, true, false);
+        }
+        return res;
+    }
+    protected async setWaterColorsThemeAsync(cstate: CircuitState, theme: any): Promise<InterfaceServerResponse> {
+        let ptheme = sys.board.valueMaps.lightThemes.findItem(cstate.lightingTheme) || { val: 0, sequence: 0 };
+        // First check to see if we are on.  If we are not then we need to emit our status as if we are initializing and busy.
+        let arr = [];
+        if (ptheme.val === 0) {
+            // We don't know our previous theme so we are going to sync the lights to get a starting point.
+            arr.push({ isOn: true, timeout: 1000 }); // Turn on for 1 second
+            arr.push({ isOn: false, timeout: 5000 }); // Turn off for 5 seconds
+            arr.push({ isOn: true, timeout: 1000 });
+            ptheme = sys.board.valueMaps.lightThemes.findItem('eveningsea');
+        }
+        let count = theme.sequence - ptheme.sequence;
+        if (count < 0) count = count + 16;
+        for (let i = 0; i < count; i++) {
+            arr.push({ isOn: true, timeout: 200 }); 
+            arr.push({ isOn: false, timeout: 200 });
+        }
+        console.log(arr);
+        if (arr.length === 0) return new InterfaceServerResponse(200, 'Success');
+        let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, arr, 60000);
+        // Even though we ended with on we need to make sure that the relay stays on now that we are done.
+        if (!res.error) {
+            cstate.lightingTheme = ptheme.val;
+            cstate.isOn = true; // At this point the relay will be off but we want the process
+                                // to assume that the relay state is not actually changing.
             this._sequencing = false;
             await this.setCircuitStateAsync(cstate, true, false);
         }
@@ -236,6 +271,9 @@ export class NixieCircuit extends NixieEquipment {
                     break;
                 case 'colorlogic':
                     res = await this.setColorLogicThemeAsync(cstate, theme);
+                    break;
+                case 'watercolors':
+                    res = await this.setWaterColorsThemeAsync(cstate, theme);
                     break;
             }
             cstate.action = 0;

@@ -23,10 +23,11 @@ import * as util from 'util';
 import { logger } from '../logger/Logger';
 import { webApp } from '../web/Server';
 import { ControllerType, Timestamp, utils, Heliotrope } from './Constants';
-import { sys, Chemical, ChemController, ChemicalTank, ChemicalPump } from './Equipment';
+import { sys, Chemical, ChemController, ChemicalTank, ChemicalPump, Schedule } from './Equipment';
 import { versionCheck } from '../config/VersionCheck';
 import { DataLogger, DataLoggerEntry } from '../logger/DataLogger';
 import { delayMgr } from './Lockouts';
+import { time } from 'console';
 
 export class State implements IState {
     statePath: string;
@@ -212,6 +213,8 @@ export class State implements IState {
             model: sys.equipment.model,
             sunrise: self.data.sunrise || '',
             sunset: self.data.sunset || '',
+            nextSunrise: self.data.nextSunrise || '',
+            nextSunset: self.data.nextSunset || '',
             alias: sys.general.alias,
             freeze: utils.makeBool(self.data.freeze),
             valveMode: self.data.valveMode || {},
@@ -368,8 +371,16 @@ export class State implements IState {
         EqStateCollection.removeNullIds(sdata.chemControllers);
         EqStateCollection.removeNullIds(sdata.chemDosers);
         EqStateCollection.removeNullIds(sdata.filters);
+        // Initialize the schedules.
+        if (typeof sdata.schedules !== 'undefined') {
+            for (let i = 0; i < sdata.schedules.length; i++) {
+                let ssched = sdata.schedules[i];
+                ssched.manualPriorityActive = ssched.isOn = ssched.triggered = false;
+                if (typeof ssched.scheduleTime !== 'undefined') ssched.scheduleTime.calculated = false;
+            }
+        }
         var self = this;
-        let pnlTime = typeof sdata.time !== 'undefined' ? new Date(sdata.time) : new Date();
+        let pnlTime = typeof sdata.time !== 'undefined' && sdata.time !== '' ? new Date(sdata.time) : new Date();
         if (isNaN(pnlTime.getTime())) pnlTime = new Date();
         this._dt = new Timestamp(pnlTime);
         this._dt.milliseconds = 0;
@@ -387,6 +398,10 @@ export class State implements IState {
             let times = self.heliotrope.calculatedTimes;
             self.data.sunrise = times.isValid ? Timestamp.toISOLocal(times.sunrise) : '';
             self.data.sunset = times.isValid ? Timestamp.toISOLocal(times.sunset) : '';
+            self.data.nextSunrise = times.isValid ? Timestamp.toISOLocal(times.nextSunrise) : '';
+            self.data.nextSunset = times.isValid ? Timestamp.toISOLocal(times.nextSunset) : '';
+            self.data.prevSunrise = times.isValid ? Timestamp.toISOLocal(times.prevSunrise) : '';
+            self.data.prevSunset = times.isValid ? Timestamp.toISOLocal(times.prevSunset) : '';
             versionCheck.checkGitRemote();
         });
         this.status = 0; // Initializing
@@ -510,6 +525,7 @@ export interface ICircuitState {
     isOn: boolean;
     startTime?: Timestamp;
     endTime: Timestamp;
+    priority?: string,
     lightingTheme?: number;
     action?: number;
     emitEquipmentChange();
@@ -1067,6 +1083,224 @@ export class PumpState extends EqState {
 }
 export class ScheduleStateCollection extends EqStateCollection<ScheduleState> {
     public createItem(data: any): ScheduleState { return new ScheduleState(data); }
+    public getActiveSchedules(): ScheduleState[] {
+        let activeScheds: ScheduleState[] = [];
+        for (let i = 0; i < this.length; i++) {
+            let ssched = this.getItemByIndex(i);
+            let st = ssched.scheduleTime;
+            let sched = sys.schedules.getItemById(ssched.id);
+            if (!sched.isActive || ssched.disabled) {
+                continue;
+            }
+            st.calcSchedule(state.time, sys.schedules.getItemById(ssched.id));
+            if (typeof st.startTime === 'undefined') continue;
+            if (ssched.isOn || st.shouldBeOn || st.startTime.getTime() > new Date().getTime()) activeScheds.push(ssched);
+        }
+        return activeScheds;
+    }
+}
+export class ScheduleTime extends ChildEqState {
+    public initData() { if (typeof this.data.times !== 'undefined') delete this.data.times;  }
+    public get calculatedDate(): Date { return typeof this.data.calculatedDate !== 'undefined' && this.data.calculatedDate !== '' ? new Date(this.data.calculatedDate) : new Date(1970, 0, 1); }
+    public set calculatedDate(val: Date) { this._saveTimestamp(val, 'calculatedDate', false); }
+    public get startTime(): Date { return typeof this.data.startTime !== 'undefined' && this.data.startTime !== '' ? new Date(this.data.startTime) : null; }
+    public set startTime(val: Date) { this._saveTimestamp(val, 'startTime'); }
+    public get endTime(): Date { return typeof this.data.endTime !== 'undefined' && this.data.endTime !== '' ? new Date(this.data.endTime) : null; }
+    public set endTime(val: Date) { this._saveTimestamp(val, 'endTime'); }
+    private _saveTimestamp(dt, prop, persist:boolean = true) {
+        if (typeof dt === 'undefined' || !dt) this.setDataVal(prop, '');
+        else this.setDataVal(prop, Timestamp.toISOLocal(dt));
+    }
+    private _calcShouldBeOn(time: number) : boolean {
+        let tmStart = this.startTime ? this.startTime.getTime() : NaN;
+        let tmEnd = this.endTime ? this.endTime.getTime() : NaN;
+        if (isNaN(tmStart) || isNaN(tmEnd) || time < tmStart || time > tmEnd) return false;
+        return true;
+    }
+    public get shouldBeOn(): boolean {
+        let shouldBeOn = this._calcShouldBeOn(state.time.getTime());
+        if (this.data.shouldBeOn !== shouldBeOn) this.setDataVal('shouldBeOn', shouldBeOn);
+        return this.data.shouldBeOn || false;
+    }
+    protected set shouldBeOn(val: boolean) { this.setDataVal('shouldBeOn', val); }
+    public get calculated(): boolean { return this.data.calculated; }
+    public set calculated(val: boolean) { this.setDataVal('calculated', val); }
+    public calcScheduleDate(ts: Timestamp, sched: Schedule): { startTime: Date, endTime: Date } {
+        let times: { startTime: Date, endTime: Date } = { startTime: null, endTime: null };
+        try {
+            let sod = ts.clone().startOfDay();
+            let ysod = ts.clone().addHours(-24).startOfDay();
+            let nsod = ts.clone().addHours(-24).startOfDay();
+            let ytimes: { startTime: Date, endTime: Date } = { startTime: null, endTime: null };  // Yesterday
+            let ttimes: { startTime: Date, endTime: Date } = { startTime: null, endTime: null };  // Today
+            let ntimes: { startTime: Date, endTime: Date } = { startTime: null, endTime: null };  // Tomorrow
+            let tt = sys.board.valueMaps.scheduleTimeTypes.transform(sched.startTimeType);
+            // Add the range for today and yesterday.
+            switch (tt.name) {
+                case 'sunrise':
+                    let sr = state.heliotrope.calcAdjustedTimes(sod.toDate(), 0, sched.startTimeOffset);
+                    ytimes.startTime = sr.prevSunrise;
+                    ttimes.startTime = sr.sunrise;
+                    ntimes.startTime = sr.nextSunrise;
+                    break;
+                case 'sunset':
+                    let ss = state.heliotrope.calcAdjustedTimes(sod.toDate(), 0, sched.startTimeOffset);
+                    ytimes.startTime = ss.prevSunset;
+                    ttimes.startTime = ss.sunset;
+                    ntimes.startTime = ss.nextSunset;
+                    break;
+                default:
+                    ytimes.startTime = ysod.clone().addMinutes(sched.startTime).toDate();
+                    ttimes.startTime = sod.clone().addMinutes(sched.startTime).toDate();
+                    ntimes.startTime = nsod.clone().addMinutes(sched.startTime).toDate();
+                    break;
+            }
+            tt = sys.board.valueMaps.scheduleTimeTypes.transform(sched.endTimeType);
+            switch (tt.name) {
+                case 'sunrise':
+                    let sr = state.heliotrope.calcAdjustedTimes(sod.toDate(), 0, sched.endTimeOffset);
+                    // If the start time of the previous window is greater than the previous sunrise then we use the sunrise for today.
+                    ytimes.endTime = ytimes.startTime >= sr.prevSunrise ? sr.sunrise : sr.prevSunrise;
+                    // If ths start time of the current window is greater than the current sunrise then we use the sunrise for tomorrow.
+                    ttimes.endTime = ttimes.startTime >= sr.sunrise ? sr.nextSunrise : sr.sunrise;
+                    ntimes.endTime = ntimes.startTime >= sr.nextSunrise ? new Timestamp(sr.nextSunrise).addHours(24).toDate() : sr.nextSunrise;
+                    break;
+                case 'sunset':
+                    let ss = state.heliotrope.calcAdjustedTimes(sod.toDate(), 0, sched.endTimeOffset);
+                    // If the start time of the previous window is greater than the previous sunset then we use the sunset for today.
+                    ytimes.endTime = ytimes.startTime >= ss.prevSunset ? ss.sunset : ss.prevSunset;
+                    ttimes.endTime = ttimes.startTime >= ss.sunset ? ss.nextSunset : ss.nextSunset;
+                    ntimes.endTime = ntimes.startTime >= ss.nextSunset ? new Timestamp(ss.nextSunset).addHours(24).toDate() : ss.nextSunset;
+                    break;
+                default:
+                    ytimes.endTime = ysod.clone().addMinutes(sched.endTime).toDate();
+                    if (ytimes.endTime <= ytimes.startTime) ytimes.endTime = ysod.clone().addHours(24).addMinutes(sched.endTime).toDate();
+                    ttimes.endTime = sod.clone().addMinutes(sched.endTime).toDate();
+                    if (ttimes.endTime <= ttimes.startTime) ttimes.endTime = sod.clone().addHours(24).addMinutes(sched.endTime).toDate();
+                    ntimes.endTime = nsod.clone().addMinutes(sched.endTime).toDate();
+                    if (ntimes.endTime <= ntimes.startTime) ntimes.endTime = nsod.clone().addHours(24).addMinutes(sched.endTime).toDate();
+                    break;
+            }
+            ttimes.startTime.setSeconds(0, 0);  // Set the start time to the beginning of the minute.
+            ttimes.endTime.setSeconds(59, 999); // Set the end time to the end of the minute.
+            ytimes.startTime.setSeconds(0, 0);
+            ytimes.endTime.setSeconds(59, 999);
+            ntimes.startTime.setSeconds(0, 0);
+            ntimes.endTime.setSeconds(59, 999);
+            // Now check the dow for each range.  If the start time for the dow matches then include it.  If not then do not.
+            let schedDays = sys.board.valueMaps.scheduleDays.toArray();
+            let fnInRange = (time, times) => {
+                let tmStart = times.startTime ? times.startTime.getTime() : NaN;
+                let tmEnd = times.endTime ? times.endTime.getTime() : NaN;
+                if (isNaN(tmStart) || isNaN(tmEnd) || time < tmStart || time > tmEnd) return false;
+                return true;
+            }
+            let tm = ts.getTime();
+            if (fnInRange(tm, ttimes)) {
+                // Check the dow.
+                let sd = schedDays.find(elem => elem.dow === ttimes.startTime.getDay());
+                if (typeof sd !== 'undefined' && (sched.scheduleDays & sd.bitval) !== 0) {
+                    times.startTime = ttimes.startTime;
+                    times.endTime = ttimes.endTime;
+                    return times;
+                }
+            }
+            // First check if we are still running yesterday.  This will ensure we have
+            // the first runtime.
+            if (fnInRange(tm, ytimes)) {
+                // Check the dow.
+                let sd = schedDays.find(elem => elem.dow === ytimes.startTime.getDay());
+                if (typeof sd !== 'undefined' && (sched.scheduleDays & sd.bitval) !== 0) {
+                    times.startTime = ytimes.startTime;
+                    times.endTime = ytimes.startTime;
+                    return times;
+                }
+            }
+            // Then check if we are running today.  If we have already run then get net next run
+            // time.
+            if (tm <= ttimes.startTime.getTime()) {
+                let sd = schedDays.find(elem => elem.dow === ttimes.startTime.getDay());
+                if (typeof sd !== 'undefined' && (sched.scheduleDays & sd.bitval) !== 0) {
+                    times.startTime = ttimes.startTime;
+                    times.endTime = ttimes.endTime;
+                    return times;
+                }
+            }
+            // Then look for tomorrow.
+            if (tm <= ntimes.startTime.getTime()) {
+                let sd = schedDays.find(elem => elem.dow === ntimes.startTime.getDay());
+                if (typeof sd !== 'undefined' && (sched.scheduleDays & sd.bitval) !== 0) {
+                    times.startTime = ntimes.startTime;
+                    times.endTime = ntimes.endTime;
+                    return times;
+                }
+            }
+            return times;
+        } catch (err) {
+            logger.error(`Error calculating date for schedule ${sched.id}: ${err.message}`);
+        }
+        finally { return times; }
+    }
+    public calcSchedule(currentTime: Timestamp, sched: Schedule): boolean {
+        try {
+            let sod = currentTime.clone().startOfDay();
+
+            // There are 3 conditions where the schdedule will be recalculated.  The first
+            // 1. The calculated flag is false
+            // 2. The calculated flag is true and the calculated date < the current start of day
+            // 3. Regardless of the calculated date the current end time has passed and the start time is
+            // from a prior date.  This will happen when the schedule is complete and we need to calculate the
+            // next run time.
+            let dtCalc = typeof this.calculatedDate !== 'undefined' && typeof this.calculatedDate.getTime === 'function' ? new Date(this.calculatedDate.getTime()).setHours(0, 0, 0, 0) : new Date(1970, 0, 1, 0, 0).getTime();
+            let recalc = !this.calculated;
+            if (!recalc && sod.getTime() !== dtCalc) recalc = true;
+            if (!recalc && (this.endTime.getTime() < new Date().getTime() && this.startTime.getTime() < dtCalc)) {
+                recalc = true;
+                logger.info(`Recalculating expired schedule ${sched.id}`);
+            }
+            if (!recalc) return this.shouldBeOn;
+            //if (this.calculated && sod.getTime() === dtCalc) return this.shouldBeOn;
+            this.calculatedDate = new Date(new Date().setHours(0, 0, 0, 0));
+            if (sched.isActive === false || sched.disabled) return false;
+            let tt = sys.board.valueMaps.scheduleTimeTypes.transform(sched.startTimeType);
+            // If this is a runonce schedule we need to check for the rundate
+            let type = sys.board.valueMaps.scheduleTypes.transform(sched.scheduleType);
+            let times = type.name === 'runonce' ? this.calcScheduleDate(new Timestamp(sched.startDate), sched) : this.calcScheduleDate(state.time.clone(), sched);
+            if (times.startTime && times.endTime.getTime() > currentTime.getTime()) {
+                // Check to see if it should be on.
+                this.startTime = times.startTime;
+                this.endTime = times.endTime;
+                this.calculated = true;
+                return this.shouldBeOn;
+            }
+            else {
+                // Chances are that the current dow is not valid.  Fast forward until we get a day that works.  That will
+                // be the next scheduled run date.
+                if (type.name !== 'runonce' && sched.scheduleDays > 0) {
+                    let schedDays = sys.board.valueMaps.scheduleDays.toArray();
+                    let day = sod.clone().addHours(24);
+                    let dow = day.getDay();
+                    while (dow !== sod.getDay()) {
+                        let sd = schedDays.find(elem => elem.dow === day.getDay());
+                        if (typeof sd !== 'undefined' && (sched.scheduleDays & sd.bitval) !== 0) {
+                            times = this.calcScheduleDate(day, sched);
+                            break;
+                        }
+                        else day.addHours(24);
+                    }
+                }
+                this.startTime = times.startTime;
+                this.endTime = times.endTime;
+                this.calculated = true;
+            }
+            return this.shouldBeOn;
+        } catch (err) {
+            this.calculated = true;
+            this.calculatedDate = new Date(new Date().setHours(0, 0, 0, 0));
+            this.startTime = null;
+            this.endTime = null;
+        }
+    }
 }
 export class ScheduleState extends EqState {
     constructor(data: any, dataName?: string) { super(data, dataName); }
@@ -1095,10 +1329,17 @@ export class ScheduleState extends EqState {
     public set startTime(val: number) { this.setDataVal('startTime', val); }
     public get endTime(): number { return this.data.endTime; }
     public set endTime(val: number) { this.setDataVal('endTime', val); }
+    public get startTimeOffset(): number { return this.data.startTimeOffset || 0; }
+    public set startTimeOffset(val: number) { this.setDataVal('startTimeOffset', val); }
+    public get endTimeOffset(): number { return this.data.endTimeOffset || 0; }
+    public set endTimeOffset(val: number) { this.setDataVal('endTimeOffset', val); }
+
     public get circuit(): number { return this.data.circuit; }
     public set circuit(val: number) { this.setDataVal('circuit', val); }
     public get disabled(): boolean { return this.data.disabled; }
     public set disabled(val: boolean) { this.setDataVal('disabled', val); }
+    public get triggered(): boolean { return this.data.triggered || false; }
+    public set triggered(val: boolean) { this.setDataVal('triggered', val); }
     public get scheduleType(): number { return typeof (this.data.scheduleType) !== 'undefined' ? this.data.scheduleType.val : undefined; }
     public set scheduleType(val: number) {
         if (this.scheduleType !== val) {
@@ -1152,11 +1393,18 @@ export class ScheduleState extends EqState {
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
     public get manualPriorityActive(): boolean { return this.data.manualPriorityActive; }
     public set manualPriorityActive(val: boolean) { this.setDataVal('manualPriorityActive', val); }
+    public get scheduleTime(): ScheduleTime { return new ScheduleTime(this.data, 'scheduleTime', this); }
+    public recalculate(force?: boolean) {
+        if (force === true) this.scheduleTime.calculated = false;
+        this.scheduleTime.calcSchedule(state.time, sys.schedules.getItemById(this.id));
+    }
     public getExtended() {
         let sched = this.get(true); // Always operate on a copy.
         //if (typeof this.circuit !== 'undefined')
         sched.circuit = state.circuits.getInterfaceById(this.circuit).get(true);
-        //else sched.circuit = {};
+        sched.clockMode = sys.board.valueMaps.clockModes.transform(sys.general.options.clockMode) || {};
+        //let times = this.calcScheduleTimes(sched);
+        //sched.times = { shouldBeOn: times.shouldBeOn, startTime: times.shouldBeOn ? Timestamp.toISOLocal(times.startTime) : '', endTime: times.shouldBeOn ? Timestamp.toISOLocal(times.endTime) : '' };
         return sched;
     }
     public emitEquipmentChange() {
@@ -1227,6 +1475,8 @@ export class CircuitGroupState extends EqState implements ICircuitGroupState, IC
     }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
+    public get priority(): string { return this.data.priority || 'manual' }
+    public set priority(val: string) { this.setDataVal('priority', val); }
     public get endTime(): Timestamp {
         if (typeof this.data.endTime === 'undefined') return undefined;
         return new Timestamp(this.data.endTime);
@@ -1316,6 +1566,8 @@ export class LightGroupState extends EqState implements ICircuitGroupState, ICir
             this.hasChanged = true;
         }
     }
+    public get priority(): string { return this.data.priority || 'manual' }
+    public set priority(val: string) { this.setDataVal('priority', val); }
     public get endTime(): Timestamp {
         if (typeof this.data.endTime === 'undefined') return undefined;
         return new Timestamp(this.data.endTime);
@@ -1581,6 +1833,13 @@ export class HeaterState extends EqState {
             this.hasChanged = true;
         }
     }
+    public get prevHeaterOffTemp(): number { return this.data.prevHeaterOffTemp; }
+    public set prevHeaterOffTemp(val: number) {
+        if (this.prevHeaterOffTemp !== val) {
+            this.data.prevHeaterOffTemp = val;
+            if (typeof val === 'undefined') delete this.data.prevHeaterOffTemp;
+        }
+    }
     public get startupDelay(): boolean { return this.data.startupDelay; }
     public set startupDelay(val: boolean) { this.setDataVal('startupDelay', val); }
     public get shutdownDelay(): boolean { return this.data.shutdownDelay; }
@@ -1633,6 +1892,8 @@ export class FeatureState extends EqState implements ICircuitState {
     }
     public get showInFeatures(): boolean { return this.data.showInFeatures; }
     public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
+    public get priority(): string { return this.data.priority || 'manual' }
+    public set priority(val: string) { this.setDataVal('priority', val); }
     public get endTime(): Timestamp {
         if (typeof this.data.endTime === 'undefined') return undefined;
         return new Timestamp(this.data.endTime);
@@ -1657,6 +1918,8 @@ export class VirtualCircuitState extends EqState implements ICircuitState {
     public set nameId(val: number) { this.setDataVal('nameId', val); }
     public get isOn(): boolean { return this.data.isOn; }
     public set isOn(val: boolean) { this.setDataVal('isOn', val); }
+    public get priority(): string { return 'manual' } // These are always manual priority
+    public set priority(val: string) { ; }
     public get type() { return typeof this.data.type !== 'undefined' ? this.data.type.val : -1; }
     public set type(val: number) {
         if (this.type !== val) {
@@ -1732,6 +1995,8 @@ export class CircuitState extends EqState implements ICircuitState {
             this.hasChanged = true;
         }
     }
+    public get priority(): string { return this.data.priority; }
+    public set priority(val: string) { this.setDataVal('priority', val); }
     public get showInFeatures(): boolean { return this.data.showInFeatures; }
     public set showInFeatures(val: boolean) { this.setDataVal('showInFeatures', val); }
     public get isOn(): boolean { return this.data.isOn; }
@@ -1765,6 +2030,8 @@ export class CircuitState extends EqState implements ICircuitState {
             this.hasChanged = true;
         }
     }
+    public get scheduled(): boolean { return this.data.scheduled || false }
+    public set scheduled(val: boolean) { this.setDataVal('scheduled', val); }
     public get startTime(): Timestamp {
         if (typeof this.data.startTime === 'undefined') return undefined;
         return new Timestamp(this.data.startTime);
@@ -2367,6 +2634,7 @@ export class ChemDoserState extends EqState implements IChemicalState, IChemCont
 
 export class ChemControllerState extends EqState implements IChemControllerState {
     public initData() {
+        if (typeof this.activeBodyId === 'undefined') this.data.activeBodyId = 0;
         if (typeof this.data.saturationIndex === 'undefined') this.data.saturationIndex = 0;
         if (typeof this.data.flowDetected === 'undefined') this.data.flowDetected = false;
         if (typeof this.data.orp === 'undefined') this.data.orp = {};
@@ -2470,6 +2738,8 @@ export class ChemControllerState extends EqState implements IChemControllerState
     public set address(val: number) { this.setDataVal('address', val); }
     public get isBodyOn(): boolean { return this.data.isBodyOn; }
     public set isBodyOn(val: boolean) { this.data.isBodyOn = val; }
+    public get activeBodyId(): number { return this.data.activeBodyId || 0; }
+    public set activeBodyId(val: number) { this.data.activeBodyId = val; }
     public get flowDetected(): boolean { return this.data.flowDetected; }
     public set flowDetected(val: boolean) { this.data.flowDetected = val; }
     public get status(): number {
@@ -3454,8 +3724,9 @@ export class FilterState extends EqState {
     }
     public get pressureUnits(): number { return typeof this.data.pressureUnits === 'undefined' ? 0 : this.data.pressureUnits.val; }
     public set pressureUnits(val: number) {
-        if (this.pressureUnits !== val) {
+        if (this.pressureUnits !== val || typeof this.data.pressureUnits === 'undefined') {
             this.setDataVal('pressureUnits', sys.board.valueMaps.pressureUnits.transform(val));
+            this.hasChanged = true;
         }
     }
     public get pressure(): number { return this.data.pressure; }

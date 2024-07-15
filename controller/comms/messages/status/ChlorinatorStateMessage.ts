@@ -67,9 +67,15 @@ export class ChlorinatorStateMessage {
                     //                  I   n    t    e    l    l    i    c   h    l    o    r    -   -   4   0
                     //[16, 2, 0, 3][0, 73, 110, 116, 101, 108, 108, 105, 99, 104, 108, 111, 114, 45, 45, 52, 48][188, 16, 3]
                     // This is the model number of the chlorinator and the address is actually the second byte.
-                    let name = msg.extractPayloadString(1, 16);
+                    let name = msg.extractPayloadString(1, 16).trimEnd();
                     if (typeof chlor.name === 'undefined' || chlor.name === '') chlor.name = cstate.name = name;
-                    if (typeof chlor.model === 'undefined' || chlor.model === 0) chlor.model = sys.board.valueMaps.chlorinatorModel.getValue(name.toLowerCase());
+                    if (typeof chlor.model === 'undefined' || chlor.model === 0) {
+                        chlor.model = sys.board.valueMaps.chlorinatorModel.getValue(name.toLowerCase());
+                        // With iChlor it does not report the model.
+                        if (typeof chlor.model === 'undefined') {
+                            if (name.startsWith('iChlor')) chlor.model = sys.board.valueMaps.chlorinatorModel.getValue('ichlor-ic30');
+                        }
+                    }
                     cstate.isActive = chlor.isActive;
                     state.emitEquipmentChanges();
                     break;

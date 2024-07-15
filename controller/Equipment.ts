@@ -1185,6 +1185,8 @@ export class Schedule extends EqItem {
         if (typeof this.data.startTimeType === 'undefined') this.data.startTimeType = 0;
         if (typeof this.data.endTimeType === 'undefined') this.data.endTimeType = 0;
         if (typeof this.data.display === 'undefined') this.data.display = 0;
+        if (typeof this.data.startTimeOffset === 'undefined') this.data.startTimeOffset = 0;
+        if (typeof this.data.endTimeOffset === 'undefined') this.data.endTimeOffset = 0;
     }
 
     // todo: investigate schedules having startDate and _startDate
@@ -1196,6 +1198,11 @@ export class Schedule extends EqItem {
     public set startTime(val: number) { this.setDataVal('startTime', val); }
     public get endTime(): number { return this.data.endTime; }
     public set endTime(val: number) { this.setDataVal('endTime', val); }
+    public get startTimeOffset(): number { return this.data.startTimeOffset || 0; }
+    public set startTimeOffset(val: number) { this.setDataVal('startTimeOffset', val); }
+    public get endTimeOffset(): number { return this.data.endTimeOffset || 0; }
+    public set endTimeOffset(val: number) { this.setDataVal('endTimeOffset', val); }
+
     public get scheduleDays(): number { return this.data.scheduleDays; }
     public set scheduleDays(val: number) { this.setDataVal('scheduleDays', val); }
     public get circuit(): number { return this.data.circuit; }
@@ -1218,7 +1225,10 @@ export class Schedule extends EqItem {
     public set startDay(val: number) { if (typeof this._startDate === 'undefined') this._startDate = new Date(); this._startDate.setDate(val); this._saveStartDate(); }
     public get startYear(): number { if (typeof this._startDate === 'undefined') this._startDate = new Date(); return this._startDate.getFullYear(); }
     public set startYear(val: number) { if (typeof this._startDate === 'undefined') this._startDate = new Date(); this._startDate.setFullYear(val < 100 ? val + 2000 : val); this._saveStartDate(); }
-    public get startDate(): Date { return typeof this._startDate === 'undefined' ? this._startDate = new Date() : this._startDate; }
+    public get startDate(): Date {
+        this._startDate = typeof this._startDate === 'undefined' ? new Date(this.data.startDate) : this._startDate;
+        return typeof this._startDate === 'undefined' || isNaN(this._startDate.getTime()) ? new Date() : this._startDate;
+    }
     public set startDate(val: Date) { this._startDate = val; }
     public get scheduleType(): number | any { return this.data.scheduleType; }
     public set scheduleType(val: number | any) { this.setDataVal('scheduleType', sys.board.valueMaps.scheduleTypes.encode(val)); }

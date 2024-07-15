@@ -80,6 +80,7 @@ export class ChlorinatorMessage {
         if (isActive) {
             let chlor = sys.chlorinators.getItemById(1, true);
             let schlor = state.chlorinators.getItemById(1, true);
+            chlor.master = 0;
             chlor.isActive = schlor.isActive = isActive;
             if (!chlor.disabled) {
                 // RKS: We don't want these setpoints if our chem controller disabled the
@@ -87,10 +88,16 @@ export class ChlorinatorMessage {
                 schlor.spaSetpoint = chlor.spaSetpoint = msg.extractPayloadByte(0) >> 1;
                 schlor.poolSetpoint = chlor.poolSetpoint = msg.extractPayloadByte(1);
                 chlor.address = msg.dest;
-                schlor.body = chlor.body = sys.equipment.maxBodies >= 1 || sys.equipment.shared === true ? 32 : 0;
+                schlor.body = chlor.body = sys.equipment.shared === true ? 32 : 0;
             }
-            if (typeof chlor.name === 'undefined') schlor.name = chlor.name = msg.extractPayloadString(6, 16);
-            if (typeof chlor.model === 'undefined') chlor.model  = sys.board.valueMaps.chlorinatorModel.getValue(schlor.name.toLowerCase()); 
+            let name = msg.extractPayloadString(6, 16).trimEnd();
+            if (typeof chlor.name === 'undefined') schlor.name = chlor.name = name;
+            if (typeof chlor.model === 'undefined') {
+                chlor.model = sys.board.valueMaps.chlorinatorModel.getValue(schlor.name.toLowerCase());
+                if (typeof chlor.model === 'undefined') {
+                    if (name.startsWith('iChlor')) chlor.model = sys.board.valueMaps.chlorinatorModel.getValue('ichlor-ic30');
+                }
+            }
             if (typeof chlor.type === 'undefined') chlor.type = schlor.type = 0; 
             schlor.saltLevel = msg.extractPayloadByte(3) * 50 || schlor.saltLevel;
             schlor.status = msg.extractPayloadByte(4) & 0x007F; // Strip off the high bit.  The chlorinator does not actually report this.;
