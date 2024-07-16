@@ -29,4 +29,4 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64,linux/arm/v7
           tags: |
-            tagyoureit/njspc-dp-combined-app:latest
+            treyrich2001/njspc:latest
