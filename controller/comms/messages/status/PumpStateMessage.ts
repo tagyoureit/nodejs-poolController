@@ -105,7 +105,7 @@ export class PumpStateMessage {
                 pump.mode = msg.extractPayloadByte(1);
                 pump.driveState = msg.extractPayloadByte(2);
                 pump.watts = (msg.extractPayloadByte(3) * 256) + msg.extractPayloadByte(4);
-                pump.rpm = (typeof ptype !== 'undefined' && ptype.maxSpeed > 0) ? (msg.extractPayloadByte(5) * 256) + msg.extractPayloadByte(6) : 0;
+                pump.rpm = (typeof ptype !== 'undefined' && (ptype.maxSpeed > 0 || ptype.name === 'VF')) ? (msg.extractPayloadByte(5) * 256) + msg.extractPayloadByte(6) : 0;
                 pump.flow = (typeof ptype !== 'undefined' && ptype.maxFlow > 0) ? msg.extractPayloadByte(7) : 0;
                 pump.ppc = msg.extractPayloadByte(8);
                 pump.status = (msg.extractPayloadByte(11) * 256) + msg.extractPayloadByte(12); // 16-bits of error codes.

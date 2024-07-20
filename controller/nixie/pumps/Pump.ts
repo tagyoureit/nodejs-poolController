@@ -772,7 +772,8 @@ export class NixiePumpVF extends NixiePumpRS485 {
                 // When we are not 0 then it sends 4[255], 6[10], 5[6], 1[flow]
                 if (!this.closing) await this.setPumpToRemoteControlAsync(); // Action 4
                 if (!this.closing) await this.setDriveStateAsync();         // Action 6
-                if (!this.closing) await this.setPumpFeatureAsync(this._targetSpeed > 0 ? 6 : undefined); // Action 5
+                //if (!this.closing) await this.setPumpFeatureAsync(this._targetSpeed > 0 ? 6 : undefined); // Action 5
+                if (!this.closing) await this.setPumpFeatureAsync(6); // Action 5
                 if (!this.closing && this._targetSpeed > 0) await this.setPumpGPMAsync(); // Action 1
                 if (!this.closing) await setTimeout(200);
                 if (!this.closing) await this.requestPumpStatusAsync(); // Action 7
