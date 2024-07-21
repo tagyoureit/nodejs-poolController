@@ -771,10 +771,13 @@ export class NixiePumpVF extends NixiePumpRS485 {
                 // When we are 0 then it sends 4[255], 6[4], 5[6]
                 // When we are not 0 then it sends 4[255], 6[10], 5[6], 1[flow]
                 if (!this.closing) await this.setPumpToRemoteControlAsync(); // Action 4
-                if (!this.closing) await this.setDriveStateAsync();         // Action 6
-                //if (!this.closing) await this.setPumpFeatureAsync(this._targetSpeed > 0 ? 6 : undefined); // Action 5
-                if (!this.closing) await this.setPumpFeatureAsync(6); // Action 5
                 if (!this.closing && this._targetSpeed > 0) await this.setPumpGPMAsync(); // Action 1
+                if (!this.closing && this._targetSpeed > 0) await this.setPumpFeatureAsync(6); // Action 5
+                // RKS: 07-21-24 - This used to send an empty payload when the pump should be off.  For VF pumps it
+                // appears that not setting the feature or target flow will set the pump off when it gets to
+                // the drive state.
+                //if (!this.closing) await this.setPumpFeatureAsync(this._targetSpeed > 0 ? 6 : undefined); // Action 5
+                if (!this.closing) await this.setDriveStateAsync();         // Action 6
                 if (!this.closing) await setTimeout(200);
                 if (!this.closing) await this.requestPumpStatusAsync(); // Action 7
             }
