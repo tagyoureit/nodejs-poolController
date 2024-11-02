@@ -134,8 +134,8 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
         let root = this.rootTopic();
         if (typeof this.subscriptions !== 'undefined') {
             for (let i = 0; i < this.subscriptions.length; i++) {
-		let sub = this.subscriptions[i];
-		if(sub.enabled !== false) this.topics.push(new MqttTopicSubscription(root, sub));
+				let sub = this.subscriptions[i];
+				if(sub.enabled !== false) this.topics.push(new MqttTopicSubscription(root, sub));
             }
         }
         else if (typeof root !== 'undefined') {
@@ -392,7 +392,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
 
             let sub: MqttTopicSubscription = this.topics.find(elem => topic === elem.topicPath);
             if (typeof sub !== 'undefined') {
-                logger.silly(`MQTT: Inbound ${topic} ${message.toString()}`);
+                logger.debug(`MQTT: Inbound ${topic} ${message.toString()}`);
                 // Alright so now lets process our results.
                 if (typeof sub.fnProcessor === 'function') {
                     sub.executeProcessor(this, msg);
@@ -404,8 +404,8 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                 // RKS: Not sure why there is no processing of state vs config here.  Right now the topics are unique
                 // between them so it doesn't matter but it will become an issue.
                 switch (topics[topics.length - 1].toLowerCase()) {
-                    case 'setstate': {
-			let id = parseInt(msg.id, 10);
+						case 'setstate': {
+						let id = parseInt(msg.id, 10);
                         if (typeof id !== 'undefined' && isNaN(id)) {
                             logger.error(`Inbound MQTT ${topics} has an invalid id (${id}) in the message (${msg}).`)
                         };
@@ -457,7 +457,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                             switch (topics[topics.length - 2].toLowerCase()) {
                                 case 'circuits':
                                 case 'circuit':
-				    try {
+									try {
                                         await sys.board.circuits.toggleCircuitStateAsync(id);
                                     }
                                     catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
@@ -491,7 +491,8 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
 										let circuit = parseInt(circuits[0].circuit,10);
 										let speed = parseInt(circuits[0].speed,10);
 										if ((typeof circuits_id !== 'undefined' && isNaN(circuits_id)) || (typeof circuit !== 'undefined' && isNaN(circuit)) || (typeof speed !== 'undefined' && isNaN(speed))) {
-											logger.error(`Inbound pump config MQTT ${topics} contains invalid circuits.id (${Utils.stringifyJSON(circuits_id)}),circuits.circuit (${Utils.stringifyJSON(circuit)}), or circuits.speed (${Utils.stringifyJSON(speed)})in the message (${Utils.stringifyJSON(msg)}).`);
+											logger.error(`Inbound pump config MQTT ${topics} contains invalid circuits.id (${Utils.stringifyJSON(circuits_id)}),`+
+												`circuits.circuit (${Utils.stringifyJSON(circuit)}), or circuits.speed (${Utils.stringifyJSON(speed)})in the message (${Utils.stringifyJSON(msg)}).`);
 											return;
 										} else {
 											let units = circuits[0].units;
@@ -513,7 +514,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
 									break;
 								default:
 									logger.warn(`MQTT: Inbound pump topic ${topics[topics.length - 1]} not matched to event ${topics[topics.length - 2].toLowerCase()}. Message ${Utils.stringifyJSON(msg)} `)
-                        }
+							}
                             break;
                         }
                     case 'heatsetpoint':
