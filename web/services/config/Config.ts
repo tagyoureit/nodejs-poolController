@@ -569,7 +569,8 @@ export class ConfigRoute {
             // Change the pump attributes.  This will add the pump if it doesn't exist, set
             // any affiliated circuits and maintain all attribututes of the pump.
             // RSG: Caveat - you have to send none or all of the pump circuits or any not included be deleted.
-            try {
+            console.log(`request:  ${JSON.stringify(req.body)}`);
+	    try {
                 let pump = await sys.board.pumps.setPumpAsync(req.body);
                 return res.status(200).send((pump).get(true));
             }
