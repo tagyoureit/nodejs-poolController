@@ -291,7 +291,7 @@ export class StateRoute {
             return res.status(200).send(pump.getExtended());
         });
         app.put('/state/circuit/setState', async (req, res, next) => {
-			try {
+            try {
                 // Do some work to allow the legacy state calls to work.  For some reason the state value is generic while all of the
                 // circuits are actually binary states.  While this may need to change in the future it seems like a distant plan
                 // that circuits would have more than 2 states.  Not true for other equipment but certainly true for individual circuits/features/groups.
