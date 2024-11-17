@@ -87,7 +87,7 @@ export class ScreenLogicComms {
           logger.screenlogic(msg);
         })
         let ver = await this._client.getVersionAsync();
-        logger.info(`Screenlogic: connect to ${systemName} ${ver} at ${unit.ipAddr}:${unit.port}`);
+        logger.info(`Screenlogic: connect to ${systemName} ${ver.version} at ${unit.ipAddr}:${unit.port}`);
 
         let addClient = await this._client.addClientAsync();
         logger.silly(`Screenlogic:Add client result: ${addClient}`);
@@ -1111,12 +1111,12 @@ class Controller {
         Run once schedules: [{"scheduleId":12,"circuitId":6,"startTime":"0800","stopTime":"1100","dayMask":1,"flags":1,"heatCmd":4,"heatSetPoint":70,"days":["Mon"]},{"scheduleId":13,"circuitId":6,"startTime":"0800","stopTime":"1100","dayMask":1,"flags":1,"heatCmd":4,"heatSetPoint":70,"days":["Mon"]}] */
 
     for (let i = 0; i < slrecurring.data.length; i++) {
-      let slsched = slrecurring[i];
+      let slsched = slrecurring.data[i];
       let data = {
         id: slsched.scheduleId,
         circuit: slsched.circuitId,
-        startTime: Math.floor(slsched.startTime / 100) * 60 + slsched.startTime % 100,
-        endTime: Math.floor(slsched.stopTime / 100) * 60 + slsched.stopTime % 100,
+        startTime: Math.floor(parseInt(slsched.startTime) / 100) * 60 + parseInt(slsched.startTime) % 100,
+        endTime: Math.floor(parseInt(slsched.stopTime) / 100) * 60 + parseInt(slsched.stopTime) % 100,
         scheduleDays: slsched.dayMask,
         changeHeatSetPoint: slsched.heatCmd > 0,
         heatSetPoint: slsched.heatSetPoint,
