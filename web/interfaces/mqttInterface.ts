@@ -482,44 +482,44 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                             };
                             switch (topics[topics.length - 2].toLowerCase()) {
                                 case 'config':
-									let circuits = msg.circuits;
-									if(typeof circuits !== 'undefined') circuits.forEach(async ckt => {
-										if(typeof ckt !== 'undefined') {
-											let circuits_id = parseInt(ckt.id,10);
-											let circuit = parseInt(ckt.circuit,10);
-											let speed = parseInt(ckt.speed,10);
-											if ((typeof circuits_id !== 'undefined' && isNaN(circuits_id)) || (typeof circuit !== 'undefined' && isNaN(circuit)) || (typeof speed !== 'undefined' && isNaN(speed))) {
-												logger.error(`Inbound pump config MQTT ${topics} contains invalid circuit parameters in the message (${Utils.stringifyJSON(msg)}).`);
-												return;
-											} else {
-												let units = ckt.units;
-												if(typeof units !== 'undefined') {
-													let val = parseInt(ckt.units.val,10);
-													if(typeof val !== 'undefined' && isNaN(val)) {
-														logger.error(`Inbound pump config MQTT ${topics} invalid circuits.units.val (${circuits.units.val}) in the message (${Utils.stringifyJSON(msg)}).`);
-														return;
-													} else {
-														//validated a circuit is well formed
-														try { await sys.board.pumps.setPumpAsync(msg); }
-														catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
-													}
-												} else {
-													logger.error(`Inbound pump config MQTT ${topics} must include circuits.units list in the message (${Utils.stringifyJSON(msg)}).`);
-													return;
-												}
-											}
-										} else {
-											logger.error(`Inbound pump config MQTT ${topics} has an invalid circuit: (${Utils.stringifyJSON(circuits)}) in the message (${Utils.stringifyJSON(msg)}).`);
-											return;
-										}
-									}); else {
-										logger.error(`Inbound pump config MQTT ${topics} has a invalid circuits: (${Utils.stringifyJSON(circuits)}) in the message (${Utils.stringifyJSON(msg)}).`);
-										return;
-										}
-									break;
-								default:
-									logger.warn(`MQTT: Inbound pump topic ${topics[topics.length - 1]} not matched to event ${topics[topics.length - 2].toLowerCase()}. Message ${Utils.stringifyJSON(msg)} `)
-							}
+                                    let circuits = msg.circuits;
+                                    if(typeof circuits !== 'undefined') circuits.forEach(async ckt => {
+                                        if(typeof ckt !== 'undefined') {
+                                            let circuits_id = parseInt(ckt.id,10);
+                                            let circuit = parseInt(ckt.circuit,10);
+                                            let speed = parseInt(ckt.speed,10);
+                                            if ((typeof circuits_id !== 'undefined' && isNaN(circuits_id)) || (typeof circuit !== 'undefined' && isNaN(circuit)) || (typeof speed !== 'undefined' && isNaN(speed))) {
+                                                logger.error(`Inbound pump config MQTT ${topics} contains invalid circuit parameters in the message (${Utils.stringifyJSON(msg)}).`);
+                                                return;
+                                            } else {
+                                                let units = ckt.units;
+                                                if(typeof units !== 'undefined') {
+                                                    let val = parseInt(ckt.units.val,10);
+                                                    if(typeof val !== 'undefined' && isNaN(val)) {
+                                                        logger.error(`Inbound pump config MQTT ${topics} invalid circuits.units.val (${circuits.units.val}) in the message (${Utils.stringifyJSON(msg)}).`);
+                                                        return;
+                                                    } else {
+                                                        //validated a circuit is well formed
+                                                        try { await sys.board.pumps.setPumpAsync(msg); }
+                                                        catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
+                                                    }
+                                                } else {
+                                                    logger.error(`Inbound pump config MQTT ${topics} must include circuits.units list in the message (${Utils.stringifyJSON(msg)}).`);
+                                                    return;
+                                                }
+                                            }
+                                        } else {
+                                            logger.error(`Inbound pump config MQTT ${topics} has an invalid circuit: (${Utils.stringifyJSON(circuits)}) in the message (${Utils.stringifyJSON(msg)}).`);
+                                            return;
+                                        }
+                                    }); else {
+                                        logger.error(`Inbound pump config MQTT ${topics} has a invalid circuits: (${Utils.stringifyJSON(circuits)}) in the message (${Utils.stringifyJSON(msg)}).`);
+                                        return;
+                                        }
+                                    break;
+                                default:
+                                    logger.warn(`MQTT: Inbound pump topic ${topics[topics.length - 1]} not matched to event ${topics[topics.length - 2].toLowerCase()}. Message ${Utils.stringifyJSON(msg)} `)
+                            }
                             break;
                         }
                     case 'heatsetpoint':
