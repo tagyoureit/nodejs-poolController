@@ -1089,8 +1089,9 @@ export class ScheduleStateCollection extends EqStateCollection<ScheduleState> {
             let ssched = this.getItemByIndex(i);
             let st = ssched.scheduleTime;
             let sched = sys.schedules.getItemById(ssched.id);
-            // rsg st.startTime is null when the schedule has No Days
-            if (!sched.isActive || ssched.disabled || st.startTime === null) {
+            // rsg st.startTime is null when the schedule has No Days  <-- WRONG.  ssched.scheduleDays should be checked.
+            // original fix #879;  updated fix #1033
+            if (!sched.isActive || ssched.disabled || ssched.scheduleDays === 0) {
                 continue;
             }
             st.calcSchedule(state.time, sys.schedules.getItemById(ssched.id));
