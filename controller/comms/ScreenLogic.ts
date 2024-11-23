@@ -87,7 +87,7 @@ export class ScreenLogicComms {
           logger.screenlogic(msg);
         })
         let ver = await this._client.getVersionAsync();
-        logger.info(`Screenlogic: connect to ${systemName} ${ver} at ${unit.ipAddr}:${unit.port}`);
+        logger.info(`Screenlogic: connect to ${systemName} ${ver.version} at ${unit.ipAddr}:${unit.port}`);
 
         let addClient = await this._client.addClientAsync();
         logger.silly(`Screenlogic:Add client result: ${addClient}`);
