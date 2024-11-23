@@ -1,5 +1,5 @@
 import { ControllerType, Timestamp, Utils, utils } from '../../controller/Constants';
-import { LightGroup, LightGroupCircuit, sys, Valve, Body, Pump, PumpCircuit, Remote} from '../../controller/Equipment';
+import { LightGroup, LightGroupCircuit, sys, Valve, Body, Pump, PumpCircuit, Remote } from '../../controller/Equipment';
 import { CircuitState, state, ValveState } from '../../controller/State';
 import { RemoteLogin, UnitConnection, FindUnits, SLEquipmentStateData, SLIntellichlorData, SLPumpStatusData, SLScheduleData, SLSystemTimeData, HeatModes, SLControllerConfigData, SLEquipmentConfigurationData, HeaterConfig, Valves, SLChemData, SLGetCustomNamesData } from 'node-screenlogic';
 import * as Screenlogic from 'node-screenlogic';
@@ -912,21 +912,21 @@ class Controller {
           }
         ], */
   }
-    public static decodeHighSpeed(highSpeed: number[]) {
-        let maxCircuits = sys.controllerType === ControllerType.IntelliTouch ? 8 : 4;
-        let arrCircuits = [];
-        let pump = sys.pumps.find(x => { return x.master !== 1 && x.type === 65 });
-        for (let i = 0; i < maxCircuits && i < highSpeed.length; i++) {
-            let val = highSpeed[i];
-            if (val > 0) arrCircuits.push(val);
-            else if (typeof pump !== 'undefined') pump.circuits.removeItemById(i);
-        }
-        if (arrCircuits.length > 0) {
-            let pump = sys.pumps.getDualSpeed(true);
-            for (let j = 1; j <= arrCircuits.length; j++) pump.circuits.getItemById(j, true).circuit = arrCircuits[j - 1];
-        }
-        else if (typeof pump !== 'undefined') sys.pumps.removeItemById(pump.id);
+  public static decodeHighSpeed(highSpeed: number[]) {
+    let maxCircuits = sys.controllerType === ControllerType.IntelliTouch ? 8 : 4;
+    let arrCircuits = [];
+    let pump = sys.pumps.find(x => { return x.master !== 1 && x.type === 65 });
+    for (let i = 0; i < maxCircuits && i < highSpeed.length; i++) {
+      let val = highSpeed[i];
+      if (val > 0) arrCircuits.push(val);
+      else if (typeof pump !== 'undefined') pump.circuits.removeItemById(i);
     }
+    if (arrCircuits.length > 0) {
+      let pump = sys.pumps.getDualSpeed(true);
+      for (let j = 1; j <= arrCircuits.length; j++) pump.circuits.getItemById(j, true).circuit = arrCircuits[j - 1];
+    }
+    else if (typeof pump !== 'undefined') sys.pumps.removeItemById(pump.id);
+  }
   public static decodeRemote(remoteDataArray) {
     if (sys.controllerType === ControllerType.EasyTouch) {
 
@@ -980,11 +980,11 @@ class Controller {
             remote6.button3 = remote.button8;
             remote6.button4 = remote.button9;
             if (!remote5.button1 && !remote5.button2 && !remote5.button3 && !remote5.button4) remote5.isActive = false;
-                    else remote5.isActive = true;
-           
+            else remote5.isActive = true;
+
             if (!remote6.button1 && !remote6.button2 && !remote6.button3 && !remote6.button4) remote6.isActive = false;
-                    else remote6.isActive = true;
-           
+            else remote6.isActive = true;
+
           }
           else {
             remote5.isActive = remote6.isActive = false;
@@ -1066,43 +1066,43 @@ class Controller {
     }
 
   }
-  public static async decodePumpAsync(pDataArr: any ){
-    pDataArr.forEach(async (pData, idx)=>{
+  public static async decodePumpAsync(pDataArr: any) {
+    pDataArr.forEach(async (pData, idx) => {
       await sys.board.pumps.setPumpAsync(pData, false);
     })
   }
-    public static async decodePumpStatusAsync(id: number, slpump: SLPumpStatusData) {
-        /*   {
-            pumpCircuits: [
-              { circuitId: 6,speed: 2000,isRPMs: true, },
-              { circuitId: 8, speed:2700,isRPMs: true, },
-              { circuitId: 2,speed: 2710,isRPMs: true, },
-              { circuitId: 2,speed:1000, isRPMs: true,},
-              { circuitId: 5,speed:2830, isRPMs: true,},
-              { circuitId: 0,speed: 30,isRPMs: false,},
-              { circuitId: 0,speed: 30,isRPMs: false,},
-              { circuitId: 0,speed: 30,isRPMs: false,},
-            ],
-            pumpType: 4,
-            isRunning: false,
-            pumpWatts: 0,
-            pumpRPMs: 0,
-            pumpUnknown1: 0,
-            pumpGPMs: 0,
-            pumpUnknown2: 255,
-          }
-        */
-        // RKS: 05-07-23 - This process of getting the pump by its id is flawed.  We need to pull this information by its address.
-        //let pstate = state.pumps.getItemById(id);
-        let pstate = state.pumps.find(x => x.address === 95 + id);
-        if (typeof pstate !== 'undefined') {
-            pstate.watts = slpump.pumpWatts;
-            pstate.rpm = slpump.pumpRPMs;
-            pstate.flow = slpump.pumpGPMs === 255 ? 0 : slpump.pumpGPMs;
-            pstate.command = (pstate.rpm > 0 || pstate.watts > 0) ? 10 : 0;
-            state.emitEquipmentChanges();
-        }
+  public static async decodePumpStatusAsync(id: number, slpump: SLPumpStatusData) {
+    /*   {
+        pumpCircuits: [
+          { circuitId: 6,speed: 2000,isRPMs: true, },
+          { circuitId: 8, speed:2700,isRPMs: true, },
+          { circuitId: 2,speed: 2710,isRPMs: true, },
+          { circuitId: 2,speed:1000, isRPMs: true,},
+          { circuitId: 5,speed:2830, isRPMs: true,},
+          { circuitId: 0,speed: 30,isRPMs: false,},
+          { circuitId: 0,speed: 30,isRPMs: false,},
+          { circuitId: 0,speed: 30,isRPMs: false,},
+        ],
+        pumpType: 4,
+        isRunning: false,
+        pumpWatts: 0,
+        pumpRPMs: 0,
+        pumpUnknown1: 0,
+        pumpGPMs: 0,
+        pumpUnknown2: 255,
+      }
+    */
+    // RKS: 05-07-23 - This process of getting the pump by its id is flawed.  We need to pull this information by its address.
+    //let pstate = state.pumps.getItemById(id);
+    let pstate = state.pumps.find(x => x.address === 95 + id);
+    if (typeof pstate !== 'undefined') {
+      pstate.watts = slpump.pumpWatts;
+      pstate.rpm = slpump.pumpRPMs;
+      pstate.flow = slpump.pumpGPMs === 255 ? 0 : slpump.pumpGPMs;
+      pstate.command = (pstate.rpm > 0 || pstate.watts > 0) ? 10 : 0;
+      state.emitEquipmentChanges();
     }
+  }
   public static async decodeSchedules(slrecurring: SLScheduleData, slrunonce: SLScheduleData) {
     /*     reccuring schedules: [{"scheduleId":1,"circuitId":6,"startTime":"1800","stopTime":"0700","dayMask":127,"flags":0,"heatCmd":4,"heatSetPoint":70,"days":["Mon","Tue","Wed","Thu","Fri","Sat","Sun"]},
     
@@ -1111,18 +1111,17 @@ class Controller {
         Run once schedules: [{"scheduleId":12,"circuitId":6,"startTime":"0800","stopTime":"1100","dayMask":1,"flags":1,"heatCmd":4,"heatSetPoint":70,"days":["Mon"]},{"scheduleId":13,"circuitId":6,"startTime":"0800","stopTime":"1100","dayMask":1,"flags":1,"heatCmd":4,"heatSetPoint":70,"days":["Mon"]}] */
 
     for (let i = 0; i < slrecurring.data.length; i++) {
-      let slsched = slrecurring[i];
-      let data = {
-        id: slsched.scheduleId,
-        circuit: slsched.circuitId,
-        startTime: Math.floor(slsched.startTime / 100) * 60 + slsched.startTime % 100,
-        endTime: Math.floor(slsched.stopTime / 100) * 60 + slsched.stopTime % 100,
-        scheduleDays: slsched.dayMask,
-        changeHeatSetPoint: slsched.heatCmd > 0,
-        heatSetPoint: slsched.heatSetPoint,
-        schedType: 128 // recurring
-      }
+      let slsched = slrecurring.data[i];
       try {
+        let data = {
+        circuit: slsched.circuitId,
+          startTime: Math.floor(parseInt(slsched.startTime, 10) / 100) * 60 + parseInt(slsched.startTime, 10) % 100,
+          endTime: Math.floor(parseInt(slsched.stopTime, 10) / 100) * 60 + parseInt(slsched.stopTime, 10) % 100,
+          scheduleDays: slsched.dayMask,
+          changeHeatSetPoint: slsched.heatCmd > 0,
+          heatSetPoint: slsched.heatSetPoint,
+          schedType: 128 // recurring
+        }
         await sys.board.schedules.setScheduleAsync(data, false)
       } catch (err) {
         logger.error(`Error setting schedule ${slsched.scheduleId}.  ${err.message}`);
@@ -1130,18 +1129,18 @@ class Controller {
     }
     for (let i = 0; i < slrunonce.data.length; i++) {
       let slsched = slrunonce.data[i];
-      let data = {
-        id: slsched.scheduleId,
-        circuit: slsched.circuitId,
-        // start and stop come in as military time string
-        startTime: parseInt(slsched.startTime, 10),
-        endTime: parseInt(slsched.stopTime, 10),
-        scheduleDays: slsched.dayMask,
-        changeHeatSetPoint: slsched.heatCmd > 0,
-        heatSetPoint: slsched.heatSetPoint,
-        schedType: 0 // runonce
-      }
       try {
+        let data = {
+          id: slsched.scheduleId,
+          circuit: slsched.circuitId,
+          // start and stop come in as military time string
+          startTime: parseInt(slsched.startTime, 10),
+          endTime: parseInt(slsched.stopTime, 10),
+          scheduleDays: slsched.dayMask,
+          changeHeatSetPoint: slsched.heatCmd > 0,
+          heatSetPoint: slsched.heatSetPoint,
+          schedType: 0 // runonce
+        }
         await sys.board.schedules.setScheduleAsync(data, false);
         sys.board.system.setTZ();
       } catch (err) {
@@ -1607,23 +1606,23 @@ export class SLController extends SLCommands {
     const spaCommand: Remote = sys.remotes.getItemById(8).get();
     let alarm = 0;
 
-    switch (eq){
+    switch (eq) {
       case 'misc': {
-          misc = extend({}, true, misc, obj);
+        misc = extend({}, true, misc, obj);
         break;
       }
       case 'lightGroup': {
-          lightGroup = extend({}, true, lightGroup, obj);
+        lightGroup = extend({}, true, lightGroup, obj);
         break;
       }
-      case 'pump':{
-        let idx = pumps.findIndex(el=>{console.log(el.id);return el.id === obj.id;})
+      case 'pump': {
+        let idx = pumps.findIndex(el => { console.log(el.id); return el.id === obj.id; })
         if (idx >= 0) pumps = extend({}, true, pumps[idx], obj);
         else return Promise.reject(`Screenlogic: No pump found by that id: ${obj}`);
         break;
       }
       case 'heater': {
-        let idx = heaters.findIndex(el=>{console.log(el.id);return el.id === obj.id;})
+        let idx = heaters.findIndex(el => { console.log(el.id); return el.id === obj.id; })
         if (idx >= 0) heaters = extend({}, true, heaters[idx], obj);
         else return Promise.reject(`Screenlogic: No pump found by that id: ${obj}`);
         break;
@@ -1646,7 +1645,7 @@ export class SLController extends SLCommands {
     // await this._unit.equipment.setEquipmentConfigurationAsync(data);
   }
 
-  public async setSystemTime(){
+  public async setSystemTime() {
     try {
       let sysTime = await this._unit.equipment.setSystemTimeAsync(state.time.toDate(), sys.general.options.adjustDST);
       logger.silly(`Screenlogic:set time result: ${sysTime}`);
@@ -1654,7 +1653,7 @@ export class SLController extends SLCommands {
       return Promise.reject(new InvalidOperationError('Unable to set system time.', error.message));
     }
   }
-  public async setCustomName(idx: number, name: string){
+  public async setCustomName(idx: number, name: string) {
     try {
       let ack = await this._unit.equipment.setCustomNameAsync(idx, name);
       logger.silly(`Screenlogic:set custom name result: ${JSON.stringify(ack)}`);

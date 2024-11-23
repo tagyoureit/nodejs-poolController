@@ -668,6 +668,9 @@ export class RS485Port {
                 let opts: SerialPortOpenOptions<AutoDetectTypes> = { path: portPath, autoOpen: false, baudRate: 9600 };
                 sp = new SerialPortMock(opts);
             }
+            else if (this._cfg.type === 'screenlogic') {
+                return await sl.openAsync();
+            }
             else {
                 this.mock = false;
                 let opts: SerialPortOpenOptions<AutoDetectTypes> = extend(true, { path: this._cfg.rs485Port }, this._cfg.portSettings);
