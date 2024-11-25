@@ -25,7 +25,7 @@
     "dependencies": {
         "@influxdata/influxdb-client": "^1.32.0",
         "eslint-config-promise": "^2.0.2",
-        "express": "^4.18.1",
+        "express": "^4.20.0",
         "extend": "^3.0.2",
         "jszip": "^3.9.1",
         "mqtt": "^4.3.7",
@@ -34,8 +34,8 @@
         "node-screenlogic": "^2.0.0",
         "node-ssdp": "^4.0.1",
         "serialport": "^11.0.0",
-        "socket.io": "^4.5.0",
-        "socket.io-client": "^4.5.0",
+        "socket.io": "^4.8.0",
+        "socket.io-client": "^4.8.0",
         "source-map-support": "^0.5.21",
         "winston": "^3.7.2"
     },
