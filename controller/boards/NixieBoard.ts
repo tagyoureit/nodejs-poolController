@@ -73,6 +73,7 @@ export class NixieBoard extends SystemBoard {
             [14, { name: 'colorlogic', desc: 'ColorLogic', isLight: true, theme: 'colorlogic' }],
             [15, { name: 'spadrain', desc: 'Spa Drain' }],
             [16, { name: 'pooltone', desc: 'Pool Tone', isLight: true, theme: 'pooltone' }],
+            [17, { name: 'watercolors', desc: 'WaterColors', isLight: true, theme: 'watercolors' }],
         ]);
         this.valueMaps.pumpTypes = new byteValueMap([
             [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 8, hasAddress: false, hasBody: false, maxRelays: 1, relays: [{ id: 1, name: 'Pump On/Off' }]}],
