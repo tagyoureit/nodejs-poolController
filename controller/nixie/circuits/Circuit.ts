@@ -45,7 +45,7 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
         } catch (err) { return logger.error(`NCP: setServiceModeAsync: ${err.message}`); }
     }
     public async setLightThemeAsync(id: number, theme: any) {
-            let c: NixieCircuit = this.find(elem => elem.id === id) as NixieCircuit;
+        let c: NixieCircuit = this.find(elem => elem.id === id) as NixieCircuit;
         if (typeof c === 'undefined') return Promise.reject(new Error(`NCP: Circuit ${id} could not be found to set light theme ${theme.name}.`));
         await c.setLightThemeAsync(theme);
     } catch(err) { return logger.error(`NCP: sendOnOffSequence: ${err.message}`); }
@@ -75,10 +75,10 @@ export class NixieCircuitCollection extends NixieEquipmentCollection<NixieCircui
         catch (err) { logger.error(`setCircuitAsync: ${err.message}`); return Promise.reject(err); }
     }
     public async checkCircuitEggTimerExpirationAsync(cstate: ICircuitState) {
-     try {
-        let c: NixieCircuit = this.find(elem => elem.id === cstate.id) as NixieCircuit;
-        await c.checkCircuitEggTimerExpirationAsync(cstate);
-    } catch (err) { logger.error(`NCP: Error synching circuit states: ${err}`); }
+        try {
+            let c: NixieCircuit = this.find(elem => elem.id === cstate.id) as NixieCircuit;
+            await c.checkCircuitEggTimerExpirationAsync(cstate);
+        } catch (err) { logger.error(`NCP: Error synching circuit states: ${err}`); }
     }
     public async initAsync(circuits: CircuitCollection) {
         try {
@@ -159,21 +159,21 @@ export class NixieCircuit extends NixieEquipment {
     protected async setIntelliBriteThemeAsync(cstate: CircuitState, theme: any): Promise<InterfaceServerResponse> {
         let arr = [];
         let count = typeof theme !== 'undefined' && theme.sequence ? theme.sequence : 0;
-		
-		// Removing this. No need to turn the light off first.  We actually need it on to start the sequence for theme setting to work correctly when the light is starting from the off state.
-		// if (cstate.isOn) arr.push({ isOn: false, timeout: 1000 });
-		
-		// Start the sequence of off/on after the light is on.
+
+        // Removing this. No need to turn the light off first.  We actually need it on to start the sequence for theme setting to work correctly when the light is starting from the off state.
+        // if (cstate.isOn) arr.push({ isOn: false, timeout: 1000 });
+
+        // Start the sequence of off/on after the light is on.
         arr.push({ isOn: true, timeout: 100 });
         for (let i = 0; i < count; i++) {
-			arr.push({ isOn: false, timeout: 100 });
-			arr.push({ isOn: true, timeout: 100 });     
+            arr.push({ isOn: false, timeout: 100 });
+            arr.push({ isOn: true, timeout: 100 });
         }
-		// Ensure light stays on long enough for the theme to stick (required for light group theme setting to function correctly).
-		// 2s was too short.
-		arr.push({ isOn: true, timeout: 3000 });
-        
-		logger.debug(arr);
+        // Ensure light stays on long enough for the theme to stick (required for light group theme setting to function correctly).
+        // 2s was too short.
+        arr.push({ isOn: true, timeout: 3000 });
+
+        logger.debug(arr);
         let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, arr, 60000);
         // Even though we ended with on we need to make sure that the relay stays on now that we are done.
         if (!res.error) {
@@ -182,7 +182,7 @@ export class NixieCircuit extends NixieEquipment {
         }
         return res;
     }
-    protected async setWaterColorsThemeAsync(cstate: CircuitState, theme: any): Promise<InterfaceServerResponse> {
+    protected async setPoolToneThemeAsync(cstate: CircuitState, theme: any): Promise<InterfaceServerResponse> {
         let ptheme = sys.board.valueMaps.lightThemes.findItem(cstate.lightingTheme) || { val: 0, sequence: 0 };
         // First check to see if we are on.  If we are not then we need to emit our status as if we are initializing and busy.
         let arr = [];
@@ -196,7 +196,7 @@ export class NixieCircuit extends NixieEquipment {
         let count = theme.sequence - ptheme.sequence;
         if (count < 0) count = count + 16;
         for (let i = 0; i < count; i++) {
-            arr.push({ isOn: true, timeout: 200 }); 
+            arr.push({ isOn: true, timeout: 200 });
             arr.push({ isOn: false, timeout: 200 });
         }
         console.log(arr);
@@ -206,7 +206,40 @@ export class NixieCircuit extends NixieEquipment {
         if (!res.error) {
             cstate.lightingTheme = ptheme.val;
             cstate.isOn = true; // At this point the relay will be off but we want the process
-                                // to assume that the relay state is not actually changing.
+            // to assume that the relay state is not actually changing.
+            this._sequencing = false;
+            await this.setCircuitStateAsync(cstate, true, false);
+        }
+        return res;
+    }
+    protected async setWaterColorsThemeAsync(cstate: CircuitState, theme: any): Promise<InterfaceServerResponse> {
+        // RSG 2024.12.24 - This logic was aligned with the Pool Tone themes.  I haven't checked if that 
+        // logic is correct, but made a copy and adjusted for the watercolors themes.
+        
+        let ptheme = sys.board.valueMaps.lightThemes.findItem(cstate.lightingTheme) || { val: 0, sequence: 0 };
+        // First check to see if we are on.  If we are not then we need to emit our status as if we are initializing and busy.
+        let arr = [];
+        if (ptheme.val === 0) {
+            // We don't know our previous theme so we are going to sync the lights to get a starting point.
+            arr.push({ isOn: true, timeout: 1000 }); // Turn on for 1 second
+            arr.push({ isOn: false, timeout: 5000 }); // Turn off for 5 seconds
+            arr.push({ isOn: true, timeout: 1000 });
+            ptheme = sys.board.valueMaps.lightThemes.findItem('alpinewhite');
+        }
+        let count = theme.sequence - ptheme.sequence;
+        if (count < 0) count = count + 14;
+        for (let i = 0; i < count; i++) {
+            arr.push({ isOn: true, timeout: 200 });
+            arr.push({ isOn: false, timeout: 200 });
+        }
+        console.log(arr);
+        if (arr.length === 0) return new InterfaceServerResponse(200, 'Success');
+        let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, arr, 60000);
+        // Even though we ended with on we need to make sure that the relay stays on now that we are done.
+        if (!res.error) {
+            cstate.lightingTheme = ptheme.val;
+            cstate.isOn = true; // At this point the relay will be off but we want the process
+            // to assume that the relay state is not actually changing.
             this._sequencing = false;
             await this.setCircuitStateAsync(cstate, true, false);
         }
@@ -243,7 +276,7 @@ export class NixieCircuit extends NixieEquipment {
         if (!res.error) {
             cstate.lightingTheme = ptheme.val;
             cstate.isOn = true; // At this point the relay will be off but we want the process
-                                // to assume that the relay state is not actually changing.
+            // to assume that the relay state is not actually changing.
             this._sequencing = false;
             await this.setCircuitStateAsync(cstate, true, false);
         }
@@ -264,7 +297,6 @@ export class NixieCircuit extends NixieEquipment {
             switch (type.name) {
                 case 'colorcascade':
                 case 'globrite':
-                case 'pooltone':
                 case 'magicstream':
                 case 'intellibrite':
                     res = await this.setIntelliBriteThemeAsync(cstate, theme);
@@ -274,6 +306,9 @@ export class NixieCircuit extends NixieEquipment {
                     break;
                 case 'watercolors':
                     res = await this.setWaterColorsThemeAsync(cstate, theme);
+                    break;
+                case 'pooltone':
+                    res = await this.setPoolToneThemeAsync(cstate, theme);
                     break;
             }
             cstate.action = 0;
@@ -285,11 +320,11 @@ export class NixieCircuit extends NixieEquipment {
     }
     public async sendOnOffSequenceAsync(count: number | { isOn: boolean, timeout: number }[], timeout?: number): Promise<InterfaceServerResponse> {
         try {
-           
+
             this._sequencing = true;
             let arr = [];
             let cstate = state.circuits.getItemById(this.circuit.id);
-            
+
             if (typeof count === 'number') {
                 if (cstate.isOn) arr.push({ isOn: false, timeout: 1000 });
                 let t = typeof timeout === 'undefined' ? 100 : timeout;
@@ -339,21 +374,21 @@ export class NixieCircuit extends NixieEquipment {
                 // Check to see if we should be on by poking the schedules.
             }
             if (utils.isNullOrEmpty(this.circuit.connectionId) || utils.isNullOrEmpty(this.circuit.deviceBinding)) {
-                if (val && val !== cstate.isOn){
+                if (val && val !== cstate.isOn) {
                     sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(cstate.id), cstate, val);
                 }
-                else if (!val){
+                else if (!val) {
                     if (cstate.manualPriorityActive) delayMgr.cancelManualPriorityDelay(cstate.id);
                     cstate.manualPriorityActive = false; // if the delay was previously cancelled, still need to turn this off
-                } 
-                cstate.isOn = val; 
+                }
+                cstate.isOn = val;
                 return new InterfaceServerResponse(200, 'Success');
             }
             if (this._sequencing) return new InterfaceServerResponse(200, 'Success');
             let res = await NixieEquipment.putDeviceService(this.circuit.connectionId, `/state/device/${this.circuit.deviceBinding}`, { isOn: val, latch: val ? 10000 : undefined });
             if (res.status.code === 200) {
                 // Set this up so we can process our egg timer.
-                if (val && val !== cstate.isOn){
+                if (val && val !== cstate.isOn) {
                     sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(cstate.id), cstate, val);
                     switch (sys.board.valueMaps.circuitFunctions.getName(this.circuit.type)) {
                         case 'colorlogic':
@@ -385,7 +420,7 @@ export class NixieCircuit extends NixieEquipment {
                             break;
                     }
                 }
-                else if (!val){
+                else if (!val) {
                     delayMgr.cancelManualPriorityDelays();
                     cstate.manualPriorityActive = false; // if the delay was previously cancelled, still need to turn this off
                 }
