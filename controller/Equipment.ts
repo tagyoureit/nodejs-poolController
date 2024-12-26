@@ -1678,6 +1678,10 @@ export class Chlorinator extends EqItem {
     public set ignoreSaltReading(val: boolean) { this.setDataVal('ignoreSaltReading', val); }
     public get model() { return this.data.model; }
     public set model(val: number | any) { this.setDataVal('model', sys.board.valueMaps.chlorinatorModel.encode(val)); }
+    public get ratedLbs(): number {
+        let model = sys.board.valueMaps.chlorinatorModel.get(this.model);
+        return typeof model.chlorinePerSec !== 'undefined' ? model.chlorinePerSec : 0;
+    }
 }
 export class ValveCollection extends EqItemCollection<Valve> {
     constructor(data: any, name?: string) { super(data, name || "valves"); }
@@ -2207,80 +2211,6 @@ export interface IChemController {
 }
 export class ChemController extends EqItem implements IChemController {
     public initData() {
-        //var chemController = {
-        //    id: 'number',               // Id of the controller
-        //    name: 'string',             // Name assigned to the controller
-        //    type: 'valueMap',           // intellichem, rem -- There is an unknown but that should probably go away.
-        //    body: 'valueMap',           // Body assigned to the chem controller.
-        //    address: 'number',          // Address for IntelliChem controller only.
-        //    isActive: 'booean',
-        //    isVirtual: 'boolean',       // False if controlled by OCP.
-        //    calciumHardness: 'number',
-        //    cyanuricAcid: 'number',
-        //    alkalinity: 'number',
-        //    HMIAdvancedDisplay: 'boolean', // This is related to IntelliChem and determines what is displayed on the controller.
-        //    ph: {                           // pH chemical structure
-        //        chemType: 'string',         // Constant ph
-        //        enabled: 'boolean',         // Allows disabling the functions without deleting the settings.
-        //        dosingMethod: 'valueMap',   // manual, volume, volumeTime.
-        //        //  manual = The dosing pump is not triggered.
-        //        //  volume = Time is not considered as a limit to the dosing.
-        //        //  time = The only limit to the dose is the amount of time.
-        //        //  volumeTime = Limit the dose by volume or time whichever is sooner.
-        //        maxDosingTime: 'number',    // The maximum amount of time a dose can occur before mixing.
-        //        maxDosingVolume: 'number',  // The maximum volume for a dose in mL.
-        //        mixingTime: 'number',       // Amount of time between in seconds doses that the pump must run before adding another dose.
-        //        startDelay: 'number',       // The number of seconds that the pump must be running prior to considering a dose.
-        //        setpoint: 'number',         // Target setpoint for pH
-        //        phSupply: 'valueMap',       // base or acid.
-        //        pump: {
-        //            type: 'valueMap',           // none, relay, ezo-pmp
-        //            connectionId: 'uuid',       // Unique identifier for njspc external connections.
-        //            deviceBinding: 'string',    // Binding value for REM to tell it what device is involved.
-        //            ratedFlow: 'number',        // The standard flow rate for the pump in mL/min.
-        //        },
-        //        tank: {
-        //            capacity: 'number',         // Capacity of the tank in the units provided.
-        //            units: 'valueMap'           // gal, mL, cL, L, oz, pt, qt.
-        //        },
-        //        probe: {
-        //            connectionId: 'uuid',       // A unique identifier that has been generated for connections in njspc.
-        //            deviceBinding: 'string',    // A mapping value that is used by REM to determine which device is used.
-        //            type: 'valueMap'            // none, ezo-ph, other.
-        //        }
-
-        //    },
-        //    orp: {                          // ORP chemical structure
-        //        chemType: 'string',         // Constant orp
-        //        enabled: 'boolean',         // Allows disabling the functions without deleting the settings.
-        //        dosingMethod: 'valueMap',   // manual, volume, volumeTime.
-        //        //  manual = The dosing pump is not triggered.
-        //        //  volume = Time is not considered as a limit to the dosing.
-        //        //  time = The only limit to the dose is the amount of time.
-        //        //  volumeTime = Limit the dose by volume or time whichever is sooner.
-        //        maxDosingTime: 'number',    // The maximum amount of time a dose can occur before mixing.
-        //        maxDosingVolume: 'number',  // The maximum volume for a dose in mL.
-        //        mixingTime: 'number',       // Amount of time between in seconds doses that the pump must run before adding another dose.
-        //        startDelay: 'number',       // The number of seconds that the pump must be running prior to considering a dose.
-        //        setpoint: 'number',         // Target setpoint for ORP
-        //        useChlorinator: 'boolean',  // Indicates whether the chlorinator will be used for dosing.
-        //        pump: {
-        //            type: 'valueMap',           // none, relay, ezo-pmp
-        //            connectionId: 'uuid',       // Unique identifier for njspc external connections.
-        //            deviceBinding: 'string',    // Binding value for REM to tell it what device is involved.
-        //            ratedFlow: 'number',        // The standard flow rate for the pump in mL/min.
-        //        },
-        //        tank: {
-        //            capacity: 'number',         // Capacity of the tank in the units provided.
-        //            units: 'valueMap'           // gal, mL, cL, L, oz, pt, qt.
-        //        },
-        //        probe: {
-        //            connectionId: 'uuid',       // A unique identifier that has been generated for connections in njspc.
-        //            deviceBinding: 'string',    // A mapping value that is used by REM to determine which device is used.
-        //            type: 'valueMap'            // none, ezo-orp, other.
-        //        }
-        //    }
-        //}
         if (typeof this.data.lsiRange === 'undefined') this.data.lsiRange = { low: -.5, high: .5, enabled: true };
         if (typeof this.data.borates === 'undefined') this.data.borates = 0;
         if (typeof this.data.siCalcType === 'undefined') this.data.siCalcType = 0;
@@ -2299,8 +2229,6 @@ export class ChemController extends EqItem implements IChemController {
     public set address(val: number) { this.setDataVal('address', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
-    // public get isVirtual(): boolean { return this.data.isVirtual; }
-    // public set isVirtual(val: boolean) { this.setDataVal('isVirtual', val); }
     public get calciumHardness(): number { return this.data.calciumHardness; }
     public set calciumHardness(val: number) { this.setDataVal('calciumHardness', val); }
     public get cyanuricAcid(): number { return this.data.cyanuricAcid; }
@@ -2460,7 +2388,7 @@ export class Chemical extends ChildEqItem implements IChemical {
     public set startDelay(val: number) { this.setDataVal('startDelay', val); }
     public get pump(): ChemicalPump { return new ChemicalPump(this.data, 'pump', this); }
     public get tank(): ChemicalTank { return new ChemicalTank(this.data, 'tank', this); }
-    public get chlor(): ChemicalChlor { return new ChemicalChlor(this.data, 'chlor', this); }
+    // public get chlor(): Chlorinator { return new ChemicalChlor(this.data, 'chlor', this); }
     public get setpoint(): number { return this.data.setpoint; }
     public set setpoint(val: number) { this.setDataVal('setpoint', val); }
     public get tolerance(): AlarmSetting { return new AlarmSetting(this.data, 'tolerance', this); }
@@ -2518,6 +2446,8 @@ export class ChemicalORP extends Chemical {
     }
     public get useChlorinator(): boolean { return utils.makeBool(this.data.useChlorinator); }
     public set useChlorinator(val: boolean) { this.setDataVal('useChlorinator', val); }
+    public get chlorId(): number { return this.data.chlorId; }
+    public set chlorId(val: number) { this.setDataVal('chlorId', val); }
     public get phLockout(): number { return this.data.phLockout; }
     public set phLockout(val: number) { this.setDataVal('phLockout', val); }
     public get probe(): ChemicalORPProbe { return new ChemicalORPProbe(this.data, 'probe', this); }
@@ -2661,7 +2591,7 @@ export class ChemicalTank extends ChildEqItem {
         return tank;
     }
 }
-export class ChemicalChlor extends ChildEqItem {
+/* export class ChemicalChlor extends ChildEqItem {
     // This whole class is a reference to the first chlorinator.
     // This may not follow a best practice
     // and certainly won't work for multiple chlors
@@ -2695,7 +2625,7 @@ export class ChemicalChlor extends ChildEqItem {
         chlor.model = sys.board.valueMaps.chlorinatorModel.transform(this.model);
         return chlor;
     }
-}
+} */
 export class AlarmSetting extends ChildEqItem {
     public dataName = 'AlarmSettingConfig';
     public initData() {

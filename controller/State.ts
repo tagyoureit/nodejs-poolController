@@ -2658,74 +2658,6 @@ export class ChemControllerState extends EqState implements IChemControllerState
         if (typeof this.data.siCalcType === 'undefined') {
             this.data.siCalcType = sys.board.valueMaps.siCalcTypes.transform(0);
         }
-        //var chemControllerState = {
-        //    lastComm: 'number',             // The unix time the chem controller sent its status.
-        //    id: 'number',                   // Id of the chemController.
-        //    type: 'valueMap',               // intellichem, rem.
-        //    address: 'number',              // Assigned address if IntelliChem.
-        //    name: 'string',                 // Name assigned to the controller.
-        //    status: 'valueMap',             // ok, nocomms, setupError
-        //    body: 'valueMap',               // Body that the chemController is assigned to.
-        //    flowDetected: 'boolean',        // True if there is currently sufficient flow to read and dose.
-        //    flowDelay: 'boolean',           // True of the controller is currently under a flow delay.
-        //    firmware: 'string',             // Firmware version from IntelliChem (this should be in config)
-        //    saturationIndex: 'number',      // Calculated LSI for the body.
-        //    isActive: 'boolean',    
-        //    alarms: {},                     // This has not changed although additional alarms will be added.
-        //    warnings: {},                   // This has not changed although additional warnings will be added.
-        //    chemistryStatus: 'valueMap',    // Current water quality status.
-        //    ph: {
-        //        chemType: 'string',                 // Constant ph.
-        //        dosingTimeRemaining: 'number',      // The number of seconds remaining for the current dose.
-        //        dosingVolumeRemaining: 'number',    // Remaining volume for the current dose in mL.
-        //        mixTimeRemaining: 'number',         // The number of seconds remaining in the current mix cycle.
-        //        dosingStatus: 'valueMap',           // dosing, monitoring, mixing.
-        //        level: 'number',                    // The current pH level.
-        //        lockout: 'boolean',                 // True if an attempt to dose was thwarted by error.
-        //        manualDosing: 'boolean',            // True if the pump is running outside of a dosing command.
-        //        dailyLimitReached: 'boolean',       // True if the calculated daily limit has been reached based upon body volume.
-        //        pump: {
-        //            type: 'valueMap',               // The defined pump type.
-        //            isDosing: 'boolean',            // True if the pump is running.
-        //        },
-        //        tank: {
-        //            level: 'number',                // The current level for the tank.
-        //            capacity: 'number',             // Total capacity for the tank.
-        //            units: 'valueMap',              // nounits, gal, mL, cL, L, oz, pt, qt.
-        //        },
-        //        probe: {
-        //            level: 'number',                // Current ph level as measured by the probe.
-        //            temperature: 'number',          // The temperature used to calculate the adjusted probe level.
-        //            tempUnits: 'valueMap'           // Units for the temperature C or F.
-        //        }
-        //    },
-        //    orp: {
-        //        chemType: 'string',                 // Constant orp.
-        //        dosingTimeRemaining: 'number',      // The number of seconds remaining for the current dose.
-        //        dosingVolumeRemaining: 'number',    // Remaining volume for the current dose in mL.
-        //        mixTimeRemaining: 'number',         // The number of seconds remaining in the current mix cycle.
-        //        dosingStatus: 'valueMap',           // dosing, monitoring, mixing.
-        //        level: 'number',                    // The current ORP level.
-        //        lockout: 'boolean',                 // True if an attempt to dose was thwarted by error.
-        //        manualDosing: 'boolean',            // True if the pump is running outside of a dosing command.
-        //        dailyLimitReached: 'boolean',       // True if the calculated daily limit has been reached based upon body volume.
-        //        pump: {
-        //            type: 'valueMap',               // The defined pump type.
-        //            isDosing: 'boolean',            // True if the pump is running.
-        //        },
-        //        tank: {
-        //            level: 'number',                // The current level for the tank.
-        //            capacity: 'number',             // Total capacity for the tank.
-        //            units: 'valueMap',              // nounits, gal, mL, cL, L, oz, pt, qt.
-        //        },
-        //        probe: {
-        //            level: 'number',                // Current ORP level as measured by the probe.
-        //            temperature: 'number',          // The temperature used to calculate the adjusted probe level.
-        //            tempUnits: 'valueMap'           // Units for the temperature C or F.
-        //        }
-        //    }
-        //}
-
     }
     public dataName: string = 'chemController';
     public get lastComm(): number { return this.data.lastComm || 0; }
@@ -3175,8 +3107,8 @@ export class ChemicalORPState extends ChemicalState {
     public get chemType() { return 'orp'; }
     public set chemType(val) { this.setDataVal('chemType', val); }
     public get probe() { return new ChemicalProbeORPState(this.data, 'probe', this); }
-    public get useChlorinator(): boolean { return utils.makeBool(this.data.useChlorinator); }
-    public set useChlorinator(val: boolean) { this.setDataVal('useChlorinator', val); }
+    // public get useChlorinator(): boolean { return utils.makeBool(this.data.useChlorinator); }
+    // public set useChlorinator(val: boolean) { this.setDataVal('useChlorinator', val); }
     public get suspendDosing(): boolean {
         let cc = this.chemController;
         return cc.alarms.comms !== 0 || cc.alarms.orpProbeFault !== 0 || cc.alarms.orpPumpFault !== 0 || cc.alarms.bodyFault !== 0;
