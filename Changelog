@@ -1,5 +1,20 @@
 # Changelog
 
+## 8.1.0
+1. Support for dual chlorinators with REM chem controllers.  It is now possible to have two separate chlorinators controlled in 'dynamic' mode by two separate REM chems.  Note: In order for REM chem to control each chlorinator, each needs to be on a dedicated RS-485 port (not shared with an OCP or any other chlorinator).
+
+## 8.0.1-8.0.5
+1. Bug fixes including:
+   a. schedule end time errors
+   b. manual priority
+   c. screenlogic recurring schedules
+   d. VF pump message sequences
+   e. intellibrite themes
+   f. schedules are evaluated by bodies first and then everything else
+   g. solar stop/start delta logic
+2. Jandy WaterColors support
+3. Initial docker support (github docker actions)
+
 ## 8.0.0
 1. Refactor comms code to Async
 2. Update dependencies and Node >16

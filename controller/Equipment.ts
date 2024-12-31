@@ -2446,7 +2446,13 @@ export class ChemicalORP extends Chemical {
     }
     public get useChlorinator(): boolean { return utils.makeBool(this.data.useChlorinator); }
     public set useChlorinator(val: boolean) { this.setDataVal('useChlorinator', val); }
-    public get chlorId(): number { return this.data.chlorId; }
+    public get chlorId(): number {
+        if (typeof this.data.chlorId === 'undefined'){
+            // default to 1st chlorinator if not set; this is a backwards compatibility item when upgrading to 8.1
+            return sys.chlorinators.getItemByIndex(0).id;
+        }
+        return this.data.chlorId; 
+    }
     public set chlorId(val: number) { this.setDataVal('chlorId', val); }
     public get phLockout(): number { return this.data.phLockout; }
     public set phLockout(val: number) { this.setDataVal('phLockout', val); }

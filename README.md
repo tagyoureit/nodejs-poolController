@@ -1,7 +1,7 @@
 ```diff
 - INTELLICENTER USERS: Do not upgrade Intellicenter to 2.006.  Rollback to 1.064 to use this application. 
 ```
-# nodejs-poolController - Version 8.0
+# nodejs-poolController - Version 8.1
 
 ## What is nodejs-poolController
 
@@ -25,6 +25,10 @@ Equipment supported
 
 ## Latest Changes
 See [Changelog](https://github.com/tagyoureit/nodejs-poolController/blob/master/Changelog)
+
+## What's new in 8.1?
+
+Support for dual chlorinators with REM chem controllers.  It is now possible to have two separate chlorinators controlled in 'dynamic' mode by two separate REM chems.  Note: In order for REM chem to control each chlorinator, each needs to be on a dedicated RS-485 port (not shared with an OCP or any other chlorinator).
 
 ## What's new in 8.0?
 
