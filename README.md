@@ -66,8 +66,6 @@ If you don't know anything about NodeJS, these directions might be helpful.
 1. Run the app with `npm start`.
    * `npm start` will compile the Typescript code.  You should use this every time you download/clone/pull the latest code.
    * `npm run start:cached` will run the app without compiling the code which can be much faster.
-1. Running `npm start` will also create a `config.json` file for your installation.  If you need to modify any properties (e.g. the path to your serialport adapter, enabling socat, etc) then stop the app, edit the `config.json` per the [instructions](module_nodejs-poolController--config.json) below, and start the app again.
-1. Verify your pool equipment is correctly identified by inspecting the `/data/*.json` files.  
 1. Install a [webclient](module_nodejs-poolController--clients) for a browser experience and/or a [binding](module_nodejs-poolController--bindings) to have two way control with Home Automation systems.
 
 For a very thorough walk-through, see [this](https://www.troublefreepool.com/threads/pentair-intellicenter-pool-control-dashboard-instructional-guide.218514/) great thread on Trouble Free Pool.  Thanks @MyAZPool.
@@ -101,16 +99,13 @@ To do anything with this app, you need a client to connect to it.  A client can 
 
 ## Web Clients
 1. [nodejs-poolController-dashPanel](https://github.com/rstrouse/nodejs-poolController-dashPanel).  Full compatibility with IntelliCenter, *Touch, REM (RelayEquipmentManager).
-1. Deprecated - ~~[nodejs-poolController-webClient](http://github.com/tagyoureit/nodejs-poolController-webClient).  Built primarily around EasyTouch/IntelliTouch but will work with other systems.~~
 
-* This app has the default to only listen to clients from localhost (127.0.0.1).  If you need to have clients connect from other machines you will need to change the [ip](#module_nodejs-poolController--config.json) in `config.json`.
 
 <a name="module_nodejs-poolController--bindings"></a>
 
 ## Home Automation Bindings (previously Integrations)
-**NOTE: Existing integrations built of 5.3 or earlier WILL NOT WORK.  They need to be upgraded to leverage 6.0.  **
 
-Available for 6.x:
+Available automations:
 * [Vera Home Automation Hub](https://github.com/rstrouse/nodejs-poolController-veraPlugin) - A plugin that integrates with nodejs-poolController.  [Bindings Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Bindings-Integrations-in-2.0#vera)
 * [Hubitat](https://github.com/bsileo/hubitat_poolcontroller) by @bsileo (prev help from @johnny2678, @donkarnag, @arrmo).  [Bindings Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Bindings-Integrations-in-2.0#smartthingshubitat)
 * [Homebridge/Siri/EVE](https://github.com/gadget-monk/homebridge-poolcontroller) by @gadget-monk, adopted from @leftyflip
@@ -118,31 +113,25 @@ Available for 6.x:
 * [MQTT](https://github.com/crsherman/nodejs-poolController-mqtt) original release by @crsherman, re-write by @kkzonie, testing by @baudfather and others.  [Bindings Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Bindings-Integrations-in-2.0#mqtt)
    * [Homeseer](https://github.com/tagyoureit/nodejs-poolController/wiki/Homeseer-Setup-Instructions) - Integration directions by @miamijerry to integrate Homeseer through MQTT
 
-Need to be updated:
+Outdated:
 * [Another SmartThings Controller](https://github.com/dhop90/pentair-pool-controller/blob/master/README.md) by @dhop90
 * [ISY](src/integrations/socketISY.js).  Original credit to @blueman2, enhancements by @mayermd
 * [ISY Polyglot NodeServer](https://github.com/brianmtreese/nodejs-pool-controller-polyglotv2) created by @brianmtreese
 
 # Support
-1. For discussions, recommendations, designs, and clarifications, we recommend you join the [Github discussions](https://github.com/tagyoureit/nodejs-poolController/discussions or [Gitter Chat room](https://gitter.im/pentair_pool/Lobby).
+1. For discussions, recommendations, designs, and clarifications, we recommend you join the [Github discussions](https://github.com/tagyoureit/nodejs-poolController/discussions.
 1. Check the [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki) for tips, tricks and additional documentation.
 1. For bug reports you can open a [github issue](https://github.com/tagyoureit/nodejs-poolController/issues/new),
 
-### Virtual Controller
-v6 adds all new configuration and support for virtual pumps, chlorinators (and soon, Intellichem)
-
-* [Virtual Pump Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Virtual-Pump-Controller---v6)
-* [Virtual Chlorinator Directions](https://github.com/tagyoureit/nodejs-poolController/wiki/Virtual-Chlorinator-Controller-v6)
-* Virtual Chem Controller
 
 # Changes
 See [Changelog](https://github.com/tagyoureit/nodejs-poolController/blob/master/Changelog)
-
 
 <a name="module_nodejs-poolController--config.json"></a>
 # Config.json changes
 
 ## Controller section - changes to the communications for the app
+Most of these can be configured directly from the UI in dashPanel.
 * `rs485Port` - set to the name of you rs485 controller.  See [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/RS-485-Adapter-Details) for details and testing.
 * `portSettings` - should not need to be changed for RS485
 * `mockPort` - opens a "fake" port for this app to communicate on.  Can be used with [packet captures/replays](https://github.com/tagyoureit/nodejs-poolController/wiki/How-to-capture-all-packets-for-issue-resolution).
@@ -186,7 +175,7 @@ See [Changelog](https://github.com/tagyoureit/nodejs-poolController/blob/master/
 # License
 
 nodejs-poolController.  An application to control pool equipment.
-Copyright (C) 2016, 2017.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
+Copyright (C) 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025.  Russell Goldin, tagyoureit.  russ.goldin@gmail.com
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU Affero General Public License as
