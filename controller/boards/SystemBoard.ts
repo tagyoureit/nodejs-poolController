@@ -582,7 +582,7 @@ export class byteValueMaps {
     public valveModes: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
         [1, { name: 'pool', desc: 'Pool' }],
-        [2, { name: 'spa', dest: 'Spa' }],
+        [2, { name: 'spa', desc: 'Spa' }],
         [3, { name: 'spillway', desc: 'Spillway' }],
         [4, { name: 'spadrain', desc: 'Spa Drain' }]
     ]);
