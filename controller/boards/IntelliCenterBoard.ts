@@ -2825,7 +2825,8 @@ class IntelliCenterBodyCommands extends BodyCommands {
         processing: boolean,
         bytes: number[],
         body1: { heatMode: number, heatSetpoint: number, coolSetpoint: number },
-        body2: { heatMode: number, heatSetpoint: number, coolSetpoint: number }
+        body2: { heatMode: number, heatSetpoint: number, coolSetpoint: number },
+        _processingStartTime?: number
     };
     private async queueBodyHeatSettings(bodyId?: number, byte?: number, data?: any): Promise<Boolean> {
         logger.debug(`queueBodyHeatSettings: ${JSON.stringify(this.bodyHeatSettings)}`);  // remove this line if #848 is fixed
@@ -2837,9 +2838,18 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 bytes: [],
                 body1: { heatMode: body1.heatMode || 1, heatSetpoint: body1.heatSetpoint || 78, coolSetpoint: body1.coolSetpoint || 100 },
                 body2: { heatMode: body2.heatMode || 1, heatSetpoint: body2.heatSetpoint || 78, coolSetpoint: body2.coolSetpoint || 100 }
-            }
+            };
         }
         let bhs = this.bodyHeatSettings;
+        
+        // Reset processing state if it's been stuck for too long (more than 10 seconds)
+        if (bhs.processing && bhs._processingStartTime && (Date.now() - bhs._processingStartTime > 10000)) {
+            logger.warn(`Resetting stuck bodyHeatSettings processing state after timeout`);
+            bhs.processing = false;
+            bhs.bytes = [];
+            delete bhs._processingStartTime;
+        }
+        
         if (typeof data !== 'undefined' && typeof bodyId !== 'undefined' && bodyId > 0) {
             let body = bodyId === 2 ? bhs.body2 : bhs.body1;
             if (!bhs.bytes.includes(byte) && byte) bhs.bytes.push(byte);
@@ -2849,6 +2859,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
         }
         if (!bhs.processing && bhs.bytes.length > 0) {
             bhs.processing = true;
+            bhs._processingStartTime = Date.now();
             let byte2 = bhs.bytes.shift();
             let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : Math.abs(num) || 0; };
             let payload = [0, 0, byte2, 1,
@@ -2890,13 +2901,16 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 }
                 state.emitEquipmentChanges();
             } catch (err) {
+                logger.error(`Error in queueBodyHeatSettings: ${err.message}`);
                 bhs.processing = false;
                 bhs.bytes = [];
+                delete bhs._processingStartTime;
                 throw (err);
             }
             finally {
                 bhs.processing = false;
                 bhs.bytes = [];
+                delete bhs._processingStartTime;
             }
             return true;
         }
@@ -2912,7 +2926,10 @@ class IntelliCenterBodyCommands extends BodyCommands {
                     }
                 }, 3000);
             }
-            else bhs.processing = false;
+            else {
+                bhs.processing = false;
+                delete bhs._processingStartTime;
+            }
             return true;
         }
     }
