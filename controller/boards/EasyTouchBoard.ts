@@ -3040,8 +3040,8 @@ class TouchChemControllerCommands extends ChemControllerCommands {
             }
             if (isNaN(pHSetpoint) || pHSetpoint > type.ph.max || pHSetpoint < type.ph.min) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH setpoint`, 'ph.setpoint', pHSetpoint));
             if (isNaN(orpSetpoint) || orpSetpoint > type.orp.max || orpSetpoint < type.orp.min) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp setpoint`, 'orp.setpoint', orpSetpoint));
-            let phTolerance = typeof data.ph.tolerance !== 'undefined' ? data.ph.tolerance : chem.ph.tolerance;
-            let orpTolerance = typeof data.orp.tolerance !== 'undefined' ? data.orp.tolerance : chem.orp.tolerance;
+            let phTolerance = (data.ph && typeof data.ph.tolerance !== 'undefined') ? data.ph.tolerance : chem.ph.tolerance;
+            let orpTolerance = (data.orp && typeof data.orp.tolerance !== 'undefined') ? data.orp.tolerance : chem.orp.tolerance;
             if (typeof data.ph.tolerance !== 'undefined') {
                 if (typeof data.ph.tolerance.enabled !== 'undefined') phTolerance.enabled = utils.makeBool(data.ph.tolerance.enabled);
                 if (typeof data.ph.tolerance.low !== 'undefined') phTolerance.low = parseFloat(data.ph.tolerance.low);
