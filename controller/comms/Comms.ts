@@ -198,7 +198,7 @@ export class Connection {
                     let c = cfg[section];
                     if (typeof c.type === 'undefined') {
                         let type = 'local';
-                        if (c.mockPort) type = 'mock';
+                        if (c.mock) type = 'mock';
                         else if (c.netConnect) type = 'network';
                         config.setSection(`controller.${section}`, c);
                         console.log(section);
@@ -260,7 +260,7 @@ export class Connection {
         if (anslq25port >= 0) {
             let ports = this.rs485Ports;
             for (let i = 0; i < ports.length; i++) {
-                // if (ports[i].mockPort) continue;
+                // if (ports[i].mock) continue;
                 if (ports[i].portId === currPort.portId) continue;
                 if (ports[i].portId === anslq25port) continue; // don't resend
                 if (!ports[i].isOpen) continue;
@@ -380,7 +380,8 @@ export class Connection {
             let msgs = [];
             // conn.queueInboundToBroadcast(msg);
             conn.queueOutboundToBroadcast(msg);
-            /* if (msgs.length > 0) {
+            /* if (msgs.le
+            ngth > 0) {
                 msgs.push(msg);
                 let promises: Promise<boolean>[] = [];
                 for (let i = 0; i < msgs.length; i++) {
@@ -511,7 +512,7 @@ export class RS485Port {
     public reconnects: number = 0;
     public emitter: EventEmitter;
     public get portId() { return typeof this._cfg !== 'undefined' && typeof this._cfg.portId !== 'undefined' ? this._cfg.portId : 0; }
-    public get type() { return typeof this._cfg.type !== 'undefined' ? this._cfg.type : this._cfg.netConnect ? 'netConnect' : this._cfg.mockPort || this._cfg.mock ? 'mock' : 'local' };
+    public get type() { return typeof this._cfg.type !== 'undefined' ? this._cfg.type : this._cfg.netConnect ? 'netConnect' : this._cfg.mock ? 'mock' : 'local' };
     public isOpen: boolean = false;
     public closing: boolean = false;
     private _cfg: any;
@@ -682,7 +683,7 @@ export class RS485Port {
                 // be open if a hardware interface is used and this method returns.
                 sp.open((err) => {
                     if (err) {
-                        this.resetConnTimer();
+                        if (!this.mock) this.resetConnTimer();
                         this.isOpen = false;
                         logger.error(`Error opening port ${this.portId}: ${err.message}. ${this._cfg.inactivityRetry > 0 && !this.mock ? `Retry in ${this._cfg.inactivityRetry} seconds` : `Never retrying; (fwiw, inactivityRetry set to ${this._cfg.inactivityRetry})`}`);
                         resolve(false);
@@ -712,7 +713,7 @@ export class RS485Port {
                         if (!this.mock && !this.isPaused) this.resetConnTimer();
                         this.pushIn(data);
                     });
-                    this.resetConnTimer();
+                    if (!this.mock) this.resetConnTimer();
                     this.emitPortStats();
                 });
                 sp.on('close', (err) => {
@@ -730,7 +731,7 @@ export class RS485Port {
                     if (typeof this.writeTimer !== 'undefined') { clearTimeout(this.writeTimer); this.writeTimer = null; }
                     this.isOpen = false;
                     if (sp.isOpen) sp.close((err) => { }); // call this with the error callback so that it doesn't emit to the error again.
-                    this.resetConnTimer();
+                    if (!this.mock) this.resetConnTimer();
                     logger.error(`Serial Port ${this.portId}: An error occurred : ${this._cfg.rs485Port}: ${JSON.stringify(err)}`);
                     this.emitPortStats();
 
@@ -823,7 +824,7 @@ export class RS485Port {
     protected resetConnTimer(...args) {
         //console.log(`resetting connection timer`);
         if (this.connTimer !== null) clearTimeout(this.connTimer);
-        if (!this._cfg.mockPort && this._cfg.inactivityRetry > 0 && !this.closing) this.connTimer = setTimeout(async () => {
+        if (!this._cfg.mock && this._cfg.inactivityRetry > 0 && !this.closing) this.connTimer = setTimeout(async () => {
             try {
                 if (this._cfg.netConnect)
                     logger.warn(`Inactivity timeout for ${this.portId} serial port ${this._cfg.netHost}:${this._cfg.netPort}/${this._cfg.rs485Port} after ${this._cfg.inactivityRetry} seconds`);

@@ -50,7 +50,7 @@ export class MockSystemBoard {
     return await msg.sendAsync();
     // is the controller on a real/physical port or a mock port?
 /*     let port = conn.findPortById(sys.anslq25.portId);
-    if (port.mockPort) {
+    if (port.mock) {
       let inbound = new Inbound();
       inbound.protocol = msg.protocol;
       inbound.header = msg.header;

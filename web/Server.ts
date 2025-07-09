@@ -1423,18 +1423,151 @@ export class REMInterfaceServer extends ProtoServer {
         try {
             let response = await this.sendClientRequest('GET', '/config/backup/controller', undefined, 10000);
             return response;
-        } catch (err) { logger.error(`Error requesting GET /config/backup/controller: ${err.message}`); }
+        } catch (err) { 
+            logger.error(`Error requesting GET /config/backup/controller: ${err.message}`);
+            let errorResponse = new InterfaceServerResponse();
+            errorResponse.error = new Error(`Error requesting GET /config/backup/controller: ${err.message}`);
+            return errorResponse;
+        }
     }
     public async validateRestore(cfg): Promise<InterfaceServerResponse> {
         try {
             let response = await this.sendClientRequest('PUT', '/config/restore/validate', cfg, 10000);
             return response;
-        } catch (err) { logger.error(`Error requesting PUT /config/restore/validate ${err.message}`); }
+        } catch (err) { 
+            logger.error(`Error requesting PUT /config/restore/validate ${err.message}`);
+            let errorResponse = new InterfaceServerResponse();
+            errorResponse.error = new Error(`Error requesting PUT /config/restore/validate: ${err.message}`);
+            return errorResponse;
+        }
     }
     public async restoreConfig(cfg): Promise<InterfaceServerResponse> {
         try {
             return await this.sendClientRequest('PUT', '/config/restore/file', cfg, 20000);
-        } catch (err) { logger.error(`Error requesting PUT /config/restore/file ${err.message}`); }
+        } catch (err) { 
+            logger.error(`Error requesting PUT /config/restore/file ${err.message}`);
+            let errorResponse = new InterfaceServerResponse();
+            errorResponse.error = new Error(`Error requesting PUT /config/restore/file: ${err.message}`);
+            return errorResponse;
+        }
+    }
+    public async startPacketCapture(): Promise<InterfaceServerResponse> {
+        try {
+            let response = await this.sendClientRequest('PUT', '/config/packetCapture/start', undefined, 10000);
+            return response;
+        } catch (err) { 
+            logger.error(`Error requesting PUT /config/packetCapture/start: ${err.message}`);
+            let errorResponse = new InterfaceServerResponse();
+            errorResponse.error = new Error(`Error requesting PUT /config/packetCapture/start: ${err.message}`);
+            return errorResponse;
+        }
+    }
+    public async stopPacketCapture(): Promise<InterfaceServerResponse> {
+        try {
+            let response = await this.sendClientRequest('PUT', '/config/packetCapture/stop', undefined, 10000);
+            return response;
+        } catch (err) { 
+            logger.error(`Error requesting PUT /config/packetCapture/stop: ${err.message}`);
+            let errorResponse = new InterfaceServerResponse();
+            errorResponse.error = new Error(`Error requesting PUT /config/packetCapture/stop: ${err.message}`);
+            return errorResponse;
+        }
+    }
+    public async getPacketCaptureLog(): Promise<InterfaceServerResponse> {
+        try {
+            let response = await this.sendClientRequest('GET', '/config/packetCapture/log', undefined, 15000);
+            return response;
+        } catch (err) { 
+            logger.error(`Error requesting GET /config/packetCapture/log: ${err.message}`);
+            let errorResponse = new InterfaceServerResponse();
+            errorResponse.error = new Error(`Error requesting GET /config/packetCapture/log: ${err.message}`);
+            return errorResponse;
+        }
+    }
+    
+
+    // Static methods to handle the REM server
+    public static async startPacketCaptureOnRemServer(): Promise<void> {
+        let remServers = webApp.findServersByType('rem') as REMInterfaceServer[];
+        logger.info(`Found ${remServers ? remServers.length : 0} REM servers`);
+        
+        if (remServers && remServers.length > 0) {
+            let server = remServers[0]; // Get the single REM server
+            logger.info(`Attempting to start packet capture on REM server: ${server.name} (connected: ${server.isConnected})`);
+            
+            if (server.isConnected) {
+                try {
+                    let response = await server.startPacketCapture();
+                    logger.info(`Start packet capture response: ${JSON.stringify(response)}`);
+                    
+                    if (response && response.status.code === 200) {
+                        logger.info(`Started packet capture on REM server: ${server.name}`);
+                    } else {
+                        logger.warn(`Failed to start packet capture on REM server: ${server.name}. Status: ${response?.status?.code}, Error: ${response?.error?.message}`);
+                    }
+                } catch (err) {
+                    logger.error(`Error starting packet capture on REM server ${server.name}: ${err.message}`);
+                }
+            } else {
+                logger.warn(`REM server ${server.name} is not connected, cannot start packet capture`);
+            }
+        } else {
+            logger.warn(`No REM servers found or configured`);
+        }
+    }
+    
+    public static async stopPacketCaptureOnRemServer(): Promise<any[]> {
+        let remServers = webApp.findServersByType('rem') as REMInterfaceServer[];
+        let remLogs = [];
+        
+        logger.info(`Found ${remServers ? remServers.length : 0} REM servers for stop packet capture`);
+        
+        if (remServers && remServers.length > 0) {
+            let server = remServers[0]; // Get the single REM server
+            logger.info(`Attempting to stop packet capture on REM server: ${server.name} (connected: ${server.isConnected})`);
+            
+            if (server.isConnected) {
+                try {
+                    // Stop packet capture
+                    let stopResponse = await server.stopPacketCapture();
+                    logger.info(`Stop packet capture response: ${JSON.stringify(stopResponse)}`);
+                    
+                    if (stopResponse && stopResponse.status.code === 200) {
+                        logger.info(`Stopped packet capture on REM server: ${server.name}`);
+                        
+                        // Get the log file
+                        let logResponse = await server.getPacketCaptureLog();
+                        logger.info(`Get log response: ${JSON.stringify(logResponse)}`);
+                        
+                        if (logResponse && logResponse.status.code === 200 && logResponse.data) {
+                            // Use the actual log file name from the REM response
+                            logger.info(`Log response obj: ${JSON.stringify(logResponse.obj)}`);
+                            let logFileName = logResponse.obj && logResponse.obj.logFile ? logResponse.obj.logFile : `rem_${server.name}_packetCapture.log`;
+                            logger.info(`Using log filename: ${logFileName}`);
+                            remLogs.push({
+                                serverName: server.name,
+                                logData: logResponse.data,
+                                logFileName: logFileName
+                            });
+                            logger.info(`Retrieved packet capture log from REM server: ${server.name}, log size: ${logResponse.data.length} characters, filename: ${logFileName}`);
+                        } else {
+                            logger.warn(`Failed to retrieve packet capture log from REM server: ${server.name}. Status: ${logResponse?.status?.code}, Error: ${logResponse?.error?.message}`);
+                        }
+                    } else {
+                        logger.warn(`Failed to stop packet capture on REM server: ${server.name}. Status: ${stopResponse?.status?.code}, Error: ${stopResponse?.error?.message}`);
+                    }
+                } catch (err) {
+                    logger.error(`Error stopping packet capture on REM server ${server.name}: ${err.message}`);
+                }
+            } else {
+                logger.warn(`REM server ${server.name} is not connected, cannot stop packet capture`);
+            }
+        } else {
+            logger.warn(`No REM servers found or configured for stop packet capture`);
+        }
+        
+        logger.info(`Returning ${remLogs.length} REM logs`);
+        return remLogs;
     }
     private async initConnection() {
         try {
@@ -1483,12 +1616,15 @@ export class REMInterfaceServer extends ProtoServer {
                             resolve();
                         }
                     }
-                    catch (err) { reject(new Error(`initConnection setTimeout: ${result.error.message}`)); }
+                    catch (err) { 
+                        logger.error(`initConnection setTimeout error: ${err.message}`);
+                        reject(new Error(`initConnection setTimeout: ${err.message}`)); 
+                    }
                 }, 3000);
             });
         }
         catch (err) {
-            logger.error(`Error with REM Interface Server initConnection: ${err}`)
+            logger.error(`Error with REM Interface Server initConnection: ${err.message}`);
         }
     }
     public async stopAsync() {
@@ -1556,7 +1692,10 @@ export class REMInterfaceServer extends ProtoServer {
                 });
                 req.on('abort', () => { logger.warn('Request Aborted'); reject(new Error('Request Aborted.')); });
                 req.end(sbody);
-            }).catch((err) => { logger.error(`Error Sending REM Request: ${opts.method} ${url} ${err.message}`); ret.error = err; });
+            }).catch((err) => { 
+                logger.error(`Error Sending REM Request: ${opts.method} ${url} ${err.message}`); 
+                ret.error = err; 
+            });
             logger.verbose(`REM server request returned. ${opts.method} ${opts.path} ${sbody}`);
             if (ret.status.code > 200) {
                 // We have an http error so let's parse it up.
@@ -1574,7 +1713,9 @@ export class REMInterfaceServer extends ProtoServer {
         }
         catch (err) {
             logger.error(`Error sending HTTP ${method} command to ${url}: ${err.message}`);
-            return Promise.reject(`Http ${method} Error ${url}:${err.message}`);
+            let errorResponse = new InterfaceServerResponse();
+            errorResponse.error = new Error(`Http ${method} Error ${url}:${err.message}`);
+            return errorResponse;
         }
     }
     private initSockets() {
@@ -1585,7 +1726,10 @@ export class REMInterfaceServer extends ProtoServer {
             //console.log(this.cfg);
             this.sockClient = sockClient(url, extend(true,
                 { reconnectionDelay: 2000, reconnection: true, reconnectionDelayMax: 20000, transports: ['websocket'], upgrade: true, }, this.cfg.socket));
-            if (typeof this.sockClient === 'undefined') return Promise.reject(new Error('Could not Initialize REM Server.  Invalid configuration.'));
+            if (typeof this.sockClient === 'undefined') {
+                logger.error('Could not Initialize REM Server. Invalid configuration.');
+                return;
+            }
             //this.sockClient = io.connect(url, { reconnectionDelay: 2000, reconnection: true, reconnectionDelayMax: 20000 });
             //console.log(this.sockClient);
             //console.log(typeof this.sockClient.on);
@@ -1604,7 +1748,9 @@ export class REMInterfaceServer extends ProtoServer {
             });
             this.isRunning = true;
         }
-        catch (err) { logger.error(`Error Initializing Sockets: ${err.message}`); }
+        catch (err) { 
+            logger.error(`Error Initializing Sockets: ${err.message}`); 
+        }
     }
     private isJSONString(s: string): boolean {
         if (typeof s !== 'string') return false;
@@ -1613,23 +1759,23 @@ export class REMInterfaceServer extends ProtoServer {
     }
     public async getApiService(url: string, data?: any, timeout: number = 3600): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try { let ret = await this.sendClientRequest('GET', url, data, timeout); return ret; }
-        catch (err) { return Promise.reject(err); }
+        let ret = await this.sendClientRequest('GET', url, data, timeout); 
+        return ret; 
     }
     public async putApiService(url: string, data?: any, timeout: number = 3600): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try { let ret = await this.sendClientRequest('PUT', url, data, timeout); return ret; }
-        catch (err) { return Promise.reject(err); }
+        let ret = await this.sendClientRequest('PUT', url, data, timeout); 
+        return ret; 
     }
     public async searchApiService(url: string, data?: any, timeout: number = 3600): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try { let ret = await this.sendClientRequest('SEARCH', url, data, timeout); return ret; }
-        catch (err) { return Promise.reject(err); }
+        let ret = await this.sendClientRequest('SEARCH', url, data, timeout); 
+        return ret; 
     }
     public async deleteApiService(url: string, data?: any, timeout: number = 3600): Promise<InterfaceServerResponse> {
         // Calls a rest service on the REM to set the state of a connected device.
-        try { let ret = await this.sendClientRequest('DELETE', url, data, timeout); return ret; }
-        catch (err) { return Promise.reject(err); }
+        let ret = await this.sendClientRequest('DELETE', url, data, timeout); 
+        return ret; 
     }
     public async getDevices() {
         try {
@@ -1640,7 +1786,10 @@ export class REMInterfaceServer extends ProtoServer {
             }
             return (response.status.code === 200) ? JSON.parse(response.data) : [];
         }
-        catch (err) { logger.error(`getDevices: ${err.message}`); }
+        catch (err) { 
+            logger.error(`getDevices: ${err.message}`); 
+            return [];
+        }
     }
 }
 export class BackupFile {

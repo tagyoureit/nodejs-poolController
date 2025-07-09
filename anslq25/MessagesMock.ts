@@ -196,7 +196,11 @@ export class MessagesMock {
             HeaterStateMessage.process(outboundMsg);
             break;*/
             case Protocol.Chlorinator:
-                mockChlor.process(msg);
+                // Only process outbound messages (commands from OCP to chlorinator)
+                // Inbound messages (responses from chlorinator to OCP) should not be processed by mock
+                if (msg.dest >= 80) {
+                    mockChlor.process(msg);
+                }
             /*
             case Protocol.Hayward:
                 PumpStateMessage.processHayward(msg);

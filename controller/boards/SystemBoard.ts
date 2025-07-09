@@ -3656,8 +3656,12 @@ export class ScheduleCommands extends BoardCommands {
         ssched.display = sched.display = display;
         ssched.startTimeOffset = sched.startTimeOffset = startTimeOffset;
         ssched.endTimeOffset = sched.endTimeOffset = endTimeOffset;
-        if (typeof sched.startDate === 'undefined')
+        // Nixie controller managing schedules (master = 1), physical OCP (master = 0)
+        if (sys.controllerType === ControllerType.Nixie) {
             sched.master = 1;
+        } else {
+            sched.master = 0;
+        }
         await ncp.schedules.setScheduleAsync(sched, data);
         // update end time in case sched is changed while circuit is on
         let cstate = state.circuits.getInterfaceById(sched.circuit);

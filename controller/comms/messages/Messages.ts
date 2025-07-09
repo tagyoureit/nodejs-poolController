@@ -873,7 +873,7 @@ class OutboundCommon extends Message {
             case Protocol.Heater:
             case Protocol.Hayward:
                 this.chkHi = Math.floor(sum / 256);
-                this.chkLo = (sum - (super.chkHi * 256));
+                this.chkLo = (sum - (this.chkHi * 256));
                 break;
             case Protocol.AquaLink:
             case Protocol.Chlorinator:

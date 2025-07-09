@@ -1096,7 +1096,7 @@ export class ScheduleStateCollection extends EqStateCollection<ScheduleState> {
             }
             st.calcSchedule(state.time, sys.schedules.getItemById(ssched.id));
             if (typeof st.startTime === 'undefined') continue;
-            if (ssched.isOn || st.shouldBeOn || st.startTime.getTime() > new Date().getTime()) activeScheds.push(ssched);
+            if (ssched.isOn || st.shouldBeOn || (st.startTime && st.startTime.getTime() > new Date().getTime())) activeScheds.push(ssched);
         }
         return activeScheds;
     }
@@ -1256,7 +1256,7 @@ export class ScheduleTime extends ChildEqState {
             let dtCalc = typeof this.calculatedDate !== 'undefined' && typeof this.calculatedDate.getTime === 'function' ? new Date(this.calculatedDate.getTime()).setHours(0, 0, 0, 0) : new Date(1970, 0, 1, 0, 0).getTime();
             let recalc = !this.calculated;
             if (!recalc && sod.getTime() !== dtCalc) recalc = true;
-            if (!recalc && (this.endTime.getTime() < new Date().getTime() && this.startTime.getTime() < dtCalc)) {
+            if (!recalc && (this.endTime && this.endTime.getTime() < new Date().getTime() && this.startTime && this.startTime.getTime() < dtCalc)) {
                 recalc = true;
                 logger.info(`Recalculating expired schedule ${sched.id}`);
             }

@@ -270,6 +270,10 @@ class Logger {
         // start new replay directory
 
         if (!fs.existsSync(this.captureForReplayPath)) fs.mkdirSync(this.captureForReplayBaseDir, { recursive: true });
+        
+        // Create logs subdirectory for additional log files
+        let logsSubDir = path.join(this.captureForReplayBaseDir, 'logs');
+        if (!fs.existsSync(logsSubDir)) fs.mkdirSync(logsSubDir, { recursive: true });
         if (bResetLogs){
             if (fs.existsSync(path.join(process.cwd(), 'data/poolConfig.json'))) {
                 fs.copyFileSync(path.join(process.cwd(), 'data/poolConfig.json'), path.join(process.cwd(),'data/', `poolConfig-${this.getLogTimestamp()}.json`));
@@ -360,29 +364,68 @@ class Logger {
         logger._logger.add(this.transports.file);
         this.transports.console.level = 'silly';
     }
-    public async stopCaptureForReplayAsync():Promise<string> {
+    public async stopCaptureForReplayAsync(remLogs?: any[]):Promise<string> {
         return new Promise<string>(async (resolve, reject) => {
             try {
-                fs.copyFileSync(path.join(process.cwd(), "/config.json"), path.join(this.captureForReplayBaseDir, `config.json`));
-                fs.copyFileSync(path.join(process.cwd(), 'data/poolConfig.json'), path.join(this.captureForReplayBaseDir, 'poolConfig.json'));
-                fs.copyFileSync(path.join(process.cwd(), 'data/poolState.json'), path.join(this.captureForReplayBaseDir, 'poolState.json'));
-                fs.copyFileSync(logger.pktPath, path.join(this.captureForReplayBaseDir, `packetLog${this.getLogTimestamp()}`));
+                // Get REM server configurations from config
+                let configData = config.getSection();
+                let remServers = [];
+                if (configData.web && configData.web.interfaces) {
+                    for (let interfaceName in configData.web.interfaces) {
+                        let interfaceConfig = configData.web.interfaces[interfaceName];
+                        if (interfaceConfig.type === 'rem' && interfaceConfig.enabled) {
+                            remServers.push({
+                                name: interfaceConfig.name || interfaceName,
+                                uuid: interfaceConfig.uuid,
+                                host: interfaceConfig.options?.host || '',
+                                backup: true
+                            });
+                        }
+                    }
+                }
+
+                // Use the existing backup logic to create the base backup
+                let backupOptions = {
+                    njsPC: true,
+                    servers: remServers,
+                    name: `Packet Capture ${this.currentTimestamp}`,
+                    automatic: false
+                };
+                
+                let backupFile = await webApp.backupServer(backupOptions);
+                
+                // Add packet capture logs to the existing backup zip
+                let jszip = require("jszip");
+                let zip = await jszip.loadAsync(fs.readFileSync(backupFile.filePath));
+                
+                // Add packet capture logs to the njsPC/logs directory
+                zip.file(`njsPC/logs/${this.getPacketPath()}`, fs.readFileSync(logger.pktPath));
+                zip.file(`njsPC/logs/${this.getConsoleToFilePath()}`, fs.readFileSync(this.consoleToFilePath));
+                
+                // Add REM server logs if provided
+                if (remLogs && remLogs.length > 0) {
+                    logger.info(`Adding ${remLogs.length} REM logs to backup`);
+                    for (let remLog of remLogs) {
+                        // Create logs directory for the REM server using the hardcoded name
+                        let logPath = `Relay Equipment Manager/logs/${remLog.logFileName}`;
+                        logger.info(`Adding REM log to backup: ${logPath} (size: ${remLog.logData.length} characters)`);
+                        zip.file(logPath, remLog.logData);
+                    }
+                } else {
+                    logger.info(`No REM logs provided to add to backup`);
+                }
+                
+                // Generate the updated zip
+                await zip.generateAsync({type:'nodebuffer'}).then(content => {
+                    fs.writeFileSync(backupFile.filePath, content);
+                });
+                
+                // Restore original logging configuration
                 this.cfg = config.getSection('log');
                 logger._logger.remove(this.transports.file);
                 this.transports.console.level = this.cfg.app.level;
-                let jszip = require("jszip");
-                let zipPath = path.join(this.captureForReplayBaseDir,`${this.currentTimestamp}.zip`);
-                let zip = new jszip();
-                zip.file('config.json', fs.readFileSync(path.join(this.captureForReplayBaseDir, 'config.json')));
-                zip.file('poolConfig.json', fs.readFileSync(path.join(this.captureForReplayBaseDir, 'poolConfig.json')));
-                zip.file('poolState.json', fs.readFileSync(path.join(this.captureForReplayBaseDir, 'poolState.json')));
-                zip.file(this.getPacketPath(), fs.readFileSync(path.join(this.captureForReplayBaseDir, `packetLog${this.getLogTimestamp()}`)));
-                zip.file(this.getConsoleToFilePath(), fs.readFileSync(this.consoleToFilePath));
-                await zip.generateAsync({type:'nodebuffer'}).then(content=>
-                    {
-                        fs.writeFileSync(zipPath, content);
-                    });
-                resolve(zipPath);
+                
+                resolve(backupFile.filePath);
             }
             catch (err) {
                 reject(err.message);
