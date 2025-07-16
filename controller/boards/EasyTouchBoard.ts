@@ -3030,8 +3030,8 @@ class TouchChemControllerCommands extends ChemControllerCommands {
             if (isNaN(alkalinity)) return Promise.reject(new InvalidEquipmentDataError(`Invalid alkalinity`, 'chemController', alkalinity));
             if (isNaN(borates)) return Promise.reject(new InvalidEquipmentDataError(`Invalid borates`, 'chemController', borates));
             let schem = state.chemControllers.getItemById(chem.id, true);
-            let pHSetpoint = typeof data.ph !== 'undefined' && typeof data.ph.setpoint !== 'undefined' ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
-            let orpSetpoint = typeof data.orp !== 'undefined' && typeof data.orp.setpoint !== 'undefined' ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
+            let pHSetpoint = (typeof data.ph !== 'undefined' && typeof data.ph.setpoint !== 'undefined') ? parseFloat(data.ph.setpoint) : chem.ph.setpoint;
+            let orpSetpoint = (typeof data.orp !== 'undefined' && typeof data.orp.setpoint !== 'undefined') ? parseInt(data.orp.setpoint, 10) : chem.orp.setpoint;
             let lsiRange = typeof data.lsiRange !== 'undefined' ? data.lsiRange : chem.lsiRange || {};
             if (typeof data.lsiRange !== 'undefined') {
                 if (typeof data.lsiRange.enabled !== 'undefined') lsiRange.enabled = utils.makeBool(data.lsiRange.enabled);
@@ -3040,31 +3040,31 @@ class TouchChemControllerCommands extends ChemControllerCommands {
             }
             if (isNaN(pHSetpoint) || pHSetpoint > type.ph.max || pHSetpoint < type.ph.min) return Promise.reject(new InvalidEquipmentDataError(`Invalid pH setpoint`, 'ph.setpoint', pHSetpoint));
             if (isNaN(orpSetpoint) || orpSetpoint > type.orp.max || orpSetpoint < type.orp.min) return Promise.reject(new InvalidEquipmentDataError(`Invalid orp setpoint`, 'orp.setpoint', orpSetpoint));
-            let phTolerance = (data.ph && typeof data.ph.tolerance !== 'undefined') ? data.ph.tolerance : chem.ph.tolerance;
-            let orpTolerance = (data.orp && typeof data.orp.tolerance !== 'undefined') ? data.orp.tolerance : chem.orp.tolerance;
-            if (typeof data.ph.tolerance !== 'undefined') {
+            let phTolerance = (typeof data.ph !== 'undefined' && typeof data.ph.tolerance !== 'undefined') ? data.ph.tolerance : chem.ph.tolerance;
+            let orpTolerance = (typeof data.orp !== 'undefined' && typeof data.orp.tolerance !== 'undefined') ? data.orp.tolerance : chem.orp.tolerance;
+            if (typeof data.ph !== 'undefined' && typeof data.ph.tolerance !== 'undefined') {
                 if (typeof data.ph.tolerance.enabled !== 'undefined') phTolerance.enabled = utils.makeBool(data.ph.tolerance.enabled);
                 if (typeof data.ph.tolerance.low !== 'undefined') phTolerance.low = parseFloat(data.ph.tolerance.low);
                 if (typeof data.ph.tolerance.high !== 'undefined') phTolerance.high = parseFloat(data.ph.tolerance.high);
                 if (isNaN(phTolerance.low)) phTolerance.low = type.ph.min;
                 if (isNaN(phTolerance.high)) phTolerance.high = type.ph.max;
             }
-            if (typeof data.orp.tolerance !== 'undefined') {
+            if (typeof data.orp !== 'undefined' && typeof data.orp.tolerance !== 'undefined') {
                 if (typeof data.orp.tolerance.enabled !== 'undefined') orpTolerance.enabled = utils.makeBool(data.orp.tolerance.enabled);
                 if (typeof data.orp.tolerance.low !== 'undefined') orpTolerance.low = parseFloat(data.orp.tolerance.low);
                 if (typeof data.orp.tolerance.high !== 'undefined') orpTolerance.high = parseFloat(data.orp.tolerance.high);
                 if (isNaN(orpTolerance.low)) orpTolerance.low = type.orp.min;
                 if (isNaN(orpTolerance.high)) orpTolerance.high = type.orp.max;
             }
-            let phEnabled = typeof data.ph.enabled !== 'undefined' ? utils.makeBool(data.ph.enabled) : chem.ph.enabled;
-            let orpEnabled = typeof data.orp.enabled !== 'undefined' ? utils.makeBool(data.orp.enabled) : chem.orp.enabled;
+            let phEnabled = (typeof data.ph !== 'undefined' && typeof data.ph.enabled !== 'undefined') ? utils.makeBool(data.ph.enabled) : chem.ph.enabled;
+            let orpEnabled = (typeof data.orp !== 'undefined' && typeof data.orp.enabled !== 'undefined') ? utils.makeBool(data.orp.enabled) : chem.orp.enabled;
             let siCalcType = typeof data.siCalcType !== 'undefined' ? sys.board.valueMaps.siCalcTypes.encode(data.siCalcType, 0) : chem.siCalcType;
 
             let saltLevel = (state.chlorinators.length > 0) ? state.chlorinators.getItemById(1).saltLevel || 1000 : 1000
             chem.ph.tank.capacity = 6;
             chem.orp.tank.capacity = 6;
-            let acidTankLevel = typeof data.ph !== 'undefined' && typeof data.ph.tank !== 'undefined' && typeof data.ph.tank.level !== 'undefined' ? parseInt(data.ph.tank.level, 10) : schem.ph.tank.level;
-            let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' && typeof data.orp.tank.level !== 'undefined' ? parseInt(data.orp.tank.level, 10) : schem.orp.tank.level;
+            let acidTankLevel = (typeof data.ph !== 'undefined' && typeof data.ph.tank !== 'undefined' && typeof data.ph.tank.level !== 'undefined') ? parseInt(data.ph.tank.level, 10) : schem.ph.tank.level;
+            let orpTankLevel = (typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' && typeof data.orp.tank.level !== 'undefined') ? parseInt(data.orp.tank.level, 10) : schem.orp.tank.level;
             // OCP needs to set the IntelliChem as active so it knows that it exists
             if (sl.enabled && send) {
                 if (!schem.isActive) {
