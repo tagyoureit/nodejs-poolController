@@ -139,7 +139,7 @@ export class Connection {
                 else {
                     if (!await existing.closeAsync()) {
                         existing.closing = false;  // if closing fails, reset flag so user can try again
-                        return Promise.reject(new InvalidOperationError(`Unable to close the current RS485 port`, 'setPortAsync'));
+                        return Promise.reject(new InvalidOperationError(`Unable to close the current RS485 port (Try to save the port again as it usually works the second time).`, 'setPortAsync'));
                     }
                 }
             config.setSection(section, pdata);

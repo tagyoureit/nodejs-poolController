@@ -101,12 +101,20 @@ export class NixieBoard extends SystemBoard {
             [6, { name: 'sat', desc: 'Saturday', dow: 6, bitval: 32 }],
             [7, { name: 'sun', desc: 'Sunday', dow: 0, bitval: 64 }]
         ]);
+        /**
+         * groupCircuitStates value map:
+         * 1: 'on'         - Circuit should be ON when group is ON, OFF when group is OFF.
+         * 2: 'off'        - Circuit should be OFF when group is ON, ON when group is OFF.
+         * 3: 'ignore'     - Circuit is ignored by group state changes.
+         * 4: 'on+ignore'  - Circuit should be ON when group is ON, ignored when group is OFF.
+         * 5: 'off+ignore' - Circuit should be OFF when group is ON, ignored when group is OFF.
+         */
         this.valueMaps.groupCircuitStates = new byteValueMap([
-            [1, { name: 'on', desc: 'On/Off' }],
-            [2, { name: 'off', desc: 'Off/On' }],
-            [3, { name: 'ignore', desc: 'Ignore' }],
-            [4, { name: 'on+ignore', desc: 'On/Ignore' }],
-            [5, { name: 'off+ignore', desc: 'Off/Ignore' }]
+            [1, { name: 'on', desc: 'On/Off' }],         // 1: ON when group ON, OFF when group OFF
+            [2, { name: 'off', desc: 'Off/On' }],        // 2: OFF when group ON, ON when group OFF
+            [3, { name: 'ignore', desc: 'Ignore' }],     // 3: Ignored by group state
+            [4, { name: 'on+ignore', desc: 'On/Ignore' }],   // 4: ON when group ON, ignored when group OFF
+            [5, { name: 'off+ignore', desc: 'Off/Ignore' }]  // 5: OFF when group ON, ignored when group OFF
         ]);
         this.valueMaps.chlorinatorModel = new byteValueMap([
             [0, { name: 'unknown', desc: 'unknown', capacity: 0, chlorinePerDay: 0, chlorinePerSec: 0 }],
@@ -1231,7 +1239,7 @@ export class NixieCircuitCommands extends CircuitCommands {
     }
     public async deleteCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) return Promise.reject(new EquipmentNotFoundError(`Invalid group id: ${obj.id}`, 'CircuitGroup'));
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid group id: ${obj.id}`, 'CircuitGroup'));
         if (!sys.board.equipmentIds.circuitGroups.isInRange(id)) return;
         if (typeof obj.id !== 'undefined') {
             let group = sys.circuitGroups.getItemById(id, false);
@@ -1249,7 +1257,7 @@ export class NixieCircuitCommands extends CircuitCommands {
     }
     public async deleteLightGroupAsync(obj: any): Promise<LightGroup> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) return Promise.reject(new EquipmentNotFoundError(`Invalid group id: ${obj.id}`, 'LightGroup'));
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid group id: ${obj.id}`, 'LightGroup'));
         if (!sys.board.equipmentIds.circuitGroups.isInRange(id)) return;
         if (typeof obj.id !== 'undefined') {
             let group = sys.lightGroups.getItemById(id, false);
@@ -1762,7 +1770,7 @@ export class NixieValveCommands extends ValveCommands {
             state.valves.removeItemById(id);
             ncp.valves.removeById(id);
             return valve;
-        } catch (err) { logger.error(`Nixie: Error removing valve from system ${obj.id}: ${err.message}`); return Promise.reject(new Error(`Nixie: Error removing valve from system ${ obj.id }: ${ err.message }`)); }
+        } catch (err) { return Promise.reject(new BoardProcessError(err.message, 'deleteValveAsync')); }
     }
     public async setValveStateAsync(valve: Valve, vstate: ValveState, isDiverted: boolean) {
         try {
