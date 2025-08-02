@@ -1239,7 +1239,7 @@ export class NixieCircuitCommands extends CircuitCommands {
     }
     public async deleteCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid group id: ${obj.id}`, 'CircuitGroup'));
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid group id: ${obj.id}`, obj.id, 'CircuitGroup'));
         if (!sys.board.equipmentIds.circuitGroups.isInRange(id)) return;
         if (typeof obj.id !== 'undefined') {
             let group = sys.circuitGroups.getItemById(id, false);
@@ -1257,7 +1257,7 @@ export class NixieCircuitCommands extends CircuitCommands {
     }
     public async deleteLightGroupAsync(obj: any): Promise<LightGroup> {
         let id = parseInt(obj.id, 10);
-        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid group id: ${obj.id}`, 'LightGroup'));
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid group id: ${obj.id}`, obj.id, 'LightGroup'));
         if (!sys.board.equipmentIds.circuitGroups.isInRange(id)) return;
         if (typeof obj.id !== 'undefined') {
             let group = sys.lightGroups.getItemById(id, false);
