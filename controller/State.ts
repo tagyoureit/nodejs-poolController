@@ -947,7 +947,7 @@ export class PumpState extends EqState {
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.data.id = val; }
-    public get address(): number { return this.data.address || this.data.id + 95; }
+    public get address(): number { return this.data.address; }
     public set address(val: number) { this.setDataVal('address', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
@@ -1042,6 +1042,7 @@ export class PumpState extends EqState {
                 case 'hwvs':
                 case 'vssvrs':
                 case 'vs':
+                case 'regalmodbus':
                     c.units = sys.board.valueMaps.pumpUnits.transformByName('rpm');
                     break;
                 case 'ss':

@@ -29,6 +29,12 @@ import { webApp } from "../../web/Server";
 import { setTimeout } from 'timers/promises';
 import { setTimeout as setTimeoutSync } from 'timers';
 
+const addrsPentairPump = Object.freeze([96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111]);
+const addrsRegalModbusPump = Object.freeze(
+    Array.from({ length: ((0xF7 - 0x15) / 2) + 1 }, (_, i) => 0x15 + i * 2)  // Odd numbers fro 0x15 through 0xF7
+  );
+
+
 export class NixieBoard extends SystemBoard {
     constructor (system: PoolSystem){
         super(system);
@@ -76,14 +82,15 @@ export class NixieBoard extends SystemBoard {
             [17, { name: 'watercolors', desc: 'WaterColors', isLight: true, theme: 'watercolors' }],
         ]);
         this.valueMaps.pumpTypes = new byteValueMap([
-            [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 8, hasAddress: false, hasBody: false, maxRelays: 1, relays: [{ id: 1, name: 'Pump On/Off' }]}],
-            [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 8, hasAddress: false, hasBody: false, maxRelays: 2, relays: [{ id: 1, name: 'Low Speed' }, { id: 2, name: 'High Speed' }]}],
-            [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
-            [4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
-            [5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
-            [6, { name: 'hwvs', desc: 'Hayward Eco/TriStar VS', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
-            [7, { name: 'hwrly', desc: 'Hayward Relay VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, maxSpeeds: 8, relays: [{ id: 1, name: 'Step #1' }, { id: 2, name: 'Step #2'}, { id: 3, name: 'Step #3' }, { id: 4, name: 'Pump On' }] }],
-            [100, { name: 'sf', desc: 'SuperFlo VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1, maxSpeeds: 4, relays: [{ id: 1, name: 'Program #1' }, { id: 2, name: 'Program #2' }, { id: 3, name: 'Program #3' }, { id: 4, name: 'Program #4' }]}]
+            [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 8, hasAddress: false, hasBody: false, maxRelays: 1, relays: [{ id: 1, name: 'Pump On/Off' }], addresses: []}],
+            [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 8, hasAddress: false, hasBody: false, maxRelays: 2, relays: [{ id: 1, name: 'Low Speed' }, { id: 2, name: 'High Speed' }], addresses: []}],
+            [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true, addresses: addrsPentairPump }],
+            [4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true, addresses: addrsPentairPump }],
+            [5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true, addresses: addrsPentairPump }],
+            [6, { name: 'hwvs', desc: 'Hayward Eco/TriStar VS', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true, addresses: addrsPentairPump }],
+            [7, { name: 'hwrly', desc: 'Hayward Relay VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, maxSpeeds: 8, relays: [{ id: 1, name: 'Step #1' }, { id: 2, name: 'Step #2'}, { id: 3, name: 'Step #3' }, { id: 4, name: 'Pump On' }], addresses: [] }],
+            [100, { name: 'sf', desc: 'SuperFlo VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1, maxSpeeds: 4, relays: [{ id: 1, name: 'Program #1' }, { id: 2, name: 'Program #2' }, { id: 3, name: 'Program #3' }, { id: 4, name: 'Program #4' }], addresses: [] }],
+            [200, { name: 'regalmodbus', desc: 'Regal Modbus', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true, addresses: addrsRegalModbusPump}],
         ]);
         // RSG - same as systemBoard definition; can delete.
         this.valueMaps.heatModes = new byteValueMap([
