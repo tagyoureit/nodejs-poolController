@@ -42,6 +42,7 @@ import { IntellichemMessage } from "./config/IntellichemMessage";
 import { TouchScheduleCommands } from "controller/boards/EasyTouchBoard";
 import { IntelliValveStateMessage } from "./status/IntelliValveStateMessage";
 import { IntelliChemStateMessage } from "./status/IntelliChemStateMessage";
+import { RegalModbusStateMessage } from "./status/RegalModbusStateMessage";
 import { OutboundMessageError } from "../../Errors";
 import { conn } from "../Comms"
 import extend = require("extend");
@@ -61,7 +62,8 @@ export enum Protocol {
     Heater = 'heater',
     AquaLink = 'aqualink',
     Hayward = 'hayward',
-    Unidentified = 'unidentified'
+    Unidentified = 'unidentified',
+    RegalModbus = 'regalmodbus'
 }
 export class Message {
     constructor() { }
@@ -105,6 +107,9 @@ export class Message {
                 //0x10, 0x02, 0x00, 0x0C, 0x00, 0x00, 0x2D, 0x02, 0x36, 0x00, 0x83, 0x10, 0x03 -- Response from pump
                 return this.header.length > 4 ? this.header[2] : -1;
             }
+            else if (this.protocol === Protocol.RegalModbus) {
+                return this.header.length > 0 ? this.header[0] : -1;
+            }
             else return this.header.length > 2 ? this.header[2] : -1;
         }
         else return -1;
@@ -128,6 +133,10 @@ export class Message {
             //0x10, 0x02, 0x0C, 0x01, 0x02, 0x2D, 0x00, 0x4E, 0x10, 0x03 -- Command to AUX2 Pump
             return this.header.length > 4 ? this.header[4] : -1;
         }
+        else if (this.protocol === Protocol.RegalModbus) {
+            // No source address in RegalModbus.
+            return -1;
+        }
         if (this.header.length > 3) return this.header[3];
         else return -1;
     }
@@ -141,10 +150,57 @@ export class Message {
             //0x10, 0x02, 0x0C, 0x01, 0x02, 0x2D, 0x00, 0x4E, 0x10, 0x03 -- Command to AUX2 Pump
             return this.header.length > 3 ? this.header[3] || this.header[2] : -1;
         }
+        else if (this.protocol === Protocol.RegalModbus) {
+            return this.header.length > 1 ? this.header[1]: -1;
+        }
+        else if (this.header.length > 4) return this.header[4];
+        else return -1;
         if (this.header.length > 4) return this.header[4];
         else return -1;
     }
-    public get datalen(): number { return this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink || this.protocol === Protocol.Hayward ? this.payload.length : this.header.length > 5 ? this.header[5] : -1; }
+    public get datalen(): number {
+        if (
+            this.protocol === Protocol.Chlorinator ||
+            this.protocol === Protocol.AquaLink ||
+            this.protocol === Protocol.Hayward
+        ) {
+            return this.payload.length;
+        }
+        else if (this.protocol === Protocol.RegalModbus) {
+            let action = this.action;
+            let ack = this.header[2];
+            switch (action) {
+                case 0x41: // Go
+                case 0x42: // Stop
+                    return 0;
+                case 0x43: // Status
+                    switch (ack) {
+                        case 0x10:
+                            return 1;
+                        case 0x20:
+                            return 0
+                    }
+                case 0x44:  // Set demand
+                    return 3;
+                case 0x45: // Read sensor
+                    switch (ack) {
+                        case 0x10:
+                            return 4;
+                        case 0x20:
+                            return 2;
+                    }
+                case 0x46:  // Read identification
+                    console.log("RegalModbus: Read identification not implemented yet.");
+                    break;
+                case 0x64:  // Configuration read/write
+                    console.log("RegalModbus: Configuration read/write not implemented yet.");
+                    break;
+                case 0x65:  // Store configuration
+                    return 0;
+            }
+        }
+        return this.header.length > 5 ? this.header[5] : -1;
+    }
     public get chkHi(): number { return this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink ? 0 : this.term.length > 0 ? this.term[0] : -1; }
     public get chkLo(): number { return this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink ? this.term[0] : this.term[1]; }
     public get checksum(): number {
@@ -249,8 +305,19 @@ export class Inbound extends Message {
     public rewinds: number = 0;
     // Private methods
     private isValidChecksum(): boolean {
-        if (this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink) return this.checksum % 256 === this.chkLo;
-        return (this.chkHi * 256) + this.chkLo === this.checksum;
+        switch (this.protocol) {
+            case Protocol.Chlorinator:
+            case Protocol.AquaLink:
+                return this.checksum % 256 === this.chkLo;
+            case Protocol.RegalModbus: {
+                const data = this.header.concat(this.payload);
+                const crcComputed = computeCRC16(data);
+                const crcReceived = (this.chkLo << 8) | this.chkHi;
+                return crcComputed === crcReceived;
+            }
+            default:
+                return (this.chkHi * 256) + this.chkLo === this.checksum;
+        }
     }
     public toLog() {
         if (this.responseFor.length > 0)
@@ -279,6 +346,26 @@ export class Inbound extends Message {
                     //logger.info(`Sensed out chlorinator header but the dst byte is ${dst} ${act} ${JSON.stringify(bytes)}`);
                     return false;
                 }
+                return true;
+            }
+        }
+        return false;
+    }
+    private testRegalModbusHeader(bytes: number[], ndx: number): boolean {
+        // RegalModbus protocol: header, function, ack, payload, crcLo, crcHi
+        if (bytes.length > ndx + 3 && sys.controllerType === 'nixie') {
+            // address must be in the range 0x15 to 0xF7
+            // function code must be in the range 0x00 to 0x7F
+            // ack must be in 0x10, 0x20, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x09, 0x0A
+            let addr = bytes[ndx];
+            let func = bytes[ndx + 1];
+            let ack = bytes[ndx + 2];
+            let acceptableAcks = [0x10, 0x20, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x09, 0x0A];
+
+            // logger.debug('Testing RegalModbus header', bytes, addr, func, ack, acceptableAcks.includes(ack));
+            // logger.debug(`Current bytes: ${JSON.stringify(bytes)}`);
+
+            if (addr >= 0x15 && addr <= 0xF7 && func >= 0x00 && func <= 0x7F && acceptableAcks.includes(ack)) {
                 return true;
             }
         }
@@ -412,6 +499,11 @@ export class Inbound extends Message {
                     this.protocol = Protocol.Hayward;
                     break;
                 }
+                if (this.testRegalModbusHeader(bytes, ndx)) {
+                    this.protocol = Protocol.RegalModbus;
+                    logger.debug(`RegalModbus header detected. ${JSON.stringify(bytes)}`);
+                    break;
+                }
                 this.padding.push(bytes[ndx++]);
             }
         }
@@ -496,6 +588,17 @@ export class Inbound extends Message {
                     return ndxHeader;
                 }
                 break;
+            case Protocol.RegalModbus:
+                ndx = this.pushBytes(this.header, bytes, ndx, 3);
+                if (this.header.length < 3) {
+                    // We actually don't have a complete header yet so just return.
+                    // we will pick it up next go around.
+                    logger.debug(`We have an incoming RegalModbus message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    this.preamble = [];
+                    this.header = [];
+                    return ndxHeader;
+                }
+                break;
             default:
                 // We didn't get a message signature. don't do anything with it.
                 ndx = ndxStart;
@@ -567,6 +670,17 @@ export class Inbound extends Message {
                     }
                 }
                 break;
+            case Protocol.RegalModbus:
+                // RegalModbus protocol: header, function, ack, payload, crcLo, crcHi
+                while (ndx + 3 <= bytes.length) {
+                    this.payload.push(bytes[ndx++]);
+                    if (this.payload.length > 11) {
+                        this.isValid = false; // We have a runaway packet.  Some collision occurred so lets preserve future packets.
+                        logger.debug(`RegalModbus message marked as invalid due to payload more than 11 bytes`);
+                        break;
+                    }
+                }
+                break;
 
         }
         return ndx;
@@ -580,6 +694,7 @@ export class Inbound extends Message {
             case Protocol.IntelliValve:
             case Protocol.IntelliChem:
             case Protocol.Heater:
+            case Protocol.RegalModbus:
             case Protocol.Unidentified:
                 // If we don't have enough bytes to make the terminator then continue on and
                 // hope we get them on the next go around.
@@ -810,6 +925,9 @@ export class Inbound extends Message {
             case Protocol.Hayward:
                 PumpStateMessage.processHayward(this);
                 break;
+            case Protocol.RegalModbus:
+                RegalModbusStateMessage.process(this);
+                break;
             default:
                 logger.debug(`Unprocessed Message ${this.toPacket()}`)
                 break;
@@ -822,6 +940,7 @@ class OutboundCommon extends Message {
     public set dest(val: number) {
         if (this.protocol === Protocol.Chlorinator) this.header[2] = val;
         else if (this.protocol === Protocol.Hayward) this.header[4] = val;
+        else if (this.protocol === Protocol.RegalModbus) this.header[0] = val;
         else this.header[2] = val;
     }
     public get dest() { return super.dest; }
@@ -831,6 +950,8 @@ class OutboundCommon extends Message {
                 break;
             case Protocol.Hayward:
                 this.header[3] = val;
+                break;
+            case Protocol.RegalModbus:
                 break;
             default:
                 this.header[3] = val;
@@ -848,13 +969,20 @@ class OutboundCommon extends Message {
             case Protocol.Hayward:
                 this.header[2] = val;
                 break;
+            case Protocol.RegalModbus:
+                this.header[1] = val;
+                break;
             default:
                 this.header[4] = val;
                 break;
         }
     }
     public get action() { return super.action; }
-    public set datalen(val: number) { if (this.protocol !== Protocol.Chlorinator && this.protocol !== Protocol.Hayward) this.header[5] = val; }
+    public set datalen(val: number) { 
+        if (this.protocol !== Protocol.Chlorinator && this.protocol !== Protocol.Hayward && this.protocol !== Protocol.RegalModbus) {
+            this.header[5] = val; 
+        }
+    }
     public get datalen() { return super.datalen; }
     public set chkHi(val: number) { if (this.protocol !== Protocol.Chlorinator) this.term[0] = val; }
     public get chkHi() { return super.chkHi; }
@@ -878,6 +1006,16 @@ class OutboundCommon extends Message {
             case Protocol.AquaLink:
             case Protocol.Chlorinator:
                 this.term[0] = sum % 256;
+                break;
+            case Protocol.RegalModbus:
+                // Calculate checksum using the CRC16 algorithm and set chkHi and chkLo.
+                // This.payload is expected to be an array of numbers (byte values 0–255)
+                // combine header and payload for CRC calculation
+                let data: number[] = this.header.concat(this.payload);
+                const crc: number = computeCRC16(data);
+                // Extract the high and low bytes from the 16-bit CRC:
+                this.chkLo = (crc >> 8) & 0xFF;
+                this.chkHi = crc & 0xFF;
                 break;
         }
     }
@@ -910,6 +1048,9 @@ export class Outbound extends OutboundCommon {
         else if (proto === Protocol.Hayward) {
             this.header.push.apply(this.header, [16, 2, 0, 0, 0]);
             this.term.push.apply(this.term, [0, 0, 16, 3]);
+        }
+        else if (proto === Protocol.RegalModbus) {
+            this.header.push.apply(this.header, [this.dest, this.action, 0x20]);
         }
         this.scope = scope;
         this.source = source;
@@ -1184,6 +1325,12 @@ export class Response extends OutboundCommon {
                     return false;
             }
         }
+        else if (msgIn.protocol === Protocol.RegalModbus) {
+            // RegalModbus is a little different.  The action is the function code and the payload is the data.
+            // We are looking for a match on the action an ack of 0x10.
+            if (msgIn.action === msgOut.action && msgIn.header[2] === 0x10) return true;
+            return false;
+        }
         else if (msgIn.protocol === Protocol.Chlorinator) {
             switch (msgIn.action) {
                 case 1:
@@ -1240,4 +1387,20 @@ export class Response extends OutboundCommon {
             return true;
         }
     }
+}
+
+/**
+ * Computes the CRC16 checksum over an array of bytes using the RegalModbus algorithm.
+ * @param data - The array of byte values (numbers between 0 and 255).
+ * @returns The computed 16-bit checksum.
+ */
+export function computeCRC16(data: number[]): number {
+    let crc = 0xFFFF;
+    for (const byte of data) {
+        crc ^= byte;
+        for (let j = 0; j < 8; j++) {
+            crc = (crc & 0x0001) ? (crc >> 1) ^ 0xA001 : crc >> 1;
+        }
+    }
+    return crc;
 }

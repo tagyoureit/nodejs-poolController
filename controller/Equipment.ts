@@ -1478,7 +1478,7 @@ export class Pump extends EqItem {
     public set id(val: number) { this.setDataVal('id', val); }
     public get portId(): number { return this.data.portId; }
     public set portId(val: number) { this.setDataVal('portId', val); }
-    public get address(): number { return this.data.address || this.data.id + 95; }
+    public get address(): number { return this.data.address; }
     public set address(val: number) { this.setDataVal('address', val); }
     public get name(): string { return this.data.name; }
     public set name(val: string) { this.setDataVal('name', val); }
