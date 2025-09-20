@@ -30,6 +30,8 @@ ENV NODE_ENV=production
 # Use existing 'node' user from base image; just ensure work directory exists
 WORKDIR /app
 RUN mkdir -p /app
+RUN mkdir -p /app/logs /app/data /app/backups /app/web/bindings/custom \
+	&& chown -R node:node /app/logs /app/data /app/backups /app/web/bindings /app/web/bindings/custom || true
 
 # Copy only the necessary runtime artifacts from build stage
 COPY --chown=node:node --from=build /app/package*.json ./
