@@ -9,17 +9,17 @@ services:
     environment:
       - TZ=${TZ:-UTC}
       - NODE_ENV=production
-      # Example overrides (uncomment and adjust as supported by Config.getEnvVariables())
+      # Example overrides as supported by Config.getEnvVariables()
       # - POOL_WEB_SERVERS_HTTP_PORT=4200
     ports:
       - "4200:4200"   # HTTP
       - "4201:4201"   # HTTPS (if enabled)
+
     #volumes:
     #  - ./data:/app/data
     #  - ./backups:/app/backups
     #  - ./logs:/app/logs
-    #  - ./bindings:/app/web/bindings/custom
-    #
+
     # Map RS-485 USB adapter if present, adjust device path
     # devices:
-    #   - /dev/ttyUSB0:/dev/ttyUSB0
+    #   - /dev/ttyACM0:/dev/ttyUSB0
