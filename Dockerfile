@@ -27,10 +27,9 @@ RUN npm prune --production
 FROM node:20-alpine AS prod
 ENV NODE_ENV=production
 
-# Create and set ownership (keep non-root user)
-RUN addgroup -g 1000 -S nodegroup && adduser -S node -G nodegroup -u 1000 \
-		&& mkdir /app && chown node:node /app
+# Use existing 'node' user from base image; just ensure work directory exists
 WORKDIR /app
+RUN mkdir -p /app
 
 # Copy only the necessary runtime artifacts from build stage
 COPY --chown=node:node --from=build /app/package*.json ./
