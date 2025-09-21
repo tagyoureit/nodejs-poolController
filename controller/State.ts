@@ -393,8 +393,18 @@ export class State implements IState {
             self.data.time = self._dt.format();
             self.hasChanged = true;
             self.heliotrope.date = self._dt.toDate();
-            self.heliotrope.longitude = sys.general.location.longitude;
-            self.heliotrope.latitude = sys.general.location.latitude;
+            // Provide safe access & environment fallback for coordinates
+            const loc = sys?.general?.location || {} as any;
+            let lon = loc.longitude;
+            let lat = loc.latitude;
+            if (typeof lon !== 'number' || typeof lat !== 'number') {
+                const envLat = process.env.POOL_LATITUDE ? parseFloat(process.env.POOL_LATITUDE) : undefined;
+                const envLon = process.env.POOL_LONGITUDE ? parseFloat(process.env.POOL_LONGITUDE) : undefined;
+                if (typeof lon !== 'number' && typeof envLon === 'number' && !isNaN(envLon)) lon = envLon;
+                if (typeof lat !== 'number' && typeof envLat === 'number' && !isNaN(envLat)) lat = envLat;
+            }
+            self.heliotrope.longitude = lon;
+            self.heliotrope.latitude = lat;
             let times = self.heliotrope.calculatedTimes;
             self.data.sunrise = times.isValid ? Timestamp.toISOLocal(times.sunrise) : '';
             self.data.sunset = times.isValid ? Timestamp.toISOLocal(times.sunset) : '';
