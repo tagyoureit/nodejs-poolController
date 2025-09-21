@@ -189,6 +189,26 @@ class Config {
             this._cfg.controller.comms.netPort = env.POOL_NET_PORT;
             bUpdate = true;
         }
+        // Allow overriding location coordinates for heliotrope calculations
+        if (typeof env.POOL_LATITUDE !== 'undefined') {
+            const lat = parseFloat(env.POOL_LATITUDE as any);
+            if (!isNaN(lat) && (!this._cfg.controller?.general?.location || this._cfg.controller.general.location.latitude !== lat)) {
+                // Ensure nested objects exist
+                this._cfg.controller.general = this._cfg.controller.general || {};
+                this._cfg.controller.general.location = this._cfg.controller.general.location || {};
+                this._cfg.controller.general.location.latitude = lat;
+                bUpdate = true;
+            }
+        }
+        if (typeof env.POOL_LONGITUDE !== 'undefined') {
+            const lon = parseFloat(env.POOL_LONGITUDE as any);
+            if (!isNaN(lon) && (!this._cfg.controller?.general?.location || this._cfg.controller.general.location.longitude !== lon)) {
+                this._cfg.controller.general = this._cfg.controller.general || {};
+                this._cfg.controller.general.location = this._cfg.controller.general.location || {};
+                this._cfg.controller.general.location.longitude = lon;
+                bUpdate = true;
+            }
+        }
         if (bUpdate) this.updateAsync();
     }
 }
