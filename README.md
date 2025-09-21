@@ -81,6 +81,87 @@ Assuming you cloned the repo, the following are easy steps to get the latest ver
 
 See the [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/Docker). Thanks @wurmr @andylippitt @emes.
 
+### Docker Compose (Controller + Optional dashPanel UI)
+
+Below is an example `docker-compose.yml` snippet showing this controller (`njspc`) and an OPTIONAL dashPanel UI service (`njspc-dash`). The dashPanel image is published separately; uncomment if you want a built-in web dashboard on port 5150.
+
+```yaml
+services:
+   njspc:
+      image: ghcr.io/sam2kb/njspc
+      container_name: njspc
+      restart: unless-stopped
+      environment:
+         - TZ=${TZ:-UTC}
+         - NODE_ENV=production
+         # Serial vs network connection options
+         # - POOL_NET_CONNECT=true
+         # - POOL_NET_HOST=raspberrypi
+         # - POOL_NET_PORT=9801
+         # Provide coordinates so sunrise/sunset (heliotrope) works immediately - change as needed
+         - POOL_LATITUDE=28.5383
+         - POOL_LONGITUDE=-81.3792
+      ports:
+         - "4200:4200"
+      devices:
+         - /dev/ttyACM0:/dev/ttyUSB0
+      # Persistence (create host directories/files first)
+      volumes:
+         - ./config/config.json:/app/config.json   # Persisted config file on host
+         - njspc-data:/app/data                    # State & equipment snapshots
+         - njspc-backups:/app/backups              # Backup archives
+         - njspc-logs:/app/logs                    # Logs
+         - njspc-bindings:/app/web/bindings/custom # Custom bindings
+      # OPTIONAL: If you get permission errors accessing /dev/tty*, prefer adding the container user to the host dialout/uucp group;
+      # only as a last resort temporarily uncomment the two lines below to run privileged/root (less secure).
+      # privileged: true
+      # user: "0:0"
+
+   njspc-dash:
+     image: ghcr.io/sam2kb/njspc-dash
+     container_name: njspc-dash
+     restart: unless-stopped
+     depends_on:
+       - njspc
+     environment:
+       - TZ=${TZ:-UTC}
+       - NODE_ENV=production
+       - POOL_WEB_SERVICES_IP=njspc      # Link to backend service name
+     ports:
+       - "5150:5150"
+     volumes:
+       - ./dash-config/config.json:/app/config.json
+       - njspc-dash-data:/app/data
+       - njspc-dash-logs:/app/logs
+       - njspc-dash-uploads:/app/uploads
+
+volumes:
+  njspc-data:
+  njspc-backups:
+  njspc-logs:
+  njspc-bindings:
+  njspc-dash-data:
+  njspc-dash-logs:
+  njspc-dash-uploads:
+```
+
+Quick start:
+1. Save compose file.
+2. (Optional) create `dash-config/` and seed config: `mkdir -p dash-config && touch dash-config/config.json`.
+3. `docker compose up -d` (uncomment dashPanel section first if desired).
+4. Visit controller API: `http://localhost:4200` (root may 404—use real endpoints). Dash UI (if enabled): `http://localhost:5150`.
+
+Notes:
+* Provide either RS-485 device OR enable network (ScreenLogic) connection.
+* Coordinates env vars prevent heliotrope warnings before the panel reports location.
+* Persistence (controller):
+   * `./config/config.json:/app/config.json` main runtime config (seed with copy of `defaultConfig.json` if starting fresh: `mkdir -p config && cp defaultConfig.json config/config.json`).
+   * `./data:/app/data` holds `poolConfig.json`, `poolState.json` and other generated state artifacts.
+   * `./backups:/app/backups` backup archives created via API/UI.
+   * `./logs:/app/logs` packet and console logs (size manage by rotation elsewhere—consider external log shipping for long term).
+   * `./bindings:/app/web/bindings/custom` custom interface binding JSON definitions.
+* If you instead prefer Docker named volumes, comment the bind mounts and define named volumes section (see compose file comments).
+
 ### Automate startup of app
 See the [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/Automatically-start-at-boot---PM2-&-Systemd).
 
