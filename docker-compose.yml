@@ -1,25 +1,26 @@
 services:
-  njpc:
+  njspc:
     build:
       context: .
       dockerfile: Dockerfile
-    image: njpc:local
-    container_name: njpc
+    image: njspc:local
+    container_name: njspc
     restart: unless-stopped
+    ports:
+      - "4200:4200"
+    #  - "4201:4201"   # HTTPS (if enabled)
     environment:
       - TZ=${TZ:-UTC}
       - NODE_ENV=production
       # Example overrides as supported by Config.getEnvVariables()
       # - POOL_WEB_SERVERS_HTTP_PORT=4200
-    ports:
-      - "4200:4200"   # HTTP
-      - "4201:4201"   # HTTPS (if enabled)
-
-    #volumes:
-    #  - ./data:/app/data
-    #  - ./backups:/app/backups
-    #  - ./logs:/app/logs
+      # Disable network connection and use local serial (rs485)
+      - POOL_NET_CONNECT=false
+      # For direct serial override:
+      - POOL_RS485_PORT=/dev/ttyUSB0
+      - POOL_LATITUDE=28.5383   # Default to Orlando, FL - change as needed
+      - POOL_LONGITUDE=-81.3792 # Default to Orlando, FL - change as needed
 
     # Map RS-485 USB adapter if present, adjust device path
-    # devices:
-    #   - /dev/ttyACM0:/dev/ttyUSB0
+    devices:
+      - /dev/ttyACM0:/dev/ttyUSB0
