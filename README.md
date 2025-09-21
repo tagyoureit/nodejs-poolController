@@ -155,12 +155,15 @@ Notes:
 * Provide either RS-485 device OR enable network (ScreenLogic) connection.
 * Coordinates env vars prevent heliotrope warnings before the panel reports location.
 * Persistence (controller):
-   * `./config/config.json:/app/config.json` main runtime config (seed with copy of `defaultConfig.json` if starting fresh: `mkdir -p config && cp defaultConfig.json config/config.json`).
-   * `./data:/app/data` holds `poolConfig.json`, `poolState.json` and other generated state artifacts.
-   * `./backups:/app/backups` backup archives created via API/UI.
-   * `./logs:/app/logs` packet and console logs (size manage by rotation elsewhere—consider external log shipping for long term).
-   * `./bindings:/app/web/bindings/custom` custom interface binding JSON definitions.
-* If you instead prefer Docker named volumes, comment the bind mounts and define named volumes section (see compose file comments).
+   * `./config/config.json:/app/config.json` main runtime config. You can either:
+      * Seed it with a copy of `defaultConfig.json` (`mkdir -p config && cp defaultConfig.json config/config.json`), OR
+      * Start with an empty file (or no file) and the app will auto-populate it from defaults on first launch. If the file exists but contains invalid JSON it will be backed up to `config.corrupt-<timestamp>.json` and regenerated.
+   * Remaining state (data, backups, logs, custom bindings) is typically stored in named volumes in the provided compose for cleaner host directories. If you prefer bind mounts instead, replace the named volumes with host paths similar to the example below.
+   * Data artifacts: `poolConfig.json`, `poolState.json` etc. live under `/app/data` (volume `njspc-data`).
+   * Backups: `/app/backups` (volume `njspc-backups`).
+   * Logs: `/app/logs` (volume `njspc-logs`).
+   * Custom bindings: `/app/web/bindings/custom` (volume `njspc-bindings`).
+* To migrate from bind mounts to named volumes, stop the stack, `docker run --rm -v oldPath:/from -v newVolume:/to alpine sh -c 'cp -a /from/. /to/'` for each path, then update compose.
 
 ### Automate startup of app
 See the [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/Automatically-start-at-boot---PM2-&-Systemd).
