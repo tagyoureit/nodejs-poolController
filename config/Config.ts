@@ -36,21 +36,52 @@ class Config {
         // RKS 05-18-20: This originally had multiple points of failure where it was not in the try/catch.
         try {
             this._isLoading = true;
-            this._cfg = fs.existsSync(this.cfgPath) ? JSON.parse(fs.readFileSync(this.cfgPath, "utf8").trim()) : {};
+            // Read user config (if present) with graceful handling of empty or invalid JSON.
+            let userCfg: any = {};
+            if (fs.existsSync(this.cfgPath)) {
+                try {
+                    const raw = fs.readFileSync(this.cfgPath, "utf8");
+                    const trimmed = raw.trim();
+                    if (trimmed.length > 0) userCfg = JSON.parse(trimmed);
+                    else {
+                        console.log(`Config file '${ this.cfgPath }' is empty. Populating with defaults.`);
+                    }
+                } catch (parseErr: any) {
+                    // Backup corrupt file then continue with defaults.
+                    try {
+                        const backupName = this.cfgPath.replace(/\.json$/i, `.corrupt-${ Date.now() }.json`);
+                        fs.copyFileSync(this.cfgPath, backupName);
+                        console.log(`Config file '${ this.cfgPath }' contained invalid JSON and was backed up to '${ backupName }'. Using defaults.`);
+                    } catch (backupErr: any) {
+                        console.log(`Failed to backup corrupt config file '${ this.cfgPath }': ${ backupErr.message }`);
+                    }
+                    userCfg = {};
+                }
+            }
             const def = JSON.parse(fs.readFileSync(path.join(process.cwd(), "/defaultConfig.json"), "utf8").trim());
             const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), "/package.json"), "utf8").trim());
-            this._cfg = extend(true, {}, def, this._cfg, { appVersion: packageJson.version });
+            this._cfg = extend(true, {}, def, userCfg, { appVersion: packageJson.version });
             this._isInitialized = true;
             this.updateAsync((err) => {
                 if (typeof err === 'undefined') {
                     fs.watch(this.cfgPath, (event, fileName) => {
                         if (fileName && event === 'change') {
-                            if (self._isLoading) return; // Need a debounce here.  We will use a semaphore to cause it not to load more than once.
+                            if (self._isLoading) return; // Debounce via semaphore.
                             console.log('Updating config file');
                             const stats = fs.statSync(self.cfgPath);
                             if (stats.mtime.valueOf() === self._fileTime.valueOf()) return;
-                            this._cfg = fs.existsSync(this.cfgPath) ? JSON.parse(fs.readFileSync(this.cfgPath, "utf8")) : {};
-                            this._cfg = extend(true, {}, def, this._cfg, { appVersion: packageJson.version });
+                            let changedCfg: any = {};
+                            if (fs.existsSync(self.cfgPath)) {
+                                try {
+                                    const raw2 = fs.readFileSync(self.cfgPath, "utf8");
+                                    const trimmed2 = raw2.trim();
+                                    if (trimmed2.length > 0) changedCfg = JSON.parse(trimmed2);
+                                    else console.log(`Watched config file is empty; continuing with defaults + existing overrides.`);
+                                } catch (e: any) {
+                                    console.log(`Error parsing updated config file. Retaining existing configuration. Error: ${ e.message }`);
+                                }
+                            }
+                            this._cfg = extend(true, {}, def, changedCfg, { appVersion: packageJson.version });
                             logger.init(); // only reload logger for now; possibly expand to other areas of app
                             logger.info(`Reloading app config: ${fileName}`);
                             this.emitter.emit('reloaded', this._cfg);
@@ -63,8 +94,7 @@ class Config {
             this.getEnvVariables();
         } catch (err) {
             console.log(`Error reading configuration information.  Aborting startup: ${ err }`);
-            // Rethrow this error so we exit the app with the appropriate pause in the console.
-            throw err;
+            throw err; // Only throw if defaults/package.json could not be read.
         }
     }
     public async updateAsync(callback?: (err?) => void) {
