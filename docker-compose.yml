@@ -20,7 +20,7 @@ services:
       - /dev/ttyACM0:/dev/ttyUSB0
     # Persistence (create host directories/files first)
     volumes:
-      - ./config/config.json:/app/config.json   # Persisted config file on host
+      - ./server-config.json:/app/config.json   # Persisted config file on host
       - njspc-data:/app/data                    # State & equipment snapshots
       - njspc-backups:/app/backups              # Backup archives
       - njspc-logs:/app/logs                    # Logs

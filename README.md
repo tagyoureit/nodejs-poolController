@@ -107,7 +107,7 @@ services:
          - /dev/ttyACM0:/dev/ttyUSB0
       # Persistence (create host directories/files first)
       volumes:
-         - ./config/config.json:/app/config.json   # Persisted config file on host
+         - ./server-config.json:/app/config.json   # Persisted config file on host
          - njspc-data:/app/data                    # State & equipment snapshots
          - njspc-backups:/app/backups              # Backup archives
          - njspc-logs:/app/logs                    # Logs
@@ -130,7 +130,7 @@ services:
      ports:
        - "5150:5150"
      volumes:
-       - ./dash-config/config.json:/app/config.json
+       - ./dash-config.json:/app/config.json
        - njspc-dash-data:/app/data
        - njspc-dash-logs:/app/logs
        - njspc-dash-uploads:/app/uploads
@@ -147,17 +147,17 @@ volumes:
 
 Quick start:
 1. Save compose file.
-2. (Optional) create `dash-config/` and seed config: `mkdir -p dash-config && touch dash-config/config.json`.
-3. `docker compose up -d` (uncomment dashPanel section first if desired).
-4. Visit controller API: `http://localhost:4200` (root may 404—use real endpoints). Dash UI (if enabled): `http://localhost:5150`.
+2. (Optional) create an empty config file: `touch dash-config.json`.
+3. `docker compose up -d`
+4. Visit Dash UI at: `http://localhost:5150`.
 
 Notes:
 * Provide either RS-485 device OR enable network (ScreenLogic) connection.
 * Coordinates env vars prevent heliotrope warnings before the panel reports location.
 * Persistence (controller):
-   * `./config/config.json:/app/config.json` main runtime config. You can either:
-      * Seed it with a copy of `defaultConfig.json` (`mkdir -p config && cp defaultConfig.json config/config.json`), OR
-      * Start with an empty file (or no file) and the app will auto-populate it from defaults on first launch. If the file exists but contains invalid JSON it will be backed up to `config.corrupt-<timestamp>.json` and regenerated.
+   * `./server-config.json:/app/config.json` main runtime config. You can either:
+      * Seed it with a copy of `defaultConfig.json` (`cp defaultConfig.json server-config.json`), OR
+      * Start with an empty file and the app will auto-populate it from defaults on first launch. If the file exists but contains invalid JSON it will be backed up to `config.corrupt-<timestamp>.json` and regenerated.
    * Remaining state (data, backups, logs, custom bindings) is typically stored in named volumes in the provided compose for cleaner host directories. If you prefer bind mounts instead, replace the named volumes with host paths similar to the example below.
    * Data artifacts: `poolConfig.json`, `poolState.json` etc. live under `/app/data` (volume `njspc-data`).
    * Backups: `/app/backups` (volume `njspc-backups`).
