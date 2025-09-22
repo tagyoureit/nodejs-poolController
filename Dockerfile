@@ -48,7 +48,7 @@ USER node
 EXPOSE 4200 4201
 
 # Basic healthcheck (container considered healthy if process responds to tcp socket open)
-HEALTHCHECK --interval=60s --timeout=5s --start-period=30s --retries=3 \
-	CMD node -e 'require("net").createConnection({host:"127.0.0.1",port:4200},c=>{c.end();process.exit(0)}).on("error",()=>process.exit(1))' || exit 1
+HEALTHCHECK --interval=45s --timeout=6s --start-period=40s --retries=4 \
+	CMD node -e "const n=require('net');const s=n.createConnection({host:'127.0.0.1',port:4200},()=>{s.end();process.exit(0)});s.on('error',()=>process.exit(1));setTimeout(()=>{s.destroy();process.exit(1)},5000);" || exit 1
 
 ENTRYPOINT ["node", "dist/app.js"]
