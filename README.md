@@ -222,6 +222,29 @@ Most of these can be configured directly from the UI in dashPanel.
 * `netConnect` - used to connect via [Socat](https://github.com/tagyoureit/nodejs-poolController/wiki/Socat)
   * `netHost` and `netPort` - host and port for Socat connection.
 * `inactivityRetry` - # of seconds the app should wait before trying to reopen the port after no communications.  If your equipment isn't on all the time or you are running a virtual controller you may want to dramatically increase the timeout so you don't get console warnings.
+* `txDelays` - (optional) fine‑grained transmit pacing controls added in 8.1+ to better coexist with busy or bridged (socat / multiple panel / dual chlorinator) RS‑485 buses.  These values are all in milliseconds.  If the block is omitted, internal defaults are used (see `defaultConfig.json`).  All values can be hot‑reloaded from config.
+   * `idleBeforeTxMs` – Minimum quiet time on the bus (no RX or TX seen) before a new outbound frame may start.  Helps avoid collisions just after another device finishes talking.  Typical: 40‑80.  Set to 0 to disable.
+   * `interFrameDelayMs` – Delay inserted between completed outbound attempts (success, retry scheduling, or queue drain) and evaluation of the next outbound message.  Replaces the previous fixed 100ms.  Typical: 30‑75.  Lower values increase throughput but may raise collision / rewind counts.
+   * `interByteDelayMs` – Optional per‑byte pacing inside a single frame.  Normally 0 (disabled).  Set to 1‑2ms only if you observe hardware or USB adapter overruns, or are experimenting with very marginal wiring / long cable runs.
+
+Example tuning block - more conservative pacing for SunTouch that works way better than defaults:
+
+```json
+"txDelays": {
+   "idleBeforeTxMs": 60,
+   "interFrameDelayMs": 50,
+   "interByteDelayMs": 1
+}
+```
+
+Tuning guidance:
+- Start with the defaults. Only change one value at a time and observe stats (collisions, retries, rewinds) via rs485PortStats.
+- If you see frequent outbound retries or receive rewinds, first raise `idleBeforeTxMs` in small steps (e.g. +10ms) before touching `interFrameDelayMs`.
+- If overall throughput feels sluggish but collisions are low, you may lower `interFrameDelayMs` gradually.
+- Use `interByteDelayMs` only as a last resort; it elongates every frame and reduces total bus capacity.
+- Setting any value too high will simply slow configuration bursts (e.g. on startup); setting them too low can cause more retries and ultimately lower effective throughput.
+
+All three parameters are safe to adjust without restarting; edits to `config.json` are picked up by the existing config watcher.
 
 ## Web section - controls various aspects of external communications
 * `servers` - setting for different servers/services
