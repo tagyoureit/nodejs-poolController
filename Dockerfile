@@ -1,6 +1,10 @@
 ### Build stage
 FROM node:20-alpine AS build
 LABEL maintainer="nodejs-poolController"
+LABEL org.opencontainers.image.title="nodejs-poolController"
+LABEL org.opencontainers.image.description="Bridge Pentair / compatible pool automation equipment to modern interfaces (REST, WebSockets, MQTT, Influx, Rules)."
+LABEL org.opencontainers.image.licenses="AGPL-3.0-only"
+LABEL org.opencontainers.image.source="https://github.com/tagyoureit/nodejs-poolController"
 
 # Install build toolchain only for native deps (serialport, etc.)
 RUN apk add --no-cache make gcc g++ python3 linux-headers udev tzdata git
@@ -25,6 +29,10 @@ RUN npm prune --production
 
 ### Runtime stage
 FROM node:20-alpine AS prod
+LABEL org.opencontainers.image.title="nodejs-poolController"
+LABEL org.opencontainers.image.description="Bridge Pentair / compatible pool automation equipment to modern interfaces (REST, WebSockets, MQTT, Influx, Rules)."
+LABEL org.opencontainers.image.licenses="AGPL-3.0-only"
+LABEL org.opencontainers.image.source="https://github.com/tagyoureit/nodejs-poolController"
 ENV NODE_ENV=production
 
 # Use existing 'node' user from base image; just ensure work directory exists
