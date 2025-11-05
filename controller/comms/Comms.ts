@@ -526,6 +526,8 @@ export class RS485Port {
     private procTimer: NodeJS.Timeout;
     public writeTimer: NodeJS.Timeout
     private _processing: boolean = false;
+    private _lastTx: number = 0;
+    private _lastRx: number = 0;
     private _inBytes: number[] = [];
     private _inBuffer: number[] = [];
     private _outBuffer: Outbound[] = [];
@@ -897,7 +899,9 @@ export class RS485Port {
     }
     // make public for now; should enable writing directly to mock port at Conn level...
     public pushIn(pkt: Buffer) {
-        this._inBuffer.push.apply(this._inBuffer, pkt.toJSON().data); if (sys.isReady) setImmediate(() => { this.processPackets(); });
+        this._inBuffer.push.apply(this._inBuffer, pkt.toJSON().data);
+        this._lastRx = Date.now();
+        if (sys.isReady) setImmediate(() => { this.processPackets(); });
     }
     private pushOut(msg) {
         this._outBuffer.push(msg); setImmediate(() => { this.processPackets(); });
@@ -988,9 +992,11 @@ export class RS485Port {
         // but this condition would be eval'd before the callback of port.write was calls and the outbound packet
         // would be sitting idle for eternity. 
         if (this._outBuffer.length > 0 || typeof this._waitingPacket !== 'undefined' || this._waitingPacket || typeof msg !== 'undefined') {
-            // Come back later as we still have items to send.
+            // Configurable inter-frame delay (default 30ms) overrides fixed 100ms.
+            const dCfg = (config.getSection('controller').txDelays || {});
+            const interFrame = Math.max(0, Number(dCfg.interFrameDelayMs || 30));
             let self = this;
-            this.procTimer = setTimeout(() => self.processPackets(), 100);
+            this.procTimer = setTimeout(() => self.processPackets(), interFrame);
         }
     }
     private writeMessage(msg: Outbound) {
@@ -1022,10 +1028,44 @@ export class RS485Port {
                     this.isRTS = true;
                     return;
                 }
-                this.counter.bytesSent += bytes.length;
-                msg.timestamp = new Date();
-                logger.packet(msg);
-                this.write(msg, (err) => {
+                const dCfg = (config.getSection('controller').txDelays || {});
+                const idleBeforeTx = Math.max(0, Number(dCfg.idleBeforeTxMs || 0));
+                const interByte = Math.max(0, Number(dCfg.interByteDelayMs || 0));
+                const now = Date.now();
+                const idleElapsed = now - Math.max(this._lastTx, this._lastRx);
+                const doWrite = () => {
+                    this.counter.bytesSent += bytes.length;
+                    msg.timestamp = new Date();
+                    logger.packet(msg);
+                    if (interByte > 0 && bytes.length > 1 && this._port && (this._port instanceof SerialPort || this._port instanceof SerialPortMock)) {
+                        // Manual inter-byte pacing
+                        let idx = 0;
+                        const writeNext = () => {
+                            if (idx >= bytes.length) {
+                                this._lastTx = Date.now();
+                                completeWrite(undefined);
+                                return;
+                            }
+                            const b = Buffer.from([bytes[idx++]]);
+                            (this._port as any).write(b, (err) => {
+                                if (err) {
+                                    this._lastTx = Date.now();
+                                    completeWrite(err);
+                                    return;
+                                }
+                                if (interByte > 0) setTimeout(writeNext, interByte);
+                                else setImmediate(writeNext);
+                            });
+                        };
+                        writeNext();
+                    } else {
+                        this.write(msg, (err) => {
+                            this._lastTx = Date.now();
+                            completeWrite(err);
+                        });
+                    }
+                };
+                const completeWrite = (err?: Error) => {
                     clearTimeout(this.writeTimer);
                     this.writeTimer = null;
                     msg.tries++;
@@ -1042,7 +1082,6 @@ export class RS485Port {
                             self._waitingPacket = null;
                             self.counter.sndAborted++;
                         }
-                        return;
                     }
                     else {
                         logger.verbose(`Wrote packet [Port ${this.portId} id: ${msg.id}] [${bytes}].Retries remaining: ${msg.remainingTries} `);
@@ -1053,15 +1092,17 @@ export class RS485Port {
                             self._waitingPacket = null;
                             self.counter.sndSuccess++;
                             if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
-
                         }
-                        else if (msg.remainingTries >= 0) {
-                            self._waitingPacket = msg;
-                        }
+                        else if (msg.remainingTries >= 0) self._waitingPacket = msg;
                     }
                     self.counter.updatefailureRate();
                     self.emitPortStats();
-                });
+                };
+                // Honor idle-before-TX if not enough bus quiet time has elapsed
+                if (idleBeforeTx > 0 && idleElapsed < idleBeforeTx) {
+                    const wait = idleBeforeTx - idleElapsed;
+                    setTimeout(doWrite, wait);
+                } else doWrite();
             }
         }
         catch (err) {

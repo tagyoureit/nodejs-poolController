@@ -1,0 +1,32 @@
+services:
+  njspc:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: njspc:local
+    container_name: njspc
+    restart: unless-stopped
+    ports:
+      - "4200:4200"
+    environment:
+      - TZ=${TZ:-UTC}
+      - NODE_ENV=production
+      # Example overrides as supported by Config.getEnvVariables()
+      # - POOL_WEB_SERVERS_HTTP_PORT=4200
+      # Disable network connection and use local serial (rs485)
+      - POOL_NET_CONNECT=false
+    # Map RS-485 USB adapter if present, adjust device path
+    devices:
+      - /dev/ttyACM0:/dev/ttyUSB0
+    # Persistence (create host directories/files first)
+    volumes:
+      - ./server-config.json:/app/config.json   # Persisted config file on host
+      - njspc-data:/app/data                    # State & equipment snapshots
+      - njspc-backups:/app/backups              # Backup archives
+      - njspc-logs:/app/logs                    # Logs
+      - njspc-bindings:/app/web/bindings/custom # Custom bindings
+volumes:
+  njspc-data:
+  njspc-backups:
+  njspc-logs:
+  njspc-bindings:

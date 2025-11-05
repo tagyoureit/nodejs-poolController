@@ -1,5 +1,15 @@
 # Changelog
 
+## 8.3.0 (UNRELEASED)
+1. Configurable RS‑485 transmit pacing via new `controller.txDelays` for finer collision avoidance and throughput tuning.
+2. Startup & config resilience: empty or invalid `config.json` now auto‑recreated from defaults, corrupt originals backed up.
+3. Latitude / longitude environment overrides to eliminate early heliotrope warnings prior to UI configuration.
+4. Version check enhancements: git detection, safer redirects, throttled polling, warning suppression.
+5. Docker improvements: fixed Dockerfile and added docker‑compose example with named volumes & environment variable guidance.
+6. Add workflow to build and publish docker images to GitHub Container registry.
+7. Runtime requirements: elevated minimum Node.js version to 20+, safe dependency and security/patch updates.
+8. Documentation updates.
+
 ## 8.1.0
 1. Support for dual chlorinators with REM chem controllers.  It is now possible to have two separate chlorinators controlled in 'dynamic' mode by two separate REM chems.  Note: In order for REM chem to control each chlorinator, each needs to be on a dedicated RS-485 port (not shared with an OCP or any other chlorinator).
 

@@ -28,10 +28,24 @@ class VersionCheck {
     private gitApiHost: string;
     private gitLatestReleaseJSONPath: string;
     private redirects: number;
+    private gitAvailable: boolean;
+    private warnedBranch: boolean = false;
+    private warnedCommit: boolean = false;
     constructor() {
         this.userAgent = 'tagyoureit-nodejs-poolController-app';
         this.gitApiHost = 'api.github.com';
         this.gitLatestReleaseJSONPath = '/repos/tagyoureit/nodejs-poolController/releases/latest';
+        this.gitAvailable = this.detectGit();
+        // NOTE:
+        //  * SOURCE_BRANCH / SOURCE_COMMIT env vars (if present) override git commands. These are expected in container builds where .git may be absent.
+        //  * If git is not available (no binary or not a repo) we suppress repeated warnings after the first occurrence.
+        //  * Version comparison is rate-limited via nextCheckTime (every 2 days) to avoid Github API throttling.
+    }
+    private detectGit(): boolean {
+        try {
+            execSync('git --version', { stdio: 'ignore' });
+            return true;
+        } catch { return false; }
     }
 
     public checkGitRemote() {
@@ -40,43 +54,46 @@ class VersionCheck {
         if (typeof state.appVersion.nextCheckTime === 'undefined' || new Date() > new Date(state.appVersion.nextCheckTime)) setTimeout(() => { this.checkAll(); }, 100);
     }
     public checkGitLocal() {
-        let env = process.env;
-        // check local git version
+        const env = process.env;
+        // Branch
         try {
             let out: string;
-            if (typeof env.SOURCE_BRANCH !== 'undefined') 
-            {
-                out = env.SOURCE_BRANCH // check for docker variable
-            }
-            else {
-                let res = execSync('git rev-parse --abbrev-ref HEAD', { stdio: 'pipe' });
+            if (typeof env.SOURCE_BRANCH !== 'undefined') {
+                out = env.SOURCE_BRANCH;
+            } else if (this.gitAvailable) {
+                const res = execSync('git rev-parse --abbrev-ref HEAD', { stdio: 'pipe' });
                 out = res.toString().trim();
+            } else {
+                out = '--';
             }
-            logger.info(`The current git branch output is ${out}`);
+            if (out !== '--') logger.info(`The current git branch output is ${out}`);
             switch (out) {
-            case 'fatal':
-            case 'command':
-                state.appVersion.gitLocalBranch = '--';
-                break;
-            default:
-                state.appVersion.gitLocalBranch = out;
-        }
-        }
-        catch (err) {
+                case 'fatal':
+                case 'command':
+                    state.appVersion.gitLocalBranch = '--';
+                    break;
+                default:
+                    state.appVersion.gitLocalBranch = out;
+            }
+        } catch (err) {
             state.appVersion.gitLocalBranch = '--';
-            logger.warn(`Unable to retrieve local git branch.  ${err}`);
+            if (!this.warnedBranch) {
+                logger.warn(`Unable to retrieve local git branch (git missing or not a repo). Further branch warnings suppressed.`);
+                this.warnedBranch = true;
+            }
         }
+        // Commit
         try {
             let out: string;
-            if (typeof env.SOURCE_COMMIT !== 'undefined') 
-            {
-                out = env.SOURCE_COMMIT; // check for docker variable
-            }
-            else {
-                let res = execSync('git rev-parse HEAD', { stdio: 'pipe' });
+            if (typeof env.SOURCE_COMMIT !== 'undefined') {
+                out = env.SOURCE_COMMIT;
+            } else if (this.gitAvailable) {
+                const res = execSync('git rev-parse HEAD', { stdio: 'pipe' });
                 out = res.toString().trim();
+            } else {
+                out = '--';
             }
-            logger.info(`The current git commit output is ${out}`);
+            if (out !== '--') logger.info(`The current git commit output is ${out}`);
             switch (out) {
                 case 'fatal':
                 case 'command':
@@ -85,10 +102,12 @@ class VersionCheck {
                 default:
                     state.appVersion.gitLocalCommit = out;
             }
-        }
-        catch (err) { 
+        } catch (err) {
             state.appVersion.gitLocalCommit = '--';
-            logger.warn(`Unable to retrieve local git commit.  ${err}`); 
+            if (!this.warnedCommit) {
+                logger.warn(`Unable to retrieve local git commit (git missing or not a repo). Further commit warnings suppressed.`);
+                this.warnedCommit = true;
+            }
         }
     }
     private checkAll() {
@@ -126,15 +145,24 @@ class VersionCheck {
         return new Promise<string>((resolve, reject) => {
             try {
                 let req = https.request(url, options, async res => {
-                    if (res.statusCode > 300 && res.statusCode < 400 && res.headers.location) await this.getLatestRelease(res.headers.location);
+                    if (res.statusCode > 300 && res.statusCode < 400 && res.headers.location) {
+                        try {
+                            const redirected = await this.getLatestRelease(res.headers.location);
+                            return resolve(redirected);
+                        } catch (e) { return reject(e); }
+                    }
                     let data = '';
                     res.on('data', d => { data += d; });
                     res.on('end', () => {
-                        let jdata = JSON.parse(data);
-                        if (typeof jdata.tag_name !== 'undefined')
-                            resolve(jdata.tag_name.replace('v', ''));
-                        else
-                            reject(`No data returned.`)
+                        try {
+                            let jdata = JSON.parse(data);
+                            if (typeof jdata.tag_name !== 'undefined')
+                                resolve(jdata.tag_name.replace('v', ''));
+                            else
+                                reject(`No data returned.`)
+                        } catch(parseErr: any){
+                            reject(`Error parsing Github response: ${ parseErr.message }`);
+                        }
                     })
                 })
                     .end();

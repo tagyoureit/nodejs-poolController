@@ -56,7 +56,7 @@ This is only the server code.  See [clients](#module_nodejs-poolController--clie
 ### Prerequisites
 If you don't know anything about NodeJS, these directions might be helpful.
 
-1. Install Nodejs (v16+ required). (https://nodejs.org/en/download/)
+1. Install Nodejs (v20+ required). (https://nodejs.org/en/download/)
 1. Update NPM (https://docs.npmjs.com/getting-started/installing-node).
 1. It is recommended to clone the source code as updates are frequently pushed while releases are infrequent
    clone with `git clone https://github.com/tagyoureit/nodejs-poolController.git`
@@ -80,6 +80,90 @@ Assuming you cloned the repo, the following are easy steps to get the latest ver
 ### Docker instructions
 
 See the [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/Docker). Thanks @wurmr @andylippitt @emes.
+
+### Docker Compose (Controller + Optional dashPanel UI)
+
+Below is an example `docker-compose.yml` snippet showing this controller (`njspc`) and an OPTIONAL dashPanel UI service (`njspc-dash`). The dashPanel image is published separately; uncomment if you want a built-in web dashboard on port 5150.
+
+```yaml
+services:
+   njspc:
+      image: ghcr.io/sam2kb/njspc
+      container_name: njspc
+      restart: unless-stopped
+      environment:
+         - TZ=${TZ:-UTC}
+         - NODE_ENV=production
+         # Serial vs network connection options
+         # - POOL_NET_CONNECT=true
+         # - POOL_NET_HOST=raspberrypi
+         # - POOL_NET_PORT=9801
+         # Provide coordinates so sunrise/sunset (heliotrope) works immediately - change as needed
+         - POOL_LATITUDE=28.5383
+         - POOL_LONGITUDE=-81.3792
+      ports:
+         - "4200:4200"
+      devices:
+         - /dev/ttyACM0:/dev/ttyUSB0
+      # Persistence (create host directories/files first)
+      volumes:
+         - ./server-config.json:/app/config.json   # Persisted config file on host
+         - njspc-data:/app/data                    # State & equipment snapshots
+         - njspc-backups:/app/backups              # Backup archives
+         - njspc-logs:/app/logs                    # Logs
+         - njspc-bindings:/app/web/bindings/custom # Custom bindings
+      # OPTIONAL: If you get permission errors accessing /dev/tty*, prefer adding the container user to the host dialout/uucp group;
+      # only as a last resort temporarily uncomment the two lines below to run privileged/root (less secure).
+      # privileged: true
+      # user: "0:0"
+
+   njspc-dash:
+     image: ghcr.io/sam2kb/njspc-dash
+     container_name: njspc-dash
+     restart: unless-stopped
+     depends_on:
+       - njspc
+     environment:
+       - TZ=${TZ:-UTC}
+       - NODE_ENV=production
+       - POOL_WEB_SERVICES_IP=njspc      # Link to backend service name
+     ports:
+       - "5150:5150"
+     volumes:
+       - ./dash-config.json:/app/config.json
+       - njspc-dash-data:/app/data
+       - njspc-dash-logs:/app/logs
+       - njspc-dash-uploads:/app/uploads
+
+volumes:
+  njspc-data:
+  njspc-backups:
+  njspc-logs:
+  njspc-bindings:
+  njspc-dash-data:
+  njspc-dash-logs:
+  njspc-dash-uploads:
+```
+
+Quick start:
+1. Save compose file.
+2. (Optional) create an empty config file: `touch dash-config.json`.
+3. `docker compose up -d`
+4. Visit Dash UI at: `http://localhost:5150`.
+
+Notes:
+* Provide either RS-485 device OR enable network (ScreenLogic) connection.
+* Coordinates env vars prevent heliotrope warnings before the panel reports location.
+* Persistence (controller):
+   * `./server-config.json:/app/config.json` main runtime config. You can either:
+      * Seed it with a copy of `defaultConfig.json` (`cp defaultConfig.json server-config.json`), OR
+      * Start with an empty file and the app will auto-populate it from defaults on first launch. If the file exists but contains invalid JSON it will be backed up to `config.corrupt-<timestamp>.json` and regenerated.
+   * Remaining state (data, backups, logs, custom bindings) is typically stored in named volumes in the provided compose for cleaner host directories. If you prefer bind mounts instead, replace the named volumes with host paths similar to the example below.
+   * Data artifacts: `poolConfig.json`, `poolState.json` etc. live under `/app/data` (volume `njspc-data`).
+   * Backups: `/app/backups` (volume `njspc-backups`).
+   * Logs: `/app/logs` (volume `njspc-logs`).
+   * Custom bindings: `/app/web/bindings/custom` (volume `njspc-bindings`).
+* To migrate from bind mounts to named volumes, stop the stack, `docker run --rm -v oldPath:/from -v newVolume:/to alpine sh -c 'cp -a /from/. /to/'` for each path, then update compose.
 
 ### Automate startup of app
 See the [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/Automatically-start-at-boot---PM2-&-Systemd).
@@ -138,6 +222,29 @@ Most of these can be configured directly from the UI in dashPanel.
 * `netConnect` - used to connect via [Socat](https://github.com/tagyoureit/nodejs-poolController/wiki/Socat)
   * `netHost` and `netPort` - host and port for Socat connection.
 * `inactivityRetry` - # of seconds the app should wait before trying to reopen the port after no communications.  If your equipment isn't on all the time or you are running a virtual controller you may want to dramatically increase the timeout so you don't get console warnings.
+* `txDelays` - (optional) fine‑grained transmit pacing controls added in 8.1+ to better coexist with busy or bridged (socat / multiple panel / dual chlorinator) RS‑485 buses.  These values are all in milliseconds.  If the block is omitted, internal defaults are used (see `defaultConfig.json`).  All values can be hot‑reloaded from config.
+   * `idleBeforeTxMs` – Minimum quiet time on the bus (no RX or TX seen) before a new outbound frame may start.  Helps avoid collisions just after another device finishes talking.  Typical: 40‑80.  Set to 0 to disable.
+   * `interFrameDelayMs` – Delay inserted between completed outbound attempts (success, retry scheduling, or queue drain) and evaluation of the next outbound message.  Replaces the previous fixed 100ms.  Typical: 30‑75.  Lower values increase throughput but may raise collision / rewind counts.
+   * `interByteDelayMs` – Optional per‑byte pacing inside a single frame.  Normally 0 (disabled).  Set to 1‑2ms only if you observe hardware or USB adapter overruns, or are experimenting with very marginal wiring / long cable runs.
+
+Example tuning block - more conservative pacing for SunTouch that works way better than defaults:
+
+```json
+"txDelays": {
+   "idleBeforeTxMs": 60,
+   "interFrameDelayMs": 50,
+   "interByteDelayMs": 1
+}
+```
+
+Tuning guidance:
+- Start with the defaults. Only change one value at a time and observe stats (collisions, retries, rewinds) via rs485PortStats.
+- If you see frequent outbound retries or receive rewinds, first raise `idleBeforeTxMs` in small steps (e.g. +10ms) before touching `interFrameDelayMs`.
+- If overall throughput feels sluggish but collisions are low, you may lower `interFrameDelayMs` gradually.
+- Use `interByteDelayMs` only as a last resort; it elongates every frame and reduces total bus capacity.
+- Setting any value too high will simply slow configuration bursts (e.g. on startup); setting them too low can cause more retries and ultimately lower effective throughput.
+
+All three parameters are safe to adjust without restarting; edits to `config.json` are picked up by the existing config watcher.
 
 ## Web section - controls various aspects of external communications
 * `servers` - setting for different servers/services
