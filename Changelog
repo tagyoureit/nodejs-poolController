@@ -1,6 +1,6 @@
 # Changelog
 
-## 8.3.0 (UNRELEASED)
+## 8.3.0
 1. Configurable RS‑485 transmit pacing via new `controller.txDelays` for finer collision avoidance and throughput tuning.
 2. Startup & config resilience: empty or invalid `config.json` now auto‑recreated from defaults, corrupt originals backed up.
 3. Latitude / longitude environment overrides to eliminate early heliotrope warnings prior to UI configuration.
@@ -9,6 +9,23 @@
 6. Add workflow to build and publish docker images to GitHub Container registry.
 7. Runtime requirements: elevated minimum Node.js version to 20+, safe dependency and security/patch updates.
 8. Documentation updates.
+
+## 8.1.2
+1. Regal Century pump support added.
+2. Enhanced error handling: replaced EquipmentNotFoundError with InvalidEquipmentIdError for improved clarity.
+3. Improved error handling in NixieBoard, NixieCircuitCommands, and NixieValveCommands.
+4. Refactored tolerance handling in TouchChemControllerCommands to ensure data integrity.
+5. Added new expansion board configuration for SunTouchBoard.
+
+## 8.1.1
+1. Enhanced REM server integration with packet capture functionality.
+2. Improved error handling in REMInterfaceServer methods.
+3. Refined chlorinator message processing logic in MessagesMock.
+4. Adjusted mock port checks across various components for consistency.
+5. Refined logic for Nixie schedules.
+6. Fixed documentation links for bindings integrations.
+7. Enhanced queueBodyHeatSettings to handle processing timeouts and improve error logging.
+8. Fixed typo in valveModes.
 
 ## 8.1.0
 1. Support for dual chlorinators with REM chem controllers.  It is now possible to have two separate chlorinators controlled in 'dynamic' mode by two separate REM chems.  Note: In order for REM chem to control each chlorinator, each needs to be on a dedicated RS-485 port (not shared with an OCP or any other chlorinator).

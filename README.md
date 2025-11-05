@@ -1,7 +1,7 @@
 ```diff
 - INTELLICENTER USERS: Do not upgrade Intellicenter to 2.006.  Rollback to 1.064 to use this application. 
 ```
-# nodejs-poolController - Version 8.1
+# nodejs-poolController - Version 8.3.0
 
 ## What is nodejs-poolController
 
@@ -25,6 +25,16 @@ Equipment supported
 
 ## Latest Changes
 See [Changelog](https://github.com/tagyoureit/nodejs-poolController/blob/master/Changelog)
+
+## What's new in 8.3.0?
+
+1. Configurable RS‑485 transmit pacing via new `controller.txDelays` for finer collision avoidance and throughput tuning.
+2. Startup & config resilience: empty or invalid `config.json` now auto‑recreated from defaults, corrupt originals backed up.
+3. Latitude / longitude environment overrides to eliminate early heliotrope warnings prior to UI configuration.
+4. Version check enhancements: git detection, safer redirects, throttled polling, warning suppression.
+5. Docker improvements: fixed Dockerfile and added docker‑compose example with named volumes & environment variable guidance.
+6. Add workflow to build and publish docker images to GitHub Container registry.
+7. Runtime requirements: elevated minimum Node.js version to 20+, safe dependency and security/patch updates.
 
 ## What's new in 8.1?
 
@@ -73,9 +83,10 @@ For a very thorough walk-through, see [this](https://www.troublefreepool.com/thr
 #### Upgrade Instructions
 Assuming you cloned the repo, the following are easy steps to get the latest version:
 1. Change directory to the njsPC app
-2. `git pull`
-3. `npm i` (not always necessary, but if dependencies are upgraded this will bring them up to date)
-4. Start application as normal, or if using `npm run start:cached` then run `npm run build` to compile the code.
+2. **Important**: Ensure you have Node.js v20 or higher installed (`node --version`). If not, upgrade Node.js first.
+3. `git pull`
+4. **Important**: Run `npm i` to update dependencies. This is especially important when upgrading to version 8.3.0+ as it requires Node 20+ and has updated dependencies.
+5. Start application as normal, or if using `npm run start:cached` then run `npm run build` to compile the code.
 
 ### Docker instructions
 
