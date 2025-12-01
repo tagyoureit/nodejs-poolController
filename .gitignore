@@ -40,3 +40,7 @@ web/bindings/custom/
 
 /web/bindings/njsPCAux.json
 /web/bindings/njsPCMaster.json
+
+/.plan
+/.cursor
+.DS_Store
