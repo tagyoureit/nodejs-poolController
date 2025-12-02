@@ -584,6 +584,26 @@ export class EquipmentStateMessage {
             case 96:
                 EquipmentStateMessage.processIntelliBriteMode(msg);
                 break;
+            case 184: {
+                // v3.004+ Action 184 - Unknown purpose
+                // Log all bytes individually for analysis
+                if (msg.payload.length >= 10) {
+                    const b0 = msg.extractPayloadByte(0);
+                    const b1 = msg.extractPayloadByte(1);
+                    const b2 = msg.extractPayloadByte(2);
+                    const b3 = msg.extractPayloadByte(3);
+                    const b4 = msg.extractPayloadByte(4);
+                    const b5 = msg.extractPayloadByte(5);
+                    const b6 = msg.extractPayloadByte(6);
+                    const b7 = msg.extractPayloadByte(7);
+                    const b8 = msg.extractPayloadByte(8);
+                    const b9 = msg.extractPayloadByte(9);
+                    
+                    logger.debug(`Action 184: [${b0}, ${b1}, ${b2}, ${b3}, ${b4}, ${b5}, ${b6}, ${b7}, ${b8}, ${b9}]`);
+                }
+                msg.isProcessed = true;
+                break;
+            }
             case 197: {
                 // request for date/time on *Touch.  Use this as an indicator
                 // that SL has requested config and update lastUpdated date/time
