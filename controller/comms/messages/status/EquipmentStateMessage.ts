@@ -602,15 +602,11 @@ export class EquipmentStateMessage {
                 state.time.month = msg.extractPayloadByte(7);
                 state.time.date = msg.extractPayloadByte(6);
                 sys.equipment.controllerFirmware = (msg.extractPayloadByte(42) + (msg.extractPayloadByte(43) / 1000)).toString();
-                // v3.004 adds 4 additional bytes (44-47) that appear to be time of day
+                // v3.004 adds 4 additional bytes (44-46) that are the time of day
                 // Byte 44: Hour (0-23)
                 // Byte 45: Minute (0-59)
                 // Byte 46: Second (0-59)
                 // Byte 47: Unknown - possibly DST indicator or status flag
-                // TODO: Determine if these bytes need to be processed or are informational only
-                if (msg.datalen > 44) {
-                    logger.debug(`IntelliCenter v3+ extra bytes [44-47]: [${msg.extractPayloadByte(44)}, ${msg.extractPayloadByte(45)}, ${msg.extractPayloadByte(46)}, ${msg.extractPayloadByte(47)}] (HH:MM:SS:?))`);
-                }
                 if (sys.chlorinators.length > 0) {
                     if (msg.extractPayloadByte(37, 255) !== 255) {
                         const chlor = state.chlorinators.getItemById(1);
