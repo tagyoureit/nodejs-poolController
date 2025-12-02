@@ -410,7 +410,12 @@ export class IntelliCenterBoard extends SystemBoard {
         // Map the expansion panels to their specific types through the valuemaps.  Sadly this means that
         // we need to determine if anything needs to be removed or added before actually doing it.
         if (typeof inv === 'undefined') inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 0, chemControllers: 0 };
-        let slot0 = ocpA & 0x0F;
+        
+        // v3.004+ moved slot encoding from low nibble to high nibble
+        // v1.064: ocpA = 0x05 (0000 0101) → slot0 = low nibble = 5
+        // v3.004: ocpA = 0x50 (0101 0000) → slot0 = high nibble = 5
+        let slot0 = (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) ? (ocpA >> 4) : (ocpA & 0x0F);
+        
         let slot1 = (ocpA & 0xF0) >> 4;
         let slot2 = (ocpB & 0xF0) >> 4;
         let slot3 = ocpB & 0xF;
