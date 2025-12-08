@@ -362,16 +362,22 @@ export class IntelliCenterBoard extends SystemBoard {
     public async checkConfiguration() {
         if (!conn.mock) {
             (sys.board as IntelliCenterBoard).needsConfigChanges = true;
-            // For v3.004+, announce ourselves first to register with the OCP
-            if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
-                await this.announceDevice();
-                // Start the heartbeat after successful registration
-                this.startHeartbeat();
+            try {
+                // For v3.004+, announce ourselves first to register with the OCP
+                if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
+                    await this.announceDevice();
+                    // Start the heartbeat after successful registration
+                    this.startHeartbeat();
+                }
+                // Now request configuration
+                console.log('Checking IntelliCenter configuration...');
+                const out: Outbound = Outbound.createMessage(228, [0], 5, Response.create({ dest: -1, action: 164 }));
+                await out.sendAsync();
             }
-            // Now request configuration
-            console.log('Checking IntelliCenter configuration...');
-            const out: Outbound = Outbound.createMessage(228, [0], 5, Response.create({ dest: -1, action: 164 }));
-            await out.sendAsync();
+            catch (err) {
+                // If the port isn't open yet, we'll retry when it opens
+                logger.warn(`checkConfiguration failed (port may not be open yet): ${err.message}`);
+            }
         }
     }
     public requestConfiguration(ver: ConfigVersion) {
