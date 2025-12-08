@@ -585,8 +585,14 @@ export class EquipmentStateMessage {
                 EquipmentStateMessage.processIntelliBriteMode(msg);
                 break;
             case 184: {
-                // v3.004+ Action 184 - Unknown purpose
-                // Log all bytes individually for analysis
+                // v3.004+ Action 184 - ??? from wireless remote (device 36)
+                // Replaces Action 134 from v1.064 ?? 
+                // Sent by wireless remote to control circuits
+                // Payload structure (from user analysis):
+                //   Byte 3: Circuit/device ID
+                //   Byte 7: State (1=on, 0=off)
+                // Response: Action 1 (ACK)
+                // Log all bytes for further analysis
                 if (msg.payload.length >= 10) {
                     const b0 = msg.extractPayloadByte(0);
                     const b1 = msg.extractPayloadByte(1);
@@ -599,7 +605,7 @@ export class EquipmentStateMessage {
                     const b8 = msg.extractPayloadByte(8);
                     const b9 = msg.extractPayloadByte(9);
                     
-                    logger.debug(`Action 184: [${b0}, ${b1}, ${b2}, ${b3}, ${b4}, ${b5}, ${b6}, ${b7}, ${b8}, ${b9}]`);
+                    logger.debug(`v3.004+ Action 184 (???): [${b0}, ${b1}, ${b2}, ${b3}, ${b4}, ${b5}, ${b6}, ${b7}, ${b8}, ${b9}] - Circuit:${b3}, State:${b7}`);
                 }
                 msg.isProcessed = true;
                 break;

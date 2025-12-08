@@ -780,8 +780,35 @@ export class Inbound extends Message {
                     case 168:
                         ExternalMessage.processIntelliCenter(this);
                         break;
+                    case 179: // v3.004+ Wireless remote status/heartbeat
+                        // Device 36 sends periodic status pings (from v3.004_replay.1)
+                        // Not present in v3.004_replay.5 clean initialization capture
+                        this.isProcessed = true;
+                        break;
+                    case 184: // v3.004+ Circuit control from wireless remote (replaces Action 134)
+                        // Wireless remote sends this to control circuits
+                        // Currently handled by EquipmentStateMessage for logging
+                        EquipmentStateMessage.process(this);
+                        break;
+                    case 217: // v3.004+ Device list broadcast
+                        // OCP broadcasts registered devices after Action 251→253 handshake
+                        // Payload includes device addresses and firmware versions
+                        this.isProcessed = true;
+                        break;
                     case 222: // A panel is asking for action 30s
                     case 228: // A panel is asking for the current version
+                        this.isProcessed = true;
+                        break;
+                    case 251: // v3.004+ Device announcement/registration request
+                        // Devices send this to announce presence to OCP
+                        // Payload byte 0: device address
+                        // Response: Action 253
+                        this.isProcessed = true;
+                        break;
+                    case 253: // v3.004+ Device registration confirmation
+                        // OCP sends this in response to Action 251
+                        // Payload byte 2: 1 = registered, 0 = not registered
+                        logger.info(`Device registration confirmed: ${this.toPacket()}`);
                         this.isProcessed = true;
                         break;
                     default:

@@ -29,6 +29,8 @@ import { ncp } from '../nixie/Nixie';
 import { Timestamp } from "../Constants"
 export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
+    private _heartbeatTimer: NodeJS.Timeout;
+    private _heartbeatInterval: number = 10000; // 10 seconds, same as observed in wireless remote
     constructor(system: PoolSystem) {
         super(system);
         this._statusInterval = -1;
@@ -284,14 +286,92 @@ export class IntelliCenterBoard extends SystemBoard {
         console.log('RESETTING THE CONFIGURATION');
         this.modulesAcquired = false;
     }
-    public checkConfiguration() {
+    public async announceDevice(): Promise<void> {
+        if (!conn.mock) {
+            // v3.004 requires device registration via Action 251→253 before responding to config requests
+            console.log('Announcing device to IntelliCenter...');
+            // Action 251 payload structure (22 bytes total) verified from wireless remote cradle reset:
+            // [0]:      Device address (33 for njsPC)
+            // [1]:      Reserved (0)
+            // [2]:      Registration flag (0=not registered, 1=registered - OCP sets to 1 in Action 253)
+            // [3-6]:    Reserved (zeros)
+            // [7-12]:   Device identifier (6 bytes - unique per device)
+            //           Using ASCII "njsPC\0" = [110, 106, 115, 80, 67, 0] for easy identification
+            // [13-16]:  Reserved (zeros)
+            // [17-18]:  Firmware version (major, minor)
+            // [19-21]:  Unknown bytes (1, 7, 11 - copied from wireless remote in all captures)
+            const fwMajor = parseInt(sys.equipment.controllerFirmware || "3") || 3;
+            const fwMinor = Math.round((parseFloat(sys.equipment.controllerFirmware || "3.0") % 1) * 1000);
+            const out: Outbound = Outbound.create({
+                action: 251,
+                payload: [
+                    Message.pluginAddress,  // [0] Device address (33)
+                    0,                      // [1] Reserved
+                    0,                      // [2] Not registered yet (OCP will set to 1 in Action 253)
+                    0, 0, 0, 0,            // [3-6] Reserved
+                    110, 106, 115, 80, 67, 0,  // [7-12] Device ID: "njsPC\0" (ASCII)
+                    0, 0, 0, 0,            // [13-16] Reserved
+                    fwMajor, fwMinor,      // [17-18] Firmware version
+                    1, 7, 11               // [19-21] Unknown (copied from wireless remote)
+                ],
+                retries: 3,
+                response: Response.create({ dest: -1, action: 253 })
+            });
+            await out.sendAsync();
+        }
+    }
+    private sendHeartbeat(): void {
+        if (!conn.mock && parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
+            // v3.004 requires periodic heartbeat via Action 179 to maintain registration
+            // Without this, the OCP may stop responding to the device after a timeout
+            // Action 179 payload structure (16 bytes total) observed from wireless remote:
+            // [0-5]:    Device identifier (6 bytes - same as in Action 251)
+            // [6-15]:   Reserved (zeros)
+            // Response: Action 180 (16 bytes of zeros)
+            const out: Outbound = Outbound.create({
+                action: 179,
+                payload: [
+                    110, 106, 115, 80, 67, 0,  // [0-5] Device ID: "njsPC\0" (ASCII)
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0  // [6-15] Reserved (zeros)
+                ],
+                retries: 0,  // Don't retry heartbeats, just send and forget
+                response: Response.create({ dest: -1, action: 180 })  // Expect Action 180 response
+            });
+            out.sendAsync().catch(err => {
+                // Log but don't fail on heartbeat errors
+                logger.debug(`Heartbeat error (non-critical): ${err.message}`);
+            });
+        }
+    }
+    private startHeartbeat(): void {
+        // Start periodic heartbeat for v3.004+ systems
+        if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
+            this.stopHeartbeat(); // Clear any existing timer
+            logger.info(`Starting v3.004 heartbeat (${this._heartbeatInterval}ms interval)`);
+            this._heartbeatTimer = setInterval(() => this.sendHeartbeat(), this._heartbeatInterval);
+        }
+    }
+    private stopHeartbeat(): void {
+        // Stop the heartbeat timer
+        if (typeof this._heartbeatTimer !== 'undefined' && this._heartbeatTimer) {
+            clearInterval(this._heartbeatTimer);
+            this._heartbeatTimer = undefined;
+            logger.info('Stopped v3.004 heartbeat');
+        }
+    }
+    public async checkConfiguration() {
         if (!conn.mock) {
             (sys.board as IntelliCenterBoard).needsConfigChanges = true;
-            // Send out a message to the outdoor panel that we need info about
-            // our current configuration.
+            // For v3.004+, announce ourselves first to register with the OCP
+            if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
+                await this.announceDevice();
+                // Start the heartbeat after successful registration
+                this.startHeartbeat();
+            }
+            // Now request configuration
             console.log('Checking IntelliCenter configuration...');
             const out: Outbound = Outbound.createMessage(228, [0], 5, Response.create({ dest: -1, action: 164 }));
-            conn.queueSendMessage(out);
+            await out.sendAsync();
         }
     }
     public requestConfiguration(ver: ConfigVersion) {
@@ -320,7 +400,11 @@ export class IntelliCenterBoard extends SystemBoard {
             sys.configVersion.valves = ver.valves;
         }
     }
-    public async stopAsync() { this._configQueue.close(); return super.stopAsync(); }
+    public async stopAsync() { 
+        this.stopHeartbeat(); // Stop v3.004 heartbeat
+        this._configQueue.close(); 
+        return super.stopAsync(); 
+    }
     public initExpansionModules(ocp0A: number, ocp0B: number, xcp1A: number, xcp1B: number, xcp2A: number, xcp2B: number, xcp3A: number, xcp3B: number) {
         state.equipment.controllerType = 'intellicenter';
         let inv = { bodies: 0, circuits: 0, valves: 0, shared: false, dual: false, covers: 0, chlorinators: 0, chemControllers: 0 };
@@ -690,7 +774,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
                 })
             });
             logger.verbose(`Requesting config for: ${ConfigCategories[this.curr.category]} - Item: ${itm}`);
-            setTimeout(() => { conn.queueSendMessage(out) }, 50);
+            // setTimeout(() => { conn.queueSendMessage(out) }, 50);
             out.sendAsync()
                 .then(() => {
                     //logger.debug(`msg ${out.toShortPacket()} sent successfully`);
