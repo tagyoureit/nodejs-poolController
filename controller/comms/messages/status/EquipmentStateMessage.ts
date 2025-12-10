@@ -25,7 +25,7 @@ import { ControllerType } from '../../../Constants';
 import { Body, Circuit, ExpansionPanel, Feature, Heater, sys } from '../../../Equipment';
 import { BodyTempState, ScheduleState, State, state } from '../../../State';
 import { ExternalMessage } from '../config/ExternalMessage';
-import { Inbound, Message } from '../Messages';
+import { Inbound, Message, Outbound } from '../Messages';
 
 export class EquipmentStateMessage {
     private static initIntelliCenter(msg: Inbound) {
@@ -584,6 +584,27 @@ export class EquipmentStateMessage {
             case 96:
                 EquipmentStateMessage.processIntelliBriteMode(msg);
                 break;
+            case 179: {
+                // v3.004+ Action 179 - Heartbeat REQUEST from OCP
+                // OCP sends Action 179 TO specific device (dest=33 for njsPC, dest=36 for wireless)
+                // Device must respond with Action 180 TO OCP (dest=16)
+                if (msg.dest === Message.pluginAddress) {
+                    // OCP is pinging us specifically - respond with Action 180
+                    logger.silly(`Received heartbeat request (Action 179) from OCP, responding with Action 180`);
+                    const response: Outbound = Outbound.create({
+                        dest: 16,  // Respond to OCP (16)
+                        action: 180,  // Action 180 = heartbeat response
+                        payload: Array(16).fill(0),  // 16 zeros (observed from wireless remote)
+                        retries: 0  // Don't retry heartbeat responses
+                    });
+                    response.sendAsync().catch(err => {
+                        // Log but don't fail on heartbeat errors
+                        logger.silly(`Heartbeat response error: ${err.message}`);
+                    });
+                }
+                msg.isProcessed = true;
+                break;
+            }
             case 184: {
                 // v3.004+ Action 184 - ??? from wireless remote (device 36)
                 // Replaces Action 134 from v1.064 ?? 

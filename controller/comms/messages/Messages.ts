@@ -780,10 +780,8 @@ export class Inbound extends Message {
                     case 168:
                         ExternalMessage.processIntelliCenter(this);
                         break;
-                    case 179: // v3.004+ Wireless remote status/heartbeat
-                        // Device 36 sends periodic status pings (from v3.004_replay.1)
-                        // Not present in v3.004_replay.5 clean initialization capture
-                        this.isProcessed = true;
+                    case 179: // v3.004+ Heartbeat request - handled by EquipmentStateMessage
+                        EquipmentStateMessage.process(this);
                         break;
                     case 184: // v3.004+ Circuit control from wireless remote (replaces Action 134)
                         // Wireless remote sends this to control circuits

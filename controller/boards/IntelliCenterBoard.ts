@@ -29,8 +29,6 @@ import { ncp } from '../nixie/Nixie';
 import { Timestamp } from "../Constants"
 export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
-    private _heartbeatTimer: NodeJS.Timeout;
-    private _heartbeatInterval: number = 10000; // 10 seconds, same as observed in wireless remote
     constructor(system: PoolSystem) {
         super(system);
         this._statusInterval = -1;
@@ -303,11 +301,12 @@ export class IntelliCenterBoard extends SystemBoard {
             const fwMajor = parseInt(sys.equipment.controllerFirmware || "3") || 3;
             const fwMinor = Math.round((parseFloat(sys.equipment.controllerFirmware || "3.0") % 1) * 1000);
             const out: Outbound = Outbound.create({
+                dest: 16,  // MUST send to OCP (16), not broadcast (15)
                 action: 251,
                 payload: [
                     Message.pluginAddress,  // [0] Device address (33)
                     0,                      // [1] Reserved
-                    0,                      // [2] Not registered yet (OCP will set to 1 in Action 253)
+                    0,                      // [2] Registration flag (0=requesting, 1=confirmed, 4=error/rejected?)
                     0, 0, 0, 0,            // [3-6] Reserved
                     110, 106, 115, 80, 67, 0,  // [7-12] Device ID: "njsPC\0" (ASCII)
                     0, 0, 0, 0,            // [13-16] Reserved
@@ -315,48 +314,9 @@ export class IntelliCenterBoard extends SystemBoard {
                     1, 7, 11               // [19-21] Unknown (copied from wireless remote)
                 ],
                 retries: 3,
-                response: Response.create({ dest: -1, action: 253 })
+                response: Response.create({ source: 15, dest: 16, action: 253 })
             });
             await out.sendAsync();
-        }
-    }
-    private sendHeartbeat(): void {
-        if (!conn.mock && parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
-            // v3.004 requires periodic heartbeat via Action 179 to maintain registration
-            // Without this, the OCP may stop responding to the device after a timeout
-            // Action 179 payload structure (16 bytes total) observed from wireless remote:
-            // [0-5]:    Device identifier (6 bytes - same as in Action 251)
-            // [6-15]:   Reserved (zeros)
-            // Response: Action 180 (16 bytes of zeros)
-            const out: Outbound = Outbound.create({
-                action: 179,
-                payload: [
-                    110, 106, 115, 80, 67, 0,  // [0-5] Device ID: "njsPC\0" (ASCII)
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0  // [6-15] Reserved (zeros)
-                ],
-                retries: 0,  // Don't retry heartbeats, just send and forget
-                response: Response.create({ dest: -1, action: 180 })  // Expect Action 180 response
-            });
-            out.sendAsync().catch(err => {
-                // Log but don't fail on heartbeat errors
-                logger.debug(`Heartbeat error (non-critical): ${err.message}`);
-            });
-        }
-    }
-    private startHeartbeat(): void {
-        // Start periodic heartbeat for v3.004+ systems
-        if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
-            this.stopHeartbeat(); // Clear any existing timer
-            logger.info(`Starting v3.004 heartbeat (${this._heartbeatInterval}ms interval)`);
-            this._heartbeatTimer = setInterval(() => this.sendHeartbeat(), this._heartbeatInterval);
-        }
-    }
-    private stopHeartbeat(): void {
-        // Stop the heartbeat timer
-        if (typeof this._heartbeatTimer !== 'undefined' && this._heartbeatTimer) {
-            clearInterval(this._heartbeatTimer);
-            this._heartbeatTimer = undefined;
-            logger.info('Stopped v3.004 heartbeat');
         }
     }
     public async checkConfiguration() {
@@ -366,8 +326,6 @@ export class IntelliCenterBoard extends SystemBoard {
                 // For v3.004+, announce ourselves first to register with the OCP
                 if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
                     await this.announceDevice();
-                    // Start the heartbeat after successful registration
-                    this.startHeartbeat();
                 }
                 // Now request configuration
                 console.log('Checking IntelliCenter configuration...');
@@ -406,10 +364,9 @@ export class IntelliCenterBoard extends SystemBoard {
             sys.configVersion.valves = ver.valves;
         }
     }
-    public async stopAsync() { 
-        this.stopHeartbeat(); // Stop v3.004 heartbeat
-        this._configQueue.close(); 
-        return super.stopAsync(); 
+    public async stopAsync() {
+        this._configQueue.close();
+        return super.stopAsync();
     }
     public initExpansionModules(ocp0A: number, ocp0B: number, xcp1A: number, xcp1B: number, xcp2A: number, xcp2B: number, xcp3A: number, xcp3B: number) {
         state.equipment.controllerType = 'intellicenter';
