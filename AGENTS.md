@@ -113,6 +113,12 @@
 
 **Lesson:** When multiple messages contain similar data, identify which is authoritative
 
+### 8. Temperature Debugging: Use Time-Series Sources, Not `poolState.json`
+**Rule:** When debugging temperature-driven behavior (solar/heater thresholds), do NOT rely on `poolState.json` for trends.
+- `poolState.json` represents the **last/current** state snapshot, not a time series.
+- To understand when thresholds were crossed, extract temps from **packet logs** (and/or other raw-sample logs that capture temps over time).
+- Use the time-series to correlate: **AIR/WATER/SOLAR temps** ↔ **heater/valve commands** ↔ **triggering events**.
+
 ## Communication Patterns
 
 ### 8. Documentation Organization

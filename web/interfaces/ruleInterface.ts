@@ -43,7 +43,12 @@ export class RuleInterfaceBindings extends BaseInterfaceBindings {
         this.bindProcessor(evt);
         let vars = this.bindVarTokens(evt, eventName, data);
         let opts = extend(true, this.cfg.options, this.context.options, evt.options);
-        if (typeof evt.fnProcessor !== undefined) evt.fnProcessor(evt, opts, vars, logger, webApp, sys, state, data);
+        // `fnProcessor` is an AsyncFunction; we should await it to avoid unhandled promise rejections
+        // and to preserve consistent ordering when multiple events fire in a tight loop.
+        if (typeof evt.fnProcessor !== 'undefined') {
+            Promise.resolve(evt.fnProcessor(evt, opts, vars, logger, webApp, sys, state, data))
+                .catch(err => logger.error(`Error executing rule event processor (${eventName}): ${err?.message || err}`));
+        }
     }
     public bindEvent(evt: string, ...data: any) {
         // Find the binding by first looking for the specific event name.  
@@ -62,11 +67,20 @@ export class RuleInterfaceBindings extends BaseInterfaceBindings {
                     if (typeof e.enabled !== 'undefined' && !e.enabled) continue;
                     // Figure out whether we need to check the filter.
                     if (typeof e.filter !== 'undefined') {
-                        this.buildTokens(e.filter, evt, toks, e, data[0]);
-                        if (eval(this.replaceTokens(e.filter, toks)) === false) continue;
+                        try {
+                            this.buildTokens(e.filter, evt, toks, e, data[0]);
+                            if (eval(this.replaceTokens(e.filter, toks)) === false) continue;
+                        } catch (err) {
+                            logger.error(`Error evaluating rule filter (${evt}): ${err?.message || err} -- ${e.filter}`);
+                            continue;
+                        }
                     }
                     // Look for the processor.
-                    this.executeProcessor(evt, e, ...data);
+                    try {
+                        this.executeProcessor(evt, e, ...data);
+                    } catch (err) {
+                        logger.error(`Error running rule processor (${evt}): ${err?.message || err}`);
+                    }
                 }
             }
         }
@@ -75,7 +89,7 @@ export class RuleInterfaceBindings extends BaseInterfaceBindings {
 class RuleInterfaceEvent extends InterfaceEvent {
     event: string;
     description: string;
-    fnProcessor: (rule: RuleInterfaceEvent, options:any, vars: any, logger: any, webApp: any, sys: PoolSystem, state: State, data: any) => void;
+    fnProcessor: (rule: RuleInterfaceEvent, options:any, vars: any, logger: any, webApp: any, sys: PoolSystem, state: State, data: any) => Promise<void> | void;
     processorBound: boolean = false;
 }
 export interface IRuleInterfaceEvent {
