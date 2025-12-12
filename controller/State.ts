@@ -768,6 +768,20 @@ class DirtyStateCollection extends Array<EqState> {
 export class EquipmentState extends EqState {
     public initData() {
         if (typeof this.data.messages === 'undefined') this.data.messages = [];
+        // v3.004+ device registration state
+        // Persisted shape is { status: number } but callers should only set/get the numeric status via accessors.
+        // Normalize legacy persisted shapes (e.g. {status, lastConfirmed} or a raw number) to keep poolState.json clean.
+        const reg = this.data.registration;
+        if (typeof reg === 'undefined') {
+            this.data.registration = { status: 0 };
+        }
+        else if (typeof reg === 'number') {
+            this.data.registration = { status: reg };
+        }
+        else if (reg === null || typeof reg !== 'object' || typeof reg.status !== 'number' || 'lastConfirmed' in reg) {
+            const status = (reg && typeof reg.status === 'number') ? reg.status : 0;
+            this.data.registration = { status };
+        }
     }
     public get controllerType(): string { return this.data.controllerType; }
     public set controllerType(val: string) { this.setDataVal('controllerType', val); }
@@ -801,6 +815,29 @@ export class EquipmentState extends EqState {
     public get maxLightGroups(): number { return this.data.maxLightGroups; }
     public set maxLightGroups(val: number) { this.setDataVal('maxLightGroups', val); }
     public get messages(): EquipmentMessages { return new EquipmentMessages(this.data, 'messages'); }
+    // v3.004+ device registration state
+    public get registration(): number {
+        const reg = this.data.registration;
+        if (typeof reg === 'number') return reg;
+        if (reg && typeof reg.status === 'number') return reg.status;
+        return 0;
+    }
+    public set registration(val: number) {
+        const reg = this.data.registration;
+        const needsNormalize = (typeof reg !== 'object' || reg === null || typeof reg.status !== 'number' || 'lastConfirmed' in reg);
+        if (this.registration !== val || needsNormalize) {
+            this.data.registration = { status: val };
+            // During module init, `state` may not be constructed yet (State.ts exports `var state = new State()`).
+            // Guard writes that depend on `state`/dirty list.
+            if (typeof state !== 'undefined' && state) {
+                this.hasChanged = true;
+                state.dirty = true;
+            }
+            else {
+                this._hasChanged = true;
+            }
+        }
+    }
     // This could be extended to include all the expansion panels but not sure why.
     public getExtended() {
         let obj = this.get(true);

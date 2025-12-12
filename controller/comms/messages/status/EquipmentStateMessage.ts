@@ -83,8 +83,6 @@ export class EquipmentStateMessage {
                 logger.error(`Unknown Touch Controller ${msg.extractPayloadByte(28)}:${msg.extractPayloadByte(27)}`);
                 break;
         }
-        //let board = sys.board as EasyTouchBoard;
-        //board.initExpansionModules(model1, model2);
     }
     private static initController(msg: Inbound) {
         state.status = 1;
@@ -138,7 +136,6 @@ export class EquipmentStateMessage {
         else if (!sys.board.modulesAcquired) {
             msg.isProcessed = true;
             if (msg.action === 204) {
-                let board = sys.board as IntelliCenterBoard;
                 // We have determined that the 204 message now contains the information
                 // related to the installed expansion boards.
                 console.log(`INTELLICENTER MODULES DETECTED, REQUESTING STATUS!`);
@@ -146,7 +143,7 @@ export class EquipmentStateMessage {
                 // EXP1 = 15-16
                 // EXP2 = 17-18
                 let pc = msg.extractPayloadByte(40);
-                board.initExpansionModules(msg.extractPayloadByte(13), msg.extractPayloadByte(14),
+                (sys.board as IntelliCenterBoard).initExpansionModules(msg.extractPayloadByte(13), msg.extractPayloadByte(14),
                     pc & 0x01 ? msg.extractPayloadByte(15) : 0x00, pc & 0x01 ? msg.extractPayloadByte(16) : 0x00,
                     pc & 0x02 ? msg.extractPayloadByte(17) : 0x00, pc & 0x02 ? msg.extractPayloadByte(18) : 0x00,
                     pc & 0x04 ? msg.extractPayloadByte(19) : 0x00, pc & 0x04 ? msg.extractPayloadByte(20) : 0x00);
@@ -627,6 +624,21 @@ export class EquipmentStateMessage {
                     const b9 = msg.extractPayloadByte(9);
                     
                     logger.debug(`v3.004+ Action 184 (???): [${b0}, ${b1}, ${b2}, ${b3}, ${b4}, ${b5}, ${b6}, ${b7}, ${b8}, ${b9}] - Circuit:${b3}, State:${b7}`);
+                }
+                msg.isProcessed = true;
+                break;
+            }
+            case 217: {
+                // v3.004+ Action 217 - Device list broadcast
+                // OCP broadcasts registered devices after Action 251→253 handshake
+                // Each packet contains info for ONE device
+                // Check if this packet is for njsPC (device 33) and update registration status
+                if (msg.payload.length > 2 && msg.extractPayloadByte(0) === Message.pluginAddress) {
+                    const registrationStatus = msg.extractPayloadByte(2);
+                    // status: 0=unknown, 1=registered, 4=failed/rejected
+                    if (sys.controllerType === ControllerType.IntelliCenter) {
+                        (sys.board as IntelliCenterBoard).setRegistrationStatus(registrationStatus);
+                    }
                 }
                 msg.isProcessed = true;
                 break;

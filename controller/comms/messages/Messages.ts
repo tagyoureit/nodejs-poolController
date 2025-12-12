@@ -783,15 +783,17 @@ export class Inbound extends Message {
                     case 179: // v3.004+ Heartbeat request - handled by EquipmentStateMessage
                         EquipmentStateMessage.process(this);
                         break;
+                    case 180: // v3.004+ Heartbeat response/status (may be sent by other devices)
+                        // No processing required; mark as handled to avoid noisy "not processed" logs.
+                        this.isProcessed = true;
+                        break;
                     case 184: // v3.004+ Circuit control from wireless remote (replaces Action 134)
                         // Wireless remote sends this to control circuits
                         // Currently handled by EquipmentStateMessage for logging
                         EquipmentStateMessage.process(this);
                         break;
-                    case 217: // v3.004+ Device list broadcast
-                        // OCP broadcasts registered devices after Action 251→253 handshake
-                        // Payload includes device addresses and firmware versions
-                        this.isProcessed = true;
+                    case 217: // v3.004+ Device list broadcast 
+                        EquipmentStateMessage.process(this);
                         break;
                     case 222: // A panel is asking for action 30s
                     case 228: // A panel is asking for the current version

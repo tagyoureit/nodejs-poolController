@@ -287,7 +287,17 @@ export class IntelliCenterBoard extends SystemBoard {
     public async announceDevice(): Promise<void> {
         if (!conn.mock) {
             // v3.004 requires device registration via Action 251→253 before responding to config requests
-            console.log('Announcing device to IntelliCenter...');
+            // IMPORTANT: OCP rejects duplicate registrations with byte[2]=4, which causes it to stop
+            // responding to config requests. Only register ONCE per session.
+            
+            // Check registration status from persistent state (from Action 217 responses)
+            // status: 0=unknown, 1=registered, 4=failed
+            if (state.equipment.registration === 1) {
+                logger.silly('Already registered with IntelliCenter v3.004 (status=1), skipping duplicate registration');
+                return;
+            }
+            
+            logger.info('Announcing device to IntelliCenter v3.004...');
             // Action 251 payload structure (22 bytes total) verified from wireless remote cradle reset:
             // [0]:      Device address (33 for njsPC)
             // [1]:      Reserved (0)
@@ -317,20 +327,35 @@ export class IntelliCenterBoard extends SystemBoard {
                 response: Response.create({ source: 15, dest: 16, action: 253 })
             });
             await out.sendAsync();
+            logger.silly('Device registration request sent, awaiting confirmation via Action 217');
+        }
+    }
+    public setRegistrationStatus(status: number) {
+        // Called when we receive Action 217 showing our registration status
+        // status: 0=unknown, 1=registered, 4=failed/rejected
+        if (state.equipment.registration !== status) {
+            state.equipment.registration = status;
+            if (status === 1) {
+                logger.silly('Registration confirmed by OCP via Action 217 (status=1)');
+            } else if (status === 4) {
+                logger.warn('Registration rejected by OCP via Action 217 (status=4) - duplicate registration attempt?');
+            }
         }
     }
     public async checkConfiguration() {
         if (!conn.mock) {
             (sys.board as IntelliCenterBoard).needsConfigChanges = true;
             try {
-                // For v3.004+, announce ourselves first to register with the OCP
+                // v3.x: WL/ICP sequence is 251 (register), then 228→164 (ACK 164), then 222[15,0]→30 (ACK 30)
                 if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
                     await this.announceDevice();
+                    await this.requestV3ConfigurationAsync();
+                } else {
+                    // v1.x: keep existing behavior unchanged
+                    console.log('Checking IntelliCenter configuration...');
+                    const out: Outbound = Outbound.createMessage(228, [0], 5, Response.create({ dest: -1, action: 164 }));
+                    await out.sendAsync();
                 }
-                // Now request configuration
-                console.log('Checking IntelliCenter configuration...');
-                const out: Outbound = Outbound.createMessage(228, [0], 5, Response.create({ dest: -1, action: 164 }));
-                await out.sendAsync();
             }
             catch (err) {
                 // If the port isn't open yet, we'll retry when it opens
@@ -339,12 +364,23 @@ export class IntelliCenterBoard extends SystemBoard {
         }
     }
     public requestConfiguration(ver: ConfigVersion) {
+        // v3.x: do NOT use the v1 category/item config queue. v3 captures show config fetch via 222[15,0].
+        if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
+            if (this.needsConfigChanges) {
+                logger.info(`Requesting IntelliCenter v3.x configuration (222[15,0])`);
+                this.needsConfigChanges = false;
+                void this.requestV3ConfigurationAsync().catch(err => {
+                    logger.warn(`Requesting IntelliCenter v3.x configuration failed: ${err?.message || err}`);
+                });
+            }
+            return;
+        }
+
         if (this.needsConfigChanges) {
             logger.info(`Requesting IntelliCenter configuration`);
             this._configQueue.queueChanges(ver);
             this.needsConfigChanges = false;
-        }
-        else {
+        } else {
             logger.info(`Skipping configuration -- Just setting the versions`);
             sys.configVersion.chlorinators = ver.chlorinators;
             sys.configVersion.circuitGroups = ver.circuitGroups;
@@ -363,6 +399,37 @@ export class IntelliCenterBoard extends SystemBoard {
             sys.configVersion.security = ver.security;
             sys.configVersion.valves = ver.valves;
         }
+    }
+
+    // v3.x: request config/state via WL-style sequence (228→164 ack, then 222[15,0]→30 ack) directly to OCP (16).
+    // IMPORTANT: this is gated by controllerFirmware >= 3.0 so v1 logic is unchanged.
+    private async requestV3ConfigurationAsync(): Promise<void> {
+        // 1) Request versions (228) to OCP
+        const verReq = Outbound.create({
+            dest: 16,
+            action: 228,
+            payload: [0],
+            retries: 3,
+            response: Response.create({ action: 164 })
+        });
+        await verReq.sendAsync();
+
+        // 2) ACK the 164 (wireless/ICP does this)
+        await Outbound.create({ dest: 16, action: 1, payload: [164], retries: 0 }).sendAsync();
+
+        // 3) Request external/state config (222[15,0]) to OCP
+        const payload = [15, 0];
+        const cfgReq = Outbound.create({
+            dest: 16,
+            action: 222,
+            payload,
+            retries: 3,
+            response: Response.create({ action: 30, payload })
+        });
+        await cfgReq.sendAsync();
+
+        // 4) ACK the 30 (wireless/ICP does this)
+        await Outbound.create({ dest: 16, action: 1, payload: [30], retries: 0 }).sendAsync();
     }
     public async stopAsync() {
         this._configQueue.close();
