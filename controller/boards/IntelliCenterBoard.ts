@@ -29,6 +29,7 @@ import { ncp } from '../nixie/Nixie';
 import { Timestamp } from "../Constants"
 export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
+    public static get isV3(): boolean { return parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0; }
     constructor(system: PoolSystem) {
         super(system);
         this._statusInterval = -1;
@@ -287,8 +288,6 @@ export class IntelliCenterBoard extends SystemBoard {
     public async announceDevice(): Promise<void> {
         if (!conn.mock) {
             // v3.004 requires device registration via Action 251→253 before responding to config requests
-            // IMPORTANT: OCP rejects duplicate registrations with byte[2]=4, which causes it to stop
-            // responding to config requests. Only register ONCE per session.
             
             // Check registration status from persistent state (from Action 217 responses)
             // status: 0=unknown, 1=registered, 4=failed
@@ -346,15 +345,14 @@ export class IntelliCenterBoard extends SystemBoard {
         if (!conn.mock) {
             (sys.board as IntelliCenterBoard).needsConfigChanges = true;
             try {
-                // v3.x: WL/ICP sequence is 251 (register), then 228→164 (ACK 164), then 222[15,0]→30 (ACK 30)
+                // v3.x: Wireless/ICP traffic is unicast to OCP (16) and includes 228→164 (version table) with ACK(164).
                 if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
                     await this.announceDevice();
-                    await this.requestV3ConfigurationAsync();
+                    await this.requestVersionsAsync(16);
                 } else {
                     // v1.x: keep existing behavior unchanged
                     console.log('Checking IntelliCenter configuration...');
-                    const out: Outbound = Outbound.createMessage(228, [0], 5, Response.create({ dest: -1, action: 164 }));
-                    await out.sendAsync();
+                    await this.requestVersionsAsync(15);
                 }
             }
             catch (err) {
@@ -364,18 +362,6 @@ export class IntelliCenterBoard extends SystemBoard {
         }
     }
     public requestConfiguration(ver: ConfigVersion) {
-        // v3.x: do NOT use the v1 category/item config queue. v3 captures show config fetch via 222[15,0].
-        if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
-            if (this.needsConfigChanges) {
-                logger.info(`Requesting IntelliCenter v3.x configuration (222[15,0])`);
-                this.needsConfigChanges = false;
-                void this.requestV3ConfigurationAsync().catch(err => {
-                    logger.warn(`Requesting IntelliCenter v3.x configuration failed: ${err?.message || err}`);
-                });
-            }
-            return;
-        }
-
         if (this.needsConfigChanges) {
             logger.info(`Requesting IntelliCenter configuration`);
             this._configQueue.queueChanges(ver);
@@ -401,35 +387,19 @@ export class IntelliCenterBoard extends SystemBoard {
         }
     }
 
-    // v3.x: request config/state via WL-style sequence (228→164 ack, then 222[15,0]→30 ack) directly to OCP (16).
-    // IMPORTANT: this is gated by controllerFirmware >= 3.0 so v1 logic is unchanged.
-    private async requestV3ConfigurationAsync(): Promise<void> {
-        // 1) Request versions (228) to OCP
+    private async requestVersionsAsync(dest: number): Promise<void> {
         const verReq = Outbound.create({
-            dest: 16,
+            dest,
             action: 228,
             payload: [0],
             retries: 3,
             response: Response.create({ action: 164 })
         });
         await verReq.sendAsync();
-
-        // 2) ACK the 164 (wireless/ICP does this)
-        await Outbound.create({ dest: 16, action: 1, payload: [164], retries: 0 }).sendAsync();
-
-        // 3) Request external/state config (222[15,0]) to OCP
-        const payload = [15, 0];
-        const cfgReq = Outbound.create({
-            dest: 16,
-            action: 222,
-            payload,
-            retries: 3,
-            response: Response.create({ action: 30, payload })
-        });
-        await cfgReq.sendAsync();
-
-        // 4) ACK the 30 (wireless/ICP does this)
-        await Outbound.create({ dest: 16, action: 1, payload: [30], retries: 0 }).sendAsync();
+        if (IntelliCenterBoard.isV3) {
+            // For v3, wireless/ICP ACKs 164 back to OCP (always unicast to 16).
+            await Outbound.create({ dest: 16, action: 1, payload: [164], retries: 0 }).sendAsync();
+        }
     }
     public async stopAsync() {
         this._configQueue.close();
@@ -796,7 +766,10 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             // this used to send a 30 Ack when it received its response but it appears that is
             // any other panel is awake at the same address it may actually collide with it
             // as both boards are processing at the same time and sending an outbound ack.
+            const dest = IntelliCenterBoard.isV3 ? 16 : 15;
             let out = Outbound.create({
+                // v1: broadcast (15). v3: wireless/ICP unicasts to OCP (16).
+                dest,
                 action: 222, payload: [this.curr.category, itm], retries: 5,
                 response: Response.create({
                     dest: -1, action: 30, payload: [this.curr.category, itm]
@@ -2064,47 +2037,18 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
     //            return [];
     //    }
     //}
-    private async verifyVersionAsync(): Promise<boolean> {
-        try {
-            let out = Outbound.create({
-                action: 228,
-                retries: 3,
-                response: Response.create({ dest: -1, action: 164 }),
-                payload: [0]
-            });
-            await out.sendAsync();
-            let ack = Outbound.create({ action: 1, destination: 16, payload: [164] });
-            let res = await ack.sendAsync();
-            return res;
-        }
-        catch (err) {
-            return Promise.reject(err);
-        }
-    }
     private async getConfigAsync(payload: number[]): Promise<boolean> {
 
+        const dest = IntelliCenterBoard.isV3 ? 16 : 15;
         let out = Outbound.create({
+            dest,
             action: 222,
             retries: 3,
             payload: payload,
             response: Response.create({ dest: -1, action: 30, payload: payload })
         });
         await out.sendAsync();
-        let ack = Outbound.create({ action: 1, destination: 16, payload: [30] });
-        await ack.sendAsync();
-        return true;
-
-    }
-    private async verifyStateAsync(): Promise<boolean> {
-        let out = Outbound.create({
-            action: 222,
-            retries: 3,
-            payload: [15, 0],
-            response: Response.create({ dest: -1, action: 30, payload: [15, 0] })
-        });
-        await out.sendAsync();
-        let ack = Outbound.create({ action: 1, destination: 16, payload: [30] });
-        await ack.sendAsync();
+        // Do NOT ACK(30). Wireless captures show config succeeds without ACK(30), and v1 queue avoids ACK(30).
         return true;
 
     }
@@ -2134,12 +2078,23 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         // need to send the set circuit message.  It will reliably work 100% of the time but the ICP
         // may set it back again.  THIS HAS TO BE A 1.047 BUG!
         try {
-            //let b = await this.verifyVersionAsync();
+            // (deprecated) historically attempted to mimic an ICP sequence (228→164 ACK, then 222[15,0]→30)
+            // before sending circuit state. We no longer run that here; it added bus noise and wasn't
+            // required for reliable 168 writes (and we never ACK(30) due to collision risk).
             //if (b) b = await this.getConfigAsync([15, 0]);
             let out = this.createCircuitStateMessage(id, val);
             //if (sys.equipment.dual && id === 6) out.setPayloadByte(35, 1);
             out.setPayloadByte(34, 1);
-            out.source = 16;
+            // v3.004+: Do NOT spoof the OCP as the sender. Commands must originate from our plugin address.
+            // NOTE (v1.x): This code historically spoofed `out.source = 16` as a workaround ("Trying a different source for
+            // setting circuits on IntelliCenter." commit cc123002fb, 2021-10-23). We do NOT currently have packet-capture
+            // proof from v1.064 replays in `data/1090` showing whether 168 succeeds/fails with source=pluginAddress.
+            if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
+                out.dest = 16;
+            }
+            else {
+                out.source = 16;
+            }
             out.scope = `circuitState${id}`;
             out.retries = 5;
             out.response = IntelliCenterBoard.getAckResponse(168);

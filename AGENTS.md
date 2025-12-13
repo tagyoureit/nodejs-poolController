@@ -164,6 +164,12 @@ This creates a feedback loop for continuous improvement.
 - Example: "I'm planning to use local variables for this. Is that appropriate?"
 - Don't assume patterns - verify first
 
+### 10.1 UI Error Attribution (dashPanel)
+**Rule:** Treat dashPanel errors as **UI-initiated command failures only**.
+- dashPanel only shows errors for actions a user initiates from dashPanel (e.g., a “turn on/off” click).
+- It will NOT surface retries/timeouts from njsPC background flows (config polling, heartbeats, etc.).
+- Therefore: absence of dashPanel errors is **not evidence** that the underlying protocol traffic is healthy; always confirm via packet logs and njsPC logs.
+
 ### 11. Modifying Existing Rules
 **Rule:** Never modify, remove, or contradict existing rules in AGENTS.md without explicit user approval
 - When a situation arises that conflicts with an existing rule, STOP and ask the user
