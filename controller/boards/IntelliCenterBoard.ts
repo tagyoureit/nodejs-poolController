@@ -488,7 +488,9 @@ export class IntelliCenterBoard extends SystemBoard {
             b.master = 0;
         }
         ncp.initAsync(sys);
-        this.checkConfiguration();
+        // Defer to the next tick so that any state extracted from the same inbound packet
+        // (e.g., firmware bytes from Action 204) is available before we decide v1 vs v3 behavior.
+        setTimeout(() => this.checkConfiguration(), 0);
     }
     public processMasterModules(modules: ExpansionModuleCollection, ocpA: number, ocpB: number, inv?) {
         // Map the expansion panels to their specific types through the valuemaps.  Sadly this means that
