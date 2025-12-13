@@ -213,8 +213,12 @@ export class Heliotrope {
             this.isCalculated = true;
             logger.verbose(`Calculated Heliotrope: sunrise:${Timestamp.toISOLocal(this._dtSunrise)} sunset:${Timestamp.toISOLocal(this._dtSunset)}`);
         }
-        else 
+        else {
+            // Set isCalculated = true to prevent warning spam (6 warnings per minute).
+            // When user sets valid lat/lon, the setters reset isCalculated = false, triggering recalculation.
+            this.isCalculated = true;
             logger.warn(`dt:${this.dt} lat:${this._latitude} lon:${this._longitude} Not enough information to calculate Heliotrope.  See https://github.com/tagyoureit/nodejs-poolController/issues/245`);
+        }
     }
     public get sunrise(): Date {
         if (!this.isCalculated) this.calcInternal();

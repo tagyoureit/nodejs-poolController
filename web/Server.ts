@@ -642,6 +642,22 @@ export class HttpServer extends ProtoServer {
         this.app.use('/socket.io-client', express.static(path.join(process.cwd(), '/node_modules/socket.io-client/dist/'), { maxAge: '60d' }));
     }
 
+    private replayInboundMessage(mdata: any) {
+        try {
+            let msg: Inbound = new Inbound();
+            msg.direction = mdata.direction;
+            msg.header = mdata.header;
+            msg.payload = mdata.payload;
+            msg.preamble = mdata.preamble;
+            msg.protocol = mdata.protocol;
+            msg.term = mdata.term;
+            if (msg.isValid) msg.process();
+        }
+        catch (err) {
+            logger.error(`Error replaying packet: ${err.message}`);
+        }
+    }
+
     private socketHandler(sock: Socket) {
         let self = this;
         // this._sockets.push(sock);
@@ -666,20 +682,7 @@ export class HttpServer extends ProtoServer {
             conn.queueSendMessage(msg);
         });
         sock.on('sendInboundMessage', (mdata) => {
-            try {
-
-                let msg: Inbound = new Inbound();
-                msg.direction = mdata.direction;
-                msg.header = mdata.header;
-                msg.payload = mdata.payload;
-                msg.preamble = mdata.preamble;
-                msg.protocol = mdata.protocol;
-                msg.term = mdata.term;
-                if (msg.isValid) msg.process();
-            }
-            catch (err){
-                logger.error(`Error replaying packet: ${err.message}`);
-            }
+            this.replayInboundMessage(mdata);
         });
         sock.on('rawbytes', (data:any)=>{
             let port = conn.findPortById(0);
@@ -752,6 +755,13 @@ export class HttpServer extends ProtoServer {
                         }
                         next();
                     }
+                });
+
+                // Minimal inbound replay endpoint for local testing/tools.
+                // Expected JSON shape: { direction, protocol, preamble, header, payload, term }
+                this.app.post('/replay/inbound', (req, res) => {
+                    this.replayInboundMessage(req.body);
+                    res.status(200).send('Inbound message replayed.');
                 });
 
 

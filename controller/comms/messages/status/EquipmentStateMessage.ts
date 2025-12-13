@@ -85,7 +85,6 @@ export class EquipmentStateMessage {
         }
     }
     private static initController(msg: Inbound) {
-        state.status = 1;
         const model1 = msg.extractPayloadByte(27);
         const model2 = msg.extractPayloadByte(28);
         // RKS: 06-15-20 -- While this works for now the way we are detecting seems a bit dubious.  First, the 2 status message
@@ -113,20 +112,26 @@ export class EquipmentStateMessage {
             sys.board.needsConfigChanges = true;
             setTimeout(function () { sys.checkConfiguration(); }, 300);
         }
+        // Set status = 1 AFTER controllerType change, because the controllerType setter
+        // resets state.status = 0 during RESETTING DATA
+        state.status = 1;
     }
     public static process(msg: Inbound) {
         Message.headerSubByte = msg.header[1];
         //console.log(process.memoryUsage());
         if (msg.action === 2 && state.isInitialized && sys.controllerType === ControllerType.Nixie) {
-            // Start over because we didn't have communication before but we now do.  This will fall into the if
-            // below so that it goes through the intialization process.  In this case we didn't see an OCP when we started
-            // but there clearly is one now.
+            // Start over because we didn't have communication before but we now do.
+            // Close the nixie board first, then initialize with the new controller type.
+            // Fix: Call initController AFTER the async close completes to avoid race condition.
             (async () => {
                 await sys.board.closeAsync();
                 logger.info(`Closed ${sys.controllerType} board`);
                 sys.controllerType = ControllerType.Unknown;
                 state.status = 0;
+                // Now initialize the correct controller type after nixie is closed
+                EquipmentStateMessage.initController(msg);
             })();
+            return; // Don't continue processing until async close/init completes
         }
         if (!state.isInitialized) {
             msg.isProcessed = true;
@@ -138,7 +143,7 @@ export class EquipmentStateMessage {
             if (msg.action === 204) {
                 // We have determined that the 204 message now contains the information
                 // related to the installed expansion boards.
-                console.log(`INTELLICENTER MODULES DETECTED, REQUESTING STATUS!`);
+                logger.info(`INTELLICENTER MODULES DETECTED, REQUESTING STATUS!`);
                 // Master = 13-14
                 // EXP1 = 15-16
                 // EXP2 = 17-18
