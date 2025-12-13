@@ -359,6 +359,13 @@ export class Connection {
     public queueSendMessage(msg: Outbound) {
         let port = this.findPortById(msg.portId);
         if (typeof port !== 'undefined') {
+            // In mock mode:
+            // - never retry the same outbound packet multiple times
+            // - never wait for responses (so API callers get "sent" semantics)
+            if (port.mock) {
+                msg.retries = 0;
+                if (msg.requiresResponse) msg.response = undefined;
+            }
             port.emitter.emit('messagewrite', msg);
         }
         else
@@ -374,6 +381,13 @@ export class Connection {
             if (typeof port === 'undefined') {
                 logger.error(`queueSendMessage: Message was targeted for undefined port ${msg.portId || 0}`);
                 return;
+            }
+            // In mock mode:
+            // - never retry the same outbound packet multiple times
+            // - never wait for responses (so API callers get "sent" semantics)
+            if (port.mock) {
+                msg.retries = 0;
+                if (msg.requiresResponse) msg.response = undefined;
             }
             // also send to other broadcast ports
             // let msgs = conn.queueOutboundToAnslq25(msg);
@@ -864,36 +878,32 @@ export class RS485Port {
                 (this._port as net.Socket).write(bytes, 'binary', cb);
         }
         else {
-            if (this._port instanceof SerialPortMock && this.mock === true) {
-                msg.processMock();
-                cb();
-            }
-            else {
-
-                this.writeTimer = setTimeout(() => {
-                    // RSG - I ran into a scenario where the underlying stream
-                    // processor was not retuning the CB and comms would 
-                    // completely stop.  This timeout is a failsafe.
-                    // Further, the underlying stream may throw an event error 
-                    // and not call the callback (per node docs) hence the
-                    // public writeTimer.
+            // For mock ports, we still want to exercise the real outbound send pipeline:
+            // - log + emit to dashpanel via logger.packet(msg) in writeMessage()
+            // - write the exact bytes that would have been sent
+            // Do NOT loop outbound messages back into inbound processing here; mock/replay injects inbound separately.
+            this.writeTimer = setTimeout(() => {
+                // RSG - I ran into a scenario where the underlying stream
+                // processor was not retuning the CB and comms would 
+                // completely stop.  This timeout is a failsafe.
+                // Further, the underlying stream may throw an event error 
+                // and not call the callback (per node docs) hence the
+                // public writeTimer.
+                if (typeof cb === 'function') {
+                    cb = undefined;
+                    _cb(new Error(`Serialport stream has not called the callback in 3s.`));
+                }
+            }, 3000);
+            (this._port as any).write(bytes, (err) => {
+                if (typeof this.writeTimer !== 'undefined') {
+                    clearTimeout(this.writeTimer);
+                    this.writeTimer = null;
                     if (typeof cb === 'function') {
                         cb = undefined;
-                        _cb(new Error(`Serialport stream has not called the callback in 3s.`));
+                        _cb(err);
                     }
-                }, 3000);
-                this._port.write(bytes, (err) => {
-                    if (typeof this.writeTimer !== 'undefined') {
-                        clearTimeout(this.writeTimer);
-                        this.writeTimer = null;
-                        // resolve();
-                        if (typeof cb === 'function') {
-                            cb = undefined;
-                            _cb(err);
-                        }
-                    }
-                });
-            }
+                }
+            });
 
         }
     }
@@ -949,9 +959,16 @@ export class RS485Port {
             let timeout = this._waitingPacket.timeout || 1000;
             let dt = new Date();
             if (this._waitingPacket.timestamp.getTime() + timeout < dt.getTime()) {
-                logger.silly(`Retrying outbound message after ${(dt.getTime() - this._waitingPacket.timestamp.getTime()) / 1000} secs with ${this._waitingPacket.remainingTries} attempt(s) left. - ${this._waitingPacket.toShortPacket()} `);
-                this.counter.sndRetries++;
-                this.writeMessage(this._waitingPacket);
+                if (this._waitingPacket.remainingTries > 0) {
+                    logger.silly(`Retrying outbound message after ${(dt.getTime() - this._waitingPacket.timestamp.getTime()) / 1000} secs with ${this._waitingPacket.remainingTries} attempt(s) left. - ${this._waitingPacket.toShortPacket()} `);
+                    this.counter.sndRetries++;
+                    this.writeMessage(this._waitingPacket);
+                }
+                else {
+                    // No retries remaining; fail the message (writeMessage will abort without writing).
+                    logger.silly(`Outbound message timed out after ${(dt.getTime() - this._waitingPacket.timestamp.getTime()) / 1000} secs with no retries remaining. - ${this._waitingPacket.toShortPacket()} `);
+                    this.writeMessage(this._waitingPacket);
+                }
             }
             return true;
         }

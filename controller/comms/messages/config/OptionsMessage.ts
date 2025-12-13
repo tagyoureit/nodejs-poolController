@@ -77,15 +77,25 @@ export class OptionsMessage {
 
                             // Somewhere in here are the units.
 
+                            // v3.004+: payload layout shifted by 1 byte vs v1.x (timestamp insertion earlier in the packet).
+                            // Evidence: replay.21 Action 30 type 0 has [.., 85,100,94,103, 3,3 ..] at bytes 19-24.
+                            const isIntellicenterV3 = (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3);
+                            const poolHeatNdx = isIntellicenterV3 ? 19 : 20;
+                            const poolCoolNdx = isIntellicenterV3 ? 20 : 21;
+                            const spaHeatNdx = isIntellicenterV3 ? 21 : 22;
+                            const spaCoolNdx = isIntellicenterV3 ? 22 : 23;
+                            const poolModeNdx = isIntellicenterV3 ? 23 : 24;
+                            const spaModeNdx = isIntellicenterV3 ? 24 : 25;
+
                             let body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
-                            body.heatMode = msg.extractPayloadByte(24);
-                            body.heatSetpoint = msg.extractPayloadByte(20);
-                            body.coolSetpoint = msg.extractPayloadByte(21);
+                            body.heatMode = msg.extractPayloadByte(poolModeNdx);
+                            body.heatSetpoint = msg.extractPayloadByte(poolHeatNdx);
+                            body.coolSetpoint = msg.extractPayloadByte(poolCoolNdx);
 
                             body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
-                            body.heatMode = msg.extractPayloadByte(25);
-                            body.heatSetpoint = msg.extractPayloadByte(22);
-                            body.coolSetpoint = msg.extractPayloadByte(23);
+                            body.heatMode = msg.extractPayloadByte(spaModeNdx);
+                            body.heatSetpoint = msg.extractPayloadByte(spaHeatNdx);
+                            body.coolSetpoint = msg.extractPayloadByte(spaCoolNdx);
 
                             //body = sys.bodies.getItemById(3, sys.equipment.maxBodies > 2);
                             //body.heatMode = msg.extractPayloadByte(26);

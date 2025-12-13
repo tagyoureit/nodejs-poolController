@@ -125,13 +125,17 @@ class Logger {
         return false;
     }
     public packet(msg: Message) {
+        // Emits to clients should not be gated by logging settings.
+        // Logging-to-file/console remains gated by packet config and filters.
+        webApp.emitToChannel('msgLogger', 'logMessage', msg);
+
+        // Filter out the messages we do not want to *log*.
+        let bLog: boolean = true;
         if (logger.cfg.packet.enabled || logger.cfg.app.captureForReplay) {
-            // Filter out the messages we do not want.
-            var bLog: boolean = true;
             // A random packet may actually find its way into the throws should the bytes get messed up
             // in a fashion where the header byte is 255, 0, 255 but we have not identified the channel.
             // Thus far we have seen 165 and 166.
-            var cfgPacket = logger.cfg.packet[msg.protocol] || logger.cfg.packet['unidentified'];
+            const cfgPacket = logger.cfg.packet[msg.protocol] || logger.cfg.packet['unidentified'];
             if (!logger.cfg.app.captureForReplay) {
                 // Log invalid messages no matter what if the user has selected invalid message logging.
                 if (bLog && !msg.isValid) {
@@ -147,24 +151,25 @@ class Logger {
                     if (bLog && logger.isExcluded(msg.action, cfgPacket.excludeActions)) bLog = false;
                 }
             }
-            
-            if (bLog) {
-                if (logger.cfg.packet.logToFile) {
-                    logger.pkts.push(msg);
-                    if (logger.pkts.length > 5)
-                        logger.flushLogs();
-                    else {
-                        // Attempt to ease up on the writes if we are logging a bunch of packets.
-                        if (logger.pktTimer) clearTimeout(logger.pktTimer);
-                        logger.pktTimer = setTimeout(logger.flushLogs, 1000);
-                    }
+
+            if (bLog && logger.cfg.packet.logToFile) {
+                logger.pkts.push(msg);
+                if (logger.pkts.length > 5)
+                    logger.flushLogs();
+                else {
+                    // Attempt to ease up on the writes if we are logging a bunch of packets.
+                    if (logger.pktTimer) clearTimeout(logger.pktTimer);
+                    logger.pktTimer = setTimeout(logger.flushLogs, 1000);
                 }
-                webApp.emitToChannel('msgLogger', 'logMessage', msg);
             }
         }
-        if (logger.cfg.packet.logToConsole) {
-            if (msg.isValid && bLog) logger._logger.info(msg.toLog());
-            else if (!msg.isValid) logger._logger.warn(msg.toLog());
+        else {
+            bLog = false;
+        }
+
+        if (logger.cfg.packet.logToConsole && bLog) {
+            if (msg.isValid) logger._logger.info(msg.toLog());
+            else logger._logger.warn(msg.toLog());
         }
     }
     public screenlogic(data: any){

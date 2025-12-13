@@ -1317,19 +1317,17 @@ export class Response extends OutboundCommon {
 
         // if these properties were set on the Response (this) object via creation,
         // then use the passed in values.  Otherwise, use the msgIn/msgOut matching rules        
-        if (this.action > 0 && this.payload.length > 0) {
-            if (this.action === msgIn.action) {
-                for (let i = 0; i < msgIn.payload.length; i++) {
-                    if (i > this.payload.length - 1)
-                        return false;
-                    if (this.payload[i] !== msgIn.payload[i]) return false;
-                    return true;
-                }
+        // IntelliCenter config queue uses (action,payload-prefix) matching for Action 30 responses.
+        // Keep this stricter prefix matching scoped to IntelliCenter to avoid unintended effects on other controllers.
+        if (this.action > 0 && sys.controllerType === ControllerType.IntelliCenter) {
+            if (this.action !== msgIn.action) return false;
+            // If no payload prefix is provided, action match is sufficient (e.g. v3 Action 30 with empty payload).
+            if (this.payload.length === 0) return true;
+            if (msgIn.payload.length < this.payload.length) return false;
+            for (let i = 0; i < this.payload.length; i++) {
+                if (this.payload[i] !== msgIn.payload[i]) return false;
             }
-        }
-        else if (this.action > 0) {
-            if (this.action === msgIn.action) return true;
-            else return false;
+            return true;
         }
         else if (msgOut.protocol === Protocol.Pump) {
             switch (msgIn.action) {

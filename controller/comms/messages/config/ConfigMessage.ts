@@ -46,6 +46,12 @@ export class ConfigMessage {
     public static process(msg: Inbound): void {
         switch (sys.controllerType) {
             case ControllerType.IntelliCenter:
+                // v3.004+ can return Action 30 with a zero-length payload for some (category,item) requests.
+                // These still unblock the config queue, but there is nothing to parse here.
+                if (msg.action === 30 && msg.payload.length === 0) {
+                    msg.isProcessed = true;
+                    return;
+                }
                 switch (msg.extractPayloadByte(0)) {
                     case 0:
                         OptionsMessage.process(msg);

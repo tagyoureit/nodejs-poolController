@@ -29,7 +29,6 @@ import { ncp } from '../nixie/Nixie';
 import { Timestamp } from "../Constants"
 export class IntelliCenterBoard extends SystemBoard {
     public needsConfigChanges: boolean = false;
-    public static get isV3(): boolean { return parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0; }
     constructor(system: PoolSystem) {
         super(system);
         this._statusInterval = -1;
@@ -286,48 +285,47 @@ export class IntelliCenterBoard extends SystemBoard {
         this.modulesAcquired = false;
     }
     public async announceDevice(): Promise<void> {
-        if (!conn.mock) {
-            // v3.004 requires device registration via Action 251→253 before responding to config requests
-            
-            // Check registration status from persistent state (from Action 217 responses)
-            // status: 0=unknown, 1=registered, 4=failed
-            if (state.equipment.registration === 1) {
-                logger.silly('Already registered with IntelliCenter v3.004 (status=1), skipping duplicate registration');
-                return;
-            }
-            
-            logger.info('Announcing device to IntelliCenter v3.004...');
-            // Action 251 payload structure (22 bytes total) verified from wireless remote cradle reset:
-            // [0]:      Device address (33 for njsPC)
-            // [1]:      Reserved (0)
-            // [2]:      Registration flag (0=not registered, 1=registered - OCP sets to 1 in Action 253)
-            // [3-6]:    Reserved (zeros)
-            // [7-12]:   Device identifier (6 bytes - unique per device)
-            //           Using ASCII "njsPC\0" = [110, 106, 115, 80, 67, 0] for easy identification
-            // [13-16]:  Reserved (zeros)
-            // [17-18]:  Firmware version (major, minor)
-            // [19-21]:  Unknown bytes (1, 7, 11 - copied from wireless remote in all captures)
-            const fwMajor = parseInt(sys.equipment.controllerFirmware || "3") || 3;
-            const fwMinor = Math.round((parseFloat(sys.equipment.controllerFirmware || "3.0") % 1) * 1000);
-            const out: Outbound = Outbound.create({
-                dest: 16,  // MUST send to OCP (16), not broadcast (15)
-                action: 251,
-                payload: [
-                    Message.pluginAddress,  // [0] Device address (33)
-                    0,                      // [1] Reserved
-                    0,                      // [2] Registration flag (0=requesting, 1=confirmed, 4=error/rejected?)
-                    0, 0, 0, 0,            // [3-6] Reserved
-                    110, 106, 115, 80, 67, 0,  // [7-12] Device ID: "njsPC\0" (ASCII)
-                    0, 0, 0, 0,            // [13-16] Reserved
-                    fwMajor, fwMinor,      // [17-18] Firmware version
-                    1, 7, 11               // [19-21] Unknown (copied from wireless remote)
-                ],
-                retries: 3,
-                response: Response.create({ source: 15, dest: 16, action: 253 })
-            });
-            await out.sendAsync();
-            logger.silly('Device registration request sent, awaiting confirmation via Action 217');
+        // v3.004 requires device registration via Action 251→253 before responding to config requests
+        // In mock mode we still want to "send" the packet so it is logged/emitted like a real write.
+        
+        // Check registration status from persistent state (from Action 217 responses)
+        // status: 0=unknown, 1=registered, 4=failed
+        if (state.equipment.registration === 1) {
+            logger.silly('Already registered with IntelliCenter v3.004 (status=1), skipping duplicate registration');
+            return;
         }
+        
+        logger.info('Announcing device to IntelliCenter v3.004...');
+        // Action 251 payload structure (22 bytes total) verified from wireless remote cradle reset:
+        // [0]:      Device address (33 for njsPC)
+        // [1]:      Reserved (0)
+        // [2]:      Registration flag (0=not registered, 1=registered - OCP sets to 1 in Action 253)
+        // [3-6]:    Reserved (zeros)
+        // [7-12]:   Device identifier (6 bytes - unique per device)
+        //           Using ASCII "njsPC\0" = [110, 106, 115, 80, 67, 0] for easy identification
+        // [13-16]:  Reserved (zeros)
+        // [17-18]:  Firmware version (major, minor)
+        // [19-21]:  Unknown bytes (1, 7, 11 - copied from wireless remote in all captures)
+        const fwMajor = parseInt(sys.equipment.controllerFirmware || "3") || 3;
+        const fwMinor = Math.round((parseFloat(sys.equipment.controllerFirmware || "3.0") % 1) * 1000);
+        const out: Outbound = Outbound.create({
+            dest: 16,  // MUST send to OCP (16), not broadcast (15)
+            action: 251,
+            payload: [
+                Message.pluginAddress,  // [0] Device address (33)
+                0,                      // [1] Reserved
+                0,                      // [2] Registration flag (0=requesting, 1=confirmed, 4=error/rejected?)
+                0, 0, 0, 0,            // [3-6] Reserved
+                110, 106, 115, 80, 67, 0,  // [7-12] Device ID: "njsPC\0" (ASCII)
+                0, 0, 0, 0,            // [13-16] Reserved
+                fwMajor, fwMinor,      // [17-18] Firmware version
+                1, 7, 11               // [19-21] Unknown (copied from wireless remote)
+            ],
+            retries: 3,
+            response: Response.create({ source: 15, dest: 16, action: 253 })
+        });
+        await out.sendAsync();
+        logger.silly('Device registration request sent, awaiting confirmation via Action 217');
     }
     public setRegistrationStatus(status: number) {
         // Called when we receive Action 217 showing our registration status
@@ -342,23 +340,21 @@ export class IntelliCenterBoard extends SystemBoard {
         }
     }
     public async checkConfiguration() {
-        if (!conn.mock) {
-            (sys.board as IntelliCenterBoard).needsConfigChanges = true;
-            try {
-                // v3.x: Wireless/ICP traffic is unicast to OCP (16) and includes 228→164 (version table) with ACK(164).
-                if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
-                    await this.announceDevice();
-                    await this.requestVersionsAsync(16);
-                } else {
-                    // v1.x: keep existing behavior unchanged
-                    console.log('Checking IntelliCenter configuration...');
-                    await this.requestVersionsAsync(15);
-                }
+        (sys.board as IntelliCenterBoard).needsConfigChanges = true;
+        try {
+            // v3.x: Wireless/ICP traffic is unicast to OCP (16) and includes 228→164 (version table) with ACK(164).
+            if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
+                await this.announceDevice();
+                await this.requestVersionsAsync(16);
+            } else {
+                // v1.x: keep existing behavior unchanged
+                console.log('Checking IntelliCenter configuration...');
+                await this.requestVersionsAsync(15);
             }
-            catch (err) {
-                // If the port isn't open yet, we'll retry when it opens
-                logger.warn(`checkConfiguration failed (port may not be open yet): ${err.message}`);
-            }
+        }
+        catch (err) {
+            // If the port isn't open yet, we'll retry when it opens
+            logger.warn(`checkConfiguration failed (port may not be open yet): ${err.message}`);
         }
     }
     public requestConfiguration(ver: ConfigVersion) {
@@ -396,7 +392,7 @@ export class IntelliCenterBoard extends SystemBoard {
             response: Response.create({ action: 164 })
         });
         await verReq.sendAsync();
-        if (IntelliCenterBoard.isV3) {
+        if (sys.equipment.isIntellicenterV3) {
             // For v3, wireless/ICP ACKs 164 back to OCP (always unicast to 16).
             await Outbound.create({ dest: 16, action: 1, payload: [164], retries: 0 }).sendAsync();
         }
@@ -497,12 +493,13 @@ export class IntelliCenterBoard extends SystemBoard {
         // we need to determine if anything needs to be removed or added before actually doing it.
         if (typeof inv === 'undefined') inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 0, chemControllers: 0 };
         
-        // v3.004+ moved slot encoding from low nibble to high nibble
-        // v1.064: ocpA = 0x05 (0000 0101) → slot0 = low nibble = 5
-        // v3.004: ocpA = 0x50 (0101 0000) → slot0 = high nibble = 5
-        let slot0 = (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) ? (ocpA >> 4) : (ocpA & 0x0F);
-        
-        let slot1 = (ocpA & 0xF0) >> 4;
+        // v3.004+ moved slot encoding such that slot0 is the HIGH nibble and slot1 is the LOW nibble.
+        // v1.064: ocpA = 0x05 (0000 0101) → slot0 = 5 (low),  slot1 = 0 (high)
+        // v3.004: ocpA = 0x50 (0101 0000) → slot0 = 5 (high), slot1 = 0 (low)
+        // v3.004: ocpA = 0x58 (0101 1000) → slot0 = 5 (high), slot1 = 8 (low)
+        const isIntellicenterV3 = sys.equipment.isIntellicenterV3;
+        let slot0 = isIntellicenterV3 ? ((ocpA & 0xF0) >> 4) : (ocpA & 0x0F);
+        let slot1 = isIntellicenterV3 ? (ocpA & 0x0F) : ((ocpA & 0xF0) >> 4);
         let slot2 = (ocpB & 0xF0) >> 4;
         let slot3 = ocpB & 0xF;
         // Slot 0 always has to have a personality card.
@@ -768,15 +765,16 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             // this used to send a 30 Ack when it received its response but it appears that is
             // any other panel is awake at the same address it may actually collide with it
             // as both boards are processing at the same time and sending an outbound ack.
-            const dest = IntelliCenterBoard.isV3 ? 16 : 15;
+            const dest = sys.equipment.isIntellicenterV3 ? 16 : 15;
             let out = Outbound.create({
                 // v1: broadcast (15). v3: wireless/ICP unicasts to OCP (16).
                 dest,
                 action: 222, payload: [this.curr.category, itm], retries: 5,
-                response: Response.create({
-                    dest: -1, action: 30, payload: [this.curr.category, itm]
-                    // , callback: () => { self.processNext(out); } 
-                })
+                // v3.004+: some config requests can yield an Action 30 with an empty payload (length=0).
+                // Those packets still indicate "done" for the requested item, but cannot be matched by payload prefix.
+                response: sys.equipment.isIntellicenterV3
+                    ? Response.create({ dest: -1, action: 30 })
+                    : Response.create({ dest: -1, action: 30, payload: [this.curr.category, itm] })
             });
             logger.verbose(`Requesting config for: ${ConfigCategories[this.curr.category]} - Item: ${itm}`);
             // setTimeout(() => { conn.queueSendMessage(out) }, 50);
@@ -2041,7 +2039,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
     //}
     private async getConfigAsync(payload: number[]): Promise<boolean> {
 
-        const dest = IntelliCenterBoard.isV3 ? 16 : 15;
+        const dest = sys.equipment.isIntellicenterV3 ? 16 : 15;
         let out = Outbound.create({
             dest,
             action: 222,
@@ -2087,14 +2085,12 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let out = this.createCircuitStateMessage(id, val);
             //if (sys.equipment.dual && id === 6) out.setPayloadByte(35, 1);
             out.setPayloadByte(34, 1);
-            // v3.004+: Do NOT spoof the OCP as the sender. Commands must originate from our plugin address.
-            // NOTE (v1.x): This code historically spoofed `out.source = 16` as a workaround ("Trying a different source for
-            // setting circuits on IntelliCenter." commit cc123002fb, 2021-10-23). We do NOT currently have packet-capture
-            // proof from v1.064 replays in `data/1090` showing whether 168 succeeds/fails with source=pluginAddress.
-            if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
+            // v3.004+: Do NOT spoof the OCP as the sender. Commands must originate from our plugin address and be sent to OCP (16).
+            // v1.x: historically spoofed `out.source = 16` as a workaround ("Trying a different source for setting circuits on IntelliCenter."
+            // commit cc123002fb, 2021-10-23). Keep that behavior only for pre-v3.
+            if (sys.equipment.isIntellicenterV3) {
                 out.dest = 16;
-            }
-            else {
+            } else {
                 out.source = 16;
             }
             out.scope = `circuitState${id}`;

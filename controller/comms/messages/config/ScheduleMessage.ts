@@ -258,7 +258,14 @@ export class ScheduleMessage {
         for (let i = 1; i < msg.payload.length - 1 && schedId <= ScheduleMessage._maxSchedId;) {
             let schedule: Schedule = sys.schedules.getItemById(schedId++, false, { isActive: false });
             if (schedule.isActive) {
-                schedule.startTime = msg.extractPayloadInt(i + 1);
+                // v3.004+: schedule times are big-endian (hi,lo) in Action 30 payloads.
+                // v1.x: schedule times are little-endian (lo,hi) (handled by extractPayloadInt).
+                if (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3) {
+                    schedule.startTime = (msg.extractPayloadByte(i + 1) * 256) + msg.extractPayloadByte(i + 2);
+                }
+                else {
+                    schedule.startTime = msg.extractPayloadInt(i + 1);
+                }
                 let csched = state.schedules.getItemById(schedule.id, true);
                 csched.startTime = schedule.startTime;
             }
@@ -269,7 +276,11 @@ export class ScheduleMessage {
     private static processEndTimes(msg: Inbound) {
         let schedId = (msg.extractPayloadByte(1) - 23) * 20 + 1;
         for (let i = 1; i < msg.payload.length - 1 && schedId <= ScheduleMessage._maxSchedId;) {
-            const time = msg.extractPayloadInt(i + 1);
+            // v3.004+: schedule times are big-endian (hi,lo) in Action 30 payloads.
+            // v1.x: schedule times are little-endian (lo,hi).
+            const time = (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3)
+                ? ((msg.extractPayloadByte(i + 1) * 256) + msg.extractPayloadByte(i + 2))
+                : msg.extractPayloadInt(i + 1);
             const schedule: Schedule = sys.schedules.getItemById(schedId++, false, { isActive: false });
             if (schedule.isActive !== false) {
                 schedule.endTime = time;

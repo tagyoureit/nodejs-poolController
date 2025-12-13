@@ -1017,6 +1017,20 @@ export class Equipment extends EqItem {
     public get flowSensors(): FlowSensorCollection { return new FlowSensorCollection(this.data); }
     public set controllerFirmware(val: string) { this.setDataVal('softwareVersion', val); }
     public get controllerFirmware(): string { return this.data.softwareVersion; }
+    /**
+     * IntelliCenter v3 behavior gate.
+     *
+     * Returns false unless:
+     * - controller type is IntelliCenter
+     * - controller firmware is present and parses as a number
+     * - firmware major.minor >= 3.0
+     */
+    public get isIntellicenterV3(): boolean {
+        if (sys.controllerType !== ControllerType.IntelliCenter) return false;
+        const fw = parseFloat(this.controllerFirmware || '');
+        if (!Number.isFinite(fw)) return false;
+        return fw >= 3.0;
+    }
     public set bootloaderVersion(val: string) { this.setDataVal('bootloaderVersion', val); }
     public get bootloaderVersion(): string { return this.data.bootloaderVersion; }
     public reset() {
