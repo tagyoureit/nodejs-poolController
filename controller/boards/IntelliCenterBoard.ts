@@ -625,9 +625,18 @@ export class IntelliCenterBoard extends SystemBoard {
         if (typeof inv === 'undefined') inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 0, chemControllers: 0 };
         // 
         // v3.004+: expansion panel slot encoding matches the master panel (slot0 is HIGH nibble).
-        const isIntellicenterV3 = sys.equipment.isIntellicenterV3;
-        let slot0 = isIntellicenterV3 ? ((ocpA & 0xF0) >> 4) : (ocpA & 0x0F);
-        let slot1 = isIntellicenterV3 ? (ocpA & 0x0F) : ((ocpA & 0xF0) >> 4);
+        // Prefer firmware-gated v3 decoding, but also auto-detect v3 encoding using the protocol constraint
+        // that expansion panel slot0 must be a valid expansion card (3-7), similar to processMasterModules.
+        const hi = (ocpA & 0xF0) >> 4;
+        const lo = (ocpA & 0x0F);
+        let useV3Order = sys.equipment.isIntellicenterV3;
+        if (!useV3Order) {
+            // If HIGH nibble looks like a valid expansion card (3-7) and LOW nibble is either empty (0) or non-personality (>7),
+            // treat this as v3 encoding even if the firmware gate isn't established yet.
+            if (hi >= 3 && hi <= 7 && (lo === 0 || lo > 7)) useV3Order = true;
+        }
+        let slot0 = useV3Order ? hi : lo;
+        let slot1 = useV3Order ? lo : hi;
         let slot2 = (ocpB & 0xF0) >> 4;
         let slot3 = ocpB & 0xF;
         // Slot 0 always has to have a personality card but on an expansion module it cannot be 0.  At this point we only know that an i10x = 6 for slot 0.
