@@ -724,9 +724,53 @@ export class ExternalMessage {
     }
     private static processTempSettings(msg: Inbound) {
         let fnTranslateByte = (byte: number) => { return (byte & 0x007F) * (((byte & 0x0080) > 0) ? -1 : 1); }
-        // What the developers did is supply an offset index into the payload for the byte that is
-        // changing.  I suppose this may have been easier but we are not using that logic.  We want the
-        // information to remain decoded so that we aren't guessing which byte does what.
+        
+        // v3.004+: Wireless sends the FULL options block (like Action 30 category 0), not a single-field notification.
+        // v1.x: Used byte[2] as a pivot/index indicating which field changed, then byte[byte[2]+3] = new value.
+        // v3.x: Sends full payload with setpoints at fixed offsets (19-24 for v3 vs 20-25 for v1).
+        const isIntellicenterV3 = (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3);
+        
+        // Detect v3 full-block format by payload length (v3 sends 41 bytes for msgType 0)
+        if (isIntellicenterV3 && msg.payload.length >= 27) {
+            // v3.004+ full options block - parse using same offsets as OptionsMessage.processIntelliCenter
+            // Payload structure matches Action 30 category 0, offset by 1 byte from v1
+            const poolHeatNdx = 19;
+            const poolCoolNdx = 20;
+            const spaHeatNdx = 21;
+            const spaCoolNdx = 22;
+            const poolModeNdx = 23;
+            const spaModeNdx = 24;
+            
+            // Update Body 1 (Pool)
+            let body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
+            let sbody = state.temps.bodies.getItemById(1);
+            if (body.isActive) {
+                body.heatSetpoint = msg.extractPayloadByte(poolHeatNdx);
+                body.coolSetpoint = msg.extractPayloadByte(poolCoolNdx);
+                body.heatMode = msg.extractPayloadByte(poolModeNdx);
+                sbody.heatSetpoint = body.heatSetpoint;
+                sbody.coolSetpoint = body.coolSetpoint;
+                sbody.heatMode = body.heatMode;
+            }
+            
+            // Update Body 2 (Spa)
+            body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
+            sbody = state.temps.bodies.getItemById(2);
+            if (body.isActive) {
+                body.heatSetpoint = msg.extractPayloadByte(spaHeatNdx);
+                body.coolSetpoint = msg.extractPayloadByte(spaCoolNdx);
+                body.heatMode = msg.extractPayloadByte(spaModeNdx);
+                sbody.heatSetpoint = body.heatSetpoint;
+                sbody.coolSetpoint = body.coolSetpoint;
+                sbody.heatMode = body.heatMode;
+            }
+            
+            state.emitEquipmentChanges();
+            msg.isProcessed = true;
+            return;
+        }
+        
+        // v1.x: Single-field-changed notification using byte[2] as pivot index.
         // payLoadIndex = byte(2) + 3 where the first 3 bytes indicate what value changed.
         let body: Body = null;
         switch (msg.extractPayloadByte(2)) {
