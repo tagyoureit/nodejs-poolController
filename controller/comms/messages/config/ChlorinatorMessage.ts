@@ -49,11 +49,16 @@ export class ChlorinatorMessage {
                         chlor.isActive = msg.extractPayloadByte(i + 22) === 1;
                         chlor.superChlorHours = msg.extractPayloadByte(i + 26);
                         chlor.address = 80 + i;
+                        // Set a default name if not already set (name comes from chlorinator's Action 3 response)
+                        if (typeof chlor.name === 'undefined' || chlor.name === '') {
+                            chlor.name = `Chlorinator ${chlorId}`;
+                        }
                         schlor.body = chlor.body;
                         schlor.poolSetpoint = chlor.poolSetpoint;
                         schlor.spaSetpoint = chlor.spaSetpoint;
                         schlor.type = chlor.type;
                         schlor.model = chlor.model;
+                        schlor.name = chlor.name;
                         schlor.isActive = chlor.isActive;
                         schlor.superChlorHours = chlor.superChlorHours;
                         state.emitEquipmentChanges();
