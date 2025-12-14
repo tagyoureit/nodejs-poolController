@@ -268,10 +268,23 @@ export class ExternalMessage {
         }
     }
     public static processIntelliCenterState(msg) {
-        ExternalMessage.processCircuitState(2, msg);
-        ExternalMessage.processFeatureState(8, msg);
-        ExternalMessage.processScheduleState(14, msg);
-        ExternalMessage.processCircuitGroupState(12, msg);
+        // This is called from Action 30 case 15 (config message) - NOT Action 168 case 15 (wireless message).
+        // Action 30 and Action 168 have different payload structures!
+        // 
+        // v1.x: Original offsets (2, 8, 14, 12) - in place since Oct 2019, working.
+        // v3.004+: Different structure, requires offsets (3, 9, 15, 13) to match wireless message layout.
+        if (sys.equipment.isIntellicenterV3) {
+            ExternalMessage.processCircuitState(3, msg);
+            ExternalMessage.processFeatureState(9, msg);
+            ExternalMessage.processScheduleState(15, msg);
+            ExternalMessage.processCircuitGroupState(13, msg);
+        } else {
+            // v1.x offsets - preserve original behavior since Oct 2019
+            ExternalMessage.processCircuitState(2, msg);
+            ExternalMessage.processFeatureState(8, msg);
+            ExternalMessage.processScheduleState(14, msg);
+            ExternalMessage.processCircuitGroupState(12, msg);
+        }
     }
     private static processHeater(msg: Inbound) {
         // So a user is changing the heater info.  Lets

@@ -1439,6 +1439,29 @@ class IntelliCenterSystemCommands extends SystemCommands {
 }
 class IntelliCenterCircuitCommands extends CircuitCommands {
     declare board: IntelliCenterBoard;
+    // Track pending circuit/feature state changes that have been sent but not yet confirmed by OCP.
+    // This prevents race conditions when multiple circuit toggles are sent in quick succession.
+    // Key: circuit/feature ID, Value: intended state (true=on, false=off)
+    private pendingStates: Map<number, boolean> = new Map();
+    
+    // Add a pending state change (called before sending command)
+    public addPendingState(id: number, isOn: boolean): void {
+        this.pendingStates.set(id, isOn);
+    }
+    
+    // Clear a pending state (called after ACK received or timeout)
+    public clearPendingState(id: number): void {
+        this.pendingStates.delete(id);
+    }
+    
+    // Get effective state: pending state takes precedence over confirmed state
+    public getEffectiveState(id: number, confirmedState: boolean): boolean {
+        if (this.pendingStates.has(id)) {
+            return this.pendingStates.get(id);
+        }
+        return confirmedState;
+    }
+    
     // Need to override this as IntelliCenter manages all the egg timers for all circuit types.
     public async checkEggTimerExpirationAsync() {
         try {
@@ -2103,6 +2126,11 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         // The previous sequence is just additional noise on the bus. There is no need for it.  We just
         // need to send the set circuit message.  It will reliably work 100% of the time but the ICP
         // may set it back again.  THIS HAS TO BE A 1.047 BUG!
+        
+        // Add to pending states BEFORE building the message. This ensures that if multiple commands
+        // are sent in quick succession, subsequent commands will include this pending change.
+        // Fix for: "only last change takes effect when multiple circuits toggled quickly"
+        this.addPendingState(id, val);
         try {
             // (deprecated) historically attempted to mimic an ICP sequence (228→164 ACK, then 222[15,0]→30)
             // before sending circuit state. We no longer run that here; it added bus noise and wasn't
@@ -2136,6 +2164,11 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
 
         }
         catch (err) { return Promise.reject(err); }
+        finally {
+            // Clear the pending state after command completes (success or failure).
+            // The getConfigAsync([15, 0]) above should have updated state from OCP response.
+            this.clearPendingState(id);
+        }
     }
     public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
         let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
@@ -2285,8 +2318,9 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 3];
             let bit = ordinal - (ndx * 8);
-            if (cstate.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
-            else if (cstate.isOn) byte = byte | (1 << bit);
+            // Use pending state if available to avoid race conditions when multiple commands sent quickly
+            let effectiveState = cstate.id === id ? isOn : this.getEffectiveState(cstate.id, cstate.isOn);
+            if (effectiveState) byte = byte | (1 << bit);
             out.payload[ndx + 3] = byte;
         }
         // IntelliCenter has "special" circuits (not in equipmentIds.circuits range) used by bodies (e.g. Spa circuit 1 when circuits.start=2).
@@ -2318,8 +2352,9 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 9];
             let bit = ordinal - (ndx * 8);
-            if (feature.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
-            else if (feature.isOn) byte = byte | (1 << bit);
+            // Use pending state if available to avoid race conditions when multiple commands sent quickly
+            let effectiveState = feature.id === id ? isOn : this.getEffectiveState(feature.id, feature.isOn);
+            if (effectiveState) byte = byte | (1 << bit);
             out.payload[ndx + 9] = byte;
         }
         // Set the bits for the circuit groups.
@@ -2330,8 +2365,9 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 13];
             let bit = ordinal - (ndx * 8);
-            if (group.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
-            else if (group.isOn) byte = byte | (1 << bit);
+            // Use pending state if available to avoid race conditions when multiple commands sent quickly
+            let effectiveState = group.id === id ? isOn : this.getEffectiveState(group.id, group.isOn);
+            if (effectiveState) byte = byte | (1 << bit);
             out.payload[ndx + 13] = byte;
         }
         // Set the bits for the light groups.
@@ -2342,8 +2378,9 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let ndx = Math.floor(ordinal / 8);
             let byte = out.payload[ndx + 13];
             let bit = ordinal - (ndx * 8);
-            if (group.id === id) byte = isOn ? byte = byte | (1 << bit) : byte;
-            else if (group.isOn) byte = byte | (1 << bit);
+            // Use pending state if available to avoid race conditions when multiple commands sent quickly
+            let effectiveState = group.id === id ? isOn : this.getEffectiveState(group.id, group.isOn);
+            if (effectiveState) byte = byte | (1 << bit);
             out.payload[ndx + 13] = byte;
             if (group.action !== 0) {
                 let byteNdx = Math.floor(ordinal / 4);

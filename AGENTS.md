@@ -234,6 +234,167 @@ This creates a feedback loop for continuous improvement.
 
 ---
 
-**Last Updated:** December 10, 2025  
+## Quick Reference for Debugging
+
+### 14. Always Check .plan/ First
+**Rule:** Before debugging IntelliCenter v3 issues, read:
+- `.plan/INTELLICENTER-V3-INDEX.md` - Main protocol reference
+- `.plan/V3_ACTION_REGISTRY.md` - Action code meanings
+- `.plan/V3_COMPLETE_SUMMARY.md` - Protocol findings summary
+
+### 15. Message Flow Architecture
+**Packet → Messages.ts (router) → Handler Files:**
+
+```
+┌─────────────────┐
+│  RS-485 Packet  │
+└────────┬────────┘
+         ▼
+┌─────────────────┐
+│  Messages.ts    │  ← ROUTER ONLY, no business logic!
+│  (by action #)  │
+└────────┬────────┘
+         ▼
+┌─────────────────────────────────────────────────────────┐
+│ Action 2/204  → EquipmentStateMessage.ts (status)       │
+│ Action 30     → ConfigMessage.ts → category handlers    │
+│ Action 168    → ExternalMessage.ts (wireless changes)   │
+│ Action 217    → EquipmentStateMessage.ts (device list)  │
+│ Action 251/253→ Registration handshake                  │
+│ Chlorinator   → ChlorinatorStateMessage.ts              │
+│ Pump protocol → PumpStateMessage.ts                     │
+└─────────────────────────────────────────────────────────┘
+```
+
+**Config Handlers (Action 30, routed by payload byte[0]):**
+
+| Category | Handler | Purpose |
+|----------|---------|---------|
+| 0 | OptionsMessage | System options |
+| 1 | CircuitMessage | Circuit config |
+| 2 | FeatureMessage | Feature config |
+| 3 | ScheduleMessage | Schedule times/days |
+| 4 | PumpMessage | Pump config |
+| 5 | RemoteMessage | Remote buttons |
+| 6 | CircuitGroupMessage | Light/circuit groups |
+| 7 | ChlorinatorMessage | Chlorinator settings |
+| 8 | IntellichemMessage | Chemistry controller |
+| 9 | ValveMessage | Valve assignments |
+| 10 | HeaterMessage | Heater config |
+| 11 | SecurityMessage | PIN codes |
+| 12 | GeneralMessage | Pool name, location |
+| 13 | EquipmentMessage | Body/equipment config |
+| 14 | CoverMessage | Pool covers |
+
+**External Message Handlers (Action 168, routed by payload byte[0]):**
+
+| Case | Handler Method | Purpose |
+|------|----------------|---------|
+| 0 | processTempSettings | Setpoints/heat mode |
+| 1 | processCircuit | Circuit changes |
+| 2 | processFeature | Feature changes |
+| 3 | processSchedules | Schedule changes |
+| 4 | processPump | Pump changes |
+| 7 | processChlorinator | Chlorinator changes |
+| 10 | processHeater | Heater changes |
+
+### 16. v3.004 Development Baseline (CRITICAL)
+**Rule:** All v3.004+ IntelliCenter changes started on **November 26, 2025**. Everything in the codebase before that date was working correctly for v1.x.
+
+**Implications:**
+- When investigating v3 issues, only look at commits from 11/26/2025 onwards
+- Any code that existed before 11/26/2025 should be assumed correct for v1.x
+- v3 changes MUST be gated behind `sys.equipment.isIntellicenterV3` to avoid breaking v1
+- Do NOT modify pre-11/26 code paths without explicit approval
+
+**Git command to see v3 changes:**
+```bash
+git log --oneline --since="2025-11-26" -- <file>
+```
+
+### 17. v3.004 Endianness Pattern (CRITICAL)
+**Rule:** v3.004 uses BIG-ENDIAN for 16-bit time values; v1.x uses LITTLE-ENDIAN.
+
+**Check:** Any `extractPayloadInt()` for schedule/time values needs v3 handling.
+
+**Fix pattern:**
+```typescript
+if (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3) {
+    time = msg.extractPayloadIntBE(offset);  // Big-endian for v3.004+
+} else {
+    time = msg.extractPayloadInt(offset);    // Little-endian for v1.x
+}
+```
+
+**Already fixed:**
+- `ScheduleMessage.processStartTimes()` - schedule start times
+- `ScheduleMessage.processEndTimes()` - schedule end times  
+- `ExternalMessage.processSchedules()` - wireless schedule changes
+
+**Check for similar issues in:** Any message handler parsing 16-bit time values.
+
+### 18. State Sync Pattern
+**Rule:** When config properties are set, ALWAYS sync corresponding state properties.
+
+**Bug pattern:** Config property set but state not synced → UI shows undefined/blank.
+
+**Example (chlorinator name bug we fixed):**
+```typescript
+// BAD - name set in config but never synced to state
+chlor.name = "Chlorinator 1";
+// schlor.name never set → dashPanel shows blank name!
+
+// GOOD - always sync config properties to state
+chlor.name = "Chlorinator 1";
+schlor.name = chlor.name;  // ← Don't forget this!
+```
+
+**Checklist when reviewing config handlers:**
+1. Find all `chlor.property = value` assignments
+2. Verify each has corresponding `schlor.property = chlor.property`
+3. Check for default values when property might be undefined
+
+### 19. Finding Configuration Data for Debugging
+**Rule:** Feature/circuit names and IDs are in configuration files, not guesswork.
+
+**Locations:**
+- Live system: `./data/poolConfig.json` and `./data/poolState.json`
+- Replay captures: `[replayname]/njspc/data/poolConfig.json` and `poolState.json`
+
+**Key ID ranges (IntelliCenter):**
+- Circuits: 1-40 (varies by system)
+- Features: Start at 129 (`sys.board.equipmentIds.features.start`)
+- Circuit Groups: Start at 192 (`sys.board.equipmentIds.circuitGroups.start`)
+
+**Example lookup:**
+```json
+// From poolConfig.json
+"features": [
+  { "id": 129, "name": "Test_Feature" },
+  { "id": 130, "name": "Air Blower222" },
+  { "id": 131, "name": "TestF2" }
+]
+```
+
+### 20. Packet Log Analysis
+**Rule:** When analyzing packet captures, decode payloads systematically.
+
+**Packet structure:** `[header][payload][checksum]`
+- Header: `[165, 1, dest, src, action, length]`
+- Action codes: See `.plan/V3_ACTION_REGISTRY.md`
+
+**Common analysis steps:**
+1. Filter by action code: `grep "action\":168"` for external messages
+2. Decode payload bytes using handler code as reference
+3. Check timestamps for sequence/timing issues
+4. Look for request/response pairs (outbound `dir":"out"` → inbound `dir":"in"`)
+
+**Decoding times (v3.004 big-endian):**
+- Two bytes `[hi, lo]` → `hi * 256 + lo` = minutes since midnight
+- Example: `[2, 33]` → `2*256 + 33 = 545` → 9:05 AM
+
+---
+
+**Last Updated:** December 14, 2025  
 **Source:** nodejs-poolController IntelliCenter v3.004 compatibility work
 
