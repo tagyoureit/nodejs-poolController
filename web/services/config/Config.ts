@@ -906,13 +906,17 @@ export class ConfigRoute {
             }
             catch (err) { next(err); }
         });
-        app.get('/app/config/startPacketCapture', (req, res) => {
-            startPacketCapture(true);
-            return res.status(200).send('OK');
+        app.get('/app/config/startPacketCapture', async (req, res, next) => {
+            try {
+                await startPacketCapture(true);
+                return res.status(200).send('OK');
+            } catch (err) { next(err); }
         });
-        app.get('/app/config/startPacketCaptureWithoutReset', (req, res) => {
-            startPacketCapture(false);
-            return res.status(200).send('OK');
+        app.get('/app/config/startPacketCaptureWithoutReset', async (req, res, next) => {
+            try {
+                await startPacketCapture(false);
+                return res.status(200).send('OK');
+            } catch (err) { next(err); }
         });
         app.get('/app/config/stopPacketCapture', async (req, res, next) => {
             try {

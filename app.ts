@@ -50,7 +50,7 @@ export async function startPacketCapture(bResetLogs: boolean) {
         config.setSection('log', log);
         logger.startCaptureForReplay(bResetLogs);
         if (bResetLogs){
-            sys.resetSystem();
+            await sys.resetSystemAsync();
         }
         
         // Start packet capture on the REM server

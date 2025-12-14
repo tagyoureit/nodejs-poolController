@@ -226,13 +226,16 @@ export class PoolSystem implements IPoolSystem {
         return cfg;
     }
 
-    public resetSystem() {
+    public async resetSystemAsync(): Promise<void> {
         logger.info(`Resetting System to initial defaults`);
-        (async () => {
-            await this.board.closeAsync();
-            logger.info(`Closed ${this.controllerType} board`);
-            this.controllerType = ControllerType.Unknown;
-        })();
+        await this.board.closeAsync();
+        logger.info(`Closed ${this.controllerType} board`);
+        // Use the controllerType setter so we also clear sys/state and rebuild boards appropriately.
+        this.controllerType = ControllerType.Unknown;
+    }
+    public resetSystem() {
+        // Backwards-compatible fire-and-forget wrapper.
+        this.resetSystemAsync().catch((err) => logger.error(`resetSystemAsync failed: ${err?.message || err}`));
 
         /*
         let self = this;
@@ -1026,7 +1029,9 @@ export class Equipment extends EqItem {
      * - firmware major.minor >= 3.0
      */
     public get isIntellicenterV3(): boolean {
-        if (sys.controllerType !== ControllerType.IntelliCenter) return false;
+        // Note: We intentionally do NOT check controllerType here because this property
+        // is queried during early initialization before controllerType is confirmed.
+        // All callers either run in IntelliCenter-specific code paths or explicitly check controllerType.
         const fw = parseFloat(this.controllerFirmware || '');
         if (!Number.isFinite(fw)) return false;
         return fw >= 3.0;

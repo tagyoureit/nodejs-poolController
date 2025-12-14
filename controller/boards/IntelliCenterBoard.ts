@@ -455,6 +455,21 @@ export class IntelliCenterBoard extends SystemBoard {
         state.equipment.model = sys.equipment.model;
         sys.equipment.shared || sys.equipment.dual ? sys.board.equipmentIds.circuits.start = 1 : sys.board.equipmentIds.circuits.start = 2;
 
+        // Ensure the body collections are materialized up to maxBodies so shared systems always have Body2 (Spa)
+        // even before we receive name/config payloads.
+        try {
+            for (let id = 1; id <= sys.equipment.maxBodies; id++) {
+                const body = sys.bodies.getItemById(id, true);
+                body.isActive = true;
+                state.temps.bodies.getItemById(id, true);
+            }
+            // For shared-body IntelliCenter, Spa is always circuit 1.
+            if (sys.equipment.shared === true && sys.equipment.maxBodies >= 2) {
+                const spa = sys.bodies.getItemById(2, true);
+                if (typeof spa.circuit !== 'number' || spa.circuit <= 0) spa.circuit = 1;
+            }
+        } catch (e) { /* best-effort */ }
+
         sys.board.heaters.initTempSensors();
         (async () => {
             try { sys.board.bodies.initFilters(); } catch (err) {
@@ -497,9 +512,18 @@ export class IntelliCenterBoard extends SystemBoard {
         // v1.064: ocpA = 0x05 (0000 0101) → slot0 = 5 (low),  slot1 = 0 (high)
         // v3.004: ocpA = 0x50 (0101 0000) → slot0 = 5 (high), slot1 = 0 (low)
         // v3.004: ocpA = 0x58 (0101 1000) → slot0 = 5 (high), slot1 = 8 (low)
-        const isIntellicenterV3 = sys.equipment.isIntellicenterV3;
-        let slot0 = isIntellicenterV3 ? ((ocpA & 0xF0) >> 4) : (ocpA & 0x0F);
-        let slot1 = isIntellicenterV3 ? (ocpA & 0x0F) : ((ocpA & 0xF0) >> 4);
+        // Prefer firmware-gated v3 decoding, but also auto-detect v3 encoding using the protocol constraint
+        // that master slot0 must be a personality card (1-7), while expansion boards like valve-exp (8) cannot be in slot0.
+        const hi = (ocpA & 0xF0) >> 4;
+        const lo = (ocpA & 0x0F);
+        let useV3Order = sys.equipment.isIntellicenterV3;
+        if (!useV3Order) {
+            // If HIGH nibble looks like a personality card and LOW nibble is either empty (0) or non-personality (>7),
+            // treat this as v3 encoding even if the firmware gate isn't established yet.
+            if (hi >= 1 && hi <= 7 && (lo === 0 || lo > 7)) useV3Order = true;
+        }
+        let slot0 = useV3Order ? hi : lo;
+        let slot1 = useV3Order ? lo : hi;
         let slot2 = (ocpB & 0xF0) >> 4;
         let slot3 = ocpB & 0xF;
         // Slot 0 always has to have a personality card.
@@ -600,8 +624,10 @@ export class IntelliCenterBoard extends SystemBoard {
         let modules: ExpansionModuleCollection = panel.modules;
         if (typeof inv === 'undefined') inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 0, chemControllers: 0 };
         // 
-        let slot0 = ocpA & 0x0F;
-        let slot1 = (ocpA & 0xF0) >> 4;
+        // v3.004+: expansion panel slot encoding matches the master panel (slot0 is HIGH nibble).
+        const isIntellicenterV3 = sys.equipment.isIntellicenterV3;
+        let slot0 = isIntellicenterV3 ? ((ocpA & 0xF0) >> 4) : (ocpA & 0x0F);
+        let slot1 = isIntellicenterV3 ? (ocpA & 0x0F) : ((ocpA & 0xF0) >> 4);
         let slot2 = (ocpB & 0xF0) >> 4;
         let slot3 = ocpB & 0xF;
         // Slot 0 always has to have a personality card but on an expansion module it cannot be 0.  At this point we only know that an i10x = 6 for slot 0.
@@ -2263,6 +2289,24 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             else if (cstate.isOn) byte = byte | (1 << bit);
             out.payload[ndx + 3] = byte;
         }
+        // IntelliCenter has "special" circuits (not in equipmentIds.circuits range) used by bodies (e.g. Spa circuit 1 when circuits.start=2).
+        // Ensure the body circuit bit is represented so dashPanel can turn Spa ON (replay.27 shows Spa is body2.circuit=1).
+        try {
+            if (sys.bodies.length > 1) {
+                const spaState = state.temps.bodies.getItemById(2, false);
+                const spaCfg = sys.bodies.getItemById(2, false);
+                const spaCircuitId = spaCfg && typeof spaCfg.circuit === 'number' ? spaCfg.circuit : 1;
+                if (spaCircuitId > 0 && spaCircuitId < sys.board.equipmentIds.circuits.start) {
+                    const ordinal = spaCircuitId - 1;
+                    const ndx = Math.floor(ordinal / 8);
+                    const bit = ordinal - (ndx * 8);
+                    let byte = out.payload[ndx + 3] || 0;
+                    const shouldBeOn = (typeof id !== 'undefined' && id === spaCircuitId) ? !!isOn : !!(spaState && spaState.isOn);
+                    if (shouldBeOn) byte = byte | (1 << bit);
+                    out.payload[ndx + 3] = byte;
+                }
+            }
+        } catch (e) { /* best-effort; do not block circuit toggles */ }
         // Set the bits for the features.
         for (let i = 0; i < state.data.features.length; i++) {
             // We are using the index and setting the features based upon
@@ -2933,25 +2977,50 @@ class IntelliCenterBodyCommands extends BodyCommands {
             bhs.processing = true;
             bhs._processingStartTime = Date.now();
             let byte2 = bhs.bytes.shift();
-            let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : Math.abs(num) || 0; };
-            let payload = [0, 0, byte2, 1,
-                fnToByte(sys.equipment.tempSensors.getCalibration('water1')),
-                fnToByte(sys.equipment.tempSensors.getCalibration('solar1')),
-                fnToByte(sys.equipment.tempSensors.getCalibration('air')),
-                fnToByte(sys.equipment.tempSensors.getCalibration('water2')),
-                fnToByte(sys.equipment.tempSensors.getCalibration('solar2')),
-                fnToByte(sys.equipment.tempSensors.getCalibration('water3')),
-                fnToByte(sys.equipment.tempSensors.getCalibration('solar3')),
-                fnToByte(sys.equipment.tempSensors.getCalibration('water4')),
-                fnToByte(sys.equipment.tempSensors.getCalibration('solar4')),
-                0,
-                0x10 | (sys.general.options.clockMode === 24 ? 0x40 : 0x00) | (sys.general.options.adjustDST ? 0x80 : 0x00) | (sys.general.options.clockSource === 'internet' ? 0x20 : 0x00),
-                89, 27, 110, 3, 0, 0,
-                bhs.body1.heatSetpoint, bhs.body1.coolSetpoint, bhs.body2.heatSetpoint, bhs.body2.coolSetpoint, bhs.body1.heatMode, bhs.body2.heatMode, 0, 0, 15,
-                sys.general.options.pumpDelay ? 1 : 0, sys.general.options.cooldownDelay ? 1 : 0, 0, 100, 0, 0, 0, 0, sys.general.options.manualPriority ? 1 : 0, sys.general.options.manualHeat ? 1 : 0, 0
-            ];
+
+            // v3.004+: payload layout matches the wireless remote's Action 168 msgType 0 (Setpoints/HeatMode).
+            // Observed: [0,0,0,0,0,3,...,0xA0, YY,MM,DD,HH,MM, poolHeat,poolCool, spaHeat,spaCool, poolMode,spaMode, 15, ...zeros]
+            // v1.x: uses legacy sensor-calibration-heavy payload (kept for backward compatibility).
+            const isIntellicenterV3 = sys.equipment.isIntellicenterV3 === true;
+            let payload: number[];
+            if (isIntellicenterV3) {
+                const dt = new Date();
+                const yy = dt.getFullYear() - 2000;
+                const mm = dt.getMonth() + 1;
+                const dd = dt.getDate();
+                const hh = dt.getHours();
+                const min = dt.getMinutes();
+                payload = [
+                    0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0,
+                    160, yy, mm, dd, hh, min,
+                    bhs.body1.heatSetpoint, bhs.body1.coolSetpoint, bhs.body2.heatSetpoint, bhs.body2.coolSetpoint,
+                    bhs.body1.heatMode, bhs.body2.heatMode,
+                    15,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+                ];
+            } else {
+                let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : Math.abs(num) || 0; };
+                payload = [0, 0, byte2, 1,
+                    fnToByte(sys.equipment.tempSensors.getCalibration('water1')),
+                    fnToByte(sys.equipment.tempSensors.getCalibration('solar1')),
+                    fnToByte(sys.equipment.tempSensors.getCalibration('air')),
+                    fnToByte(sys.equipment.tempSensors.getCalibration('water2')),
+                    fnToByte(sys.equipment.tempSensors.getCalibration('solar2')),
+                    fnToByte(sys.equipment.tempSensors.getCalibration('water3')),
+                    fnToByte(sys.equipment.tempSensors.getCalibration('solar3')),
+                    fnToByte(sys.equipment.tempSensors.getCalibration('water4')),
+                    fnToByte(sys.equipment.tempSensors.getCalibration('solar4')),
+                    0,
+                    0x10 | (sys.general.options.clockMode === 24 ? 0x40 : 0x00) | (sys.general.options.adjustDST ? 0x80 : 0x00) | (sys.general.options.clockSource === 'internet' ? 0x20 : 0x00),
+                    89, 27, 110, 3, 0, 0,
+                    bhs.body1.heatSetpoint, bhs.body1.coolSetpoint, bhs.body2.heatSetpoint, bhs.body2.coolSetpoint, bhs.body1.heatMode, bhs.body2.heatMode, 0, 0, 15,
+                    sys.general.options.pumpDelay ? 1 : 0, sys.general.options.cooldownDelay ? 1 : 0, 0, 100, 0, 0, 0, 0, sys.general.options.manualPriority ? 1 : 0, sys.general.options.manualHeat ? 1 : 0, 0
+                ];
+            }
 
             let out = Outbound.create({
+                // v3.004+: write must be sent to OCP (16); leaving dest undefined defaults to broadcast (15) and is ignored.
+                dest: isIntellicenterV3 ? 16 : undefined,
                 action: 168,
                 payload: payload,
                 retries: 2,
@@ -2964,7 +3033,8 @@ class IntelliCenterBodyCommands extends BodyCommands {
                 body1.heatMode = sbody1.heatMode = bhs.body1.heatMode;
                 body1.heatSetpoint = sbody1.heatSetpoint = bhs.body1.heatSetpoint;
                 body1.coolSetpoint = sbody1.coolSetpoint = bhs.body1.coolSetpoint;
-                if (sys.equipment.dual || sys.equipment.shared) {
+                // Body2 exists on many non-shared IntelliCenter systems (e.g. Pool+Spa). Keep state in sync regardless of shared/dual flags.
+                if (sys.bodies.length > 1) {
                     let body2 = sys.bodies.getItemById(2);
                     let sbody2 = state.temps.bodies.getItemById(2);
                     body2.heatMode = sbody2.heatMode = bhs.body2.heatMode;
@@ -3229,6 +3299,13 @@ class IntelliCenterBodyCommands extends BodyCommands {
             await out.sendAsync();
         });
         */
+    }
+    // IntelliCenter: body heat modes are encoded using IntelliCenter heatSources values (1=off,3=solar,4=solarpref,5=ultratemp,6=ultratemppref,...),
+    // not the *Touch heatModes value map. Returning heatSources here fixes dashPanel's blank entries and makes validation accept the right values.
+    public getHeatModes(bodyId: number) {
+        const sources = this.getHeatSources(bodyId);
+        // remove "nochange" which is not a valid body mode selection in dashPanel
+        return sources.filter(s => s && (s as any).name !== 'nochange');
     }
 }
 class IntelliCenterScheduleCommands extends ScheduleCommands {

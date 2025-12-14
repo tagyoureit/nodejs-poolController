@@ -76,19 +76,22 @@ export class EquipmentMessage {
                         body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
                         sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
                         sbody.name = body.name = msg.extractPayloadString(2, 16);
-                        bodyId = 3;
-                        if (sys.equipment.maxBodies >= bodyId) {
-                            body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                            sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                            sbody.type = body.type = msg.extractPayloadByte(35);
-                            body.capacity = msg.extractPayloadByte(34) * 1000;
-                            body.isActive = bodyId <= sys.equipment.maxBodies;
+                        // IntelliCenter shared-body systems (e.g. i10PS) have Pool+Spa (Body1+Body2). In those systems,
+                        // the second string in this packet is Body2 (Spa). Non-shared multi-body systems keep the legacy mapping.
+                        const secondBodyId = (sys.equipment.shared === true && sys.equipment.dual !== true) ? 2 : 3;
+                        if (sys.equipment.maxBodies >= secondBodyId) {
+                            body = sys.bodies.getItemById(secondBodyId, secondBodyId <= sys.equipment.maxBodies);
+                            sbody = state.temps.bodies.getItemById(secondBodyId, secondBodyId <= sys.equipment.maxBodies);
+                            // Only body3+ packets include type/capacity bytes here; avoid corrupting 2-body systems.
+                            if (secondBodyId >= 3) {
+                                sbody.type = body.type = msg.extractPayloadByte(35);
+                                body.capacity = msg.extractPayloadByte(34) * 1000;
+                            }
+                            body.isActive = secondBodyId <= sys.equipment.maxBodies;
                             sbody.name = body.name = msg.extractPayloadString(18, 16);
-                            body.isActive = bodyId <= sys.equipment.maxBodies;
-                        }
-                        else {
-                            sys.bodies.removeItemById(bodyId);
-                            state.temps.bodies.removeItemById(bodyId);
+                        } else {
+                            sys.bodies.removeItemById(secondBodyId);
+                            state.temps.bodies.removeItemById(secondBodyId);
                         }
                         msg.isProcessed = true;
                         break;
@@ -99,7 +102,10 @@ export class EquipmentMessage {
                         if (sys.equipment.maxBodies >= bodyId) {
                             body = sys.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
                             sbody = state.temps.bodies.getItemById(bodyId, bodyId <= sys.equipment.maxBodies);
-                            sbody.name = body.name = msg.extractPayloadString(2, 16);
+                            // On shared-body IntelliCenter (Pool+Spa), the Spa name is often in the SECOND string (offset 18),
+                            // while the first string (offset 2) repeats Pool.
+                            const nameOffset = (sys.equipment.shared === true && sys.equipment.dual !== true) ? 18 : 2;
+                            sbody.name = body.name = msg.extractPayloadString(nameOffset, 16);
                         }
                         else {
                             sys.bodies.removeItemById(bodyId);

@@ -133,7 +133,9 @@ export class EquipmentStateMessage {
             })();
             return; // Don't continue processing until async close/init completes
         }
-        if (!state.isInitialized) {
+        // If controller type is unknown (e.g., after a replay/system reset), we must re-detect the controller on Action 2
+        // even if state has been initialized from disk.
+        if (!state.isInitialized || sys.controllerType === ControllerType.Unknown) {
             msg.isProcessed = true;
             if (msg.action === 2) EquipmentStateMessage.initController(msg);
             else return;
@@ -144,6 +146,13 @@ export class EquipmentStateMessage {
                 // We have determined that the 204 message now contains the information
                 // related to the installed expansion boards.
                 logger.info(`INTELLICENTER MODULES DETECTED, REQUESTING STATUS!`);
+
+                // IMPORTANT: v3 module decoding depends on `sys.equipment.isIntellicenterV3`, which is gated by controller firmware.
+                // During the "modules not acquired yet" bootstrap we must set firmware BEFORE calling `initExpansionModules()`
+                // so v3 systems (e.g. i10PS shared) are decoded with the correct nibble order.
+                if (msg.payload.length >= 44) {
+                    sys.equipment.controllerFirmware = (msg.extractPayloadByte(42) + (msg.extractPayloadByte(43) / 1000)).toString();
+                }
                 // Master = 13-14
                 // EXP1 = 15-16
                 // EXP2 = 17-18
@@ -219,7 +228,9 @@ export class EquipmentStateMessage {
                     state.freeze = (msg.extractPayloadByte(9) & 0x08) === 0x08;
                     if (sys.controllerType === ControllerType.IntelliCenter) {
                         state.temps.waterSensor1 = fnTempFromByte(msg.extractPayloadByte(14));
-                        if (sys.bodies.length > 2 || sys.equipment.dual) state.temps.waterSensor2 = fnTempFromByte(msg.extractPayloadByte(15));
+                        // IntelliCenter: for 2-body non-shared systems, byte(15) is Body2 (Spa) water sensor.
+                        // Previously gated behind (>2 bodies || dual), which left Spa temp undefined and rendered as "--" in dashPanel.
+                        if (sys.bodies.length > 1 || sys.equipment.dual) state.temps.waterSensor2 = fnTempFromByte(msg.extractPayloadByte(15));
                         // We are making an assumption here in that the circuits are always labeled the same.
                         // 1=Spa/Body2
                         // 6=Pool/Body1
