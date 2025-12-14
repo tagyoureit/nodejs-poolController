@@ -18,7 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import { Inbound } from "../Messages";
 import { sys, Body, ICircuitGroup, LightGroup, CircuitGroup } from "../../../Equipment";
 import { state, ICircuitGroupState, LightGroupState, CircuitGroupState } from "../../../State";
-import { Timestamp, utils } from "../../../Constants";
+import { ControllerType, Timestamp, utils } from "../../../Constants";
 import { logger } from "../../../../logger/Logger";
 export class ExternalMessage {
     public static processIntelliCenter(msg: Inbound): void {
@@ -508,8 +508,17 @@ export class ExternalMessage {
     }
     private static processSchedules(msg: Inbound) {
         let schedId = msg.extractPayloadByte(2) + 1;
-        let startTime = msg.extractPayloadInt(3);
-        let endTime = msg.extractPayloadInt(5);
+        // v3.004+: schedule times are big-endian (hi,lo) in Action 168 payloads.
+        // v1.x: schedule times are little-endian (lo,hi).
+        let startTime: number;
+        let endTime: number;
+        if (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3) {
+            startTime = msg.extractPayloadIntBE(3);
+            endTime = msg.extractPayloadIntBE(5);
+        } else {
+            startTime = msg.extractPayloadInt(3);
+            endTime = msg.extractPayloadInt(5);
+        }
         let circuit = msg.extractPayloadByte(7) + 1;
         let isActive = (msg.extractPayloadByte(8) & 128) === 128; // Inactive schedules do not have bit 8 set.
         let cfg = sys.schedules.getItemById(schedId, isActive);
