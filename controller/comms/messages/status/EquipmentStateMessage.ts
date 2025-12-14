@@ -692,7 +692,10 @@ export class EquipmentStateMessage {
                         chlor.superChlor = false;
                     }
                 }
-                ExternalMessage.processFeatureState(9, msg);
+                // v3.004+: Feature states moved 10 bytes later in Action 204 payload (offset 19 instead of 9)
+                // v1.x: Feature states at offset 9
+                const featureOffset = sys.equipment.isIntellicenterV3 ? 19 : 9;
+                ExternalMessage.processFeatureState(featureOffset, msg);
                 //if (sys.equipment.dual === true) {
                 //    // For IntelliCenter i10D the body state is on byte 26 of the 204.  This impacts circuit 6.
                 //    let byte = msg.extractPayloadByte(26);
