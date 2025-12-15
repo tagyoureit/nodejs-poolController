@@ -2141,6 +2141,26 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         // Fix for: "only last change takes effect when multiple circuits toggled quickly"
         this.addPendingState(id, val);
         try {
+            // v3.004+: Use Action 184 if we have a learned targetId for this circuit.
+            // Action 184 is the native circuit control message that the Wireless remote uses.
+            // OCP accepts this format and doesn't revert the state like it does with Action 168.
+            const circuit = sys.circuits.getItemById(id, false);
+            if (sys.equipment.isIntellicenterV3 && circuit && typeof circuit.targetId === 'number' && circuit.targetId > 0) {
+                logger.info(`v3.004+ setCircuitStateAsync: Using Action 184 with targetId ${circuit.targetId} for circuit ${id} (${circuit.name || 'unnamed'})`);
+                let out = this.createAction184Message(circuit.targetId, val);
+                out.dest = 16;  // Send to OCP
+                out.scope = `circuitState${id}`;
+                out.retries = 5;
+                out.response = IntelliCenterBoard.getAckResponse(184);
+                await out.sendAsync();
+                // Request updated config to confirm state change
+                let b = await this.getConfigAsync([15, 0]);
+                let circ = state.circuits.getInterfaceById(id);
+                state.emitEquipmentChanges();
+                return circ;
+            }
+            
+            // v1.x or v3.004+ without known targetId: Use Action 168 (original method)
             // (deprecated) historically attempted to mimic an ICP sequence (228→164 ACK, then 222[15,0]→30)
             // before sending circuit state. We no longer run that here; it added bus noise and wasn't
             // required for reliable 168 writes (and we never ACK(30) due to collision risk).
@@ -2153,6 +2173,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             // commit cc123002fb, 2021-10-23). Keep that behavior only for pre-v3.
             if (sys.equipment.isIntellicenterV3) {
                 out.dest = 16;
+                logger.warn(`v3.004+ setCircuitStateAsync: No targetId known for circuit ${id}, falling back to Action 168. Circuit control may not work until targetId is learned from OCP broadcasts.`);
             } else {
                 out.source = 16;
             }
@@ -2439,6 +2460,37 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             else if (sched.isOn) byte = byte | (1 << bit);
             out.payload[ndx + 15] = byte;
         }
+        return out;
+    }
+    /**
+     * Creates an Action 184 message for v3.004+ IntelliCenter circuit control.
+     * Action 184 is the native circuit control message used by the Wireless remote.
+     * 
+     * Payload structure (10 bytes):
+     *   Bytes 0-1: Channel ID (104,143 = 0x688F = default channel)
+     *   Byte 2: Sequence number (0)
+     *   Byte 3: Format (255 = command mode)
+     *   Bytes 4-5: Target ID (circuit's unique identifier, learned from OCP broadcasts)
+     *   Byte 6: State (0=OFF, 1=ON)
+     *   Bytes 7-9: Reserved (0,0,0)
+     * 
+     * @param targetId The circuit's unique Target ID (hi*256 + lo)
+     * @param isOn True to turn circuit ON, false for OFF
+     * @returns Outbound message ready to send
+     */
+    public createAction184Message(targetId: number, isOn: boolean): Outbound {
+        const targetIdHi = Math.floor(targetId / 256);
+        const targetIdLo = targetId % 256;
+        // Default channel 104,143 (0x688F), seq=0, format=255 (command)
+        let out = Outbound.createMessage(184, [
+            104, 143,       // Channel ID (default)
+            0,              // Sequence number
+            255,            // Format (command mode)
+            targetIdHi,     // Target ID high byte
+            targetIdLo,     // Target ID low byte
+            isOn ? 1 : 0,   // State (1=ON, 0=OFF)
+            0, 0, 0         // Reserved
+        ], 3);
         return out;
     }
     public async setDimmerLevelAsync(id: number, level: number): Promise<ICircuitState> {

@@ -619,27 +619,113 @@ export class EquipmentStateMessage {
                 break;
             }
             case 184: {
-                // v3.004+ Action 184 - ??? from wireless remote (device 36)
-                // Replaces Action 134 from v1.064 ?? 
-                // Sent by wireless remote to control circuits
-                // Payload structure (from user analysis):
-                //   Byte 3: Circuit/device ID
-                //   Byte 7: State (1=on, 0=off)
-                // Response: Action 1 (ACK)
-                // Log all bytes for further analysis
-                if (msg.payload.length >= 10) {
-                    const b0 = msg.extractPayloadByte(0);
-                    const b1 = msg.extractPayloadByte(1);
-                    const b2 = msg.extractPayloadByte(2);
-                    const b3 = msg.extractPayloadByte(3);
-                    const b4 = msg.extractPayloadByte(4);
-                    const b5 = msg.extractPayloadByte(5);
-                    const b6 = msg.extractPayloadByte(6);
-                    const b7 = msg.extractPayloadByte(7);
-                    const b8 = msg.extractPayloadByte(8);
-                    const b9 = msg.extractPayloadByte(9);
+                // v3.004+ Action 184 - Circuit state broadcast / control
+                // OCP broadcasts this for circuit state changes AND periodically for status.
+                // Wireless remote sends this to control circuits.
+                // 
+                // Payload structure (10 bytes):
+                //   Bytes 0-1: Channel/context ID (104,143 = default, or circuit-specific like 108,225)
+                //   Byte 2: Sequence number
+                //   Byte 3: Format (255 = command, 0 = status)
+                //   Bytes 4-5: Target ID (unique circuit identifier, e.g., 168,237 = Spa, 108,225 = Pool)
+                //   Byte 6: State (0=OFF, 1=ON, 255=idle for body status)
+                //   Bytes 7-9: Additional data (usually 0)
+                //
+                // KEY PATTERN: When channel ID (bytes 0-1) equals Target ID (bytes 4-5), 
+                // this identifies a specific circuit (e.g., Pool uses 108,225 for both).
+                //
+                // Learning strategies:
+                // 1. Channel = Target pattern: strong identification
+                // 2. State correlation: match broadcast state with circuit states
+                // 3. Only ONE circuit matches: definitive mapping
+                if (sys.controllerType === ControllerType.IntelliCenter && 
+                    sys.equipment.isIntellicenterV3 && 
+                    msg.payload.length >= 10) {
                     
-                    logger.debug(`v3.004+ Action 184 (???): [${b0}, ${b1}, ${b2}, ${b3}, ${b4}, ${b5}, ${b6}, ${b7}, ${b8}, ${b9}] - Circuit:${b3}, State:${b7}`);
+                    const channelIdHi = msg.extractPayloadByte(0);
+                    const channelIdLo = msg.extractPayloadByte(1);
+                    const channelId = channelIdHi * 256 + channelIdLo;
+                    const targetIdHi = msg.extractPayloadByte(4);
+                    const targetIdLo = msg.extractPayloadByte(5);
+                    const targetId = targetIdHi * 256 + targetIdLo;
+                    const circuitState = msg.extractPayloadByte(6);
+                    
+                    // Only process OCP broadcasts (from OCP address 16)
+                    // Skip idle status (byte 6 = 255) and body status target (212,182 = 0xD4B6 = 54454)
+                    if (msg.source === 16 && circuitState !== 255 && targetId !== 54454) {
+                        const isOn = circuitState === 1;
+                        
+                        // Strategy 1: Channel = Target pattern (e.g., Pool circuit 6 uses 108,225 for both)
+                        // This is a strong signal - the circuit "owns" this channel
+                        if (channelId === targetId) {
+                            // Find body circuit with this pattern
+                            for (let i = 0; i < sys.bodies.length; i++) {
+                                const body = sys.bodies.getItemByIndex(i);
+                                if (body.isActive && typeof body.circuit === 'number' && body.circuit > 0) {
+                                    const sbody = state.temps.bodies.getItemById(body.id);
+                                    // For channel=target, trust it even if states don't match perfectly
+                                    // (OCP might broadcast before state is updated)
+                                    const circ = sys.circuits.getItemById(body.circuit, false);
+                                    if (circ && circ.isActive && (typeof circ.targetId === 'undefined' || circ.targetId === 0)) {
+                                        // Only learn if we don't have one yet - channel=target is reliable
+                                        if (sbody && sbody.isOn === isOn) {
+                                            logger.info(`v3.004+ Action 184: Learned Target ID ${targetId} (${targetIdHi},${targetIdLo}) for body ${body.id} circuit ${body.circuit} (${circ.name || 'unnamed'}) [channel=target pattern]`);
+                                            circ.targetId = targetId;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Strategy 2: State correlation - find circuits matching this state
+                        // Count how many circuits match to avoid ambiguity
+                        let matchingCircuits: { id: number, name: string }[] = [];
+                        
+                        // Check body circuits first (Spa=circuit 1, Pool=circuit 6 in shared systems)
+                        for (let i = 0; i < sys.bodies.length; i++) {
+                            const body = sys.bodies.getItemByIndex(i);
+                            if (body.isActive && typeof body.circuit === 'number' && body.circuit > 0) {
+                                const sbody = state.temps.bodies.getItemById(body.id);
+                                const circ = sys.circuits.getItemById(body.circuit, false);
+                                if (sbody && sbody.isOn === isOn && circ && circ.isActive) {
+                                    // Don't count if already has this targetId
+                                    if (circ.targetId !== targetId) {
+                                        matchingCircuits.push({ id: body.circuit, name: circ.name || `Body ${body.id}` });
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Also check regular circuits
+                        for (let i = 0; i < sys.circuits.length; i++) {
+                            const circ = sys.circuits.getItemByIndex(i);
+                            if (circ.isActive) {
+                                const cstate = state.circuits.getItemById(circ.id);
+                                if (cstate && cstate.isOn === isOn && circ.targetId !== targetId) {
+                                    // Avoid duplicate if already counted as body circuit
+                                    if (!matchingCircuits.find(m => m.id === circ.id)) {
+                                        matchingCircuits.push({ id: circ.id, name: circ.name || `Circuit ${circ.id}` });
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // Strategy 3: Only ONE circuit matches - definitive mapping
+                        if (matchingCircuits.length === 1) {
+                            const match = matchingCircuits[0];
+                            const circ = sys.circuits.getItemById(match.id, false);
+                            if (circ && (typeof circ.targetId === 'undefined' || circ.targetId === 0)) {
+                                logger.info(`v3.004+ Action 184: Learned Target ID ${targetId} (${targetIdHi},${targetIdLo}) for circuit ${match.id} (${match.name}) [unique state match]`);
+                                circ.targetId = targetId;
+                            }
+                        } else if (matchingCircuits.length > 1) {
+                            // Multiple matches - can't determine which circuit
+                            // Only learn if circuit already has unknown targetId and state just changed
+                            logger.debug(`v3.004+ Action 184: Target ${targetId} matches ${matchingCircuits.length} circuits (${matchingCircuits.map(m => m.name).join(', ')}) - waiting for unique match`);
+                        }
+                        
+                        logger.debug(`v3.004+ Action 184: Channel=${channelId}, Target=${targetId} (${targetIdHi},${targetIdLo}), State=${isOn ? 'ON' : 'OFF'}`);
+                    }
                 }
                 msg.isProcessed = true;
                 break;

@@ -259,6 +259,7 @@ This creates a feedback loop for continuous improvement.
 │ Action 2/204  → EquipmentStateMessage.ts (status)       │
 │ Action 30     → ConfigMessage.ts → category handlers    │
 │ Action 168    → ExternalMessage.ts (wireless changes)   │
+│ Action 184    → EquipmentStateMessage.ts (v3 circuits)  │
 │ Action 217    → EquipmentStateMessage.ts (device list)  │
 │ Action 251/253→ Registration handshake                  │
 │ Chlorinator   → ChlorinatorStateMessage.ts              │
@@ -392,6 +393,47 @@ schlor.name = chlor.name;  // ← Don't forget this!
 **Decoding times (v3.004 big-endian):**
 - Two bytes `[hi, lo]` → `hi * 256 + lo` = minutes since midnight
 - Example: `[2, 33]` → `2*256 + 33 = 545` → 9:05 AM
+
+### 21. v3.004+ Action 184 Circuit Control (CRITICAL)
+**Rule:** v3.004+ uses Action 184 for circuit control, NOT Action 168.
+
+**Problem:** When njsPC sends Action 168 to control circuits on v3.004+, OCP accepts it briefly then reverts the state. The Wireless remote uses Action 184, which OCP accepts permanently.
+
+**Solution:** 
+- Each circuit has a unique `targetId` (16-bit value stored in poolConfig.json)
+- njsPC learns Target IDs from OCP Action 184 broadcasts
+- When controlling circuits, njsPC sends Action 184 with the learned Target ID
+
+**Action 184 Payload (10 bytes):**
+```
+[channelHi, channelLo, seq, format, targetHi, targetLo, state, 0, 0, 0]
+ ├─ Channel: 104,143 (default) or circuit-specific (e.g., 108,225 for Pool)
+ ├─ Target: Circuit's unique ID (e.g., 168,237 for Spa, 108,225 for Pool)
+ └─ State: 0=OFF, 1=ON
+```
+
+**Known Target IDs (user's system):**
+| Circuit | Target ID | Hex |
+|---------|-----------|-----|
+| Spa (circuit 1) | 168,237 | 0xA8ED |
+| Pool (circuit 6) | 108,225 | 0x6CE1 |
+| Body status | 212,182 | 0xD4B6 (not a circuit) |
+
+**Learning strategies:**
+1. **Channel=Target pattern**: When bytes 0-1 equal bytes 4-5, identifies circuit
+2. **Unique state match**: When only one circuit matches broadcast state (ON/OFF)
+3. **State correlation**: Schedule/automation triggers state change → learn mapping
+
+**Unknowns (to investigate):**
+- How Target IDs are assigned (hardware serial? config order?)
+- Whether Target IDs can change (suspected: stable)
+- Full decode of body status (212,182) payload
+
+**Code locations:**
+- `Circuit.targetId` property: `controller/Equipment.ts`
+- Learn from broadcasts: `EquipmentStateMessage.ts` (case 184)
+- Send commands: `IntelliCenterBoard.createAction184Message()`
+- Circuit control: `IntelliCenterBoard.setCircuitStateAsync()`
 
 ---
 
