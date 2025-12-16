@@ -48,6 +48,7 @@ class Logger {
     private captureForReplayPath: string;
     private pktTimer: NodeJS.Timeout;
     private currentTimestamp: string;
+    private _captureInProgress: boolean = false;
     private getPacketPath(): string {
         // changed this to remove spaces from the name
         return 'packetLog(' + this.getLogTimestamp() + ').log';
@@ -75,7 +76,10 @@ class Logger {
             transports: [this.transports.console]
         });
         this.transports.console.level = this.cfg.app.level;
-        if (this.cfg.app.captureForReplay) this.startCaptureForReplay(false);
+        // Only start capture if not already capturing (prevents duplicate transports when config watcher triggers init())
+        if (this.cfg.app.captureForReplay && !this._captureInProgress) {
+            this.startCaptureForReplay(false);
+        }
         if (this.cfg.app.logToFile) {
             this.transports.consoleFile = new winston.transports.File({
                 filename: path.join(process.cwd(), '/logs', this.getConsoleToFilePath()),
@@ -271,6 +275,7 @@ class Logger {
         }
     }
     public startCaptureForReplay(bResetLogs:boolean) {
+        this._captureInProgress = true;
         logger.info(`Starting Replay Capture.`);
         // start new replay directory
 
@@ -429,10 +434,12 @@ class Logger {
                 this.cfg = config.getSection('log');
                 logger._logger.remove(this.transports.file);
                 this.transports.console.level = this.cfg.app.level;
+                this._captureInProgress = false;
                 
                 resolve(backupFile.filePath);
             }
             catch (err) {
+                this._captureInProgress = false;
                 reject(err.message);
             }
         });

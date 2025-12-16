@@ -2,6 +2,17 @@
 
 **Purpose:** Document patterns, corrections, and lessons learned during development to improve future interactions.
 
+## ⚠️ FIRST: Check .plan/ Directory
+
+**Before debugging protocol/packet issues:**
+1. Read `.plan/INTELLICENTER-V3-INDEX.md` - Master index for IntelliCenter
+2. Check equipment-specific protocol files (e.g., `INTELLICENTER_CIRCUITS_FEATURES_PROTOCOL.md`)
+3. Review `V3_ACTION_REGISTRY.md` for action code meanings
+
+**Protocol documentation is in `.plan/`, NOT in this file.** This file contains coding patterns and lessons learned.
+
+---
+
 ## Architecture Patterns (CRITICAL)
 
 ### 0. State Access Pattern: Use Accessors, Not Raw JSON
@@ -380,6 +391,19 @@ schlor.name = chlor.name;  // ← Don't forget this!
 ### 20. Packet Log Analysis
 **Rule:** When analyzing packet captures, decode payloads systematically.
 
+**CRITICAL: Always include packet IDs when discussing packets.** The `id` field in each packet log entry is essential for:
+- Cross-referencing with user observations
+- Correlating request/response pairs
+- Debugging timing issues
+- Reproducing specific scenarios
+
+**Format for discussing packets:**
+```
+#2605 23:09:49 Action30/15 byte9=3 features: ['129', '130']  <-- CONFIG RESPONSE
+#2607 23:09:52 Action204 byte19=2 features: ['130']         <-- OVERWRITES!
+```
+Always prefix with `#` and packet ID.
+
 **Packet structure:** `[header][payload][checksum]`
 - Header: `[165, 1, dest, src, action, length]`
 - Action codes: See `.plan/V3_ACTION_REGISTRY.md`
@@ -389,6 +413,7 @@ schlor.name = chlor.name;  // ← Don't forget this!
 2. Decode payload bytes using handler code as reference
 3. Check timestamps for sequence/timing issues
 4. Look for request/response pairs (outbound `dir":"out"` → inbound `dir":"in"`)
+5. **Always extract and display packet IDs** in any analysis output
 
 **Decoding times (v3.004 big-endian):**
 - Two bytes `[hi, lo]` → `hi * 256 + lo` = minutes since midnight
@@ -435,8 +460,52 @@ schlor.name = chlor.name;  // ← Don't forget this!
 - Send commands: `IntelliCenterBoard.createAction184Message()`
 - Circuit control: `IntelliCenterBoard.setCircuitStateAsync()`
 
+### 22. Protocol Documentation Structure
+
+**Rule:** Detailed packet/flow documentation lives in `.plan/` directory, organized by controller type and equipment type.
+
+**ALWAYS read `.plan/INTELLICENTER-V3-INDEX.md` first** when working on IntelliCenter issues. It indexes all protocol documentation.
+
+#### Protocol Files by Controller Type
+
+**IntelliCenter:**
+- `.plan/INTELLICENTER_CIRCUITS_FEATURES_PROTOCOL.md` - Circuits, features, groups (current)
+- `.plan/V3_ACTION_REGISTRY.md` - Action code reference
+- `.plan/V3_COMPLETE_SUMMARY.md` - Protocol findings summary
+- `.plan/INTELLICENTER-V3-INDEX.md` - Master index
+
+**Future files (create as needed):**
+- `INTELLICENTER_PUMPS_PROTOCOL.md` - Pump control/status
+- `INTELLICENTER_HEATERS_PROTOCOL.md` - Heater control/status
+- `INTELLICENTER_BODIES_PROTOCOL.md` - Body temps/setpoints
+- `INTELLICENTER_SCHEDULES_PROTOCOL.md` - Schedule management
+- `INTELLICENTER_CHEMISTRY_PROTOCOL.md` - IntelliChem/chlorinator
+
+**Other Controllers (create as needed):**
+- `INTELLITOUCH_*.md` - IntelliTouch protocols
+- `EASYTOUCH_*.md` - EasyTouch protocols
+- `NIXIE_*.md` - Nixie/virtual protocols
+
+#### File Organization
+
+Each protocol file should include:
+1. **Message Types Summary** - Table of all relevant actions
+2. **Complete Flow Diagrams** - Step-by-step packet sequences
+3. **Byte Offset Tables** - Where data lives in payloads
+4. **Version Differences** - v1.x vs v3.004+ variations
+5. **Handler Routing** - Which code files process each message
+6. **Troubleshooting** - Common issues and solutions
+
+#### Quick Reference: Circuits/Features (v3.004+)
+
+**Authoritative source:** Action 30 case 15 (NOT Action 204!)
+
+**Key v3.004+ bug:** Action 204 byte 19 contains STALE feature state. Must skip processing.
+
+**See:** `.plan/INTELLICENTER_CIRCUITS_FEATURES_PROTOCOL.md` for full details.
+
 ---
 
-**Last Updated:** December 14, 2025  
+**Last Updated:** December 15, 2025  
 **Source:** nodejs-poolController IntelliCenter v3.004 compatibility work
 
