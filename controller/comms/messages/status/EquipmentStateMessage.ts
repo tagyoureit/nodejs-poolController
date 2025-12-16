@@ -517,11 +517,10 @@ export class EquipmentStateMessage {
                         case ControllerType.IntelliCenter:
                             {
                                 EquipmentStateMessage.processCircuitState(msg);
-                                // RKS: As of 1.04 the entire feature state is emitted on 204.  This message
-                                // used to contain the first 4 feature states starting in byte 8 upper 4 bits
-                                // and as of 1.047 release this was no longer reliable.  Macro circuits only appear
-                                // to be available on message 30-15 and 168-15.
-                                //EquipmentStateMessage.processFeatureState(msg);
+                                // v3.004+: Process first 4 feature states from Action 2 byte 7 upper nibble
+                                if (sys.equipment.isIntellicenterV3) {
+                                    EquipmentStateMessage.processFeatureStateV3(msg);
+                                }
                                 sys.board.circuits.syncCircuitRelayStates();
                                 sys.board.circuits.syncVirtualCircuitStates();
                                 sys.board.valves.syncValveStates();
@@ -960,6 +959,36 @@ export class EquipmentStateMessage {
                     cstate.isOn = isOn;
                 }
             }
+        }
+        state.emitEquipmentChanges();
+        msg.isProcessed = true;
+    }
+
+    private static processFeatureStateV3(msg: Inbound) {
+        // v3.004+: Action 2 contains the first 4 feature states (129-132) in byte 7 upper nibble
+        // RKS: As of 1.047, byte 8 upper 4 bits were no longer reliable for v1.x
+        // However, v3.004+ uses byte 7 bits 4-7 (left-shifted by 4) for features 129-132
+        // This captures real-time feature changes from ALL sources (wireless, automation, etc.)
+        const byte7 = msg.extractPayloadByte(7);
+        const featureStateByte = (byte7 >> 4) & 0x0F; // Extract upper 4 bits, shift to bits 0-3
+        
+        // Process the 4-bit feature state (features 129-132)
+        let featureId = sys.board.equipmentIds.features.start;
+        let maxFeatureId = Math.min(featureId + 3, sys.features.getMaxId(true, 0)); // Only 4 features in Action 2
+        
+        for (let j = 0; j < 4 && featureId <= maxFeatureId; j++) {
+            let feature = sys.features.getItemById(featureId, false, { isActive: false });
+            if (feature.isActive !== false) {
+                let fstate = state.features.getItemById(featureId, true);
+                let isOn = (featureStateByte & (1 << j)) > 0;
+                sys.board.circuits.setEndTime(feature, fstate, isOn);
+                fstate.isOn = isOn;
+                fstate.name = feature.name;
+            }
+            else {
+                state.features.removeItemById(featureId);
+            }
+            featureId++;
         }
         state.emitEquipmentChanges();
         msg.isProcessed = true;
