@@ -22,6 +22,14 @@ import { ControllerType, Timestamp, utils } from "../../../Constants";
 import { logger } from "../../../../logger/Logger";
 export class ExternalMessage {
     public static processIntelliCenter(msg: Inbound): void {
+        // IntelliCenter v3.x: treat Wireless/ICP/Indoor -> OCP packets as requests, not source-of-truth.
+        // We are a bus listener, so we will see traffic not addressed to us; do not apply those requests to state.
+        // Only accept OCP-originated messages here. If/when OCP applies a request, it will broadcast authoritative
+        // state/config via other message types (e.g., Action 30 / 204).
+        if (sys.equipment.isIntellicenterV3 && msg.dest === 16 && msg.source !== 16) {
+            msg.isProcessed = true;
+            return;
+        }
         switch (msg.extractPayloadByte(0)) {
             case 0: // Setpoints/HeatMode
                 ExternalMessage.processTempSettings(msg);
@@ -725,29 +733,37 @@ export class ExternalMessage {
     private static processTempSettings(msg: Inbound) {
         let fnTranslateByte = (byte: number) => { return (byte & 0x007F) * (((byte & 0x0080) > 0) ? -1 : 1); }
         
-        // v3.004+: Wireless sends the FULL options block (like Action 30 category 0), not a single-field notification.
+        // v3.004+: Wireless sends the FULL options block, not a single-field notification.
         // v1.x: Used byte[2] as a pivot/index indicating which field changed, then byte[byte[2]+3] = new value.
-        // v3.x: Sends full payload with setpoints at fixed offsets (19-24 for v3 vs 20-25 for v1).
+        // 
+        // IMPORTANT: v3 Action 168 from Wireless has DIFFERENT offsets than Action 30 type 0!
+        // - Action 30 type 0:    poolHeatNdx=19, spaHeatNdx=21, poolModeNdx=23, spaModeNdx=24
+        // - Action 168 Wireless: poolHeatNdx=20, spaHeatNdx=22, poolModeNdx=24, spaModeNdx=25
+        // The Wireless payload has an extra byte at position 4, shifting everything by +1.
         const isIntellicenterV3 = (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3);
         
         // Detect v3 full-block format by payload length (v3 sends 41 bytes for msgType 0)
         if (isIntellicenterV3 && msg.payload.length >= 27) {
-            // v3.004+ full options block - parse using same offsets as OptionsMessage.processIntelliCenter
-            // Payload structure matches Action 30 category 0, offset by 1 byte from v1
-            const poolHeatNdx = 19;
-            const poolCoolNdx = 20;
-            const spaHeatNdx = 21;
-            const spaCoolNdx = 22;
-            const poolModeNdx = 23;
-            const spaModeNdx = 24;
+            // v3.004+ Wireless full options block - different offsets than Action 30!
+            // Verified from replay 48: Pool setpoint at byte 20, Spa setpoint at byte 22
+            const poolHeatNdx = 20;
+            const poolCoolNdx = 21;
+            const spaHeatNdx = 22;
+            const spaCoolNdx = 23;
+            const poolModeNdx = 24;
+            const spaModeNdx = 25;
             
             // Update Body 1 (Pool)
             let body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
             let sbody = state.temps.bodies.getItemById(1);
             if (body.isActive) {
-                body.heatSetpoint = msg.extractPayloadByte(poolHeatNdx);
-                body.coolSetpoint = msg.extractPayloadByte(poolCoolNdx);
-                body.heatMode = msg.extractPayloadByte(poolModeNdx);
+                const newPoolHeat = msg.extractPayloadByte(poolHeatNdx);
+                const newPoolCool = msg.extractPayloadByte(poolCoolNdx);
+                const newPoolMode = msg.extractPayloadByte(poolModeNdx);
+                logger.silly(`v3.004+ Action 168: Pool setpoint ${body.heatSetpoint} → ${newPoolHeat}, coolSetpoint ${body.coolSetpoint} → ${newPoolCool}, mode ${body.heatMode} → ${newPoolMode}`);
+                body.heatSetpoint = newPoolHeat;
+                body.coolSetpoint = newPoolCool;
+                body.heatMode = newPoolMode;
                 sbody.heatSetpoint = body.heatSetpoint;
                 sbody.coolSetpoint = body.coolSetpoint;
                 sbody.heatMode = body.heatMode;
@@ -757,9 +773,13 @@ export class ExternalMessage {
             body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
             sbody = state.temps.bodies.getItemById(2);
             if (body.isActive) {
-                body.heatSetpoint = msg.extractPayloadByte(spaHeatNdx);
-                body.coolSetpoint = msg.extractPayloadByte(spaCoolNdx);
-                body.heatMode = msg.extractPayloadByte(spaModeNdx);
+                const newSpaHeat = msg.extractPayloadByte(spaHeatNdx);
+                const newSpaCool = msg.extractPayloadByte(spaCoolNdx);
+                const newSpaMode = msg.extractPayloadByte(spaModeNdx);
+                logger.silly(`v3.004+ Action 168: Spa setpoint ${body.heatSetpoint} → ${newSpaHeat}, coolSetpoint ${body.coolSetpoint} → ${newSpaCool}, mode ${body.heatMode} → ${newSpaMode}`);
+                body.heatSetpoint = newSpaHeat;
+                body.coolSetpoint = newSpaCool;
+                body.heatMode = newSpaMode;
                 sbody.heatSetpoint = body.heatSetpoint;
                 sbody.coolSetpoint = body.coolSetpoint;
                 sbody.heatMode = body.heatMode;

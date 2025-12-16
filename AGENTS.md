@@ -181,6 +181,17 @@ This creates a feedback loop for continuous improvement.
 - It will NOT surface retries/timeouts from njsPC background flows (config polling, heartbeats, etc.).
 - Therefore: absence of dashPanel errors is **not evidence** that the underlying protocol traffic is healthy; always confirm via packet logs and njsPC logs.
 
+### 10.2 IntelliCenter v3 Source-of-Truth: Do NOT Process Wireless→OCP Requests
+**Rule:** For IntelliCenter v3 (v3.004+), the **OCP (addr 16)** is the **only source of truth** for state/config changes.
+
+- **Do not process** packets that are **Wireless/ICP/Indoor → OCP** (e.g. src=36 dest=16) as if they were authoritative.
+  - These are **requests**; the OCP may ACK or ignore them, and the final state can differ.
+- Only update state/config from **OCP-originated** messages (source=16), and preferably from the established authoritative message types:
+  - Config/state broadcasts/responses (e.g., Action 30 / Action 204 / other status broadcasts)
+  - NOT from third-party device requests
+
+**Implementation note:** In `Messages.ts`, gate IntelliCenter Action 168 handling to ignore non-OCP sources (especially src!=16 dest==16).
+
 ### 11. Modifying Existing Rules
 **Rule:** Never modify, remove, or contradict existing rules in AGENTS.md without explicit user approval
 - When a situation arises that conflicts with an existing rule, STOP and ask the user
@@ -460,7 +471,28 @@ Always prefix with `#` and packet ID.
 - Send commands: `IntelliCenterBoard.createAction184Message()`
 - Circuit control: `IntelliCenterBoard.setCircuitStateAsync()`
 
-### 22. Protocol Documentation Structure
+### 22. v3.004+ Action 168 vs Action 30 Offset Difference (CRITICAL)
+**Rule:** v3.004 Wireless Action 168 type 0 has DIFFERENT byte offsets than Action 30 type 0!
+
+**Problem:** When parsing body setpoints/heat modes from Wireless remote messages (Action 168 type 0), using Action 30 offsets (19-24) produces garbage values.
+
+**Root Cause:** The Wireless Action 168 payload has an extra byte in early positions, shifting all indices by +1.
+
+**Correct Offsets:**
+| Field | Action 30 | Action 168 |
+|-------|-----------|------------|
+| Pool setpoint | 19 | **20** |
+| Pool cool | 20 | **21** |
+| Spa setpoint | 21 | **22** |
+| Spa cool | 22 | **23** |
+| Pool mode | 23 | **24** |
+| Spa mode | 24 | **25** |
+
+**Code Location:** `ExternalMessage.ts` → `processTempSettings()` detects v3 and uses correct offsets.
+
+**Verified from captures:** Replay 30 (5 packets), Replay 48 (multiple packets).
+
+### 23. Protocol Documentation Structure
 
 **Rule:** Detailed packet/flow documentation lives in `.plan/` directory, organized by controller type and equipment type.
 
@@ -474,10 +506,13 @@ Always prefix with `#` and packet ID.
 - `.plan/V3_COMPLETE_SUMMARY.md` - Protocol findings summary
 - `.plan/INTELLICENTER-V3-INDEX.md` - Master index
 
+**Active protocol files:**
+- `INTELLICENTER_CIRCUITS_FEATURES_PROTOCOL.md` - Circuits, features, groups
+- `INTELLICENTER_BODIES_PROTOCOL.md` - Body temps/setpoints/heat modes
+
 **Future files (create as needed):**
 - `INTELLICENTER_PUMPS_PROTOCOL.md` - Pump control/status
 - `INTELLICENTER_HEATERS_PROTOCOL.md` - Heater control/status
-- `INTELLICENTER_BODIES_PROTOCOL.md` - Body temps/setpoints
 - `INTELLICENTER_SCHEDULES_PROTOCOL.md` - Schedule management
 - `INTELLICENTER_CHEMISTRY_PROTOCOL.md` - IntelliChem/chlorinator
 
@@ -504,8 +539,27 @@ Each protocol file should include:
 
 **See:** `.plan/INTELLICENTER_CIRCUITS_FEATURES_PROTOCOL.md` for full details.
 
+#### Quick Reference: Bodies/Setpoints (v3.004+)
+
+**⚠️ CRITICAL: Action 168 Wireless has DIFFERENT offsets than Action 30!**
+
+| Field | Action 30 (config) | Action 168 (Wireless) |
+|-------|-------------------|----------------------|
+| Pool setpoint | byte 19 | byte 20 |
+| Pool cool | byte 20 | byte 21 |
+| Spa setpoint | byte 21 | byte 22 |
+| Spa cool | byte 22 | byte 23 |
+| Pool mode | byte 23 | byte 24 |
+| Spa mode | byte 24 | byte 25 |
+
+**Root cause:** Wireless Action 168 payload has extra byte in early positions, shifting indices by +1.
+
+**Heat mode valueMap fix:** Use `htypes.total > 1` to check for multi-heater setups (Solar+UltraTemp).
+
+**See:** `.plan/INTELLICENTER_BODIES_PROTOCOL.md` for full details.
+
 ---
 
-**Last Updated:** December 15, 2025  
+**Last Updated:** December 16, 2025  
 **Source:** nodejs-poolController IntelliCenter v3.004 compatibility work
 
