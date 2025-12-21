@@ -289,7 +289,7 @@ export class IntelliCenterBoard extends SystemBoard {
     }
     private startAnnounceDeviceInterval(): void {
         // v3-only: Wireless remote appears to periodically re-announce itself (captures show ~5-10s).
-        // For now we emit Action 251 every 5s while the board is running.
+        // For now we emit Action 251 every 5 minutes while the board is running.
         if (!sys.equipment.isIntellicenterV3) return;
         if (this._announceDeviceInterval) return;
 
@@ -299,7 +299,7 @@ export class IntelliCenterBoard extends SystemBoard {
             try {
                 // Avoid spamming if the event loop stalls and intervals bunch up.
                 const now = Date.now();
-                if (now - this._announceDeviceLastSentMs >= 4500) {
+                if (now - this._announceDeviceLastSentMs >= 300000) {
                     await this.announceDevice();
                     this._announceDeviceLastSentMs = now;
                 }
@@ -308,7 +308,7 @@ export class IntelliCenterBoard extends SystemBoard {
             } finally {
                 this._announceDeviceTickInFlight = false;
             }
-        }, 5000);
+        }, 300000);
     }
     private stopAnnounceDeviceInterval(): void {
         if (this._announceDeviceInterval) {
