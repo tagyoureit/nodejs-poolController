@@ -266,6 +266,9 @@ export class IntelliCenterBoard extends SystemBoard {
 
     }
     private _configQueue: IntelliCenterConfigQueue = new IntelliCenterConfigQueue();
+    private _announceDeviceInterval?: NodeJS.Timeout;
+    private _announceDeviceTickInFlight: boolean = false;
+    private _announceDeviceLastSentMs: number = 0;
     public system: IntelliCenterSystemCommands = new IntelliCenterSystemCommands(this);
     public circuits: IntelliCenterCircuitCommands = new IntelliCenterCircuitCommands(this);
     public features: IntelliCenterFeatureCommands = new IntelliCenterFeatureCommands(this);
@@ -284,17 +287,41 @@ export class IntelliCenterBoard extends SystemBoard {
         console.log('RESETTING THE CONFIGURATION');
         this.modulesAcquired = false;
     }
+    private startAnnounceDeviceInterval(): void {
+        // v3-only: Wireless remote appears to periodically re-announce itself (captures show ~5-10s).
+        // For now we emit Action 251 every 5s while the board is running.
+        if (!sys.equipment.isIntellicenterV3) return;
+        if (this._announceDeviceInterval) return;
+
+        this._announceDeviceInterval = setInterval(async () => {
+            if (this._announceDeviceTickInFlight) return;
+            this._announceDeviceTickInFlight = true;
+            try {
+                // Avoid spamming if the event loop stalls and intervals bunch up.
+                const now = Date.now();
+                if (now - this._announceDeviceLastSentMs >= 4500) {
+                    await this.announceDevice();
+                    this._announceDeviceLastSentMs = now;
+                }
+            } catch (err) {
+                logger.warn(`announceDevice interval tick failed: ${err?.message || err}`);
+            } finally {
+                this._announceDeviceTickInFlight = false;
+            }
+        }, 5000);
+    }
+    private stopAnnounceDeviceInterval(): void {
+        if (this._announceDeviceInterval) {
+            clearInterval(this._announceDeviceInterval);
+            this._announceDeviceInterval = undefined;
+        }
+        this._announceDeviceTickInFlight = false;
+        this._announceDeviceLastSentMs = 0;
+    }
     public async announceDevice(): Promise<void> {
         // v3.004 requires device registration via Action 251→253 before responding to config requests
         // In mock mode we still want to "send" the packet so it is logged/emitted like a real write.
-        
-        // Check registration status from persistent state (from Action 217 responses)
-        // status: 0=unknown, 1=registered, 4=failed
-        if (state.equipment.registration === 1) {
-            logger.silly('Already registered with IntelliCenter v3.004 (status=1), skipping duplicate registration');
-            return;
-        }
-        
+
         logger.info('Announcing device to IntelliCenter v3.004...');
         // Action 251 payload structure (22 bytes total) verified from wireless remote cradle reset:
         // [0]:      Device address (33 for njsPC)
@@ -398,6 +425,7 @@ export class IntelliCenterBoard extends SystemBoard {
         }
     }
     public async stopAsync() {
+        this.stopAnnounceDeviceInterval();
         this._configQueue.close();
         return super.stopAsync();
     }
@@ -502,6 +530,8 @@ export class IntelliCenterBoard extends SystemBoard {
         // Defer to the next tick so that any state extracted from the same inbound packet
         // (e.g., firmware bytes from Action 204) is available before we decide v1 vs v3 behavior.
         setTimeout(() => this.checkConfiguration(), 0);
+        // Start v3 announce loop once we're initialized/running.
+        this.startAnnounceDeviceInterval();
     }
     public processMasterModules(modules: ExpansionModuleCollection, ocpA: number, ocpB: number, inv?) {
         // Map the expansion panels to their specific types through the valuemaps.  Sadly this means that
@@ -3831,6 +3861,22 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             else if (ultratempInstalled) sys.board.valueMaps.heatModes.merge([[5, { name: 'ultratemp', desc: 'UltraTemp' }]]);
             if (heatPumpInstalled && htypes.total > 1) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heatpump Only' }], [25, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
             else if (heatPumpInstalled) sys.board.valueMaps.heatModes.merge([[9, { name: 'heatpump', desc: 'Heat Pump' }]]);
+
+            // IntelliCenter v3.004+: "preferred" heat mode/source codes (e.g. 4=solarpref, 6=ultratemppref) appear to be
+            // displayed/handled inconsistently across Pentair clients (dashPanel vs Wireless/Outdoor Panel).
+            // Keep the numeric codes intact (so encode/transformByName remain stable), but align the *descriptions* with
+            // what Wireless/OP actually show (i.e., treat preferred as equivalent to the base mode for UI display).
+            if (sys.equipment.isIntellicenterV3) {
+                const hs4 = sys.board.valueMaps.heatSources.get(4);
+                if (typeof hs4 !== 'undefined') sys.board.valueMaps.heatSources.set(4, { ...hs4, desc: 'Solar Only' });
+                const hs6 = sys.board.valueMaps.heatSources.get(6);
+                if (typeof hs6 !== 'undefined') sys.board.valueMaps.heatSources.set(6, { ...hs6, desc: 'UltraTemp Only' });
+
+                const hm4 = sys.board.valueMaps.heatModes.get(4);
+                if (typeof hm4 !== 'undefined') sys.board.valueMaps.heatModes.set(4, { ...hm4, desc: 'Solar Only' });
+                const hm6 = sys.board.valueMaps.heatModes.get(6);
+                if (typeof hm6 !== 'undefined') sys.board.valueMaps.heatModes.set(6, { ...hm6, desc: 'UltraTemp Only' });
+            }
         }
         else {
             sys.board.valueMaps.heatSources = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
