@@ -5,9 +5,9 @@
 ## ⚠️ FIRST: Check .plan/ Directory
 
 **Before debugging protocol/packet issues:**
-1. Read `.plan/INTELLICENTER-V3-INDEX.md` - Master index for IntelliCenter
-2. Check equipment-specific protocol files (e.g., `INTELLICENTER_CIRCUITS_FEATURES_PROTOCOL.md`)
-3. Review `V3_ACTION_REGISTRY.md` for action code meanings
+1. Read `.plan/INDEX.md` - Master index for protocol documentation (links to controller-specific indexes)
+2. Check equipment-specific protocol files (e.g., `.plan/201-intellicenter-circuits-features.md`, `.plan/202-intellicenter-bodies-temps.md`)
+3. Review `.plan/203-intellicenter-action-registry.md` for action code meanings
 
 **Protocol documentation is in `.plan/`, NOT in this file.** This file contains coding patterns and lessons learned.
 
@@ -149,9 +149,9 @@
 
 **Hierarchy:**
 1. **Master docs** (keep these):
-   - `INTELLICENTER-V3-INDEX.md` - Main implementation guide
-   - `V3_COMPLETE_SUMMARY.md` - Complete protocol reference
-   - `V3_ACTION_REGISTRY.md` - Action code reference
+   - `200-intellicenter-v3-index.md` - Main implementation guide
+   - `204-intellicenter-v3-protocol.md` - Complete protocol reference / findings summary
+   - `203-intellicenter-action-registry.md` - Action code reference
    
 2. **Active work** (current tasks):
    - `V3_REGISTRATION_FIX_PLAN.md` - Current work plan
@@ -260,9 +260,19 @@ This creates a feedback loop for continuous improvement.
 
 ### 14. Always Check .plan/ First
 **Rule:** Before debugging IntelliCenter v3 issues, read:
-- `.plan/INTELLICENTER-V3-INDEX.md` - Main protocol reference
-- `.plan/V3_ACTION_REGISTRY.md` - Action code meanings
-- `.plan/V3_COMPLETE_SUMMARY.md` - Protocol findings summary
+- `.plan/INDEX.md` - Protocol documentation index (then IntelliCenter: `.plan/200-intellicenter-v3-index.md`)
+- `.plan/203-intellicenter-action-registry.md` - Action code meanings
+- `.plan/204-intellicenter-v3-protocol.md` - Protocol findings summary
+
+### 14.1 Packet Header DEST/SRC Order (CRITICAL)
+**Rule:** The packet header is:
+`[165, 1, DEST, SRC, ACTION, LEN]`
+
+**Do NOT grep/read this backwards.** DEST comes before SRC in the header, for every packet.
+
+**Examples:**
+- **Wireless → OCP command**: `DEST=16`, `SRC=36` → header starts with **`[165, 1, 16, 36, ...]`**
+- **OCP → Wireless ACK**: `DEST=36`, `SRC=16` → header starts with **`[165, 1, 36, 16, ...]`**
 
 ### 15. Message Flow Architecture
 **Packet → Messages.ts (router) → Handler Files:**
@@ -417,7 +427,7 @@ Always prefix with `#` and packet ID.
 
 **Packet structure:** `[header][payload][checksum]`
 - Header: `[165, 1, dest, src, action, length]`
-- Action codes: See `.plan/V3_ACTION_REGISTRY.md`
+- Action codes: See `.plan/203-intellicenter-action-registry.md`
 
 **Common analysis steps:**
 1. Filter by action code: `grep "action\":168"` for external messages
@@ -496,19 +506,19 @@ Always prefix with `#` and packet ID.
 
 **Rule:** Detailed packet/flow documentation lives in `.plan/` directory, organized by controller type and equipment type.
 
-**ALWAYS read `.plan/INTELLICENTER-V3-INDEX.md` first** when working on IntelliCenter issues. It indexes all protocol documentation.
+**ALWAYS read `.plan/INDEX.md` first** when working on protocol issues. It indexes all protocol documentation (including IntelliCenter: `.plan/200-intellicenter-v3-index.md`).
 
 #### Protocol Files by Controller Type
 
 **IntelliCenter:**
-- `.plan/INTELLICENTER_CIRCUITS_FEATURES_PROTOCOL.md` - Circuits, features, groups (current)
-- `.plan/V3_ACTION_REGISTRY.md` - Action code reference
-- `.plan/V3_COMPLETE_SUMMARY.md` - Protocol findings summary
-- `.plan/INTELLICENTER-V3-INDEX.md` - Master index
+- `.plan/201-intellicenter-circuits-features.md` - Circuits, features, groups (current)
+- `.plan/203-intellicenter-action-registry.md` - Action code reference
+- `.plan/204-intellicenter-v3-protocol.md` - Protocol findings summary
+- `.plan/200-intellicenter-v3-index.md` - IntelliCenter v3.004 index (linked from `.plan/INDEX.md`)
 
 **Active protocol files:**
-- `INTELLICENTER_CIRCUITS_FEATURES_PROTOCOL.md` - Circuits, features, groups
-- `INTELLICENTER_BODIES_PROTOCOL.md` - Body temps/setpoints/heat modes
+- `201-intellicenter-circuits-features.md` - Circuits, features, groups
+- `202-intellicenter-bodies-temps.md` - Body temps/setpoints/heat modes
 
 **Future files (create as needed):**
 - `INTELLICENTER_PUMPS_PROTOCOL.md` - Pump control/status
@@ -537,7 +547,7 @@ Each protocol file should include:
 
 **Key v3.004+ bug:** Action 204 byte 19 contains STALE feature state. Must skip processing.
 
-**See:** `.plan/INTELLICENTER_CIRCUITS_FEATURES_PROTOCOL.md` for full details.
+**See:** `.plan/201-intellicenter-circuits-features.md` for full details.
 
 #### Quick Reference: Bodies/Setpoints (v3.004+)
 
@@ -556,7 +566,7 @@ Each protocol file should include:
 
 **Heat mode valueMap fix:** Use `htypes.total > 1` to check for multi-heater setups (Solar+UltraTemp).
 
-**See:** `.plan/INTELLICENTER_BODIES_PROTOCOL.md` for full details.
+**See:** `.plan/202-intellicenter-bodies-temps.md` for full details.
 
 ---
 

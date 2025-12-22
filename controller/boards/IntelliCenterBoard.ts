@@ -2171,6 +2171,22 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         // Fix for: "only last change takes effect when multiple circuits toggled quickly"
         this.addPendingState(id, val);
         try {
+            // v3.004+ body circuits (Spa=1, Pool=6): Wireless does NOT control bodies by sending the circuit's targetId directly.
+            // Captures show body control uses a "body toggle" primitive (target=168,237 state=0/1) plus
+            // additional body context/selection packets (notably targets 212,182 and 114,145).
+            // See .plan/202-intellicenter-bodies-temps.md for full protocol documentation.
+            if (sys.equipment.isIntellicenterV3 && this.isBodyCircuit(id)) {
+                const isPool = (id === 6);
+                const bodyName = isPool ? 'Pool' : 'Spa';
+                logger.debug(`v3.004+ setCircuitStateAsync: Using Wireless-style body control sequence for ${bodyName} (circuit ${id}) -> ${val ? 'ON' : 'OFF'}`);
+                await this.sendV3BodyControlSequenceAsync(isPool, val);
+                // Request updated config to confirm state change
+                await this.getConfigAsync([15, 0]);
+                let circ = state.circuits.getInterfaceById(id);
+                state.emitEquipmentChanges();
+                return circ;
+            }
+
             // v3.004+: Use Action 184 if we have a learned targetId for this circuit.
             // Action 184 is the native circuit control message that the Wireless remote uses.
             // OCP accepts this format and doesn't revert the state like it does with Action 168.
@@ -2229,6 +2245,82 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             // The getConfigAsync([15, 0]) above should have updated state from OCP response.
             this.clearPendingState(id);
         }
+    }
+
+    /**
+     * Determines if a circuit ID corresponds to a body circuit (Pool or Spa).
+     * Body circuits require special Wireless-style control sequences on v3.004+.
+     * 
+     * On IntelliCenter, body circuits are:
+     *   - Circuit 1 = Spa
+     *   - Circuit 6 = Pool
+     * 
+     * These IDs are standard across IntelliCenter installations.
+     */
+    private isBodyCircuit(id: number): boolean {
+        return id === 1 || id === 6;
+    }
+
+    /**
+     * v3.004+ IntelliCenter body control sequence (Wireless-style).
+     *
+     * Evidence (Replay 68 "bodies-cycle-all"):
+     * - Body selection uses Action 184 target 114,145 with payload byte6=1 (Pool) or byte6=0 (Spa)
+     * - Body context uses Action 184 target 212,182 with body-specific bytes 6-9
+     * - Actual toggle uses Action 184 target 168,237 with state in byte6 (0/1)
+     *
+     * This sequence is used for both Pool (id=6) and Spa (id=1) on v3.004+.
+     * See .plan/202-intellicenter-bodies-temps.md for full protocol documentation.
+     */
+    private async sendV3BodyControlSequenceAsync(isPool: boolean, isOn: boolean): Promise<void> {
+        const bodyName = isPool ? 'Pool' : 'Spa';
+        const seq = isPool ? 5 : 0;  // Sequence varies by body in captures
+
+        // 1) Body select (target 114,145 / 0x7291) — chooses Pool (byte6=1) vs Spa (byte6=0)
+        const select = Outbound.createMessage(184, [
+            128, 142,        // Channel/context (observed)
+            0,               // Sequence
+            0,               // Format (observed)
+            114, 145,        // Target 0x7291
+            isPool ? 1 : 0,  // Select: 1=Pool, 0=Spa
+            0, 0, 0
+        ], 3);
+        select.dest = 16;
+        select.scope = `bodySelect${bodyName}`;
+        select.retries = 5;
+        select.response = IntelliCenterBoard.getAckResponse(184);
+        await select.sendAsync();
+
+        // 2) Body context (target 212,182 / 0xD4B6) — body-specific bytes 6-9
+        // Observed: Spa ON=[0,101,4,0], Pool ON=[128,151,6,0], OFF=[255,255,255,255]
+        const ctxBytes = !isOn ? [255, 255, 255, 255] : (isPool ? [128, 151, 6, 0] : [0, 101, 4, 0]);
+        const ctx = Outbound.createMessage(184, [
+            104, 143,        // Default channel
+            seq,             // Sequence
+            255,             // Format (command)
+            212, 182,        // Target 0xD4B6
+            ...ctxBytes
+        ], 3);
+        ctx.dest = 16;
+        ctx.scope = `bodyContext${bodyName}`;
+        ctx.retries = 5;
+        ctx.response = IntelliCenterBoard.getAckResponse(184);
+        await ctx.sendAsync();
+
+        // 3) Body toggle (target 168,237 / 0xA8ED) — state in byte6
+        const toggle = Outbound.createMessage(184, [
+            104, 143,        // Default channel
+            seq,             // Sequence
+            255,             // Format (command)
+            168, 237,        // Target 0xA8ED
+            isOn ? 1 : 0,    // State
+            0, 0, 0
+        ], 3);
+        toggle.dest = 16;
+        toggle.scope = `bodyToggle${bodyName}`;
+        toggle.retries = 5;
+        toggle.response = IntelliCenterBoard.getAckResponse(184);
+        await toggle.sendAsync();
     }
     public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
         let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
@@ -2523,6 +2615,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         ], 3);
         return out;
     }
+
     public async setDimmerLevelAsync(id: number, level: number): Promise<ICircuitState> {
         let circuit = sys.circuits.getItemById(id);
         let cstate = state.circuits.getItemById(id);
