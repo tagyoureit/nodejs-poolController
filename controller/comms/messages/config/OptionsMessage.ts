@@ -91,11 +91,21 @@ export class OptionsMessage {
                             body.heatMode = msg.extractPayloadByte(poolModeNdx);
                             body.heatSetpoint = msg.extractPayloadByte(poolHeatNdx);
                             body.coolSetpoint = msg.extractPayloadByte(poolCoolNdx);
+                            // Keep runtime state in sync with config values so UIs (dashPanel/MQTT/etc) reflect
+                            // authoritative OCP updates, including changes initiated by other panels (Wireless/OP).
+                            let sbody = state.temps.bodies.getItemById(1, true);
+                            sbody.heatMode = body.heatMode;
+                            sbody.heatSetpoint = body.heatSetpoint;
+                            sbody.coolSetpoint = body.coolSetpoint;
 
                             body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
                             body.heatMode = msg.extractPayloadByte(spaModeNdx);
                             body.heatSetpoint = msg.extractPayloadByte(spaHeatNdx);
                             body.coolSetpoint = msg.extractPayloadByte(spaCoolNdx);
+                            sbody = state.temps.bodies.getItemById(2, true);
+                            sbody.heatMode = body.heatMode;
+                            sbody.heatSetpoint = body.heatSetpoint;
+                            sbody.coolSetpoint = body.coolSetpoint;
 
                             //body = sys.bodies.getItemById(3, sys.equipment.maxBodies > 2);
                             //body.heatMode = msg.extractPayloadByte(26);

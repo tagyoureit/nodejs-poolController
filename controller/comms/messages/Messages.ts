@@ -796,8 +796,10 @@ export class Inbound extends Message {
                         EquipmentStateMessage.process(this);
                         break;
                     case 222: // A panel is asking for action 30s
-                    case 228: // A panel is asking for the current version
                         this.isProcessed = true;
+                        break;
+                    case 228: // A panel is asking for the current version
+                        VersionMessage.processVersionRequest(this);
                         break;
                     case 251: // v3.004+ Device announcement/registration request
                         // Devices send this to announce presence to OCP

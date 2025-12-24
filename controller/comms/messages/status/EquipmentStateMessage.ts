@@ -517,7 +517,7 @@ export class EquipmentStateMessage {
                         case ControllerType.IntelliCenter:
                             {
                                 EquipmentStateMessage.processCircuitState(msg);
-                                // v3.004+: Process first 4 feature states from Action 2 byte 7 upper nibble
+                                // v3.004+: Process feature states from Action 2 bytes 7-8 (F1-F10+)
                                 if (sys.equipment.isIntellicenterV3) {
                                     EquipmentStateMessage.processFeatureStateV3(msg);
                                 }
@@ -965,22 +965,25 @@ export class EquipmentStateMessage {
     }
 
     private static processFeatureStateV3(msg: Inbound) {
-        // v3.004+: Action 2 contains the first 4 feature states (129-132) in byte 7 upper nibble
-        // RKS: As of 1.047, byte 8 upper 4 bits were no longer reliable for v1.x
-        // However, v3.004+ uses byte 7 bits 4-7 (left-shifted by 4) for features 129-132
+        // v3.004+: Action 2 contains feature states in bytes 7-8
+        // Byte 7: Features 1-8 (bit 0 = F1/ID 129, bit 7 = F8/ID 136)
+        // Byte 8: Features 9-10+ (bit 0 = F9/ID 137, bit 1 = F10/ID 138)
         // This captures real-time feature changes from ALL sources (wireless, automation, etc.)
         const byte7 = msg.extractPayloadByte(7);
-        const featureStateByte = (byte7 >> 4) & 0x0F; // Extract upper 4 bits, shift to bits 0-3
+        const byte8 = msg.extractPayloadByte(8);
         
-        // Process the 4-bit feature state (features 129-132)
+        // Combine into 16-bit bitmask: byte 7 = features 1-8, byte 8 = features 9-16
+        const featureStateBits = byte7 | (byte8 << 8);
+        
+        // Process all active features
         let featureId = sys.board.equipmentIds.features.start;
-        let maxFeatureId = Math.min(featureId + 3, sys.features.getMaxId(true, 0)); // Only 4 features in Action 2
+        let maxFeatureId = sys.features.getMaxId(true, 0);
         
-        for (let j = 0; j < 4 && featureId <= maxFeatureId; j++) {
+        for (let j = 0; featureId <= maxFeatureId && j < 16; j++) {
             let feature = sys.features.getItemById(featureId, false, { isActive: false });
             if (feature.isActive !== false) {
                 let fstate = state.features.getItemById(featureId, true);
-                let isOn = (featureStateByte & (1 << j)) > 0;
+                let isOn = (featureStateBits & (1 << j)) > 0;
                 sys.board.circuits.setEndTime(feature, fstate, isOn);
                 fstate.isOn = isOn;
                 fstate.name = feature.name;

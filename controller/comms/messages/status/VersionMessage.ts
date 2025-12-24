@@ -15,9 +15,29 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-import { Inbound } from "../Messages";
+import { Inbound, Message, Outbound, Response } from "../Messages";
 import { sys, ConfigVersion } from "../../../Equipment";
+import { logger } from "../../../../logger/Logger";
+
 export class VersionMessage {
+    /**
+     * v3.004+ Piggyback: When another device sends Action 228 to OCP,
+     * send our own to catch config changes. See .plan/202-intellicenter-bodies-temps.md
+     */
+    public static processVersionRequest(msg: Inbound): void {
+        if (sys.equipment.isIntellicenterV3 &&
+            msg.source !== Message.pluginAddress &&  // Not from us
+            msg.dest === 16) {                        // Directed to OCP
+            (sys.board as any).needsConfigChanges = true;
+            logger.info(`v3.004+ Piggyback: Sending Action 228`);
+            Outbound.create({
+                dest: 16, action: 228, payload: [0], retries: 2,
+                response: Response.create({ action: 164 })
+            }).sendAsync();
+        }
+        msg.isProcessed = true;
+    }
+
     public static process(msg: Inbound): void {
         var ver: ConfigVersion = new ConfigVersion({});
         ver.options = msg.extractPayloadInt(6);
