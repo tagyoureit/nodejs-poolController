@@ -517,10 +517,12 @@ export class EquipmentStateMessage {
                         case ControllerType.IntelliCenter:
                             {
                                 EquipmentStateMessage.processCircuitState(msg);
-                                // v3.004+: Process feature states from Action 2 bytes 7-8 (F1-F10+)
-                                if (sys.equipment.isIntellicenterV3) {
-                                    EquipmentStateMessage.processFeatureStateV3(msg);
-                                }
+                                // v3.004+: DISABLED - Action 2 bytes 7-8 use non-bitmask encoding
+                                // Feature state for v3.004+ comes from Action 30 case 15 responses only
+                                // See: https://github.com/tagyoureit/nodejs-poolController/issues/XXX
+                                // if (sys.equipment.isIntellicenterV3) {
+                                //     EquipmentStateMessage.processFeatureStateV3(msg);
+                                // }
                                 sys.board.circuits.syncCircuitRelayStates();
                                 sys.board.circuits.syncVirtualCircuitStates();
                                 sys.board.valves.syncValveStates();
@@ -965,17 +967,30 @@ export class EquipmentStateMessage {
     }
 
     private static processFeatureStateV3(msg: Inbound) {
-        // v3.004+: Action 2 contains feature states in bytes 7-8
-        // Byte 7: Features 1-8 (bit 0 = F1/ID 129, bit 7 = F8/ID 136)
-        // Byte 8: Features 9-10+ (bit 0 = F9/ID 137, bit 1 = F10/ID 138)
-        // This captures real-time feature changes from ALL sources (wireless, automation, etc.)
+        // DISABLED: v3.004+ Action 2 bytes 7-8 do NOT use simple bitmask encoding!
+        //
+        // Analysis from replay 76 (Dec 2024):
+        // - F1 on → byte7=16 (bit 4), byte8=0
+        // - F1+F2 → byte7=32 (bit 5), byte8=1
+        // - F1+F2+F3 → byte7=64 (bit 6), byte8=2
+        //
+        // This is NOT a bitmask - it appears to be some kind of encoded state.
+        // Using this data corrupts feature state and causes wrong features to display.
+        //
+        // For v3.004+, feature state must come from:
+        // 1. Action 30 case 15 responses (when njsPC requests via Action 222)
+        // 2. TODO: Snoop on Action 30/15 going to Wireless (dest=36) for real-time updates
+        //
+        // DO NOT ENABLE THIS FUNCTION until the encoding is fully understood.
+        msg.isProcessed = true;
+        return;
+        
+        // Original broken code kept for reference:
+        /*
         const byte7 = msg.extractPayloadByte(7);
         const byte8 = msg.extractPayloadByte(8);
-        
-        // Combine into 16-bit bitmask: byte 7 = features 1-8, byte 8 = features 9-16
         const featureStateBits = byte7 | (byte8 << 8);
         
-        // Process all active features
         let featureId = sys.board.equipmentIds.features.start;
         let maxFeatureId = sys.features.getMaxId(true, 0);
         
@@ -994,6 +1009,7 @@ export class EquipmentStateMessage {
             featureId++;
         }
         state.emitEquipmentChanges();
+        */
         msg.isProcessed = true;
     }
 
