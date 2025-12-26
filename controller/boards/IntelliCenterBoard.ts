@@ -341,7 +341,7 @@ export class IntelliCenterBoard extends SystemBoard {
             payload: [
                 Message.pluginAddress,  // [0] Device address (33)
                 0,                      // [1] Reserved
-                0,                      // [2] Registration flag (0=requesting, 1=confirmed, 4=error/rejected?)
+                0,                      // [2] Registration flag (0=requesting, 1=registered, 4=stale/needs-reauth)
                 0, 0, 0, 0,            // [3-6] Reserved
                 110, 106, 115, 80, 67, 0,  // [7-12] Device ID: "njsPC\0" (ASCII)
                 0, 0, 0, 0,            // [13-16] Reserved
@@ -356,13 +356,16 @@ export class IntelliCenterBoard extends SystemBoard {
     }
     public setRegistrationStatus(status: number) {
         // Called when we receive Action 217 showing our registration status
-        // status: 0=unknown, 1=registered, 4=failed/rejected
+        // status: 0=unknown, 1=registered, 4=stale/needs-reauth
+        // NOTE: status=4 is NOT a rejection. OCP continues heartbeat with status=4 devices.
+        // Devices can transition from status=4 to status=1 on retry.
+        // Observed: Wireless remote sometimes shows status=4 then status=1 on next registration.
         if (state.equipment.registration !== status) {
             state.equipment.registration = status;
             if (status === 1) {
                 logger.silly('Registration confirmed by OCP via Action 217 (status=1)');
             } else if (status === 4) {
-                logger.warn('Registration rejected by OCP via Action 217 (status=4) - duplicate registration attempt?');
+                logger.info('Registration status=4 from OCP via Action 217 - device may need re-registration');
             }
         }
     }

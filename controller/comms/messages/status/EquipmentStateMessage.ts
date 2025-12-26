@@ -795,7 +795,7 @@ export class EquipmentStateMessage {
                 // Check if this packet is for njsPC (device 33) and update registration status
                 if (msg.payload.length > 2 && msg.extractPayloadByte(0) === Message.pluginAddress) {
                     const registrationStatus = msg.extractPayloadByte(2);
-                    // status: 0=unknown, 1=registered, 4=failed/rejected
+                    // status: 0=unknown, 1=registered, 4=stale/needs-reauth (NOT rejection)
                     if (sys.controllerType === ControllerType.IntelliCenter) {
                         (sys.board as IntelliCenterBoard).setRegistrationStatus(registrationStatus);
                     }

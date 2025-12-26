@@ -29,7 +29,11 @@ export class VersionMessage {
             msg.source !== Message.pluginAddress &&  // Not from us
             msg.dest === 16) {                        // Directed to OCP
             (sys.board as any).needsConfigChanges = true;
-            logger.info(`v3.004+ Piggyback: Sending Action 228`);
+            // Invalidate cached options version so queueChanges() will request category 0.
+            // OCP doesn't increment options version when heat mode/setpoints change,
+            // so we force a refresh by clearing our cached version.
+            sys.configVersion.options = 0;
+            logger.silly(`v3.004+ Piggyback: Sending Action 228`);
             Outbound.create({
                 dest: 16, action: 228, payload: [0], retries: 2,
                 response: Response.create({ action: 164 })
