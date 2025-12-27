@@ -53,7 +53,7 @@ export class EquipmentStateMessage {
                 // Check if this circuit needs a targetId
                 const circ = sys.circuits.getItemById(circuitId, false);
                 if (circ && circ.isActive && (typeof circ.targetId === 'undefined' || circ.targetId === 0)) {
-                    logger.info(`v3.004+ Action 184: Learned Target ID ${targetId} for circuit ${circuitId} (${circ.name || 'unnamed'}) [Wireless command correlation]`);
+                    logger.debug(`v3.004+ Action 184: Learned Target ID ${targetId} for circuit ${circuitId} (${circ.name || 'unnamed'}) [Wireless command correlation]`);
                     circ.targetId = targetId;
                     pendingAction184Commands.delete(targetId);
                     return;
@@ -716,7 +716,7 @@ export class EquipmentStateMessage {
                                     if (circ && circ.isActive && (typeof circ.targetId === 'undefined' || circ.targetId === 0)) {
                                         // Only learn if we don't have one yet - channel=target is reliable
                                         if (sbody && sbody.isOn === isOn) {
-                                            logger.info(`v3.004+ Action 184: Learned Target ID ${targetId} (${targetIdHi},${targetIdLo}) for body ${body.id} circuit ${body.circuit} (${circ.name || 'unnamed'}) [channel=target pattern]`);
+                                            logger.silly(`v3.004+ Action 184: Learned Target ID ${targetId} (${targetIdHi},${targetIdLo}) for body ${body.id} circuit ${body.circuit} (${circ.name || 'unnamed'}) [channel=target pattern]`);
                                             circ.targetId = targetId;
                                         }
                                     }
@@ -771,18 +771,18 @@ export class EquipmentStateMessage {
                             const match = matchingCircuitsNoTargetId[0];
                             const circ = sys.circuits.getItemById(match.id, false);
                             if (circ) {
-                                logger.info(`v3.004+ Action 184: Learned Target ID ${targetId} (${targetIdHi},${targetIdLo}) for circuit ${match.id} (${match.name}) [unique unassigned match]`);
+                                logger.silly(`v3.004+ Action 184: Learned Target ID ${targetId} (${targetIdHi},${targetIdLo}) for circuit ${match.id} (${match.name}) [unique unassigned match]`);
                                 circ.targetId = targetId;
                             }
                         } else if (matchingCircuitsNoTargetId.length > 1) {
                             // Multiple unassigned circuits match - can't determine which
-                            logger.info(`v3.004+ Action 184: Target ${targetId} (state=${isOn ? 'ON' : 'OFF'}) matches ${matchingCircuitsNoTargetId.length} unassigned circuits (${matchingCircuitsNoTargetId.map(m => m.name).join(', ')}) - waiting for unique match`);
+                            logger.silly(`v3.004+ Action 184: Target ${targetId} (state=${isOn ? 'ON' : 'OFF'}) matches ${matchingCircuitsNoTargetId.length} unassigned circuits (${matchingCircuitsNoTargetId.map(m => m.name).join(', ')}) - waiting for unique match`);
                         } else if (matchingCircuitsNoTargetId.length === 0 && matchingCircuitsWithTargetId.length === 0) {
                             // No matching circuits - might be a feature or virtual circuit
                             logger.debug(`v3.004+ Action 184: Target ${targetId} (state=${isOn ? 'ON' : 'OFF'}) has no matching circuits - possibly feature or group`);
                         }
                         
-                        logger.info(`v3.004+ Action 184 (${sourceDesc}): Channel=${channelId}, Target=${targetId} (${targetIdHi},${targetIdLo}), State=${isOn ? 'ON' : 'OFF'}`);
+                        logger.debug(`v3.004+ Action 184 (${sourceDesc}): Channel=${channelId}, Target=${targetId} (${targetIdHi},${targetIdLo}), State=${isOn ? 'ON' : 'OFF'}`);
                     }
                 }
                 msg.isProcessed = true;
