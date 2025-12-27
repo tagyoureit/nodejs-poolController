@@ -328,8 +328,10 @@ export class IntelliCenterBoard extends SystemBoard {
         // [1]:      Reserved (0)
         // [2]:      Registration flag (0=not registered, 1=registered - OCP sets to 1 in Action 253)
         // [3-6]:    Reserved (zeros)
-        // [7-12]:   Device identifier (6 bytes - unique per device)
-        //           Using ASCII "njsPC\0" = [110, 106, 115, 80, 67, 0] for easy identification
+        // [7-12]:   Device identifier (6 bytes - must(?) be valid MAC address format!)
+        //           Using locally-administered MAC: 02:6E:6A:73:50:43 = [2, 110, 106, 115, 80, 67]
+        //           0x02 prefix = locally-administered, unicast (IEEE standard)
+        //           Remaining bytes = "njsPC" in ASCII for identification
         // [13-16]:  Reserved (zeros)
         // [17-18]:  Firmware version (major, minor)
         // [19-21]:  Unknown bytes (1, 7, 11 - copied from wireless remote in all captures)
@@ -343,7 +345,7 @@ export class IntelliCenterBoard extends SystemBoard {
                 0,                      // [1] Reserved
                 0,                      // [2] Registration flag (0=requesting, 1=registered, 4=stale/needs-reauth)
                 0, 0, 0, 0,            // [3-6] Reserved
-                110, 106, 115, 80, 67, 0,  // [7-12] Device ID: "njsPC\0" (ASCII)
+                2, 110, 106, 115, 80, 67,  // [7-12] Device ID: MAC 02:6E:6A:73:50:43 (locally-administered)
                 0, 0, 0, 0,            // [13-16] Reserved
                 fwMajor, fwMinor,      // [17-18] Firmware version
                 1, 7, 11               // [19-21] Unknown (copied from wireless remote)
