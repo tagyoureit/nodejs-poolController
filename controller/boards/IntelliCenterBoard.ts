@@ -532,6 +532,10 @@ export class IntelliCenterBoard extends SystemBoard {
             b.master = 0;
         }
         ncp.initAsync(sys);
+        // Clear options version so startup always requests fresh heat modes/setpoints.
+        // OCP may not increment options version when Wireless makes changes while njsPC is offline,
+        // so we force a refresh (same logic as triggerConfigRefresh in VersionMessage.ts).
+        sys.configVersion.options = 0;
         // Defer to the next tick so that any state extracted from the same inbound packet
         // (e.g., firmware bytes from Action 204) is available before we decide v1 vs v3 behavior.
         setTimeout(() => this.checkConfiguration(), 0);
