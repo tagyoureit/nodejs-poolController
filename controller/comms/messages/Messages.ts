@@ -762,7 +762,7 @@ export class Inbound extends Message {
             case ControllerType.IntelliCenter:
                 switch (this.action) {
                     case 1: // ACK
-                        this.isProcessed = true;
+                        VersionMessage.processAction168Ack(this);
                         break;
                     case 2:
                     case 204:

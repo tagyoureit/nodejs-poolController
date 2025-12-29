@@ -20,6 +20,34 @@ import { sys, ConfigVersion } from "../../../Equipment";
 import { logger } from "../../../../logger/Logger";
 
 export class VersionMessage {
+    // Debounce config refresh requests to avoid duplicate requests from overlapping triggers
+    private static lastConfigRefreshTime: number = 0;
+    private static readonly CONFIG_REFRESH_DEBOUNCE_MS = 2000;  // 2 seconds
+
+    /**
+     * Shared method to trigger a config refresh with debouncing.
+     * Prevents duplicate requests when multiple triggers fire in quick succession.
+     */
+    private static triggerConfigRefresh(source: string): void {
+        const now = Date.now();
+        if (now - this.lastConfigRefreshTime < this.CONFIG_REFRESH_DEBOUNCE_MS) {
+            logger.silly(`v3.004+ ${source}: Skipping config refresh (debounced, last was ${now - this.lastConfigRefreshTime}ms ago)`);
+            return;
+        }
+        this.lastConfigRefreshTime = now;
+
+        (sys.board as any).needsConfigChanges = true;
+        // Invalidate cached options version so queueChanges() will request category 0.
+        // OCP doesn't increment options version when heat mode/setpoints change,
+        // so we force a refresh by clearing our cached version.
+        sys.configVersion.options = 0;
+        logger.silly(`v3.004+ ${source}: Sending Action 228`);
+        Outbound.create({
+            dest: 16, action: 228, payload: [0], retries: 2,
+            response: Response.create({ action: 164 })
+        }).sendAsync();
+    }
+
     /**
      * v3.004+ Piggyback: When another device sends Action 228 to OCP,
      * send our own to catch config changes. See .plan/202-intellicenter-bodies-temps.md
@@ -28,16 +56,26 @@ export class VersionMessage {
         if (sys.equipment.isIntellicenterV3 &&
             msg.source !== Message.pluginAddress &&  // Not from us
             msg.dest === 16) {                        // Directed to OCP
-            (sys.board as any).needsConfigChanges = true;
-            // Invalidate cached options version so queueChanges() will request category 0.
-            // OCP doesn't increment options version when heat mode/setpoints change,
-            // so we force a refresh by clearing our cached version.
-            sys.configVersion.options = 0;
-            logger.silly(`v3.004+ Piggyback: Sending Action 228`);
-            Outbound.create({
-                dest: 16, action: 228, payload: [0], retries: 2,
-                response: Response.create({ action: 164 })
-            }).sendAsync();
+            this.triggerConfigRefresh('Piggyback');
+        }
+        msg.isProcessed = true;
+    }
+
+    /**
+     * v3.004+ ACK Trigger: When OCP ACKs a Wireless device's Action 168,
+     * trigger a config refresh. OCP doesn't send Action 228 after Wireless changes,
+     * so we must detect the ACK and request config ourselves.
+     * See AGENTS.md for protocol details.
+     */
+    public static processAction168Ack(msg: Inbound): void {
+        // Only for v3.004+ when OCP (src=16) ACKs a non-njsPC device's 168
+        if (sys.equipment.isIntellicenterV3 &&
+            msg.source === 16 &&                          // From OCP
+            msg.dest !== Message.pluginAddress &&         // Not to us
+            msg.dest !== 16 &&                            // Not to OCP itself
+            msg.payload.length > 0 &&
+            msg.payload[0] === 168) {                     // ACKing Action 168
+            this.triggerConfigRefresh(`ACK Trigger (device ${msg.dest})`);
         }
         msg.isProcessed = true;
     }
