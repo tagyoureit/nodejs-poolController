@@ -1509,6 +1509,48 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
     // This prevents race conditions when multiple circuit toggles are sent in quick succession.
     // Key: circuit/feature ID, Value: intended state (true=on, false=off)
     private pendingStates: Map<number, boolean> = new Map();
+
+    private findActiveTargetIdOwners(targetId: number, excludeCircuitId?: number): ICircuit[] {
+        const owners: ICircuit[] = [];
+        if (typeof targetId !== 'number' || targetId <= 0) return owners;
+        for (let i = 0; i < sys.circuits.length; i++) {
+            const circ = sys.circuits.getItemByIndex(i);
+            if (!circ || !circ.isActive) continue;
+            if (typeof excludeCircuitId === 'number' && circ.id === excludeCircuitId) continue;
+            // targetId may be undefined if not learned yet
+            if (typeof (circ as any).targetId === 'number' && (circ as any).targetId === targetId) owners.push(circ);
+        }
+        return owners;
+    }
+
+    public seedKnownV3TargetIds(): void {
+        if (!sys.equipment.isIntellicenterV3) return;
+        // Known fixed body circuits on IntelliCenter:
+        // - Circuit ID 1 = Spa
+        // - Circuit ID 6 = Pool
+        //
+        // We seed these as defaults ONLY when missing, and we never overwrite an existing learned value.
+        // This also has a safety benefit: it prevents other circuits from accidentally learning/reusing
+        // the Spa/Pool targetIds.
+        // Additional observed mapping (NOT guaranteed across all installations):
+        // - Circuit ID 2 targetId observed as 0xC490 in captures. We seed it as a best-effort default
+        //   for users without a Wireless/indoor panel, but it will be overridden when we learn the real
+        //   mapping from the bus (and cleared quickly if readback indicates it’s wrong).
+        const seeds: Array<{ circuitId: number, targetId: number }> = [
+            { circuitId: 1, targetId: 0xA8ED }, // 168,237
+            { circuitId: 6, targetId: 0x6CE1 }, // 108,225
+            { circuitId: 2, targetId: 0xC490 }  // 196,144
+        ];
+        for (const s of seeds) {
+            const circ = sys.circuits.getItemById(s.circuitId, false, { isActive: false });
+            if (!circ || circ.isActive === false) continue;
+            if (typeof (circ as any).targetId === 'number' && (circ as any).targetId > 0) continue;
+            const owners = this.findActiveTargetIdOwners(s.targetId, s.circuitId);
+            if (owners.length > 0) continue; // don't introduce duplicates
+            (circ as any).targetId = s.targetId;
+            logger.debug(`v3.004+ seedKnownV3TargetIds: Seeded circuitId=${s.circuitId} (index=${s.circuitId - 1}) with targetId=${s.targetId}`);
+        }
+    }
     
     // Add a pending state change (called before sending command)
     public addPendingState(id: number, isOn: boolean): void {
@@ -2219,18 +2261,37 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             // OCP accepts this format and doesn't revert the state like it does with Action 168.
             const circuit = sys.circuits.getItemById(id, false);
             if (sys.equipment.isIntellicenterV3 && circuit && typeof circuit.targetId === 'number' && circuit.targetId > 0) {
-                logger.info(`v3.004+ setCircuitStateAsync: Using Action 184 with targetId ${circuit.targetId} for circuit ${id} (${circuit.name || 'unnamed'})`);
-                let out = this.createAction184Message(circuit.targetId, val);
-                out.dest = 16;  // Send to OCP
-                out.scope = `circuitState${id}`;
-                out.retries = 5;
-                out.response = IntelliCenterBoard.getAckResponse(184);
-                await out.sendAsync();
-                // Request updated config to confirm state change
-                let b = await this.getConfigAsync([15, 0]);
-                let circ = state.circuits.getInterfaceById(id);
-                state.emitEquipmentChanges();
-                return circ;
+                // Safety: A targetId must be unique per circuit. If duplicates exist, Action 184 could toggle the wrong circuit.
+                const dupOwners = this.findActiveTargetIdOwners(circuit.targetId, id);
+                if (dupOwners.length > 0) {
+                    logger.error(
+                        `v3.004+ setCircuitStateAsync: Circuit ${id} (${circuit.name || 'unnamed'}) has duplicate targetId ${circuit.targetId} also used by ` +
+                        dupOwners.map(o => `${o.id}(${o.name || 'unnamed'})`).join(', ') +
+                        `. Clearing targetId and falling back to Action 168.`
+                    );
+                    circuit.targetId = 0;
+                } else {
+                    logger.info(`v3.004+ setCircuitStateAsync: Using Action 184 with targetId ${circuit.targetId} for circuit ${id} (${circuit.name || 'unnamed'})`);
+                    let out = this.createAction184Message(circuit.targetId, val);
+                    out.dest = 16;  // Send to OCP
+                    out.scope = `circuitState${id}`;
+                    out.retries = 5;
+                    out.response = IntelliCenterBoard.getAckResponse(184);
+                    await out.sendAsync();
+                    // Request updated config to confirm state change
+                    await this.getConfigAsync([15, 0]);
+                    let circ = state.circuits.getInterfaceById(id);
+                    // If readback doesn't match, assume this targetId is incorrect (or rejected) and clear it to prevent repeats.
+                    if (typeof circ?.isOn === 'boolean' && circ.isOn !== val) {
+                        logger.warn(
+                            `v3.004+ setCircuitStateAsync: Action 184 readback mismatch for circuit ${id} (${circuit.name || 'unnamed'}). ` +
+                            `Requested ${val ? 'ON' : 'OFF'} but OCP reports ${circ.isOn ? 'ON' : 'OFF'}. Clearing targetId ${circuit.targetId}.`
+                        );
+                        circuit.targetId = 0;
+                    }
+                    state.emitEquipmentChanges();
+                    return circ;
+                }
             }
             
             // v1.x or v3.004+ without known targetId: Use Action 168 (original method)

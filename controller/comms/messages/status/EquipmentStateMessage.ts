@@ -32,6 +32,18 @@ import { Inbound, Message, Outbound } from '../Messages';
 const pendingAction184Commands: Map<number, { state: number, timestamp: number }> = new Map();
 const PENDING_COMMAND_TTL_MS = 10000; // 10 second TTL for pending commands
 
+function findActiveCircuitTargetIdOwner(targetId: number, excludeCircuitId?: number): Circuit | null {
+    if (typeof targetId !== 'number' || targetId <= 0) return null;
+    for (let i = 0; i < sys.circuits.length; i++) {
+        const circ = sys.circuits.getItemByIndex(i);
+        if (!circ || !circ.isActive) continue;
+        if (typeof excludeCircuitId === 'number' && circ.id === excludeCircuitId) continue;
+        // `targetId` may be undefined on circuits that haven't learned it yet.
+        if (typeof (circ as any).targetId === 'number' && (circ as any).targetId === targetId) return circ;
+    }
+    return null;
+}
+
 export class EquipmentStateMessage {
     // Called when Action 2 status shows a circuit state change
     // Checks if there's a pending Wireless command that matches
@@ -53,6 +65,15 @@ export class EquipmentStateMessage {
                 // Check if this circuit needs a targetId
                 const circ = sys.circuits.getItemById(circuitId, false);
                 if (circ && circ.isActive && (typeof circ.targetId === 'undefined' || circ.targetId === 0)) {
+                    const owner = findActiveCircuitTargetIdOwner(targetId, circuitId);
+                    if (owner) {
+                        logger.warn(
+                            `v3.004+ Action 184: Refusing to learn duplicate targetId ${targetId} for circuit ${circuitId} (${circ.name || 'unnamed'}); ` +
+                            `already owned by circuit ${owner.id} (${owner.name || 'unnamed'}).`
+                        );
+                        pendingAction184Commands.delete(targetId);
+                        return;
+                    }
                     logger.debug(`v3.004+ Action 184: Learned Target ID ${targetId} for circuit ${circuitId} (${circ.name || 'unnamed'}) [Wireless command correlation]`);
                     circ.targetId = targetId;
                     pendingAction184Commands.delete(targetId);
@@ -195,6 +216,11 @@ export class EquipmentStateMessage {
                     pc & 0x02 ? msg.extractPayloadByte(17) : 0x00, pc & 0x02 ? msg.extractPayloadByte(18) : 0x00,
                     pc & 0x04 ? msg.extractPayloadByte(19) : 0x00, pc & 0x04 ? msg.extractPayloadByte(20) : 0x00);
                 sys.equipment.setEquipmentIds();
+                // v3.004+: As soon as firmware>=3.0 is known, seed known targetIds so the UI has stable defaults
+                // before any user toggles occur. These are best-effort and will be overridden by learned values.
+                if (sys.equipment.isIntellicenterV3 && typeof (sys.board.circuits as any)?.seedKnownV3TargetIds === 'function') {
+                    (sys.board.circuits as any).seedKnownV3TargetIds();
+                }
             }
             else return;
         }
@@ -716,8 +742,16 @@ export class EquipmentStateMessage {
                                     if (circ && circ.isActive && (typeof circ.targetId === 'undefined' || circ.targetId === 0)) {
                                         // Only learn if we don't have one yet - channel=target is reliable
                                         if (sbody && sbody.isOn === isOn) {
+                                            const owner = findActiveCircuitTargetIdOwner(targetId, body.circuit);
+                                            if (!owner) {
                                             logger.silly(`v3.004+ Action 184: Learned Target ID ${targetId} (${targetIdHi},${targetIdLo}) for body ${body.id} circuit ${body.circuit} (${circ.name || 'unnamed'}) [channel=target pattern]`);
                                             circ.targetId = targetId;
+                                            } else {
+                                                logger.warn(
+                                                    `v3.004+ Action 184: Refusing to learn duplicate targetId ${targetId} for body circuit ${body.circuit} (${circ.name || 'unnamed'}); ` +
+                                                    `already owned by circuit ${owner.id} (${owner.name || 'unnamed'}).`
+                                                );
+                                            }
                                         }
                                     }
                                 }
@@ -771,8 +805,16 @@ export class EquipmentStateMessage {
                             const match = matchingCircuitsNoTargetId[0];
                             const circ = sys.circuits.getItemById(match.id, false);
                             if (circ) {
-                                logger.silly(`v3.004+ Action 184: Learned Target ID ${targetId} (${targetIdHi},${targetIdLo}) for circuit ${match.id} (${match.name}) [unique unassigned match]`);
-                                circ.targetId = targetId;
+                                const owner = findActiveCircuitTargetIdOwner(targetId, match.id);
+                                if (!owner) {
+                                    logger.silly(`v3.004+ Action 184: Learned Target ID ${targetId} (${targetIdHi},${targetIdLo}) for circuit ${match.id} (${match.name}) [unique unassigned match]`);
+                                    circ.targetId = targetId;
+                                } else {
+                                    logger.warn(
+                                        `v3.004+ Action 184: Refusing to learn duplicate targetId ${targetId} for circuit ${match.id} (${match.name}); ` +
+                                        `already owned by circuit ${owner.id} (${owner.name || 'unnamed'}).`
+                                    );
+                                }
                             }
                         } else if (matchingCircuitsNoTargetId.length > 1) {
                             // Multiple unassigned circuits match - can't determine which
@@ -821,6 +863,10 @@ export class EquipmentStateMessage {
                 state.time.month = msg.extractPayloadByte(7);
                 state.time.date = msg.extractPayloadByte(6);
                 sys.equipment.controllerFirmware = (msg.extractPayloadByte(42) + (msg.extractPayloadByte(43) / 1000)).toString();
+                // v3.004+: Seed known targetIds immediately once firmware>=3.0 is confirmed (before UI interaction).
+                if (sys.equipment.isIntellicenterV3 && typeof (sys.board.circuits as any)?.seedKnownV3TargetIds === 'function') {
+                    (sys.board.circuits as any).seedKnownV3TargetIds();
+                }
                 // v3.004 adds 4 additional bytes (44-46) that are the time of day
                 // Byte 44: Hour (0-23)
                 // Byte 45: Minute (0-59)
