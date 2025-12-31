@@ -1,5 +1,13 @@
 # Changelog
 
+## 8.4.0
+1. IntelliCenter v3.004+ support (still being refined): registration handling, config refresh/ACK handling, and improved source-of-truth processing to keep state accurate.
+2. IntelliCenter v3.004+ circuit control updates: Action 184 support with learned Target IDs for more reliable circuit on/off behavior.
+3. IntelliCenter v3.004+ protocol parsing fixes: byte shift handling for Wireless messages, big-endian schedule times, and options/setpoint processing improvements.
+4. More resilience and reduced noise: improved initialization/race handling, better scoped logging, and longer device announce intervals.
+5. Misc fixes: default chlorinator naming and other small stability improvements.
+6. Huge thanks to @jwtaylor310 for providing a ton of replay captures that helped track down and fix bugs.
+
 ## 8.3.0
 1. Configurable RS‑485 transmit pacing via new `controller.txDelays` for finer collision avoidance and throughput tuning.
 2. Startup & config resilience: empty or invalid `config.json` now auto‑recreated from defaults, corrupt originals backed up.

@@ -1,7 +1,8 @@
+# nodejs-poolController - Version 8.4.0
+
 ```diff
-- INTELLICENTER USERS: Do not upgrade Intellicenter to 2.006.  Rollback to 1.064 to use this application. 
++ INTELLICENTER USERS: Firmware v3.004+ is supported, but still being refined.  If you run into issues, please open a discussion and include a replay capture.
 ```
-# nodejs-poolController - Version 8.3.0
 
 ## What is nodejs-poolController
 
@@ -25,6 +26,13 @@ Equipment supported
 
 ## Latest Changes
 See [Changelog](https://github.com/tagyoureit/nodejs-poolController/blob/master/Changelog)
+
+## What's new in 8.4.0?
+
+1. IntelliCenter v3.004+ support updates (still being refined): registration/config refresh handling, better source-of-truth gating, and improved stability.
+2. IntelliCenter v3.004+ circuit control: Action 184 support with learned Target IDs for more reliable circuit on/off behavior.
+3. v3.004+ parsing fixes: Wireless byte offsets, big-endian schedule times, and options/setpoint processing improvements.
+4. Reduced noise: longer device announce interval and better-scoped logging.
 
 ## What's new in 8.3.0?
 
@@ -85,7 +93,7 @@ Assuming you cloned the repo, the following are easy steps to get the latest ver
 1. Change directory to the njsPC app
 2. **Important**: Ensure you have Node.js v20 or higher installed (`node --version`). If not, upgrade Node.js first.
 3. `git pull`
-4. **Important**: Run `npm i` to update dependencies. This is especially important when upgrading to version 8.3.0+ as it requires Node 20+ and has updated dependencies.
+4. **Important**: Run `npm i` to update dependencies. This is especially important when upgrading to version 8.3.0+ (including 8.4.0+) as it requires Node 20+ and has updated dependencies.
 5. Start application as normal, or if using `npm run start:cached` then run `npm run build` to compile the code.
 
 ### Docker instructions
@@ -284,6 +292,7 @@ All three parameters are safe to adjust without restarting; edits to `config.jso
 # Credit
 
 1.  @Rstrouse for helping make the 6.0 rewrite and Intellicenter possible, continuing to make monumental changes, and driving this project forward in numerous ways.  My knowledge of coding in general has benefitted greatly from working with him.
+1.  @jwtaylor310 for providing a ton of IntelliCenter v3.004+ replay captures that helped track down and fix bugs.
 1.  [Jason Young](http://www.sdyoung.com/home/decoding-the-pentair-easytouch-rs-485-protocol) (Read both posts, they are a great baseline for knowledge)
 1.  Michael Russe [ceesco](https://github.com/ceesco53/pentair_examples) [CocoonTech](http://cocoontech.com/forums/topic/13548-intelliflow-pump-rs485-protocol/?p=159671) - Registration required for CocoonTech.  Jason Young used this material for his understanding in the protocol as well.  There is a very detailed .txt file with great information ~~that I won't post unless I get permission~~. Looks like it was publicly posted to [Pastebin](http://pastebin.com/uiAmvNjG).
 1.  [Michael Usner](https://github.com/michaelusner/Home-Device-Controller) for taking the work of both of the above and turning it into Javascript code.
