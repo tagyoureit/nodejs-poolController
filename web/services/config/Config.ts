@@ -236,13 +236,19 @@ export class ConfigRoute {
         });
         app.get('/config/options/heaters', async (req, res, next) => {
             try {
+                // Ensure heat mode/source valueMaps reflect the *current board* before returning picklists.
+                // Without this, startup can expose generic defaults until the first status/config packets arrive.
+                sys.board.heaters.updateHeaterServices();
                 let opts = {
                     tempUnits: sys.board.valueMaps.tempUnits.transform(state.temps.units),
                     bodies: sys.board.bodies.getBodyAssociations(),
                     maxHeaters: sys.equipment.maxHeaters,
                     heaters: sys.heaters.get(),
                     heaterTypes: sys.board.valueMaps.heaterTypes.toArray(),
-                    heatModes: sys.board.valueMaps.heatModes.toArray(),
+                    // Align with `/config/body/:id/heatModes` (body picklist). This ensures any board-specific
+                    // filtering (e.g. IntelliCenter v3 preferred-mode suppression) is reflected consistently.
+                    // Future improvement should return valid modes per body.
+                    heatModes: sys.board.bodies.getHeatModes(1),
                     coolDownDelay: sys.general.options.cooldownDelay,
                     servers: [],
                     rs485ports: await conn.listInstalledPorts()

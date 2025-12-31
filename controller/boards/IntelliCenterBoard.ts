@@ -532,6 +532,10 @@ export class IntelliCenterBoard extends SystemBoard {
             b.master = 0;
         }
         ncp.initAsync(sys);
+        // Update heater services BEFORE config loading so the heatModes valueMap has all heater types
+        // (UltraTemp, etc.) from cached poolConfig.json. This ensures OptionsMessage can correctly
+        // transform heat mode values when processing options config.
+        sys.board.heaters.updateHeaterServices();
         // Clear options version so startup always requests fresh heat modes/setpoints.
         // OCP may not increment options version when Wireless makes changes while njsPC is offline,
         // so we force a refresh (same logic as triggerConfigRefresh in VersionMessage.ts).
@@ -871,6 +875,20 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             if (this._failed) setTimeout(() => { sys.checkConfiguration(); }, 100);
             logger.info(`Configuration Complete`);
             sys.board.heaters.updateHeaterServices();
+            // Re-apply current body heat modes through the normal setter so state re-transforms
+            // against the (possibly rebuilt) heatModes valueMap.
+            for (let i = 0; i < state.temps.bodies.length; i++) {
+                const b = state.temps.bodies.getItemByIndex(i);
+                const hm = b.heatMode;
+                // Startup-only: the numeric mode can be correct while the persisted {name,desc} is stale.
+                if (hm >= 0) {
+                    // Don't touch internal state; force the setter to re-transform by toggling to a
+                    // different value and then restoring.
+                    const tmp = hm === 0 ? 1 : 0;
+                    b.heatMode = tmp;
+                    b.heatMode = hm;
+                }
+            }
             state.cleanupState();
         }
         // Notify all the clients of our processing status.
@@ -3532,6 +3550,19 @@ class IntelliCenterBodyCommands extends BodyCommands {
     }
     // IntelliCenter: body heat modes are encoded using IntelliCenter heatSources values (1=off,3=solar,4=solarpref,5=ultratemp,6=ultratemppref,...),
     // not the *Touch heatModes value map. Returning heatSources here fixes dashPanel's blank entries and makes validation accept the right values.
+    public getHeatSources(bodyId: number) {
+        const sources = super.getHeatSources(bodyId);
+        // IntelliCenter v3.004+: keep body-level picklists aligned with what the controller actually presents.
+        // Preferred modes are not reliably shown/used by Pentair clients on v3, so suppress them here (board-specific),
+        // rather than gating shared SystemBoard behavior.
+        if (sys.equipment.isIntellicenterV3) {
+            return sources.filter(s => {
+                const name = s && (s as any).name;
+                return name !== 'solarpref' && name !== 'ultratemppref' && name !== 'heatpumppref';
+            });
+        }
+        return sources;
+    }
     public getHeatModes(bodyId: number) {
         const sources = this.getHeatSources(bodyId);
         // remove "nochange" which is not a valid body mode selection in dashPanel
@@ -3972,12 +4003,12 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
                 const hs4 = sys.board.valueMaps.heatSources.get(4);
                 if (typeof hs4 !== 'undefined') sys.board.valueMaps.heatSources.set(4, { ...hs4, desc: 'Solar Only' });
                 const hs6 = sys.board.valueMaps.heatSources.get(6);
-                if (typeof hs6 !== 'undefined') sys.board.valueMaps.heatSources.set(6, { ...hs6, desc: 'UltraTemp Only' });
+                if (typeof hs6 !== 'undefined') sys.board.valueMaps.heatSources.set(6, { ...hs6, desc: 'UltraTemp Pref' });
 
                 const hm4 = sys.board.valueMaps.heatModes.get(4);
                 if (typeof hm4 !== 'undefined') sys.board.valueMaps.heatModes.set(4, { ...hm4, desc: 'Solar Only' });
                 const hm6 = sys.board.valueMaps.heatModes.get(6);
-                if (typeof hm6 !== 'undefined') sys.board.valueMaps.heatModes.set(6, { ...hm6, desc: 'UltraTemp Only' });
+                if (typeof hm6 !== 'undefined') sys.board.valueMaps.heatModes.set(6, { ...hm6, desc: 'UltraTemp Pref' });
             }
         }
         else {

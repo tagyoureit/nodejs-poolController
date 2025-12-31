@@ -101,6 +101,28 @@
 
 **Correction:** ✅ FIXED - Use `sys.board` directly without local rebinding
 
+### 7. Controller-Specific Overrides (CRITICAL): SystemBoard.ts must be controller-agnostic
+**Rule:** Do NOT add controller-specific branching (e.g., `if (sys.controllerType === ControllerType.IntelliCenter) ...`, `if (sys.equipment.isIntellicenterV3) ...`) inside shared base command classes in `controller/boards/SystemBoard.ts`.
+
+- **Why:** The default `byteValueMaps` in `SystemBoard.ts` include generic/*Touch-style defaults (e.g., `heatModes`) which are **wrong for IntelliCenter v3.004+**.
+- **Correct pattern:** Each controller board overrides the relevant command object (e.g., `IntelliCenterBoard` uses `IntelliCenterHeaterCommands extends HeaterCommands`) and implements controller-accurate behavior there.
+- **Call-site rule:** Always call `sys.board.heaters.updateHeaterServices()` (or the appropriate `sys.board.<domain>` command), and rely on polymorphism to dispatch to the controller-specific implementation.
+
+**Bug example (dashPanel heat mode labels):**
+- `/config/options/heaters` returns `sys.board.valueMaps.heatModes.toArray()`
+- If IntelliCenter-specific heater service mapping isn’t used, the UI can map numeric heatMode values to the wrong names (e.g., mapping `5` to “Solar Only” instead of “UltraTemp Only” on IC v3).
+
+**Fix pattern:**
+- Put IntelliCenter mapping in `IntelliCenterHeaterCommands.updateHeaterServices()` (already present in `controller/boards/IntelliCenterBoard.ts`)
+- Keep `HeaterCommands.updateHeaterServices()` in `SystemBoard.ts` generic for non-IntelliCenter controllers
+
+**Same pattern for body picklists:**
+- Keep `BodyCommands.getHeatSources()` / `getHeatModes()` in `SystemBoard.ts` generic.
+- Any IntelliCenter v3-specific filtering (e.g., suppressing `solarpref` / `ultratemppref` options for body-level mode picklists) must live in `IntelliCenterBodyCommands` in `controller/boards/IntelliCenterBoard.ts`.
+
+**Generalization:** This applies to *anything* that is overridden by controller boards (IntelliCenter, EasyTouch, IntelliTouch, AquaLink, SunTouch, Nixie, etc.).  
+If you find yourself writing `if (sys.controllerType === ...)` inside `SystemBoard.ts`, that is almost always a design smell—create/extend the controller-specific command class in the appropriate board file and keep `SystemBoard.ts` purely generic.
+
 ## Analysis Patterns
 
 ### 6. Examine Working State, Not Just Failures

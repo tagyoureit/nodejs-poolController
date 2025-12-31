@@ -1787,10 +1787,6 @@ export class BodyCommands extends BoardCommands {
     public getHeatSources(bodyId: number) {
         let heatSources = [];
         let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
-        // IntelliCenter v3.004+: "preferred" heat sources (e.g. Solar Preferred / UltraTemp Pref) appear to be
-        // firmware-phantom options: dashPanel may show them, but Wireless/Outdoor Panel do not list/track them reliably.
-        // To keep UI options aligned with controller UX, suppress preferred modes for IntelliCenter v3.
-        const suppressPreferred = (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3);
         heatSources.push(this.board.valueMaps.heatSources.transformByName('nochange'));
         if (heatTypes.total > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('off'));
         if (heatTypes.gas > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('heater'));
@@ -1798,17 +1794,17 @@ export class BodyCommands extends BoardCommands {
         if (heatTypes.solar > 0) {
             let hm = this.board.valueMaps.heatSources.transformByName('solar');
             heatSources.push(hm);
-            if (!suppressPreferred && heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('solarpref'));
+            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('solarpref'));
         }
         if (heatTypes.heatpump > 0) {
             let hm = this.board.valueMaps.heatSources.transformByName('heatpump');
             heatSources.push(hm);
-            if (!suppressPreferred && heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('heatpumppref'));
+            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('heatpumppref'));
         }
         if (heatTypes.ultratemp > 0) {
             let hm = this.board.valueMaps.heatSources.transformByName('ultratemp');
             heatSources.push(hm);
-            if (!suppressPreferred && heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('ultratemppref'));
+            if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('ultratemppref'));
         }
         if (heatTypes.hybrid > 0) {
             heatSources.push(this.board.valueMaps.heatSources.transformByName('hybheat'));
@@ -1821,8 +1817,6 @@ export class BodyCommands extends BoardCommands {
     public getHeatModes(bodyId: number) {
         let heatModes = [];
         sys.board.heaters.updateHeaterServices();
-        // IntelliCenter v3.004+: suppress preferred modes in UI lists; see note in getHeatSources().
-        const suppressPreferred = (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3);
 
         // RKS: 09-26-20 This will need to be overloaded in IntelliCenterBoard when the other heater types are identified. (e.g. ultratemp, hybrid, maxetherm, and mastertemp)
         heatModes.push(this.board.valueMaps.heatModes.transformByName('off')); // In IC fw 1.047 off is no longer 0.
@@ -1843,17 +1837,17 @@ export class BodyCommands extends BoardCommands {
         if (heatTypes.solar > 0) {
             let hm = this.board.valueMaps.heatModes.transformByName('solar');
             heatModes.push(hm);
-            if (!suppressPreferred && heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('solarpref'));
+            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('solarpref'));
         }
         if (heatTypes.heatpump > 0) {
             let hm = this.board.valueMaps.heatModes.transformByName('heatpump');
             heatModes.push(hm);
-            if (!suppressPreferred && heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('heatpumppref'));
+            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('heatpumppref'));
         }
         if (heatTypes.ultratemp > 0) {
             let hm = this.board.valueMaps.heatModes.transformByName('ultratemp');
             heatModes.push(hm);
-            if (!suppressPreferred && heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('ultratemppref'));
+            if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('ultratemppref'));
         }
         return heatModes;
     }
