@@ -421,7 +421,10 @@ export class IntelliCenterBoard extends SystemBoard {
             action: 228,
             payload: [0],
             retries: 3,
-            response: Response.create({ action: 164 })
+            // v3.004+: require the version response (164) to be addressed to us (not to Wireless).
+            response: sys.equipment.isIntellicenterV3
+                ? Response.create({ dest: Message.pluginAddress, action: 164 })
+                : Response.create({ action: 164 })
         });
         await verReq.sendAsync();
         if (sys.equipment.isIntellicenterV3) {
@@ -851,7 +854,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
                 // v3.004+: some config requests can yield an Action 30 with an empty payload (length=0).
                 // Those packets still indicate "done" for the requested item, but cannot be matched by payload prefix.
                 response: sys.equipment.isIntellicenterV3
-                    ? Response.create({ dest: -1, action: 30 })
+                    ? Response.create({ dest: Message.pluginAddress, action: 30 })
                     : Response.create({ dest: -1, action: 30, payload: [this.curr.category, itm] })
             });
             logger.verbose(`Requesting config for: ${ConfigCategories[this.curr.category]} - Item: ${itm}`);
@@ -903,10 +906,28 @@ class IntelliCenterConfigQueue extends ConfigQueue {
                 console.log('WE ARE ALREADY PROCESSING CHANGES...')
             return;
         }
+        // IMPORTANT: Only enter "processing" mode if there are actual version changes.
+        // If we set `_processing=true` and then return early, the UI can get stuck showing a partial
+        // percent (e.g., 87%) because no further progress/completion events will be emitted.
+        if (!curr.hasChanges(ver)) {
+            // Ensure controller status returns to ready and queue state is not wedged.
+            this._processing = false;
+            this._failed = false;
+            this._newRequest = false;
+            state.status = 1;
+            state.emitControllerChange();
+            return;
+        }
+
+        // New run: reset per-run accounting so percent reflects ONLY this run.
+        // Do NOT call `ConfigQueue.reset()` here because it also mutates `closed`.
+        // We only want to reset per-run counters/queues.
+        this.queue.length = 0;
+        this.curr = null;
+        this.totalItems = 0;
         this._processing = true;
         this._failed = false;
         let self = this;
-        if (!curr.hasChanges(ver)) return;
         sys.configVersion.lastUpdated = new Date();
         // Tell the system we are loading.
         state.status = sys.board.valueMaps.controllerStatus.transform(2, 0);
@@ -1510,47 +1531,6 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
     // Key: circuit/feature ID, Value: intended state (true=on, false=off)
     private pendingStates: Map<number, boolean> = new Map();
 
-    private findActiveTargetIdOwners(targetId: number, excludeCircuitId?: number): ICircuit[] {
-        const owners: ICircuit[] = [];
-        if (typeof targetId !== 'number' || targetId <= 0) return owners;
-        for (let i = 0; i < sys.circuits.length; i++) {
-            const circ = sys.circuits.getItemByIndex(i);
-            if (!circ || !circ.isActive) continue;
-            if (typeof excludeCircuitId === 'number' && circ.id === excludeCircuitId) continue;
-            // targetId may be undefined if not learned yet
-            if (typeof (circ as any).targetId === 'number' && (circ as any).targetId === targetId) owners.push(circ);
-        }
-        return owners;
-    }
-
-    public seedKnownV3TargetIds(): void {
-        if (!sys.equipment.isIntellicenterV3) return;
-        // Known fixed body circuits on IntelliCenter:
-        // - Circuit ID 1 = Spa
-        // - Circuit ID 6 = Pool
-        //
-        // We seed these as defaults ONLY when missing, and we never overwrite an existing learned value.
-        // This also has a safety benefit: it prevents other circuits from accidentally learning/reusing
-        // the Spa/Pool targetIds.
-        // Additional observed mapping (NOT guaranteed across all installations):
-        // - Circuit ID 2 targetId observed as 0xC490 in captures. We seed it as a best-effort default
-        //   for users without a Wireless/indoor panel, but it will be overridden when we learn the real
-        //   mapping from the bus (and cleared quickly if readback indicates it’s wrong).
-        const seeds: Array<{ circuitId: number, targetId: number }> = [
-            { circuitId: 1, targetId: 0xA8ED }, // 168,237
-            { circuitId: 6, targetId: 0x6CE1 }, // 108,225
-            { circuitId: 2, targetId: 0xC490 }  // 196,144
-        ];
-        for (const s of seeds) {
-            const circ = sys.circuits.getItemById(s.circuitId, false, { isActive: false });
-            if (!circ || circ.isActive === false) continue;
-            if (typeof (circ as any).targetId === 'number' && (circ as any).targetId > 0) continue;
-            const owners = this.findActiveTargetIdOwners(s.targetId, s.circuitId);
-            if (owners.length > 0) continue; // don't introduce duplicates
-            (circ as any).targetId = s.targetId;
-            logger.debug(`v3.004+ seedKnownV3TargetIds: Seeded circuitId=${s.circuitId} (index=${s.circuitId - 1}) with targetId=${s.targetId}`);
-        }
-    }
     
     // Add a pending state change (called before sending command)
     public addPendingState(id: number, isOn: boolean): void {
@@ -2256,42 +2236,23 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                 return circ;
             }
 
-            // v3.004+: Use Action 184 if we have a learned targetId for this circuit.
-            // Action 184 is the native circuit control message that the Wireless remote uses.
-            // OCP accepts this format and doesn't revert the state like it does with Action 168.
-            const circuit = sys.circuits.getItemById(id, false);
-            if (sys.equipment.isIntellicenterV3 && circuit && typeof circuit.targetId === 'number' && circuit.targetId > 0) {
-                // Safety: A targetId must be unique per circuit. If duplicates exist, Action 184 could toggle the wrong circuit.
-                const dupOwners = this.findActiveTargetIdOwners(circuit.targetId, id);
-                if (dupOwners.length > 0) {
-                    logger.error(
-                        `v3.004+ setCircuitStateAsync: Circuit ${id} (${circuit.name || 'unnamed'}) has duplicate targetId ${circuit.targetId} also used by ` +
-                        dupOwners.map(o => `${o.id}(${o.name || 'unnamed'})`).join(', ') +
-                        `. Clearing targetId and falling back to Action 168.`
-                    );
-                    circuit.targetId = 0;
-                } else {
-                    logger.info(`v3.004+ setCircuitStateAsync: Using Action 184 with targetId ${circuit.targetId} for circuit ${id} (${circuit.name || 'unnamed'})`);
-                    let out = this.createAction184Message(circuit.targetId, val);
-                    out.dest = 16;  // Send to OCP
-                    out.scope = `circuitState${id}`;
-                    out.retries = 5;
-                    out.response = IntelliCenterBoard.getAckResponse(184);
-                    await out.sendAsync();
-                    // Request updated config to confirm state change
-                    await this.getConfigAsync([15, 0]);
-                    let circ = state.circuits.getInterfaceById(id);
-                    // If readback doesn't match, assume this targetId is incorrect (or rejected) and clear it to prevent repeats.
-                    if (typeof circ?.isOn === 'boolean' && circ.isOn !== val) {
-                        logger.warn(
-                            `v3.004+ setCircuitStateAsync: Action 184 readback mismatch for circuit ${id} (${circuit.name || 'unnamed'}). ` +
-                            `Requested ${val ? 'ON' : 'OFF'} but OCP reports ${circ.isOn ? 'ON' : 'OFF'}. Clearing targetId ${circuit.targetId}.`
-                        );
-                        circuit.targetId = 0;
-                    }
-                    state.emitEquipmentChanges();
-                    return circ;
-                }
+            // v3.004+ non-body circuits: Use indexed Action 184 (Wireless-style)
+            // Protocol: channel=0x688F, byte[2]=circuitId-1, target=0xA8ED, byte[6]=state
+            // This is the native control method observed from the Wireless remote.
+            if (sys.equipment.isIntellicenterV3) {
+                const circuit = sys.circuits.getItemById(id, false);
+                logger.info(`v3.004+ setCircuitStateAsync: Using indexed Action 184 for circuit ${id} (${circuit?.name || 'unnamed'}) -> ${val ? 'ON' : 'OFF'}`);
+                let out = this.createAction184IndexedCircuitMessage(id, val);
+                out.dest = 16;  // Send to OCP
+                out.scope = `circuitState${id}`;
+                out.retries = 5;
+                out.response = IntelliCenterBoard.getAckResponse(184);
+                await out.sendAsync();
+                // Request updated config to confirm state change
+                await this.getConfigAsync([15, 0]);
+                let circ = state.circuits.getInterfaceById(id);
+                state.emitEquipmentChanges();
+                return circ;
             }
             
             // v1.x or v3.004+ without known targetId: Use Action 168 (original method)
@@ -2673,35 +2634,31 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         return out;
     }
     /**
-     * Creates an Action 184 message for v3.004+ IntelliCenter circuit control.
+     * v3.004+ Indexed Circuit Control (Wireless-style).
      * Action 184 is the native circuit control message used by the Wireless remote.
      * 
      * Payload structure (10 bytes):
-     *   Bytes 0-1: Channel ID (104,143 = 0x688F = default channel)
-     *   Byte 2: Sequence number (0)
+     *   Bytes 0-1: Channel (0x688F for circuits, 0xE89D for features)
+     *   Byte 2: Index (circuitId - 1 or featureId - 1)
      *   Byte 3: Format (255 = command mode)
-     *   Bytes 4-5: Target ID (circuit's unique identifier, learned from OCP broadcasts)
+     *   Bytes 4-5: Target (0xA8ED = control primitive)
      *   Byte 6: State (0=OFF, 1=ON)
      *   Bytes 7-9: Reserved (0,0,0)
      * 
-     * @param targetId The circuit's unique Target ID (hi*256 + lo)
+     * @param circuitId The circuit ID (1-40)
      * @param isOn True to turn circuit ON, false for OFF
      * @returns Outbound message ready to send
      */
-    public createAction184Message(targetId: number, isOn: boolean): Outbound {
-        const targetIdHi = Math.floor(targetId / 256);
-        const targetIdLo = targetId % 256;
-        // Default channel 104,143 (0x688F), seq=0, format=255 (command)
-        let out = Outbound.createMessage(184, [
-            104, 143,       // Channel ID (default)
-            0,              // Sequence number
-            255,            // Format (command mode)
-            targetIdHi,     // Target ID high byte
-            targetIdLo,     // Target ID low byte
-            isOn ? 1 : 0,   // State (1=ON, 0=OFF)
-            0, 0, 0         // Reserved
+    public createAction184IndexedCircuitMessage(circuitId: number, isOn: boolean): Outbound {
+        const idx = Math.max(0, Math.min(255, (circuitId | 0) - 1));
+        return Outbound.createMessage(184, [
+            104, 143,        // Channel 0x688F (circuits)
+            idx,             // Index (circuitId - 1)
+            255,             // Format (command)
+            168, 237,        // Target 0xA8ED (control primitive)
+            isOn ? 1 : 0,    // State
+            0, 0, 0
         ], 3);
-        return out;
     }
 
     public async setDimmerLevelAsync(id: number, level: number): Promise<ICircuitState> {

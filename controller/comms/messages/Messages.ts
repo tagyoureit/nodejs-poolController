@@ -762,7 +762,13 @@ export class Inbound extends Message {
             case ControllerType.IntelliCenter:
                 switch (this.action) {
                     case 1: // ACK
-                        VersionMessage.processAction168Ack(this);
+                        // v3.004+ piggyback: only route ACKs we care about (168/184) into a single handler
+                        // to avoid doing extra work on every ACK frame.
+                        if (this.payload.length === 1 && (this.payload[0] === 168 || this.payload[0] === 184)) {
+                            VersionMessage.processActionAck(this);
+                        } else {
+                            this.isProcessed = true;
+                        }
                         break;
                     case 2:
                     case 204:
@@ -1317,21 +1323,12 @@ export class Response extends OutboundCommon {
         if (msgIn.protocol !== msgOut.protocol) { return false; }
         if (typeof msgIn === 'undefined') { return false; } // getting here on msg send failure
 
-        // if these properties were set on the Response (this) object via creation,
-        // then use the passed in values.  Otherwise, use the msgIn/msgOut matching rules        
-        // IntelliCenter config queue uses (action,payload-prefix) matching for Action 30 responses.
-        // Keep this stricter prefix matching scoped to IntelliCenter to avoid unintended effects on other controllers.
-        if (this.action > 0 && sys.controllerType === ControllerType.IntelliCenter) {
-            if (this.action !== msgIn.action) return false;
-            // If no payload prefix is provided, action match is sufficient (e.g. v3 Action 30 with empty payload).
-            if (this.payload.length === 0) return true;
-            if (msgIn.payload.length < this.payload.length) return false;
-            for (let i = 0; i < this.payload.length; i++) {
-                if (this.payload[i] !== msgIn.payload[i]) return false;
-            }
-            return true;
-        }
-        else if (msgOut.protocol === Protocol.Pump) {
+        // If these properties were set on the Response (this) object via creation,
+        // then use the passed in values. Otherwise, use the msgIn/msgOut matching rules.
+        //
+        // NOTE: IntelliCenter response matching is handled in the IntelliCenter-specific block below
+        // to keep the logic in one place.
+        if (msgOut.protocol === Protocol.Pump) {
             switch (msgIn.action) {
                 case 7:
                     // Scenario 1.  Request for pump status.
@@ -1404,6 +1401,20 @@ export class Response extends OutboundCommon {
         }
         else if (sys.controllerType === ControllerType.IntelliCenter) {
             // intellicenter packets
+            // IntelliCenter config queue uses (action,payload-prefix) matching for Action 30 responses.
+            // Keep this scoped to IntelliCenter to avoid unintended effects on other controllers.
+            if (sys.equipment.isIntellicenterV3 && this.action > 0) {
+                if (this.action !== msgIn.action) return false;
+                // If a destination was specified on the Response, enforce it (critical for v3 unicast flows).
+                if (this.dest >= 0 && msgIn.dest !== this.dest) return false;
+                // If no payload prefix is provided, action match is sufficient (e.g. v3 Action 30 with empty payload).
+                if (this.payload.length === 0) return true;
+                if (msgIn.payload.length < this.payload.length) return false;
+                for (let i = 0; i < this.payload.length; i++) {
+                    if (msgIn.payload[i] !== this.payload[i]) return false;
+                }
+                return true;
+            }
             if (this.dest >= 0 && msgIn.dest !== this.dest) return false;
             for (let i = 0; i < this.payload.length; i++) {
                 if (i > msgIn.payload.length - 1)

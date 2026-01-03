@@ -44,7 +44,8 @@ export class VersionMessage {
         logger.silly(`v3.004+ ${source}: Sending Action 228`);
         Outbound.create({
             dest: 16, action: 228, payload: [0], retries: 2,
-            response: Response.create({ action: 164 })
+            // v3.004+: require 164 addressed to us (not to Wireless).
+            response: Response.create({ dest: Message.pluginAddress, action: 164 })
         }).sendAsync();
     }
 
@@ -62,21 +63,34 @@ export class VersionMessage {
     }
 
     /**
-     * v3.004+ ACK Trigger: When OCP ACKs a Wireless device's Action 168,
-     * trigger a config refresh. OCP doesn't send Action 228 after Wireless changes,
-     * so we must detect the ACK and request config ourselves.
-     * See AGENTS.md for protocol details.
+     * v3.004+ ACK Trigger (single entrypoint):
+     * When OCP ACKs a Wireless/other device's Action 168 or 184, trigger a debounced config refresh.
+     *
+     * Intended call-site: `Messages.ts` should gate on ACK payload[0] (168/184) and then call this method once.
      */
-    public static processAction168Ack(msg: Inbound): void {
-        // Only for v3.004+ when OCP (src=16) ACKs a non-njsPC device's 168
-        if (sys.equipment.isIntellicenterV3 &&
-            msg.source === 16 &&                          // From OCP
-            msg.dest !== Message.pluginAddress &&         // Not to us
-            msg.dest !== 16 &&                            // Not to OCP itself
-            msg.payload.length > 0 &&
-            msg.payload[0] === 168) {                     // ACKing Action 168
-            this.triggerConfigRefresh(`ACK Trigger (device ${msg.dest})`);
+    public static processActionAck(msg: Inbound): void {
+        // Gate: only v3.004+
+        if (!sys.equipment.isIntellicenterV3) {
+            msg.isProcessed = true;
+            return;
         }
+        // Gate: only when ACK originates from OCP (src=16) to some other device (not us, not OCP).
+        if (msg.source !== 16 || msg.dest === Message.pluginAddress || msg.dest === 16) {
+            msg.isProcessed = true;
+            return;
+        }
+        // Gate: only ACKing Action 168 or 184 (caller should gate, but keep defensive checks here too).
+        const ackedAction = msg.payload.length > 0 ? msg.payload[0] : undefined;
+        if (ackedAction !== 168 && ackedAction !== 184) {
+            msg.isProcessed = true;
+            return;
+        }
+
+        const label =
+            ackedAction === 168
+                ? `ACK(168) Trigger (device ${msg.dest})`
+                : `ACK(184) Trigger (device ${msg.dest})`;
+        this.triggerConfigRefresh(label);
         msg.isProcessed = true;
     }
 

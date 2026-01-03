@@ -27,61 +27,7 @@ import { BodyTempState, ScheduleState, State, state } from '../../../State';
 import { ExternalMessage } from '../config/ExternalMessage';
 import { Inbound, Message, Outbound } from '../Messages';
 
-// Cache for pending Wireless Action 184 commands to correlate with state changes
-// Key: targetId, Value: { state: 0|1, timestamp: number }
-const pendingAction184Commands: Map<number, { state: number, timestamp: number }> = new Map();
-const PENDING_COMMAND_TTL_MS = 10000; // 10 second TTL for pending commands
-
-function findActiveCircuitTargetIdOwner(targetId: number, excludeCircuitId?: number): Circuit | null {
-    if (typeof targetId !== 'number' || targetId <= 0) return null;
-    for (let i = 0; i < sys.circuits.length; i++) {
-        const circ = sys.circuits.getItemByIndex(i);
-        if (!circ || !circ.isActive) continue;
-        if (typeof excludeCircuitId === 'number' && circ.id === excludeCircuitId) continue;
-        // `targetId` may be undefined on circuits that haven't learned it yet.
-        if (typeof (circ as any).targetId === 'number' && (circ as any).targetId === targetId) return circ;
-    }
-    return null;
-}
-
 export class EquipmentStateMessage {
-    // Called when Action 2 status shows a circuit state change
-    // Checks if there's a pending Wireless command that matches
-    public static checkPendingAction184Learning(circuitId: number, isOn: boolean): void {
-        const now = Date.now();
-        const targetState = isOn ? 1 : 0;
-        
-        // Clean up expired entries
-        for (const [targetId, entry] of pendingAction184Commands.entries()) {
-            if (now - entry.timestamp > PENDING_COMMAND_TTL_MS) {
-                pendingAction184Commands.delete(targetId);
-            }
-        }
-        
-        // Look for pending commands that match this state
-        for (const [targetId, entry] of pendingAction184Commands.entries()) {
-            if (entry.state === targetState) {
-                // This pending command matches the state change
-                // Check if this circuit needs a targetId
-                const circ = sys.circuits.getItemById(circuitId, false);
-                if (circ && circ.isActive && (typeof circ.targetId === 'undefined' || circ.targetId === 0)) {
-                    const owner = findActiveCircuitTargetIdOwner(targetId, circuitId);
-                    if (owner) {
-                        logger.warn(
-                            `v3.004+ Action 184: Refusing to learn duplicate targetId ${targetId} for circuit ${circuitId} (${circ.name || 'unnamed'}); ` +
-                            `already owned by circuit ${owner.id} (${owner.name || 'unnamed'}).`
-                        );
-                        pendingAction184Commands.delete(targetId);
-                        return;
-                    }
-                    logger.debug(`v3.004+ Action 184: Learned Target ID ${targetId} for circuit ${circuitId} (${circ.name || 'unnamed'}) [Wireless command correlation]`);
-                    circ.targetId = targetId;
-                    pendingAction184Commands.delete(targetId);
-                    return;
-                }
-            }
-        }
-    }
     private static initIntelliCenter(msg: Inbound) {
         sys.controllerType = ControllerType.IntelliCenter;
         sys.equipment.maxSchedules = 100;
@@ -216,11 +162,6 @@ export class EquipmentStateMessage {
                     pc & 0x02 ? msg.extractPayloadByte(17) : 0x00, pc & 0x02 ? msg.extractPayloadByte(18) : 0x00,
                     pc & 0x04 ? msg.extractPayloadByte(19) : 0x00, pc & 0x04 ? msg.extractPayloadByte(20) : 0x00);
                 sys.equipment.setEquipmentIds();
-                // v3.004+: As soon as firmware>=3.0 is known, seed known targetIds so the UI has stable defaults
-                // before any user toggles occur. These are best-effort and will be overridden by learned values.
-                if (sys.equipment.isIntellicenterV3 && typeof (sys.board.circuits as any)?.seedKnownV3TargetIds === 'function') {
-                    (sys.board.circuits as any).seedKnownV3TargetIds();
-                }
             }
             else return;
         }
@@ -679,152 +620,36 @@ export class EquipmentStateMessage {
                 break;
             }
             case 184: {
-                // v3.004+ Action 184 - Circuit state broadcast / control
-                // OCP broadcasts this for circuit state changes AND periodically for status.
-                // Wireless remote sends this to control circuits.
+                // v3.004+ Action 184 - Circuit/Feature control
                 // 
                 // Payload structure (10 bytes):
-                //   Bytes 0-1: Channel/context ID (104,143 = default, or circuit-specific like 108,225)
-                //   Byte 2: Sequence number
-                //   Byte 3: Format (255 = command, 0 = status)
-                //   Bytes 4-5: Target ID (unique circuit identifier, e.g., 168,237 = Spa, 108,225 = Pool)
-                //   Byte 6: State (0=OFF, 1=ON, 255=idle for body status)
-                //   Bytes 7-9: Additional data (usually 0)
+                //   Bytes 0-1: Channel (0x688F=circuits, 0xE89D=features)
+                //   Byte 2: Index (circuitId-1 or featureId-1)
+                //   Byte 3: Format (255=command, 0=status)
+                //   Bytes 4-5: Target (0xA8ED=control, 0xD4B6=body context)
+                //   Byte 6: State (0=OFF, 1=ON)
+                //   Bytes 7-9: Context data (for D4B6) or reserved (for A8ED)
                 //
-                // KEY PATTERN: When channel ID (bytes 0-1) equals Target ID (bytes 4-5), 
-                // this identifies a specific circuit (e.g., Pool uses 108,225 for both).
-                //
-                // Learning strategies:
-                // 1. Channel = Target pattern: strong identification
-                // 2. State correlation: match broadcast state with circuit states
-                // 3. Only ONE circuit matches: definitive mapping
+                // Control panel sources: Wireless(36), ICP(32) send commands to OCP(16)
+                // OCP(16) broadcasts status to all(15)
                 if (sys.controllerType === ControllerType.IntelliCenter && 
                     sys.equipment.isIntellicenterV3 && 
                     msg.payload.length >= 10) {
                     
-                    const channelIdHi = msg.extractPayloadByte(0);
-                    const channelIdLo = msg.extractPayloadByte(1);
-                    const channelId = channelIdHi * 256 + channelIdLo;
-                    const targetIdHi = msg.extractPayloadByte(4);
-                    const targetIdLo = msg.extractPayloadByte(5);
-                    const targetId = targetIdHi * 256 + targetIdLo;
-                    const circuitState = msg.extractPayloadByte(6);
+                    const channelId = msg.extractPayloadByte(0) * 256 + msg.extractPayloadByte(1);
+                    const index = msg.extractPayloadByte(2);
+                    const targetId = msg.extractPayloadByte(4) * 256 + msg.extractPayloadByte(5);
+                    const stateVal = msg.extractPayloadByte(6);
                     
-                    // Process from OCP broadcasts (source=16) AND Wireless commands (source=36)
-                    // Skip idle status (byte 6 = 255) and body status target (212,182 = 0xD4B6 = 54454)
-                    // Learning from Wireless: When Wireless sends targetId X to OCP with state Y,
-                    // and OCP ACKs, we know targetId X controls the circuit that changed to state Y.
                     const isFromOCP = msg.source === 16;
-                    const isFromWireless = msg.source === 36 && msg.dest === 16; // Wireless→OCP command
+                    const isFromControlPanel = (msg.source === 36 || msg.source === 32) && msg.dest === 16;
                     
-                    // Cache Wireless commands for later correlation with state changes
-                    // This helps learn targetId when OCP doesn't broadcast the state=1 message
-                    if (isFromWireless && circuitState !== 255 && targetId !== 54454) {
-                        pendingAction184Commands.set(targetId, { state: circuitState, timestamp: Date.now() });
-                        logger.debug(`v3.004+ Action 184: Cached pending Wireless command - Target ${targetId}, State=${circuitState === 1 ? 'ON' : 'OFF'}`);
-                    }
-                    
-                    if ((isFromOCP || isFromWireless) && circuitState !== 255 && targetId !== 54454) {
-                        const sourceDesc = isFromOCP ? 'OCP broadcast' : 'Wireless command';
-                        const isOn = circuitState === 1;
+                    if (isFromOCP || isFromControlPanel) {
+                        const sourceDesc = isFromOCP ? 'OCP' : (msg.source === 36 ? 'Wireless' : 'ICP');
+                        const channelName = channelId === 0x688F ? 'circuits' : (channelId === 0xE89D ? 'features' : `0x${channelId.toString(16)}`);
+                        const targetName = targetId === 0xA8ED ? 'control' : (targetId === 0xD4B6 ? 'body-ctx' : `0x${targetId.toString(16)}`);
                         
-                        // Strategy 1: Channel = Target pattern (e.g., Pool circuit 6 uses 108,225 for both)
-                        // This is a strong signal - the circuit "owns" this channel
-                        if (channelId === targetId) {
-                            // Find body circuit with this pattern
-                            for (let i = 0; i < sys.bodies.length; i++) {
-                                const body = sys.bodies.getItemByIndex(i);
-                                if (body.isActive && typeof body.circuit === 'number' && body.circuit > 0) {
-                                    const sbody = state.temps.bodies.getItemById(body.id);
-                                    // For channel=target, trust it even if states don't match perfectly
-                                    // (OCP might broadcast before state is updated)
-                                    const circ = sys.circuits.getItemById(body.circuit, false);
-                                    if (circ && circ.isActive && (typeof circ.targetId === 'undefined' || circ.targetId === 0)) {
-                                        // Only learn if we don't have one yet - channel=target is reliable
-                                        if (sbody && sbody.isOn === isOn) {
-                                            const owner = findActiveCircuitTargetIdOwner(targetId, body.circuit);
-                                            if (!owner) {
-                                            logger.silly(`v3.004+ Action 184: Learned Target ID ${targetId} (${targetIdHi},${targetIdLo}) for body ${body.id} circuit ${body.circuit} (${circ.name || 'unnamed'}) [channel=target pattern]`);
-                                            circ.targetId = targetId;
-                                            } else {
-                                                logger.warn(
-                                                    `v3.004+ Action 184: Refusing to learn duplicate targetId ${targetId} for body circuit ${body.circuit} (${circ.name || 'unnamed'}); ` +
-                                                    `already owned by circuit ${owner.id} (${owner.name || 'unnamed'}).`
-                                                );
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Strategy 2: State correlation - find circuits matching this state
-                        // Count how many circuits match to avoid ambiguity
-                        // PRIORITY: Circuits without targetId that match state
-                        let matchingCircuitsNoTargetId: { id: number, name: string }[] = [];
-                        let matchingCircuitsWithTargetId: { id: number, name: string }[] = [];
-                        
-                        // Check body circuits first (Spa=circuit 1, Pool=circuit 6 in shared systems)
-                        for (let i = 0; i < sys.bodies.length; i++) {
-                            const body = sys.bodies.getItemByIndex(i);
-                            if (body.isActive && typeof body.circuit === 'number' && body.circuit > 0) {
-                                const sbody = state.temps.bodies.getItemById(body.id);
-                                const circ = sys.circuits.getItemById(body.circuit, false);
-                                if (sbody && sbody.isOn === isOn && circ && circ.isActive) {
-                                    if (typeof circ.targetId === 'undefined' || circ.targetId === 0) {
-                                        matchingCircuitsNoTargetId.push({ id: body.circuit, name: circ.name || `Body ${body.id}` });
-                                    } else if (circ.targetId !== targetId) {
-                                        matchingCircuitsWithTargetId.push({ id: body.circuit, name: circ.name || `Body ${body.id}` });
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Also check regular circuits
-                        for (let i = 0; i < sys.circuits.length; i++) {
-                            const circ = sys.circuits.getItemByIndex(i);
-                            if (circ.isActive) {
-                                const cstate = state.circuits.getItemById(circ.id);
-                                if (cstate && cstate.isOn === isOn) {
-                                    // Avoid duplicate if already counted as body circuit
-                                    if (!matchingCircuitsNoTargetId.find(m => m.id === circ.id) &&
-                                        !matchingCircuitsWithTargetId.find(m => m.id === circ.id)) {
-                                        if (typeof circ.targetId === 'undefined' || circ.targetId === 0) {
-                                            matchingCircuitsNoTargetId.push({ id: circ.id, name: circ.name || `Circuit ${circ.id}` });
-                                        } else if (circ.targetId !== targetId) {
-                                            matchingCircuitsWithTargetId.push({ id: circ.id, name: circ.name || `Circuit ${circ.id}` });
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // Strategy 3: Only ONE circuit without targetId matches - definitive mapping
-                        // This is the best case: we know exactly which circuit needs learning
-                        if (matchingCircuitsNoTargetId.length === 1) {
-                            const match = matchingCircuitsNoTargetId[0];
-                            const circ = sys.circuits.getItemById(match.id, false);
-                            if (circ) {
-                                const owner = findActiveCircuitTargetIdOwner(targetId, match.id);
-                                if (!owner) {
-                                    logger.silly(`v3.004+ Action 184: Learned Target ID ${targetId} (${targetIdHi},${targetIdLo}) for circuit ${match.id} (${match.name}) [unique unassigned match]`);
-                                    circ.targetId = targetId;
-                                } else {
-                                    logger.warn(
-                                        `v3.004+ Action 184: Refusing to learn duplicate targetId ${targetId} for circuit ${match.id} (${match.name}); ` +
-                                        `already owned by circuit ${owner.id} (${owner.name || 'unnamed'}).`
-                                    );
-                                }
-                            }
-                        } else if (matchingCircuitsNoTargetId.length > 1) {
-                            // Multiple unassigned circuits match - can't determine which
-                            logger.silly(`v3.004+ Action 184: Target ${targetId} (state=${isOn ? 'ON' : 'OFF'}) matches ${matchingCircuitsNoTargetId.length} unassigned circuits (${matchingCircuitsNoTargetId.map(m => m.name).join(', ')}) - waiting for unique match`);
-                        } else if (matchingCircuitsNoTargetId.length === 0 && matchingCircuitsWithTargetId.length === 0) {
-                            // No matching circuits - might be a feature or virtual circuit
-                            logger.debug(`v3.004+ Action 184: Target ${targetId} (state=${isOn ? 'ON' : 'OFF'}) has no matching circuits - possibly feature or group`);
-                        }
-                        
-                        logger.debug(`v3.004+ Action 184 (${sourceDesc}): Channel=${channelId}, Target=${targetId} (${targetIdHi},${targetIdLo}), State=${isOn ? 'ON' : 'OFF'}`);
+                        logger.debug(`v3.004+ Action 184 (${sourceDesc}): channel=${channelName} idx=${index} target=${targetName} state=${stateVal}`);
                     }
                 }
                 msg.isProcessed = true;
@@ -863,10 +688,6 @@ export class EquipmentStateMessage {
                 state.time.month = msg.extractPayloadByte(7);
                 state.time.date = msg.extractPayloadByte(6);
                 sys.equipment.controllerFirmware = (msg.extractPayloadByte(42) + (msg.extractPayloadByte(43) / 1000)).toString();
-                // v3.004+: Seed known targetIds immediately once firmware>=3.0 is confirmed (before UI interaction).
-                if (sys.equipment.isIntellicenterV3 && typeof (sys.board.circuits as any)?.seedKnownV3TargetIds === 'function') {
-                    (sys.board.circuits as any).seedKnownV3TargetIds();
-                }
                 // v3.004 adds 4 additional bytes (44-46) that are the time of day
                 // Byte 44: Hour (0-23)
                 // Byte 45: Minute (0-59)
@@ -947,13 +768,6 @@ export class EquipmentStateMessage {
                     let isOn = ((circuitId === 6 || circuitId === 1) && sys.equipment.dual === true) ? cstate.isOn : (byte & (1 << j)) > 0;
                     //let isOn = (byte & (1 << j)) > 0;
                     cstate.isOn = isOn;
-                    // v3.004+ learning: When circuit state changes, check for pending Wireless commands
-                    if (sys.controllerType === ControllerType.IntelliCenter && 
-                        sys.equipment.isIntellicenterV3 && 
-                        wasOn !== isOn && 
-                        (typeof circuit.targetId === 'undefined' || circuit.targetId === 0)) {
-                        EquipmentStateMessage.checkPendingAction184Learning(circuitId, isOn);
-                    }
                     cstate.name = circuit.name;
                     cstate.nameId = circuit.nameId;
                     cstate.showInFeatures = circuit.showInFeatures;
