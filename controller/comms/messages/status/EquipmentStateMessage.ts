@@ -620,38 +620,6 @@ export class EquipmentStateMessage {
                 break;
             }
             case 184: {
-                // v3.004+ Action 184 - Circuit/Feature control
-                // 
-                // Payload structure (10 bytes):
-                //   Bytes 0-1: Channel (0x688F=circuits, 0xE89D=features)
-                //   Byte 2: Index (circuitId-1 or featureId-1)
-                //   Byte 3: Format (255=command, 0=status)
-                //   Bytes 4-5: Target (0xA8ED=control, 0xD4B6=body context)
-                //   Byte 6: State (0=OFF, 1=ON)
-                //   Bytes 7-9: Context data (for D4B6) or reserved (for A8ED)
-                //
-                // Control panel sources: Wireless(36), ICP(32) send commands to OCP(16)
-                // OCP(16) broadcasts status to all(15)
-                if (sys.controllerType === ControllerType.IntelliCenter && 
-                    sys.equipment.isIntellicenterV3 && 
-                    msg.payload.length >= 10) {
-                    
-                    const channelId = msg.extractPayloadByte(0) * 256 + msg.extractPayloadByte(1);
-                    const index = msg.extractPayloadByte(2);
-                    const targetId = msg.extractPayloadByte(4) * 256 + msg.extractPayloadByte(5);
-                    const stateVal = msg.extractPayloadByte(6);
-                    
-                    const isFromOCP = msg.source === 16;
-                    const isFromControlPanel = (msg.source === 36 || msg.source === 32) && msg.dest === 16;
-                    
-                    if (isFromOCP || isFromControlPanel) {
-                        const sourceDesc = isFromOCP ? 'OCP' : (msg.source === 36 ? 'Wireless' : 'ICP');
-                        const channelName = channelId === 0x688F ? 'circuits' : (channelId === 0xE89D ? 'features' : `0x${channelId.toString(16)}`);
-                        const targetName = targetId === 0xA8ED ? 'control' : (targetId === 0xD4B6 ? 'body-ctx' : `0x${targetId.toString(16)}`);
-                        
-                        logger.debug(`v3.004+ Action 184 (${sourceDesc}): channel=${channelName} idx=${index} target=${targetName} state=${stateVal}`);
-                    }
-                }
                 msg.isProcessed = true;
                 break;
             }

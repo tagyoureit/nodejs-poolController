@@ -23,6 +23,8 @@ export class VersionMessage {
     // Debounce config refresh requests to avoid duplicate requests from overlapping triggers
     private static lastConfigRefreshTime: number = 0;
     private static readonly CONFIG_REFRESH_DEBOUNCE_MS = 2000;  // 2 seconds
+    private static pendingConfigRefreshTimer?: NodeJS.Timeout;
+    private static pendingConfigRefreshSource?: string;
 
     /**
      * Shared method to trigger a config refresh with debouncing.
@@ -30,8 +32,20 @@ export class VersionMessage {
      */
     private static triggerConfigRefresh(source: string): void {
         const now = Date.now();
-        if (now - this.lastConfigRefreshTime < this.CONFIG_REFRESH_DEBOUNCE_MS) {
-            logger.silly(`v3.004+ ${source}: Skipping config refresh (debounced, last was ${now - this.lastConfigRefreshTime}ms ago)`);
+        const elapsed = now - this.lastConfigRefreshTime;
+        if (elapsed < this.CONFIG_REFRESH_DEBOUNCE_MS) {
+            // Throttle-with-trailing: don't lose rapid toggle updates; schedule one refresh at end of window.
+            const remainingMs = Math.max(0, this.CONFIG_REFRESH_DEBOUNCE_MS - elapsed);
+            this.pendingConfigRefreshSource = source;
+            if (!this.pendingConfigRefreshTimer) {
+                this.pendingConfigRefreshTimer = setTimeout(() => {
+                    this.pendingConfigRefreshTimer = undefined;
+                    const src = this.pendingConfigRefreshSource ? `${this.pendingConfigRefreshSource} (trailing)` : 'Trailing';
+                    this.pendingConfigRefreshSource = undefined;
+                    this.triggerConfigRefresh(src);
+                }, remainingMs);
+            }
+            logger.silly(`v3.004+ ${source}: Skipping immediate config refresh (debounced, last was ${elapsed}ms ago)`);
             return;
         }
         this.lastConfigRefreshTime = now;
@@ -41,6 +55,9 @@ export class VersionMessage {
         // OCP doesn't increment options version when heat mode/setpoints change,
         // so we force a refresh by clearing our cached version.
         sys.configVersion.options = 0;
+        // v3.004+: OCP does NOT reliably increment systemState when features toggle (esp. rapid OFF/ON sequences).
+        // Force a systemState refresh so queueChanges() will request category 15 (systemState), option [0] => Action 222 [15,0].
+        sys.configVersion.systemState = 0;
         logger.silly(`v3.004+ ${source}: Sending Action 228`);
         Outbound.create({
             dest: 16, action: 228, payload: [0], retries: 2,

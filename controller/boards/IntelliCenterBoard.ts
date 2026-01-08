@@ -2237,12 +2237,30 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             }
 
             // v3.004+ non-body circuits: Use indexed Action 184 (Wireless-style)
-            // Protocol: channel=0x688F, byte[2]=circuitId-1, target=0xA8ED, byte[6]=state
-            // This is the native control method observed from the Wireless remote.
             if (sys.equipment.isIntellicenterV3) {
                 const circuit = sys.circuits.getItemById(id, false);
                 logger.info(`v3.004+ setCircuitStateAsync: Using indexed Action 184 for circuit ${id} (${circuit?.name || 'unnamed'}) -> ${val ? 'ON' : 'OFF'}`);
-                let out = this.createAction184IndexedCircuitMessage(id, val);
+                /**
+                 * v3.004+ Indexed Circuit Control (Wireless-style).
+                 * Action 184 is the native circuit control message used by the Wireless remote.
+                 *
+                 * Payload structure (10 bytes):
+                 *   Bytes 0-1: Channel (0x688F for circuits)
+                 *   Byte 2: Index (circuitId - 1 or featureId - 1)
+                 *   Byte 3: Format (255 = command mode)
+                 *   Bytes 4-5: Target (0xA8ED = control primitive)
+                 *   Byte 6: State (0=OFF, 1=ON)
+                 *   Bytes 7-9: Reserved (0,0,0)
+                 */
+                const idx = Math.max(0, Math.min(255, (id | 0) - 1));
+                const out = Outbound.createMessage(184, [
+                    104, 143,        // Channel 0x688F (circuits)
+                    idx,             // Index (circuitId - 1)
+                    255,             // Format (command)
+                    168, 237,        // Target 0xA8ED (control primitive)
+                    val ? 1 : 0,     // State
+                    0, 0, 0
+                ], 3);
                 out.dest = 16;  // Send to OCP
                 out.scope = `circuitState${id}`;
                 out.retries = 5;
@@ -2633,33 +2651,6 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         }
         return out;
     }
-    /**
-     * v3.004+ Indexed Circuit Control (Wireless-style).
-     * Action 184 is the native circuit control message used by the Wireless remote.
-     * 
-     * Payload structure (10 bytes):
-     *   Bytes 0-1: Channel (0x688F for circuits, 0xE89D for features)
-     *   Byte 2: Index (circuitId - 1 or featureId - 1)
-     *   Byte 3: Format (255 = command mode)
-     *   Bytes 4-5: Target (0xA8ED = control primitive)
-     *   Byte 6: State (0=OFF, 1=ON)
-     *   Bytes 7-9: Reserved (0,0,0)
-     * 
-     * @param circuitId The circuit ID (1-40)
-     * @param isOn True to turn circuit ON, false for OFF
-     * @returns Outbound message ready to send
-     */
-    public createAction184IndexedCircuitMessage(circuitId: number, isOn: boolean): Outbound {
-        const idx = Math.max(0, Math.min(255, (circuitId | 0) - 1));
-        return Outbound.createMessage(184, [
-            104, 143,        // Channel 0x688F (circuits)
-            idx,             // Index (circuitId - 1)
-            255,             // Format (command)
-            168, 237,        // Target 0xA8ED (control primitive)
-            isOn ? 1 : 0,    // State
-            0, 0, 0
-        ], 3);
-    }
 
     public async setDimmerLevelAsync(id: number, level: number): Promise<ICircuitState> {
         let circuit = sys.circuits.getItemById(id);
@@ -2692,8 +2683,73 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
 }
 class IntelliCenterFeatureCommands extends FeatureCommands {
     declare board: IntelliCenterBoard;
-    public async setFeatureStateAsync(id, val): Promise<ICircuitState> { return sys.board.circuits.setCircuitStateAsync(id, val); }
-    public async toggleFeatureStateAsync(id): Promise<ICircuitState> { return sys.board.circuits.toggleCircuitStateAsync(id); }
+
+    private async getConfigAsync(payload: number[]): Promise<boolean> {
+        const dest = sys.equipment.isIntellicenterV3 ? 16 : 15;
+        let out = Outbound.create({
+            dest,
+            action: 222,
+            retries: 3,
+            payload: payload,
+            response: Response.create({ dest: -1, action: 30, payload: payload })
+        });
+        await out.sendAsync();
+        // Do NOT ACK(30). Wireless captures show config succeeds without ACK(30), and v1 queue avoids ACK(30).
+        return true;
+    }
+
+    public async setFeatureStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+        // v3.004+: Features are controlled via Action 184 channel 0xE89D (232,157), not the circuits channel.
+        if (sys.equipment.isIntellicenterV3) {
+            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
+            if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
+
+            const feature = sys.features.getItemById(id, false, { isActive: false });
+            logger.info(`v3.004+ setFeatureStateAsync: Using indexed Action 184 for feature ${id} (${feature?.name || 'unnamed'}) -> ${val ? 'ON' : 'OFF'}`);
+
+            /**
+             * v3.004+ Indexed Feature Control (Wireless-style).
+             * Action 184 is the native feature control message used by the Wireless remote (channel 0xE89D).
+             *
+             * Payload structure (10 bytes):
+             *   Bytes 0-1: Channel (0xE89D for features)
+             *   Byte 2: Index (featureId - 1)
+             *   Byte 3: Format/mode (observed 0 in replays 132/138 feature toggles)
+             *   Bytes 4-5: Target (0xA8ED = control primitive)
+             *   Byte 6: State (0=OFF, 1=ON)
+             *   Bytes 7-9: Reserved (0,0,0)
+             */
+            const idx = Math.max(0, Math.min(255, (id | 0) - 1));
+            const out = Outbound.createMessage(184, [
+                232, 157,        // Channel 0xE89D (features)
+                idx,             // Index (featureId - 1)
+                0,               // Format/mode (observed)
+                168, 237,        // Target 0xA8ED (control primitive)
+                val ? 1 : 0,     // State
+                0, 0, 0
+            ], 3);
+            out.dest = 16;  // Send to OCP
+            out.scope = `featureState${id}`;
+            out.retries = 5;
+            out.response = IntelliCenterBoard.getAckResponse(184);
+            await out.sendAsync();
+
+            // Request updated system state to confirm feature change (authoritative source for v3 features).
+            await this.getConfigAsync([15, 0]);
+
+            const fstate = state.features.getItemById(id, true);
+            state.emitEquipmentChanges();
+            return fstate;
+        }
+
+        // Legacy behavior (v1.x): delegate to circuit state setter.
+        return sys.board.circuits.setCircuitStateAsync(id, val);
+    }
+
+    public async toggleFeatureStateAsync(id: number): Promise<ICircuitState> {
+        const feat = state.features.getItemById(id);
+        return this.setFeatureStateAsync(id, !(feat.isOn || false));
+    }
     public syncGroupStates() { } // Do nothing and let IntelliCenter do it.
     public async setFeatureAsync(data: any): Promise<Feature> {
 
