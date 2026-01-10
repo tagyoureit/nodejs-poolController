@@ -2190,6 +2190,12 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
 
     }
     public async setCircuitStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<ICircuitState> {
+        // v3.004+ features: dashPanel (and other callers) may route feature toggles through the "circuit" path.
+        // IntelliCenter features live in a different Action 184 channel (0xE89D), so delegate feature IDs here.
+        if (sys.equipment.isIntellicenterV3 && sys.board.equipmentIds.features.isInRange(id)) {
+            logger.info(`v3.004+ setCircuitStateAsync: ID ${id} is a feature; delegating to setFeatureStateAsync -> ${val ? 'ON' : 'OFF'}`);
+            return await this.board.features.setFeatureStateAsync(id, val, ignoreDelays);
+        }
         let c = sys.circuits.getInterfaceById(id);
         if (c.master !== 0) return await super.setCircuitStateAsync(id, val);
         // As of 1.047 there is a sequence to this.
@@ -2677,6 +2683,10 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         catch (err) { return Promise.reject(err); }
     }
     public async toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
+        // v3.004+ features: dashPanel may attempt to toggle features via the circuit endpoint.
+        if (sys.equipment.isIntellicenterV3 && sys.board.equipmentIds.features.isInRange(id)) {
+            return await this.board.features.toggleFeatureStateAsync(id);
+        }
         let circ = state.circuits.getInterfaceById(id);
         return sys.board.circuits.setCircuitStateAsync(id, !circ.isOn);
     }
@@ -2698,7 +2708,7 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
         return true;
     }
 
-    public async setFeatureStateAsync(id: number, val: boolean): Promise<ICircuitState> {
+    public async setFeatureStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<ICircuitState> {
         // v3.004+: Features are controlled via Action 184 channel 0xE89D (232,157), not the circuits channel.
         if (sys.equipment.isIntellicenterV3) {
             if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
