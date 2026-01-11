@@ -25,7 +25,7 @@
     "dependencies": {
         "@influxdata/influxdb-client": "^1.35.0",
         "eslint-config-promise": "^2.0.2",
-        "express": "^4.21.2",
+        "express": "^4.22.0",
         "extend": "^3.0.2",
         "jszip": "^3.9.1",
         "mqtt": "^4.3.8",
