@@ -928,12 +928,15 @@ export class Inbound extends Message {
         }
     }
     public process() {
-        let port = conn.findPortById(this.portId);
-        if (this.portId === sys.anslq25.portId) {
-            return MessagesMock.process(this);
-        }
-        if (port.mock && port.hasAssignedEquipment()){
-            return MessagesMock.process(this);
+        const isReplay = this.scope === 'replay';
+        if (!isReplay) {
+            let port = conn.findPortById(this.portId);
+            if (this.portId === sys.anslq25.portId) {
+                return MessagesMock.process(this);
+            }
+            if (port.mock && port.hasAssignedEquipment()){
+                return MessagesMock.process(this);
+            }
         }
         switch (this.protocol) {
             case Protocol.Broadcast:

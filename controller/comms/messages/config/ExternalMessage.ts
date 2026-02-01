@@ -626,6 +626,8 @@ export class ExternalMessage {
     }
     private static processPump(msg: Inbound) {
         let pumpId = msg.extractPayloadByte(2) + 1;
+        const useBigEndian = sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3;
+        const readInt = (ndx: number) => useBigEndian ? msg.extractPayloadIntBE(ndx) : msg.extractPayloadInt(ndx);
         if (msg.extractPayloadByte(1) === 0) {
             let type = msg.extractPayloadByte(3);
             let cpump = sys.pumps.getItemById(pumpId, type > 0);
@@ -634,12 +636,12 @@ export class ExternalMessage {
             spump.type = type;
             if (cpump.type >= 2) {
                 cpump.address = msg.extractPayloadByte(5);
-                cpump.minSpeed = msg.extractPayloadInt(6);
-                cpump.maxSpeed = msg.extractPayloadInt(8);
+                cpump.minSpeed = readInt(6);
+                cpump.maxSpeed = readInt(8);
                 cpump.minFlow = msg.extractPayloadByte(10);
                 cpump.maxFlow = msg.extractPayloadByte(11);
                 cpump.flowStepSize = msg.extractPayloadByte(12);
-                cpump.primingSpeed = msg.extractPayloadInt(13);
+                cpump.primingSpeed = readInt(13);
                 cpump.speedStepSize = msg.extractPayloadByte(15) * 10;
                 cpump.primingTime = msg.extractPayloadByte(16);
                 cpump.circuits.clear();
@@ -669,7 +671,7 @@ export class ExternalMessage {
             if (cpump.type > 2) {
                 for (let i = 3, circuitId = 1; i < msg.payload.length && i <= 18; circuitId++) {
                     let circuit = cpump.circuits.getItemById(circuitId);
-                    let sp = msg.extractPayloadInt(i);
+                    let sp = readInt(i);
                     if (sp < 450)
                         circuit.flow = sp;
                     else

@@ -111,6 +111,9 @@ export class PumpMessage {
         let pumpId: number;
         let pump: Pump;
         let msgId: number = msg.extractPayloadByte(1);
+        // IntelliCenter v3 uses big-endian 16-bit values for pump speeds/flows.
+        const useBigEndian = sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3;
+        const readInt = (ndx: number) => useBigEndian ? msg.extractPayloadIntBE(ndx) : msg.extractPayloadInt(ndx);
         // First process the pump types.  This will allow us to add or remove any installed pumps. All subsequent messages will not create pumps in the collection.
         if (msgId === 4) PumpMessage.processPumpType(msg);
         if (msgId <= 15) {
@@ -136,14 +139,14 @@ export class PumpMessage {
                 circuitId = 1;
                 for (let i = 18; i < msg.payload.length && circuitId <= sys.board.valueMaps.pumpTypes.get(pump.type).maxCircuits;) {
                     let circuit: PumpCircuit = pump.circuits.getItemById(circuitId);
-                    let rate = msg.extractPayloadInt(i);
+                    let rate = readInt(i);
                     // If the rate is < 450 then this must be a flow based value.
                     if (rate < 450) {
                         circuit.flow = rate;
                         circuit.units = 1;
                         circuit.speed = undefined;
                     } else {
-                        circuit.speed = msg.extractPayloadInt(i);
+                        circuit.speed = rate;
                         circuit.units = 0;
                         circuit.flow = undefined;
                     }
@@ -271,22 +274,25 @@ export class PumpMessage {
     }
     private static processMinSpeed(msg: Inbound) {
         let pumpId = 1;
+        const useBigEndian = sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3;
         for (let i = 2; i < msg.payload.length && pumpId <= sys.equipment.maxPumps;) {
-            sys.pumps.getItemById(pumpId++).minSpeed = msg.extractPayloadInt(i);
+            sys.pumps.getItemById(pumpId++).minSpeed = useBigEndian ? msg.extractPayloadIntBE(i) : msg.extractPayloadInt(i);
             i += 2;
         }
     }
     private static processMaxSpeed(msg: Inbound) {
         let pumpId = 1;
+        const useBigEndian = sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3;
         for (let i = 2; i < msg.payload.length && pumpId <= sys.equipment.maxPumps;) {
-            sys.pumps.getItemById(pumpId++).maxSpeed = msg.extractPayloadInt(i);
+            sys.pumps.getItemById(pumpId++).maxSpeed = useBigEndian ? msg.extractPayloadIntBE(i) : msg.extractPayloadInt(i);
             i += 2;
         }
     }
     private static processPrimingSpeed(msg: Inbound) {
         let pumpId = 1;
+        const useBigEndian = sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3;
         for (let i = 2; i < msg.payload.length && pumpId <= sys.equipment.maxPumps;) {
-            sys.pumps.getItemById(pumpId++).primingSpeed = msg.extractPayloadInt(i);
+            sys.pumps.getItemById(pumpId++).primingSpeed = useBigEndian ? msg.extractPayloadIntBE(i) : msg.extractPayloadInt(i);
             i += 2;
         }
     }

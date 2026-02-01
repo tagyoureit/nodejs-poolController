@@ -645,12 +645,14 @@ export class HttpServer extends ProtoServer {
     private replayInboundMessage(mdata: any) {
         try {
             let msg: Inbound = new Inbound();
-            msg.direction = mdata.direction;
+            if (typeof mdata.direction !== 'undefined') msg.direction = mdata.direction;
             msg.header = mdata.header;
             msg.payload = mdata.payload;
             msg.preamble = mdata.preamble;
             msg.protocol = mdata.protocol;
             msg.term = mdata.term;
+            if (typeof mdata.portId === 'number') msg.portId = mdata.portId;
+            msg.scope = 'replay';
             if (msg.isValid) msg.process();
         }
         catch (err) {
