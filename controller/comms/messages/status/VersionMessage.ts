@@ -58,6 +58,9 @@ export class VersionMessage {
         // v3.004+: OCP does NOT reliably increment systemState when features toggle (esp. rapid OFF/ON sequences).
         // Force a systemState refresh so queueChanges() will request category 15 (systemState), option [0] => Action 222 [15,0].
         sys.configVersion.systemState = 0;
+        // v3.004+: OCP does NOT increment pumps version when pump config changes via WCP (Action 168 type 4).
+        // Force a pumps refresh so queueChanges() will request category 4 (pumps).
+        sys.configVersion.pumps = 0;
         logger.silly(`v3.004+ ${source}: Sending Action 228`);
         Outbound.create({
             dest: 16, action: 228, payload: [0], retries: 2,
