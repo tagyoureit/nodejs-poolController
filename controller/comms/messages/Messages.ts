@@ -1331,6 +1331,15 @@ export class Response extends OutboundCommon {
         //
         // NOTE: IntelliCenter response matching is handled in the IntelliCenter-specific block below
         // to keep the logic in one place.
+        //
+        // Restore Response-level action matching for non-IntelliCenter protocols (e.g., Hayward).
+        // The Hayward Outbound action getter has a known index mismatch (reads source instead of action),
+        // so we use the Response object's action which stores it correctly in header[4].
+        // See: https://github.com/tagyoureit/nodejs-poolController/issues/1098
+        if (sys.controllerType !== ControllerType.IntelliCenter && this.action > 0) {
+            if (this.action === msgIn.action) return true;
+            else return false;
+        }
         if (msgOut.protocol === Protocol.Pump) {
             switch (msgIn.action) {
                 case 7:
