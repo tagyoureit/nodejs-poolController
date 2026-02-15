@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import { Inbound, Protocol } from "../Messages";
 import { state, BodyTempState, HeaterState } from "../../../State";
 import { sys, ControllerType, Heater } from "../../../Equipment";
+import { logger } from '../../../../logger/Logger';
 
 export class HeaterStateMessage {
     public static process(msg: Inbound) {
@@ -85,33 +86,44 @@ export class HeaterStateMessage {
         msg.isProcessed = true;
     }
     public static processUltraTempStatus(msg: Inbound) {
-        // RKS: 07-03-21 - We only know byte 2 at this point for Ultratemp for the 115 message we are processing here.  The 
+        // RKS: 07-03-21 - UltraTemp RS-485 protocol reverse engineering notes.
+        // The heat pump communicates via Action 114 (command) / 115 (response) messages.
+        //
+        // Action 115 - inbound response (heat pump -> controller, heartbeat every ~1s)
+        // [165, 0, 16, 112, 115, 10][160, 1, 0, 3, 0, 0, 0, 0, 0, 0][2, 70]
         // byte  description
         // ------------------------------------------------
-        // 0    Unknown (always seems to be 160 for response)
-        // 1    Unknown (always 1)
-        // 2    Current heater status 0=off, 1=heat, 2=cool
-        // 3-9  Unknown
-        
-        // 114 message - outbound response
-        //[165, 0, 112, 16, 114, 10][144, 0, 0, 0, 0, 0, 0, 0, 0, 0][2, 49] // OCP to Heater
-        // byte  description
-        // ------------------------------------------------
-        // 0    Unknown (always seems to be 144 for request)
-        // 1    Current heater status 0=off, 1=heat, 2=cool
-        // 3    Believed to be ofset temp
+        // 0    Always 160 for response
+        // 1    Always 1
+        // 2    Current heater status: 0=off, 1=heat, 2=cool
+        // 3    Believed to be offset temp
         // 4-9  Unknown
-        
-        //   byto 0: always seems to be 144 for outbound
-        //   byte 1: Sets heater mode to 0 = Off 1 = Heat 2 = Cool
-        //[165, 0, 16, 112, 115, 10][160, 1, 0, 3, 0, 0, 0, 0, 0, 0][2, 70] // Heater Reply
+        //
+        // Action 114 - outbound command (controller -> heat pump)
+        // [165, 0, 112, 16, 114, 10][144, 0, 0, 0, 0, 0, 0, 0, 0, 0][2, 49]
+        // byte  description
+        // ------------------------------------------------
+        // 0    Always 144 for request
+        // 1    Sets heater mode: 0=off, 1=heat, 2=cool
+        // 3    Believed to be offset temp
+        // 4-9  Unknown
         let heater: Heater = sys.heaters.getItemByAddress(msg.source);
+        if (typeof heater === 'undefined' || !heater.isActive) {
+            // Heat pump not configured for this address
+            msg.isProcessed = true;
+            return;
+        }
         let sheater = state.heaters.getItemById(heater.id);
         let byte = msg.extractPayloadByte(2);
+        let prevOn = sheater.isOn;
+        let prevCooling = sheater.isCooling;
         sheater.isOn = byte >= 1;
         sheater.isCooling = byte === 2;
         sheater.commStatus = 0;
         state.equipment.messages.removeItemByCode(`heater:${heater.id}:comms`);
+        if (prevOn !== sheater.isOn || prevCooling !== sheater.isCooling) {
+            logger.info(`UltraTemp heartbeat: src=${msg.source} status=${byte} (${byte === 0 ? 'OFF' : byte === 1 ? 'HEAT' : 'COOL'}) heater=${heater.name}`);
+        }
         msg.isProcessed = true;
     }
     public static processMasterTempStatus(msg: Inbound) {

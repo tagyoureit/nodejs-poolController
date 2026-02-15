@@ -101,6 +101,7 @@ export class IntelliCenterBoard extends SystemBoard {
             [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
             [6, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }],
             [7, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
+            [8, { name: 'ultratempdirect', desc: 'UltraTemp Direct', hasAddress: true, hasCoolSetpoint: true, hasPreference: true }],
         ]);
 
 

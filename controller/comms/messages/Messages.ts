@@ -1331,7 +1331,14 @@ export class Response extends OutboundCommon {
         //
         // NOTE: IntelliCenter response matching is handled in the IntelliCenter-specific block below
         // to keep the logic in one place.
-        if (msgOut.protocol === Protocol.Pump) {
+        if (msgOut.protocol === Protocol.Heater) {
+            // Heater protocol: request action 114 → response action 115, etc.
+            // Verify response comes from the heater we addressed.
+            if (msgIn.source !== msgOut.dest || (msgIn.dest !== msgOut.source && msgIn.dest !== 16)) { return false; }
+            if (this.action > 0 && this.action === msgIn.action) return true;
+            return false;
+        }
+        else if (msgOut.protocol === Protocol.Pump) {
             switch (msgIn.action) {
                 case 7:
                     // Scenario 1.  Request for pump status.

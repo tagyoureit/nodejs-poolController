@@ -28,7 +28,16 @@ export class NixieHeaterCollection extends NixieEquipmentCollection<NixieHeaterB
         try {
             let h: NixieHeaterBase = this.find(elem => elem.id === hstate.id) as NixieHeaterBase;
             if (typeof h === 'undefined') {
-                return Promise.reject(new Error(`NCP: Heater ${hstate.id}-${hstate.name} could not be found to set the state to ${val}.`));
+                // Auto-initialize if heater exists in config with master=1 but hasn't been
+                // added to NCP yet (e.g. syncHeaterStates runs before ncp.initAsync completes).
+                let heater = sys.heaters.getItemById(hstate.id);
+                if (typeof heater !== 'undefined' && heater.master === 1 && heater.isActive !== false) {
+                    logger.info(`NCP: Auto-initializing heater ${hstate.id}-${heater.name}`);
+                    h = await this.initHeaterAsync(heater);
+                }
+                if (typeof h === 'undefined') {
+                    return Promise.reject(new Error(`NCP: Heater ${hstate.id}-${hstate.name} could not be found to set the state to ${val}.`));
+                }
             }
             await h.setHeaterStateAsync(hstate, val, isCooling);
         }
@@ -121,6 +130,7 @@ export class NixieHeaterBase extends NixieEquipment {
             case 'heatpump':
                 return new NixieHeatpump(ncp, heater);
             case 'ultratemp':
+            case 'ultratempdirect':
                 return new NixieUltratemp(ncp, heater);
             case 'gas':
                 return new NixieGasHeater(ncp, heater);
