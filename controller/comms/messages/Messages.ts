@@ -1186,12 +1186,28 @@ export class Outbound extends OutboundCommon {
         if (ndx + 1 < this.payload.length) this.payload[ndx + 1] = b1;
         return this;
     }
+    public setPayloadIntBE(ndx: number, value: number, def?: number) {
+        if (typeof value === 'undefined' || isNaN(value)) value = def;
+        let b1 = Math.floor(value / 256);
+        let b0 = value - (b1 * 256);
+        if (ndx < this.payload.length) this.payload[ndx] = b1;
+        if (ndx + 1 < this.payload.length) this.payload[ndx + 1] = b0;
+        return this;
+    }
     public appendPayloadInt(value: number, def?: number) {
         if (typeof value === 'undefined' || isNaN(value)) value = def;
         let b1 = Math.floor(value / 256);
         let b0 = value - (b1 * 256);
         this.payload.push(b0);
         this.payload.push(b1);
+        return this;
+    }
+    public appendPayloadIntBE(value: number, def?: number) {
+        if (typeof value === 'undefined' || isNaN(value)) value = def;
+        let b1 = Math.floor(value / 256);
+        let b0 = value - (b1 * 256);
+        this.payload.push(b1);
+        this.payload.push(b0);
         return this;
     }
     public insertPayloadInt(ndx: number, value: number, def?: number) {

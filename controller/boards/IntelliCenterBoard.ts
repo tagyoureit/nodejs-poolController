@@ -779,7 +779,7 @@ export class IntelliCenterBoard extends SystemBoard {
         }
     }
     public get commandSourceAddress(): number { return Message.pluginAddress; }
-    public get commandDestAddress(): number { return 15; }
+    public get commandDestAddress(): number { return sys.equipment.isIntellicenterV3 ? 16 : 15; }
     public static getAckResponse(action: number, source?: number, dest?: number): Response { return Response.create({ source: source, dest: dest || sys.board.commandSourceAddress, action: 1, payload: [action] }); }
 }
 class IntelliCenterConfigRequest extends ConfigRequest {
@@ -3033,42 +3033,64 @@ class IntelliCenterPumpCommands extends PumpCommands {
             // supplied then we will use what we already have.  This will make sure the information is valid and any change can be applied without the complete
             // definition of the pump.  This is important since additional attributes may be added in the future and this keeps us current no matter what
             // the endpoint capability is.
-            let outc = Outbound.create({ action: 168, payload: [4, 0, id - 1, ntype, 0] });
+            const isV3 = sys.equipment.isIntellicenterV3;
+            const dest = isV3 ? 16 : 15;
+            let outc = Outbound.create({ dest, action: 168, payload: [4, 0, id - 1, ntype, 0] });
             outc.appendPayloadByte(parseInt(data.address, 10), id + 95);        // 5
-            outc.appendPayloadInt(parseInt(data.minSpeed, 10), pump.minSpeed);  // 6
-            outc.appendPayloadInt(parseInt(data.maxSpeed, 10), pump.maxSpeed);  // 8
+            // v3.004+ uses big-endian for 16-bit speed/flow values
+            if (isV3) {
+                outc.appendPayloadIntBE(parseInt(data.minSpeed, 10), pump.minSpeed);  // 6
+                outc.appendPayloadIntBE(parseInt(data.maxSpeed, 10), pump.maxSpeed);  // 8
+            } else {
+                outc.appendPayloadInt(parseInt(data.minSpeed, 10), pump.minSpeed);  // 6
+                outc.appendPayloadInt(parseInt(data.maxSpeed, 10), pump.maxSpeed);  // 8
+            }
             outc.appendPayloadByte(parseInt(data.minFlow, 10), pump.minFlow);   // 10
             outc.appendPayloadByte(parseInt(data.maxFlow, 10), pump.maxFlow);   // 11
             outc.appendPayloadByte(parseInt(data.flowStepSize, 10), pump.flowStepSize || 1); // 12
-            outc.appendPayloadInt(parseInt(data.primingSpeed, 10), pump.primingSpeed || 2500); // 13
+            if (isV3) {
+                outc.appendPayloadIntBE(parseInt(data.primingSpeed, 10), pump.primingSpeed || 2500); // 13
+            } else {
+                outc.appendPayloadInt(parseInt(data.primingSpeed, 10), pump.primingSpeed || 2500); // 13
+            }
             outc.appendPayloadByte(typeof data.speedStepSize !== 'undefined' ? parseInt(data.speedStepSize, 10) / 10 : pump.speedStepSize / 10, 1); // 15
             outc.appendPayloadByte(parseInt(data.primingTime, 10), pump.primingTime || 0); // 17
             outc.appendPayloadByte(255); //
             outc.appendPayloadBytes(255, 8);    // 18
             outc.appendPayloadBytes(0, 8);      // 26
-            let outn = Outbound.create({ action: 168, payload: [4, 1, id - 1] });
+            let outn = Outbound.create({ dest, action: 168, payload: [4, 1, id - 1] });
             outn.appendPayloadBytes(0, 16);
             outn.appendPayloadString(data.name, 16, pump.name || type.name);
             if (type.name === 'ss') {
                 outc.setPayloadByte(5, 0); // Clear the pump address
 
                 // At some point we may add these to the pump model.
-                outc.setPayloadInt(6, type.minSpeed, 450);
-                outc.setPayloadInt(8, type.maxSpeed, 3450);
+                // v3.004+ uses big-endian for 16-bit speed/flow values
+                if (isV3) {
+                    outc.setPayloadIntBE(6, type.minSpeed, 450);
+                    outc.setPayloadIntBE(8, type.maxSpeed, 3450);
+                } else {
+                    outc.setPayloadInt(6, type.minSpeed, 450);
+                    outc.setPayloadInt(8, type.maxSpeed, 3450);
+                }
                 outc.setPayloadByte(10, type.minFlow, 0);
                 outc.setPayloadByte(11, type.maxFlow, 130);
                 outc.setPayloadByte(12, 1);
-                outc.setPayloadInt(13, type.primingSpeed, 2500);
+                if (isV3) {
+                    outc.setPayloadIntBE(13, type.primingSpeed, 2500);
+                } else {
+                    outc.setPayloadInt(13, type.primingSpeed, 2500);
+                }
                 outc.setPayloadByte(15, 10);
                 outc.setPayloadByte(16, 1);
                 outc.setPayloadByte(17, 5);
                 outc.setPayloadByte(18, data.body, pump.body);
                 outc.setPayloadByte(26, 0);
-                outn.setPayloadInt(3, 0);
+                if (isV3) outn.setPayloadIntBE(3, 0); else outn.setPayloadInt(3, 0);
                 for (let i = 1; i < 8; i++) {
                     outc.setPayloadByte(i + 18, 255);
                     outc.setPayloadByte(i + 26, 0);
-                    outn.setPayloadInt((i * 2) + 3, 1000);
+                    if (isV3) outn.setPayloadIntBE((i * 2) + 3, 1000); else outn.setPayloadInt((i * 2) + 3, 1000);
                 }
             }
             else {
@@ -3090,13 +3112,13 @@ class IntelliCenterPumpCommands extends PumpCommands {
                                 // The incoming data does not include this circuit so we will set it to 255.
                                 outc.setPayloadByte(i + 18, 255);
                                 if (typeof type.minSpeed !== 'undefined')
-                                    outn.setPayloadInt((i * 2) + 3, type.minSpeed);
+                                    isV3 ? outn.setPayloadIntBE((i * 2) + 3, type.minSpeed) : outn.setPayloadInt((i * 2) + 3, type.minSpeed);
                                 else if (typeof type.minFlow !== 'undefined') {
-                                    outn.setPayloadInt((i * 2) + 3, type.minFlow);
+                                    isV3 ? outn.setPayloadIntBE((i * 2) + 3, type.minFlow) : outn.setPayloadInt((i * 2) + 3, type.minFlow);
                                     outc.setPayloadByte(i + 26, 1);
                                 }
                                 else
-                                    outn.setPayloadInt((i * 2) + 3, 0);
+                                    isV3 ? outn.setPayloadIntBE((i * 2) + 3, 0) : outn.setPayloadInt((i * 2) + 3, 0);
                             }
                             else {
                                 let c = data.circuits[i];
@@ -3111,11 +3133,11 @@ class IntelliCenterPumpCommands extends PumpCommands {
                                 outc.setPayloadByte(i + 18, circuit - 1, circ.circuit - 1);
                                 if (typeof type.minSpeed !== 'undefined' && (parseInt(c.units, 10) === 0 || isNaN(parseInt(c.units, 10)))) {
                                     outc.setPayloadByte(i + 26, 0); // Set to rpm
-                                    outn.setPayloadInt((i * 2) + 3, Math.max(speed, type.minSpeed), circ.speed);
+                                    isV3 ? outn.setPayloadIntBE((i * 2) + 3, Math.max(speed, type.minSpeed), circ.speed) : outn.setPayloadInt((i * 2) + 3, Math.max(speed, type.minSpeed), circ.speed);
                                 }
                                 else if (typeof type.minFlow !== 'undefined' && (parseInt(c.units, 10) === 1 || isNaN(parseInt(c.units, 10)))) {
                                     outc.setPayloadByte(i + 26, 1); // Set to gpm
-                                    outn.setPayloadInt((i * 2) + 3, Math.max(flow, type.minFlow), circ.flow);
+                                    isV3 ? outn.setPayloadIntBE((i * 2) + 3, Math.max(flow, type.minFlow), circ.flow) : outn.setPayloadInt((i * 2) + 3, Math.max(flow, type.minFlow), circ.flow);
                                 }
                             }
                         }
@@ -3235,14 +3257,25 @@ class IntelliCenterPumpCommands extends PumpCommands {
         if (pump.master === 1) return super.deletePumpAsync(data);
 
         if (typeof pump.type === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Pump #${data.id} does not exist in configuration`, data.id, 'Schedule'));
+        const isV3 = sys.equipment.isIntellicenterV3;
         let outc = Outbound.create({ action: 168, payload: [4, 0, id - 1, 0, 0, id + 95] });
-        outc.appendPayloadInt(450);  // 6
-        outc.appendPayloadInt(3450);  // 8
+        if (isV3) {
+            outc.appendPayloadIntBE(450);  // 6
+            outc.appendPayloadIntBE(3450);  // 8
+        } else {
+            outc.appendPayloadInt(450);  // 6
+            outc.appendPayloadInt(3450);  // 8
+        }
         outc.appendPayloadByte(15);   // 10
         outc.appendPayloadByte(130);   // 11
         outc.appendPayloadByte(1); // 12
-        outc.appendPayloadInt(1000);  // 13
-        outc.appendPayloadInt(10);   // 15
+        if (isV3) {
+            outc.appendPayloadIntBE(1000);  // 13
+            outc.appendPayloadIntBE(10);   // 15
+        } else {
+            outc.appendPayloadInt(1000);  // 13
+            outc.appendPayloadInt(10);   // 15
+        }
         outc.appendPayloadByte(5);   // 17
         outc.appendPayloadBytes(255, 8);    // 18
         outc.appendPayloadBytes(0, 8);      // 26
@@ -3709,14 +3742,20 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             if (endTimeType !== 0) runOnce |= (1 << (endTimeType + 3));
             // This was always the cooling setpoint for ultratemp.
             //let flags = (circuit === 1 || circuit === 6) ? 81 : 100;
+            // v3.004+ uses big-endian for 16-bit time values
+            let startTimeLo = startTime - Math.floor(startTime / 256) * 256;
+            let startTimeHi = Math.floor(startTime / 256);
+            let endTimeLo = endTime - Math.floor(endTime / 256) * 256;
+            let endTimeHi = Math.floor(endTime / 256);
+            let isV3 = sys.equipment.isIntellicenterV3;
             let out = Outbound.createMessage(168, [
                 3
                 , 0
                 , id - 1 // IntelliCenter schedules start at 0.
-                , startTime - Math.floor(startTime / 256) * 256
-                , Math.floor(startTime / 256)
-                , endTime - Math.floor(endTime / 256) * 256
-                , Math.floor(endTime / 256)
+                , isV3 ? startTimeHi : startTimeLo
+                , isV3 ? startTimeLo : startTimeHi
+                , isV3 ? endTimeHi : endTimeLo
+                , isV3 ? endTimeLo : endTimeHi
                 , circuit - 1
                 , runOnce
                 , schedDays
