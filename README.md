@@ -100,6 +100,15 @@ Assuming you cloned the repo, the following are easy steps to get the latest ver
 
 See the [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/Docker). Thanks @wurmr @andylippitt @emes.
 
+#### Image channels (important)
+
+The project has multiple image channels. `latest` only means latest within that specific channel.
+
+* `ghcr.io/tagyoureit/njspc` - official controller image published from this repository's GitHub Actions (tracks upstream `master`).
+* `ghcr.io/sam2kb/njspc` - fork-maintained controller image (can lag upstream).
+* `msmi/nodejs-poolcontroller` - legacy Docker Hub controller image (can lag upstream).
+* `ghcr.io/sam2kb/njspc-dash` - dashPanel image currently published separately.
+
 ### Docker Compose (Controller + Optional dashPanel UI)
 
 Below is an example `docker-compose.yml` snippet showing this controller (`njspc`) and an OPTIONAL dashPanel UI service (`njspc-dash`). The dashPanel image is published separately; uncomment if you want a built-in web dashboard on port 5150.
@@ -107,7 +116,7 @@ Below is an example `docker-compose.yml` snippet showing this controller (`njspc
 ```yaml
 services:
    njspc:
-      image: ghcr.io/sam2kb/njspc
+      image: ${NJSPC_IMAGE:-ghcr.io/tagyoureit/njspc}
       container_name: njspc
       restart: unless-stopped
       environment:
@@ -137,7 +146,7 @@ services:
       # user: "0:0"
 
    njspc-dash:
-     image: ghcr.io/sam2kb/njspc-dash
+     image: ${NJSPC_DASH_IMAGE:-ghcr.io/sam2kb/njspc-dash}
      container_name: njspc-dash
      restart: unless-stopped
      depends_on:
@@ -172,6 +181,10 @@ Quick start:
 
 Notes:
 * Provide either RS-485 device OR enable network (ScreenLogic) connection.
+* `latest` is channel-specific; use image labels to verify exact code revision:
+  * `docker image inspect ghcr.io/tagyoureit/njspc:latest --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}'`
+  * `docker image inspect ghcr.io/sam2kb/njspc:latest --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}'`
+  * `docker image inspect msmi/nodejs-poolcontroller:latest --format '{{ index .Config.Labels "git-commit" }}'`
 * Coordinates env vars prevent heliotrope warnings before the panel reports location.
 * Persistence (controller):
    * `./server-config.json:/app/config.json` main runtime config. You can either:

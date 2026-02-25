@@ -1,5 +1,6 @@
 services:
   njspc:
+    # Local dev compose: build from current workspace instead of pulling remote image.
     build:
       context: .
       dockerfile: Dockerfile

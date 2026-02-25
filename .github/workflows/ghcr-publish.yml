@@ -33,7 +33,7 @@ jobs:
             type=sha
             type=raw,value=latest,enable={{is_default_branch}}
           labels: |
-            org.opencontainers.image.source=${{ github.repository }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.title=njspc
             org.opencontainers.image.description=Pentair pool controller bridge (GHCR image)
