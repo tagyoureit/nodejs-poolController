@@ -1499,6 +1499,7 @@ export class TouchCircuitCommands extends CircuitCommands {
             let cstate = state.circuits.getInterfaceById(data.id, true);
             let showInFeatures = cstate.showInFeatures = typeof data.showInFeatures !== 'undefined' ? utils.makeBool(data.showInFeatures) : circuit.showInFeatures;
             let typeByte = parseInt(data.type, 10) === 0 ? 0 : parseInt(data.type, 10) || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
+            this.assertSinglePoolSpaType(id, typeByte);
             let freeze = typeof data.freeze !== 'undefined' ? utils.makeBool(data.freeze) : circuit.freeze;
             let nameByte = 3; // set default `Aux 1`
             if (typeof data.nameId !== 'undefined') nameByte = data.nameId;

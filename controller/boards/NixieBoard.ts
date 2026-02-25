@@ -1111,9 +1111,7 @@ export class NixieCircuitCommands extends CircuitCommands {
         return arr;
     }
     public getCircuitFunctions() {
-        let cf = sys.board.valueMaps.circuitFunctions.toArray();
-        if (!sys.equipment.shared) cf = cf.filter(x => { return x.name !== 'spillway' && x.name !== 'spadrain' });
-        return cf;
+        return super.getCircuitFunctions();
     }
     public getCircuitNames() {
         return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()];
@@ -1133,6 +1131,7 @@ export class NixieCircuitCommands extends CircuitCommands {
             if (data.name) circuit.name = scircuit.name = data.name;
             else if (!circuit.name && !data.name) circuit.name = scircuit.name = Circuit.getIdName(id);
             if (typeof data.type !== 'undefined' || typeof circuit.type === 'undefined') circuit.type = scircuit.type = parseInt(data.type, 10) || 0;
+            this.assertSinglePoolSpaType(id, circuit.type);
             if (typeof data.freeze !== 'undefined' || typeof circuit.freeze === 'undefined') circuit.freeze = utils.makeBool(data.freeze) || false;
             if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures);
             if (typeof data.dontStop !== 'undefined' && utils.makeBool(data.dontStop) === true) data.eggTimer = 1440;

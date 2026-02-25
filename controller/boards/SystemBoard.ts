@@ -2679,9 +2679,32 @@ export class CircuitCommands extends BoardCommands {
     public getCircuitFunctions() {
         let cf = sys.board.valueMaps.circuitFunctions.toArray();
         if (!sys.equipment.shared) cf = cf.filter(x => { return x.name !== 'spillway' && x.name !== 'spadrain' });
+        const poolType = sys.board.valueMaps.circuitFunctions.findItem('pool');
+        const spaType = sys.board.valueMaps.circuitFunctions.findItem('spa');
+        if (typeof poolType !== 'undefined') {
+            const hasPool = typeof sys.circuits.find(elem => elem.isActive !== false && elem.type === poolType.val) !== 'undefined';
+            if (hasPool) cf = cf.filter(x => x.name !== 'pool');
+        }
+        if (typeof spaType !== 'undefined') {
+            const hasSpa = typeof sys.circuits.find(elem => elem.isActive !== false && elem.type === spaType.val) !== 'undefined';
+            if (hasSpa) cf = cf.filter(x => x.name !== 'spa');
+        }
         return cf;
     }
     public getCircuitNames() { return [...sys.board.valueMaps.circuitNames.toArray(), ...sys.board.valueMaps.customNames.toArray()]; }
+    protected assertSinglePoolSpaType(id: number, type: number): void {
+        if (isNaN(type)) return;
+        const poolType = sys.board.valueMaps.circuitFunctions.findItem('pool');
+        const spaType = sys.board.valueMaps.circuitFunctions.findItem('spa');
+        let typeName: string;
+        if (typeof poolType !== 'undefined' && type === poolType.val) typeName = 'pool';
+        else if (typeof spaType !== 'undefined' && type === spaType.val) typeName = 'spa';
+        if (typeof typeName === 'undefined') return;
+        const dup = sys.circuits.find(elem => elem.isActive !== false && elem.id !== id && elem.type === type);
+        if (typeof dup !== 'undefined') {
+            throw new InvalidEquipmentDataError(`Only one ${typeName} circuit type is allowed. Circuit ${dup.id}-${dup.name} is already configured as ${typeName}.`, 'Circuit', type);
+        }
+    }
     public async setCircuitAsync(data: any, send: boolean = true): Promise<ICircuit> {
         try {
             let id = parseInt(data.id, 10);
@@ -2716,6 +2739,7 @@ export class CircuitCommands extends BoardCommands {
                 }
                 if (id === 6) circuit.type = sys.board.valueMaps.circuitFunctions.getValue('pool');
                 if (id === 1 && sys.equipment.shared) circuit.type = sys.board.valueMaps.circuitFunctions.getValue('spa');
+                this.assertSinglePoolSpaType(id, circuit.type);
                 if (typeof data.freeze !== 'undefined' || typeof circuit.freeze === 'undefined') circuit.freeze = utils.makeBool(data.freeze) || false;
                 if (typeof data.showInFeatures !== 'undefined' || typeof data.showInFeatures === 'undefined') circuit.showInFeatures = scircuit.showInFeatures = utils.makeBool(data.showInFeatures);
                 if (typeof data.dontStop !== 'undefined' && utils.makeBool(data.dontStop) === true) data.eggTimer = 1440;

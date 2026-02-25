@@ -1580,6 +1580,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             let eggHrs = Math.floor(eggTimer / 60);
             let eggMins = eggTimer - (eggHrs * 60);
             let type = typeof data.type !== 'undefined' ? parseInt(data.type, 10) : circuit.type;
+            this.assertSinglePoolSpaType(id, type);
             let theme = typeof data.lightingTheme !== 'undefined' ? data.lightingTheme : circuit.lightingTheme;
             if (circuit.type === 9) theme = typeof data.level !== 'undefined' ? data.level : circuit.level;
             if (typeof theme === 'undefined') theme = 0;

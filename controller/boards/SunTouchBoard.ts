@@ -354,6 +354,7 @@ class SunTouchCircuitCommands extends TouchCircuitCommands {
                 return circ;
             }
             let typeByte = parseInt(data.type, 10) || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
+            this.assertSinglePoolSpaType(id, typeByte);
             let nameByte = circuit.nameId; // You cannot change the Name Id in SunTouch.
             if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
             let mappedId = id;

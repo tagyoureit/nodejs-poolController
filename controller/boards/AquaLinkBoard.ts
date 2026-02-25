@@ -413,6 +413,7 @@ class AquaLinkCircuitCommands extends CircuitCommands {
                 return circ;
             }
             let typeByte = parseInt(data.type, 10) || circuit.type || sys.board.valueMaps.circuitFunctions.getValue('generic');
+            this.assertSinglePoolSpaType(id, typeByte);
             let nameByte = 3; // set default `Aux 1`
             if (typeof data.nameId !== 'undefined') nameByte = data.nameId;
             else if (typeof circuit.name !== 'undefined') nameByte = circuit.nameId;
