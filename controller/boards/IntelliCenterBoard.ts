@@ -1427,12 +1427,12 @@ class IntelliCenterSystemCommands extends SystemCommands {
                     action: 168,
                     retries: 5,
                     payload: [12, 0, 11,
-                        Math.floor(lat / 256),
-                        lat - Math.floor(lat / 256)],
+                        lat % 256,
+                        Math.floor(lat / 256)],
                     response: IntelliCenterBoard.getAckResponse(168)
                 });
                 await out.sendAsync();
-                sys.general.location.longitude = lat / 100;
+                sys.general.location.latitude = Math.round(obj.latitude * 100) / 100;
             }
             if (typeof obj.longitude === 'number' && obj.longitude !== sys.general.location.longitude) {
                 let lon = Math.round(Math.abs(obj.longitude) * 100);
@@ -1440,12 +1440,12 @@ class IntelliCenterSystemCommands extends SystemCommands {
                     action: 168,
                     retries: 5,
                     payload: [12, 0, 12,
-                        Math.floor(lon / 256),
-                        lon - Math.floor(lon / 256)],
+                        lon % 256,
+                        Math.floor(lon / 256)],
                     response: IntelliCenterBoard.getAckResponse(168)
                 });
                 await out.sendAsync();
-                sys.general.location.longitude = -(lon / 100);
+                sys.general.location.longitude = Math.round(obj.longitude * 100) / 100;
             }
             if (typeof obj.timeZone === 'number' && obj.timeZone !== sys.general.location.timeZone) {
                 let out = Outbound.create({

@@ -61,6 +61,9 @@ export class VersionMessage {
         // v3.004+: OCP does NOT increment pumps version when pump config changes via WCP (Action 168 type 4).
         // Force a pumps refresh so queueChanges() will request category 4 (pumps).
         sys.configVersion.pumps = 0;
+        // v3.x: personal-information updates (Action 168 type 12) are not always reflected by
+        // version deltas in the field; force a general refresh so category 12 is re-polled.
+        sys.configVersion.general = 0;
         logger.silly(`v3.004+ ${source}: Sending Action 228`);
         Outbound.create({
             dest: 16, action: 228, payload: [0], retries: 2,

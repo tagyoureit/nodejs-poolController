@@ -155,7 +155,7 @@ export class ExternalMessage {
                 msg.isProcessed = true;
                 break;
             case 8: // Country
-                sys.general.location.country = msg.extractPayloadString(3, 16);
+                sys.general.location.country = msg.extractPayloadString(3, 32);
                 msg.isProcessed = true;
                 break;
             case 9: // City
@@ -746,22 +746,46 @@ export class ExternalMessage {
         
         // Detect v3 full-block format by payload length (v3 sends 41 bytes for msgType 0)
         if (isIntellicenterV3 && msg.payload.length >= 27) {
-            // v3.004+ Wireless full options block - different offsets than Action 30!
-            // Verified from replay 48: Pool setpoint at byte 20, Spa setpoint at byte 22
-            const poolHeatNdx = 20;
-            const poolCoolNdx = 21;
-            const spaHeatNdx = 22;
-            const spaCoolNdx = 23;
-            const poolModeNdx = 24;
-            const spaModeNdx = 25;
+            // v3.004+ Wireless full options block - different offsets than Action 30.
+            // Most captures use offsets [20..25], but some packets include an extra
+            // timestamp-like byte before setpoints, shifting to [21..26].
+            const buildCandidate = (shift: number) => ({
+                shift,
+                poolHeat: msg.extractPayloadByte(20 + shift),
+                poolCool: msg.extractPayloadByte(21 + shift),
+                spaHeat: msg.extractPayloadByte(22 + shift),
+                spaCool: msg.extractPayloadByte(23 + shift),
+                poolMode: msg.extractPayloadByte(24 + shift),
+                spaMode: msg.extractPayloadByte(25 + shift)
+            });
+            const scoreCandidate = (c: { poolHeat: number, poolCool: number, spaHeat: number, spaCool: number, poolMode: number, spaMode: number }) => {
+                let score = 0;
+                const isTemp = (v: number) => v > 0 && v <= 120;
+                const isMode = (v: number) => v > 0 && v <= 100;
+                if (isTemp(c.poolHeat)) score += 3;
+                if (isTemp(c.spaHeat)) score += 3;
+                if (isTemp(c.poolCool)) score += 2;
+                if (isTemp(c.spaCool)) score += 2;
+                if (isMode(c.poolMode)) score += 1;
+                if (isMode(c.spaMode)) score += 1;
+                return score;
+            };
+            let selected = buildCandidate(0);
+            if (msg.payload.length >= 27) {
+                const shifted = buildCandidate(1);
+                if (scoreCandidate(shifted) > scoreCandidate(selected)) selected = shifted;
+            }
+            if (selected.shift !== 0) {
+                logger.silly(`v3.004+ Action 168: using shifted temp offsets (+${selected.shift})`);
+            }
             
             // Update Body 1 (Pool)
             let body = sys.bodies.getItemById(1, sys.equipment.maxBodies > 0);
             let sbody = state.temps.bodies.getItemById(1);
             if (body.isActive) {
-                const newPoolHeat = msg.extractPayloadByte(poolHeatNdx);
-                const newPoolCool = msg.extractPayloadByte(poolCoolNdx);
-                const newPoolMode = msg.extractPayloadByte(poolModeNdx);
+                const newPoolHeat = selected.poolHeat;
+                const newPoolCool = selected.poolCool;
+                const newPoolMode = selected.poolMode;
                 logger.silly(`v3.004+ Action 168: Pool setpoint ${body.heatSetpoint} → ${newPoolHeat}, coolSetpoint ${body.coolSetpoint} → ${newPoolCool}, mode ${body.heatMode} → ${newPoolMode}`);
                 body.heatSetpoint = newPoolHeat;
                 body.coolSetpoint = newPoolCool;
@@ -775,9 +799,9 @@ export class ExternalMessage {
             body = sys.bodies.getItemById(2, sys.equipment.maxBodies > 1);
             sbody = state.temps.bodies.getItemById(2);
             if (body.isActive) {
-                const newSpaHeat = msg.extractPayloadByte(spaHeatNdx);
-                const newSpaCool = msg.extractPayloadByte(spaCoolNdx);
-                const newSpaMode = msg.extractPayloadByte(spaModeNdx);
+                const newSpaHeat = selected.spaHeat;
+                const newSpaCool = selected.spaCool;
+                const newSpaMode = selected.spaMode;
                 logger.silly(`v3.004+ Action 168: Spa setpoint ${body.heatSetpoint} → ${newSpaHeat}, coolSetpoint ${body.coolSetpoint} → ${newSpaCool}, mode ${body.heatMode} → ${newSpaMode}`);
                 body.heatSetpoint = newSpaHeat;
                 body.coolSetpoint = newSpaCool;
