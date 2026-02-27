@@ -25,6 +25,18 @@ export class VersionMessage {
     private static readonly CONFIG_REFRESH_DEBOUNCE_MS = 2000;  // 2 seconds
     private static pendingConfigRefreshTimer?: NodeJS.Timeout;
     private static pendingConfigRefreshSource?: string;
+    private static scheduleConfigRefresh(delayMs: number, source: string, reason: string): void {
+        this.pendingConfigRefreshSource = source;
+        if (!this.pendingConfigRefreshTimer) {
+            this.pendingConfigRefreshTimer = setTimeout(() => {
+                this.pendingConfigRefreshTimer = undefined;
+                const src = this.pendingConfigRefreshSource ? `${this.pendingConfigRefreshSource} (trailing)` : 'Trailing';
+                this.pendingConfigRefreshSource = undefined;
+                this.triggerConfigRefresh(src);
+            }, delayMs);
+        }
+        logger.silly(`v3.004+ ${source}: Deferring config refresh (${reason}, retry in ${delayMs}ms)`);
+    }
 
     /**
      * Shared method to trigger a config refresh with debouncing.
@@ -36,20 +48,9 @@ export class VersionMessage {
         if (elapsed < this.CONFIG_REFRESH_DEBOUNCE_MS) {
             // Throttle-with-trailing: don't lose rapid toggle updates; schedule one refresh at end of window.
             const remainingMs = Math.max(0, this.CONFIG_REFRESH_DEBOUNCE_MS - elapsed);
-            this.pendingConfigRefreshSource = source;
-            if (!this.pendingConfigRefreshTimer) {
-                this.pendingConfigRefreshTimer = setTimeout(() => {
-                    this.pendingConfigRefreshTimer = undefined;
-                    const src = this.pendingConfigRefreshSource ? `${this.pendingConfigRefreshSource} (trailing)` : 'Trailing';
-                    this.pendingConfigRefreshSource = undefined;
-                    this.triggerConfigRefresh(src);
-                }, remainingMs);
-            }
-            logger.silly(`v3.004+ ${source}: Skipping immediate config refresh (debounced, last was ${elapsed}ms ago)`);
+            this.scheduleConfigRefresh(remainingMs, source, `debounced (last send ${elapsed}ms ago)`);
             return;
         }
-        this.lastConfigRefreshTime = now;
-
         (sys.board as any).needsConfigChanges = true;
         // Invalidate cached options version so queueChanges() will request category 0.
         // OCP doesn't increment options version when heat mode/setpoints change,
@@ -64,9 +65,20 @@ export class VersionMessage {
         // v3.x: personal-information updates (Action 168 type 12) are not always reflected by
         // version deltas in the field; force a general refresh so category 12 is re-polled.
         sys.configVersion.general = 0;
+
+        // If a config queue run is already active, coalesce this refresh and retry after a short delay.
+        // This avoids extra 228/164 churn in the middle of an in-flight loading pass.
+        if (typeof (sys.board as any).isConfigQueueProcessing === 'function' &&
+            (sys.board as any).isConfigQueueProcessing()) {
+            this.scheduleConfigRefresh(this.CONFIG_REFRESH_DEBOUNCE_MS, source, 'config queue already processing');
+            return;
+        }
+
+        this.lastConfigRefreshTime = now;
         logger.silly(`v3.004+ ${source}: Sending Action 228`);
         Outbound.create({
             dest: 16, action: 228, payload: [0], retries: 2,
+            scope: 'v3RefreshTrigger',
             // v3.004+: require 164 addressed to us (not to Wireless).
             response: Response.create({ dest: Message.pluginAddress, action: 164 })
         }).sendAsync();

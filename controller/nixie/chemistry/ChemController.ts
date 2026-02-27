@@ -1,4 +1,4 @@
-﻿import { clearTimeout, setTimeout } from 'timers';
+import { clearTimeout, setTimeout } from 'timers';
 import { conn } from '../../../controller/comms/Comms';
 import { Outbound, Protocol, Response } from '../../../controller/comms/messages/Messages';
 import { IChemical, IChemController, Chlorinator, ChemController, ChemControllerCollection, ChemFlowSensor, Chemical, ChemicalORP, ChemicalORPProbe, ChemicalPh, ChemicalPhProbe, ChemicalProbe, ChemicalPump, ChemicalTank, sys } from "../../../controller/Equipment";
@@ -241,7 +241,7 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
                 if (!this.closing) await this.requestStatus(schem);
             }
         }
-        catch (err) { logger.error(`Error polling IntelliChem Controller - ${err}`); return Promise.reject(err); }
+        catch (err) { logger.error(`Error polling IntelliChem Controller - ${err}`); }
         finally { this.suspendPolling = false; if (!this.closing) this._pollTimer = setTimeout(() => { self.pollEquipmentAsync(); }, this.pollingInterval || 10000); }
     }
     public async setServiceModeAsync() {}
@@ -348,35 +348,39 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
     }
     public async sendConfig(schem: ChemControllerState): Promise<boolean> {
         try {
-                this.configSent = false;
-                let out = Outbound.create({
-                    protocol: Protocol.IntelliChem,
-                    source: 16,
-                    dest: this.chem.address,
-                    action: 146,
-                    payload: [],
-                    retries: 3, // We are going to try 4 times.
-                    response: Response.create({ protocol: Protocol.IntelliChem, action: 1 }),
-                    onAbort: () => { }
-                });
-                out.insertPayloadBytes(0, 0, 21);
-                out.setPayloadByte(0, Math.floor((this.chem.ph.setpoint * 100) / 256) || 0);
-                out.setPayloadByte(1, Math.round((this.chem.ph.setpoint * 100) % 256) || 0);
-                out.setPayloadByte(2, Math.floor(this.chem.orp.setpoint / 256) || 0);
-                out.setPayloadByte(3, Math.round(this.chem.orp.setpoint % 256) || 0);
-                out.setPayloadByte(4, schem.ph.enabled ? schem.ph.tank.level + 1 : 0);
-                out.setPayloadByte(5, schem.orp.enabled ? schem.orp.tank.level + 1 : 0);
-                out.setPayloadByte(6, Math.floor(this.chem.calciumHardness / 256) || 0);
-                out.setPayloadByte(7, Math.round(this.chem.calciumHardness % 256) || 0);
-                out.setPayloadByte(9, this.chem.cyanuricAcid);
-                out.setPayloadByte(10, Math.floor(this.chem.alkalinity / 256) || 0);
-                out.setPayloadByte(12, Math.round(this.chem.alkalinity % 256) || 0);
-                logger.verbose(`Nixie: ${this.chem.name} sending IntelliChem settings action 146`);
-                out.sendAsync();
-                this.configSent = true;
-                return true;
+            this.configSent = false;
+            let out = Outbound.create({
+                protocol: Protocol.IntelliChem,
+                source: 16,
+                dest: this.chem.address,
+                action: 146,
+                payload: [],
+                retries: 3, // We are going to try 4 times.
+                response: Response.create({ protocol: Protocol.IntelliChem, action: 1 }),
+                onAbort: () => { }
+            });
+            out.insertPayloadBytes(0, 0, 21);
+            out.setPayloadByte(0, Math.floor((this.chem.ph.setpoint * 100) / 256) || 0);
+            out.setPayloadByte(1, Math.round((this.chem.ph.setpoint * 100) % 256) || 0);
+            out.setPayloadByte(2, Math.floor(this.chem.orp.setpoint / 256) || 0);
+            out.setPayloadByte(3, Math.round(this.chem.orp.setpoint % 256) || 0);
+            out.setPayloadByte(4, schem.ph.enabled ? schem.ph.tank.level + 1 : 0);
+            out.setPayloadByte(5, schem.orp.enabled ? schem.orp.tank.level + 1 : 0);
+            out.setPayloadByte(6, Math.floor(this.chem.calciumHardness / 256) || 0);
+            out.setPayloadByte(7, Math.round(this.chem.calciumHardness % 256) || 0);
+            out.setPayloadByte(9, this.chem.cyanuricAcid);
+            out.setPayloadByte(10, Math.floor(this.chem.alkalinity / 256) || 0);
+            out.setPayloadByte(12, Math.round(this.chem.alkalinity % 256) || 0);
+            logger.verbose(`Nixie: ${this.chem.name} sending IntelliChem settings action 146`);
+            await out.sendAsync();
+            this.configSent = true;
+            return true;
         }
-        catch (err) { logger.error(`Error updating IntelliChem: ${err.message}`); }
+        catch (err) {
+            this.configSent = false;
+            logger.error(`Error updating IntelliChem: ${err.message}`);
+            return false;
+        }
     }
     public async requestStatus(schem: ChemControllerState): Promise<boolean> {
         try {

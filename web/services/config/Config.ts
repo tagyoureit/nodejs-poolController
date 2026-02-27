@@ -927,7 +927,11 @@ export class ConfigRoute {
         app.get('/app/config/stopPacketCapture', async (req, res, next) => {
             try {
                 let file = await stopPacketCaptureAsync();
-                res.download(file);
+                if (typeof file !== 'string' || file.length === 0 || !fs.existsSync(file)) {
+                    logger.warn(`stopPacketCapture did not produce a valid backup file path`);
+                    return res.status(409).send('Packet capture is not active or no capture file is available.');
+                }
+                return res.download(file);
             }
             catch (err) { next(err); }
         });

@@ -458,6 +458,11 @@ Always prefix with `#` and packet ID.
 4. Look for request/response pairs (outbound `dir":"out"` → inbound `dir":"in"`)
 5. **Always extract and display packet IDs** in any analysis output
 
+**Replay caveat (API lines):**
+- Some replay packet logs include captured API requests (for example `/app/config/stopPacketCapture` in `v3.008_replay.157_config1` and `v3.008_replay.160_config2`).
+- Treat these as tooling/control-plane events, not protocol source-of-truth packets.
+- If replaying API lines out-of-order causes app errors, classify separately from RS-485 protocol regressions.
+
 **Decoding times (v3.004 big-endian):**
 - Two bytes `[hi, lo]` → `hi * 256 + lo` = minutes since midnight
 - Example: `[2, 33]` → `2*256 + 33 = 545` → 9:05 AM

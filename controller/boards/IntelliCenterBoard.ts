@@ -340,6 +340,7 @@ export class IntelliCenterBoard extends SystemBoard {
         const out: Outbound = Outbound.create({
             dest: 16,  // MUST send to OCP (16), not broadcast (15)
             action: 251,
+            scope: 'v3Registration',
             payload: [
                 Message.pluginAddress,  // [0] Device address (33)
                 0,                      // [1] Reserved
@@ -351,7 +352,8 @@ export class IntelliCenterBoard extends SystemBoard {
                 1, 7, 11               // [19-21] Unknown (copied from wireless remote)
             ],
             retries: 3,
-            response: Response.create({ source: 15, dest: 16, action: 253 })
+            // Action 253 comes from OCP (src=16) to broadcast (dest=15).
+            response: Response.create({ source: 16, dest: 15, action: 253 })
         });
         await out.sendAsync();
         logger.silly('Device registration request sent, awaiting confirmation via Action 217');
@@ -389,6 +391,9 @@ export class IntelliCenterBoard extends SystemBoard {
             logger.warn(`checkConfiguration failed (port may not be open yet): ${err.message}`);
         }
     }
+    public isConfigQueueProcessing(): boolean {
+        return this._configQueue._processing;
+    }
     public requestConfiguration(ver: ConfigVersion) {
         if (this.needsConfigChanges) {
             logger.info(`Requesting IntelliCenter configuration`);
@@ -419,6 +424,7 @@ export class IntelliCenterBoard extends SystemBoard {
         const verReq = Outbound.create({
             dest,
             action: 228,
+            scope: 'v3VersionSync',
             payload: [0],
             retries: 3,
             // v3.004+: require the version response (164) to be addressed to us (not to Wireless).
@@ -796,10 +802,53 @@ class IntelliCenterConfigQueue extends ConfigQueue {
     public _processing: boolean = false;
     public _newRequest: boolean = false;
     public _failed: boolean = false;
+    private static readonly WATCHDOG_TIMEOUT_MS = 120000;
+    private static readonly WATCHDOG_POLL_MS = 5000;
+    private _watchdogTimer?: NodeJS.Timeout;
+    private _lastProgressMs: number = 0;
+    public close() {
+        this.stopWatchdog();
+        this._processing = false;
+        super.close();
+    }
+    private markProgress(): void {
+        if (!this._processing) return;
+        this._lastProgressMs = Date.now();
+        if (!this._watchdogTimer) {
+            this._watchdogTimer = setInterval(() => this.checkWatchdog(), IntelliCenterConfigQueue.WATCHDOG_POLL_MS);
+        }
+    }
+    private stopWatchdog(): void {
+        if (this._watchdogTimer) {
+            clearInterval(this._watchdogTimer);
+            this._watchdogTimer = undefined;
+        }
+        this._lastProgressMs = 0;
+    }
+    private checkWatchdog(): void {
+        if (!this._processing || this.closed) {
+            this.stopWatchdog();
+            return;
+        }
+        const elapsed = Date.now() - this._lastProgressMs;
+        if (elapsed < IntelliCenterConfigQueue.WATCHDOG_TIMEOUT_MS) return;
+        logger.warn(`Config queue watchdog timed out after ${elapsed}ms; forcing recovery (${this.remainingItems} items remaining)`);
+        this.queue.length = 0;
+        this.curr = null;
+        this.totalItems = 0;
+        this._processing = false;
+        this._failed = false;
+        this._newRequest = false;
+        this.stopWatchdog();
+        state.status = 1;
+        state.emitControllerChange();
+        setTimeout(() => { sys.board.checkConfiguration(); }, 250);
+    }
     public processNext(msg?: Outbound) {
         if (this.closed) return;
         let self = this;
         if (typeof msg !== 'undefined' && msg !== null) {
+            this.markProgress();
             if (!msg.failed) {
                 // Remove all references to future items. We got it so we don't need it again.
                 this.removeItem(msg.payload[0], msg.payload[1]);
@@ -850,6 +899,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             let out = Outbound.create({
                 // v1: broadcast (15). v3: wireless/ICP unicasts to OCP (16).
                 dest,
+                scope: 'v3ConfigQueue',
                 action: 222, payload: [this.curr.category, itm], retries: 5,
                 // v3.004+: some config requests can yield an Action 30 with an empty payload (length=0).
                 // Those packets still indicate "done" for the requested item, but cannot be matched by payload prefix.
@@ -858,6 +908,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
                     : Response.create({ dest: -1, action: 30, payload: [this.curr.category, itm] })
             });
             logger.verbose(`Requesting config for: ${ConfigCategories[this.curr.category]} - Item: ${itm}`);
+            this.markProgress();
             // setTimeout(() => { conn.queueSendMessage(out) }, 50);
             out.sendAsync()
                 .then(() => {
@@ -875,6 +926,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             state.status = 1;
             this.curr = null;
             this._processing = false;
+            this.stopWatchdog();
             if (this._failed) setTimeout(() => { sys.checkConfiguration(); }, 100);
             logger.info(`Configuration Complete`);
             sys.board.heaters.updateHeaterServices();
@@ -914,6 +966,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             this._processing = false;
             this._failed = false;
             this._newRequest = false;
+            this.stopWatchdog();
             state.status = 1;
             state.emitControllerChange();
             return;
@@ -927,6 +980,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         this.totalItems = 0;
         this._processing = true;
         this._failed = false;
+        this.markProgress();
         let self = this;
         sys.configVersion.lastUpdated = new Date();
         // Tell the system we are loading.
@@ -1049,6 +1103,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         if (this.remainingItems > 0) setTimeout(() => { self.processNext(); }, 50);
         else {
             this._processing = false;
+            this.stopWatchdog();
             if (this._newRequest) {
                 this._newRequest = false;
                 setTimeout(() => { sys.board.checkConfiguration(); }, 250);
@@ -2181,6 +2236,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         let out = Outbound.create({
             dest,
             action: 222,
+            scope: 'v3CommandReadback',
             retries: 3,
             payload: payload,
             response: Response.create({ dest: -1, action: 30, payload: payload })
@@ -2700,6 +2756,7 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
         let out = Outbound.create({
             dest,
             action: 222,
+            scope: 'v3CommandReadback',
             retries: 3,
             payload: payload,
             response: Response.create({ dest: -1, action: 30, payload: payload })

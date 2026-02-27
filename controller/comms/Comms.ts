@@ -1165,18 +1165,24 @@ export class RS485Port {
         // triggers that cause the outbound message may come at the same time that another controller makes a call.
         var i = this._outBuffer.length - 1;
         while (i >= 0) {
-            let out = this._outBuffer[i--];
-            if (typeof out === 'undefined') continue;
+            const out = this._outBuffer[i];
+            if (typeof out === 'undefined') {
+                i--;
+                continue;
+            }
             let resp = out.response;
             // RG - added check for msgOut because the *Touch chlor packet 153 adds an status packet 217
             // but if it is the only packet on the queue the outbound will have been cleared out already.
-            if (out.requiresResponse && msgOut !== null) {
+            if (out.requiresResponse && typeof msgOut !== 'undefined' && msgOut !== null) {
                 if (resp instanceof Response && resp.isResponse(msgIn, out) && (typeof out.scope === 'undefined' || out.scope === msgOut.scope)) {
                     resp.message = msgIn;
                     if (typeof (resp.callback) === 'function' && resp.callback) callback = resp.callback;
                     this._outBuffer.splice(i, 1);
+                    // Resolve any async sender whose queued duplicate was satisfied by this inbound response.
+                    if (typeof out.onComplete === 'function') out.onComplete(undefined, msgIn);
                 }
             }
+            i--;
         }
         // RKS: This callback is important because we are managing queues. The position of this callback
         // occurs after all things related to the message have been processed including removal of subsequent
