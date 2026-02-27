@@ -59,6 +59,7 @@ interface IPoolSystem {
     remotes: RemoteCollection;
     eggTimers: EggTimerCollection;
     security: Security;
+    alerts: Alerts;
     chemControllers: ChemControllerCollection;
     board: SystemBoard;
     updateControllerDateTimeAsync(
@@ -202,6 +203,7 @@ export class PoolSystem implements IPoolSystem {
         this.lightGroups = new LightGroupCollection(this.data, 'lightGroups');
         this.remotes = new RemoteCollection(this.data, 'remotes');
         this.security = new Security(this.data, 'security');
+        this.alerts = new Alerts(this.data, 'alerts');
         this.customNames = new CustomNameCollection(this.data, 'customNames');
         this.eggTimers = new EggTimerCollection(this.data, 'eggTimers');
         this.chemControllers = new ChemControllerCollection(this.data, 'chemControllers');
@@ -322,6 +324,7 @@ export class PoolSystem implements IPoolSystem {
             this.remotes.clear(0);
             this.schedules.clear(0);
             this.security.clear();
+            this.alerts.clear();
             this.valves.clear(0);
             this.chemControllers.clear(0);
             this.filters.clear(0);
@@ -376,6 +379,7 @@ export class PoolSystem implements IPoolSystem {
     public lightGroups: LightGroupCollection;
     public remotes: RemoteCollection;
     public security: Security;
+    public alerts: Alerts;
     public customNames: CustomNameCollection;
     public chemControllers: ChemControllerCollection;
     public chemDosers: ChemDoserCollection;
@@ -479,6 +483,8 @@ export class PoolSystem implements IPoolSystem {
             remotes: self.data.remotes || [],
             heaters: self.data.heaters || [],
             covers: self.data.covers || [],
+            security: self.data.security || {},
+            alerts: self.data.alerts || {},
             appVersion: self.data.appVersion || '0.0.0'
         };
     }
@@ -2179,12 +2185,45 @@ export class SecurityRole extends EqItem {
     public set flag2(val: number) { this.setDataVal('flag2', val); }
     public get pin(): string { return this.data.pin; }
     public set pin(val: string) { this.setDataVal('pin', val); }
+    public get permissionsMask(): number { return this.data.permissionsMask; }
+    public set permissionsMask(val: number) { this.setDataVal('permissionsMask', val); }
+    public get permissionsBytes(): number[] { return Array.isArray(this.data.permissionsBytes) ? this.data.permissionsBytes : []; }
+    public set permissionsBytes(val: number[]) { this.setDataVal('permissionsBytes', Array.isArray(val) ? [...val] : []); }
 }
 export class Security extends EqItem {
     public dataName = 'securityConfig';
+    public initData() {
+        if (typeof this.data.enabled === 'undefined') this.data.enabled = false;
+        if (typeof this.data.enabledByte === 'undefined') this.data.enabledByte = 0;
+    }
     public get enabled(): boolean { return this.data.enabled; }
     public set enabled(val: boolean) { this.setDataVal('enabled', val); }
+    public get enabledByte(): number { return this.data.enabledByte; }
+    public set enabledByte(val: number) { this.setDataVal('enabledByte', val); }
     public get roles(): SecurityRoleCollection { return new SecurityRoleCollection(this.data, "roles"); }
+}
+export class Alerts extends EqItem {
+    public dataName = 'alertsConfig';
+    public initData() {
+        if (typeof this.data.circuitNotifications === 'undefined') this.data.circuitNotifications = 0;
+        if (typeof this.data.pumpNotifications === 'undefined') this.data.pumpNotifications = 0;
+        if (typeof this.data.heaterNotifications === 'undefined') this.data.heaterNotifications = 0;
+        if (typeof this.data.chlorinatorNotifications === 'undefined') this.data.chlorinatorNotifications = 0;
+        if (typeof this.data.raw !== 'object' || this.data.raw === null) this.data.raw = {};
+    }
+    public get circuitNotifications(): number { return this.data.circuitNotifications; }
+    public set circuitNotifications(val: number) { this.setDataVal('circuitNotifications', val); }
+    public get pumpNotifications(): number { return this.data.pumpNotifications; }
+    public set pumpNotifications(val: number) { this.setDataVal('pumpNotifications', val); }
+    public get heaterNotifications(): number { return this.data.heaterNotifications; }
+    public set heaterNotifications(val: number) { this.setDataVal('heaterNotifications', val); }
+    public get chlorinatorNotifications(): number { return this.data.chlorinatorNotifications; }
+    public set chlorinatorNotifications(val: number) { this.setDataVal('chlorinatorNotifications', val); }
+    public setRaw(selector: number, raw: number[]) {
+        if (typeof this.data.raw !== 'object' || this.data.raw === null) this.data.raw = {};
+        this.data.raw[`selector${selector}`] = Array.isArray(raw) ? [...raw] : [];
+        this.hasChanged = true;
+    }
 }
 export class ChemControllerCollection extends EqItemCollection<ChemController> {
     constructor(data: any, name?: string) { super(data, name || "chemControllers"); }

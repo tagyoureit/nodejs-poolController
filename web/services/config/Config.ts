@@ -34,7 +34,93 @@ import { ScreenLogicComms, sl } from "../../../controller/comms/ScreenLogic";
 import { screenlogic } from "node-screenlogic";
 
 export class ConfigRoute {
+    private static securitySessions: Map<string, any> = new Map<string, any>();
+    private static getClientKey(req: express.Request): string {
+        const forwarded = (req.headers['x-forwarded-for'] || '') as string;
+        const forwardedIp = forwarded.split(',')[0].trim();
+        const connIp = ((req.connection as any) || {}).remoteAddress || '';
+        return forwardedIp || req.ip || connIp || 'unknown';
+    }
+    private static getSecuritySession(req: express.Request): any {
+        const key = ConfigRoute.getClientKey(req);
+        return ConfigRoute.securitySessions.get(key);
+    }
+    private static clearSecuritySession(req: express.Request): any {
+        const key = ConfigRoute.getClientKey(req);
+        ConfigRoute.securitySessions.delete(key);
+        return {
+            isAuthenticated: false,
+            isAdmin: false,
+            roleId: 0,
+            roleName: '',
+            ip: key
+        };
+    }
+    private static createSecuritySession(req: express.Request, role: any): any {
+        const key = ConfigRoute.getClientKey(req);
+        const session = {
+            isAuthenticated: true,
+            isAdmin: role.id === 1 || typeof role.name === 'string' && role.name.toLowerCase().indexOf('admin') >= 0,
+            roleId: role.id || 0,
+            roleName: role.name || '',
+            ip: key,
+            updatedAt: new Date().toISOString()
+        };
+        ConfigRoute.securitySessions.set(key, session);
+        return session;
+    }
+    private static getRoleForPin(pin: string): any {
+        const normalizedPin = (pin || '').toString().replace(/\D/g, '');
+        if (normalizedPin.length === 0) return undefined;
+        const roles = sys.security.roles.toArray();
+        for (let i = 0; i < roles.length; i++) {
+            const rolePin = ((roles[i] as any).pin || '').toString().replace(/\D/g, '');
+            if (rolePin.length > 0 && rolePin === normalizedPin) return roles[i];
+        }
+        return undefined;
+    }
+    private static validateWriteAccess(req: express.Request): { allowed: boolean; reason?: string; session?: any } {
+        if (!sys.security.enabled) return { allowed: true };
+        const session = ConfigRoute.getSecuritySession(req);
+        if (typeof session === 'undefined' || !session.isAuthenticated) {
+            return { allowed: false, reason: 'Security is enabled; log in with an administrator PIN to change configuration.' };
+        }
+        if (!session.isAdmin) return { allowed: false, reason: 'Guest sessions are read-only.' };
+        return { allowed: true, session: session };
+    }
+    private static getSessionResponse(req: express.Request): any {
+        const session = ConfigRoute.getSecuritySession(req);
+        return {
+            enabled: sys.security.enabled,
+            session: typeof session === 'undefined' ? {
+                isAuthenticated: false,
+                isAdmin: false,
+                roleId: 0,
+                roleName: '',
+                ip: ConfigRoute.getClientKey(req)
+            } : session
+        };
+    }
     public static initRoutes(app: express.Application) {
+        app.use('/config', (req, res, next) => {
+            const method = (req.method || '').toUpperCase();
+            if (method !== 'PUT' && method !== 'POST' && method !== 'DELETE') return next();
+            const reqPath = req.path || req.url || '';
+            if (
+                reqPath.startsWith('/security/login') ||
+                reqPath.startsWith('/security/logout') ||
+                reqPath.startsWith('/security/session')
+            ) {
+                return next();
+            }
+            const access = ConfigRoute.validateWriteAccess(req);
+            if (access.allowed) return next();
+            return res.status(403).send({
+                error: 'FORBIDDEN',
+                message: access.reason,
+                security: ConfigRoute.getSessionResponse(req)
+            });
+        });
         app.get('/config/body/:body/heatModes', (req, res) => {
             return res.status(200).send(sys.bodies.getItemById(parseInt(req.params.body, 10)).getHeatModes());
         });
@@ -64,6 +150,28 @@ export class ConfigRoute {
                 systemUnits: sys.board.valueMaps.systemUnits.toArray()
             };
             return res.status(200).send(opts);
+        });
+        app.get('/config/options/security', (req, res) => {
+            return res.status(200).send({
+                security: sys.security.get(true),
+                session: ConfigRoute.getSessionResponse(req).session
+            });
+        });
+        app.get('/config/options/alerts', (req, res) => {
+            return res.status(200).send({
+                alerts: sys.alerts.get(true),
+                // Existing app-side alert-related options still live in general options.
+                poolOptions: {
+                    cooldownDelay: sys.general.options.cooldownDelay,
+                    heaterStartDelay: sys.general.options.heaterStartDelay,
+                    valveDelayTime: sys.general.options.valveDelayTime,
+                    manualPriority: sys.general.options.manualPriority
+                },
+                runtime: {
+                    chemControllers: state.chemControllers.getExtended(),
+                    chemDosers: state.chemDosers.getExtended()
+                }
+            });
         });
         app.get('/config/options/rs485', async (req, res, next) => {
             try {
@@ -860,6 +968,35 @@ export class ConfigRoute {
                     sys.board.circuits.setIntelliBriteColors(new LightGroup(grp));
                     return res.status(200).send('OK');
                 }); */
+        app.get('/config/security/session', (req, res) => {
+            return res.status(200).send(ConfigRoute.getSessionResponse(req));
+        });
+        app.put('/config/security/login', (req, res) => {
+            if (!sys.security.enabled) {
+                return res.status(409).send({
+                    error: 'SECURITY_DISABLED',
+                    message: 'Panel security is disabled.',
+                    security: ConfigRoute.getSessionResponse(req)
+                });
+            }
+            const role = ConfigRoute.getRoleForPin(((req.body || {}).pin || '').toString());
+            if (typeof role === 'undefined') {
+                return res.status(401).send({
+                    error: 'INVALID_PIN',
+                    message: 'PIN does not match a configured security role.'
+                });
+            }
+            return res.status(200).send({
+                enabled: sys.security.enabled,
+                session: ConfigRoute.createSecuritySession(req, role)
+            });
+        });
+        app.put('/config/security/logout', (req, res) => {
+            return res.status(200).send({
+                enabled: sys.security.enabled,
+                session: ConfigRoute.clearSecuritySession(req)
+            });
+        });
         app.get('/config', (req, res) => {
             return res.status(200).send(sys.getSection('all'));
         });

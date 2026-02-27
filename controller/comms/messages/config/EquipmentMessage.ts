@@ -150,6 +150,30 @@ export class EquipmentMessage {
                         state.equipment.maxPumps = sys.equipment.maxPumps;
                         msg.isProcessed = true;
                         break;
+                    case 12:
+                    case 13:
+                    case 14:
+                    case 15: {
+                        const selector = msg.extractPayloadByte(1);
+                        const raw = EquipmentMessage.extractAlertRaw(msg);
+                        sys.alerts.setRaw(selector, raw);
+                        switch (selector) {
+                            case 12:
+                                sys.alerts.circuitNotifications = raw.length > 0 ? raw[0] : 0;
+                                break;
+                            case 13:
+                                sys.alerts.pumpNotifications = EquipmentMessage.extractAlertMask(raw);
+                                break;
+                            case 14:
+                                sys.alerts.heaterNotifications = EquipmentMessage.extractAlertMask(raw);
+                                break;
+                            case 15:
+                                sys.alerts.chlorinatorNotifications = EquipmentMessage.extractAlertMask(raw);
+                                break;
+                        }
+                        msg.isProcessed = true;
+                        break;
+                    }
                     default:
                         logger.debug(`Unprocessed Config Message ${msg.toPacket()}`)
                         break;
@@ -172,6 +196,16 @@ export class EquipmentMessage {
         // [165,33,15,16,252,17],0,{2,90},0,0,{1,10},0,0,0,0,0,0,0,0,0,0],[2,89]
         sys.equipment.bootloaderVersion = `${msg.extractPayloadByte(5)}.${msg.extractPayloadByte(6) < 100 ? '0' + msg.extractPayloadByte(6) : msg.extractPayloadByte(6)}`;
         sys.equipment.controllerFirmware = `${msg.extractPayloadByte(1)}.${msg.extractPayloadByte(2) < 100 ? '0' + msg.extractPayloadByte(2) : msg.extractPayloadByte(2)}`;
+    }
+    private static extractAlertRaw(msg: Inbound): number[] {
+        const raw: number[] = [];
+        for (let i = 2; i < msg.payload.length; i++) raw.push(msg.extractPayloadByte(i, 0));
+        return raw;
+    }
+    private static extractAlertMask(raw: number[]): number {
+        if (raw.length === 0) return 0;
+        if (raw.length === 1) return raw[0] & 0xFF;
+        return ((raw[raw.length - 2] & 0xFF) << 8) | (raw[raw.length - 1] & 0xFF);
     }
     //private static calcModel(eq: Equipment) {
     //    eq.shared = (eq.type & 8) === 8;

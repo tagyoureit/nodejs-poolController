@@ -515,17 +515,46 @@ export class ExternalMessage {
                 cbody.capacity = msg.extractPayloadByte(3) * 1000;
                 msg.isProcessed = true;
                 break;
+            case 12: // Circuit notifications
+                if (msg.payload.length > 3) {
+                    const value = msg.extractPayloadByte(3, 0);
+                    sys.alerts.circuitNotifications = value;
+                    sys.alerts.setRaw(12, [value]);
+                }
+                msg.isProcessed = true;
+                break;
             case 13: // Pump notifications
+                ExternalMessage.applyAlertNotificationFromExternal(msg, 13, 3);
                 msg.isProcessed = true;
                 break;
             case 14: // Heater notifications
+                ExternalMessage.applyAlertNotificationFromExternal(msg, 14, 3);
                 msg.isProcessed = true;
                 break;
             case 15: // Chlorinator notifications
+                ExternalMessage.applyAlertNotificationFromExternal(msg, 15, 3);
                 msg.isProcessed = true;
                 break;
         }
         state.emitEquipmentChanges();
+    }
+    private static applyAlertNotificationFromExternal(msg: Inbound, selector: number, startOffset: number) {
+        const raw: number[] = [];
+        for (let i = startOffset; i < msg.payload.length; i++) raw.push(msg.extractPayloadByte(i, 0));
+        sys.alerts.setRaw(selector, raw);
+        if (raw.length === 0) return;
+        const mask = raw.length === 1 ? (raw[0] & 0xFF) : (((raw[raw.length - 2] & 0xFF) << 8) | (raw[raw.length - 1] & 0xFF));
+        switch (selector) {
+            case 13:
+                sys.alerts.pumpNotifications = mask;
+                break;
+            case 14:
+                sys.alerts.heaterNotifications = mask;
+                break;
+            case 15:
+                sys.alerts.chlorinatorNotifications = mask;
+                break;
+        }
     }
     private static processSchedules(msg: Inbound) {
         let schedId = msg.extractPayloadByte(2) + 1;

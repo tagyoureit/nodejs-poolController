@@ -985,7 +985,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         sys.configVersion.lastUpdated = new Date();
         // Tell the system we are loading.
         state.status = sys.board.valueMaps.controllerStatus.transform(2, 0);
-        this.maybeQueueItems(curr.equipment, ver.equipment, ConfigCategories.equipment, [0, 1, 2, 3]);
+        this.maybeQueueItems(curr.equipment, ver.equipment, ConfigCategories.equipment, [0, 1, 2, 3, 12, 13, 14, 15]);
         this.maybeQueueItems(curr.options, ver.options, ConfigCategories.options, [0, 1]);
         if (this.compareVersions(curr.circuits, ver.circuits)) {
             let req = new IntelliCenterConfigRequest(ConfigCategories.circuits, ver.circuits, [0, 1, 2],
