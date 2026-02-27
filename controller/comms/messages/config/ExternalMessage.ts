@@ -734,6 +734,7 @@ export class ExternalMessage {
     }
     private static processTempSettings(msg: Inbound) {
         let fnTranslateByte = (byte: number) => { return (byte & 0x007F) * (((byte & 0x0080) > 0) ? -1 : 1); }
+        const decodeFreezeOverride = (raw: number) => raw <= 3 ? (30 + (raw * 60)) : raw;
         
         // v3.004+: Wireless sends the FULL options block, not a single-field notification.
         // v1.x: Used byte[2] as a pivot/index indicating which field changed, then byte[byte[2]+3] = new value.
@@ -756,7 +757,10 @@ export class ExternalMessage {
                 spaHeat: msg.extractPayloadByte(22 + shift),
                 spaCool: msg.extractPayloadByte(23 + shift),
                 poolMode: msg.extractPayloadByte(24 + shift),
-                spaMode: msg.extractPayloadByte(25 + shift)
+                spaMode: msg.extractPayloadByte(25 + shift),
+                freezeCycleTime: msg.extractPayloadByte(26 + shift, 255),
+                freezeOverrideRaw: msg.extractPayloadByte(27 + shift, 255),
+                manualPriority: msg.extractPayloadByte(28 + shift, 255)
             });
             const scoreCandidate = (c: { poolHeat: number, poolCool: number, spaHeat: number, spaCool: number, poolMode: number, spaMode: number }) => {
                 let score = 0;
@@ -810,6 +814,9 @@ export class ExternalMessage {
                 sbody.coolSetpoint = body.coolSetpoint;
                 sbody.heatMode = body.heatMode;
             }
+            if (selected.freezeCycleTime !== 255) sys.general.options.freezeCycleTime = selected.freezeCycleTime;
+            if (selected.freezeOverrideRaw !== 255) sys.general.options.freezeOverride = decodeFreezeOverride(selected.freezeOverrideRaw);
+            if (selected.manualPriority !== 255) sys.general.options.manualPriority = selected.manualPriority > 0;
             
             state.emitEquipmentChanges();
             msg.isProcessed = true;

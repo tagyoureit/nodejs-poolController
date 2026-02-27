@@ -835,6 +835,8 @@ export class Options extends EqItem {
         if (typeof this.data.heaterStartDelayTime === 'undefined') this.data.heaterStartDelayTime = 10;
         if (typeof this.data.cleanerStartDelayTime === 'undefined') this.data.cleanerStartDelayTime = 300; // 5min
         if (typeof this.data.cleanerSolarDelayTime === 'undefined') this.data.cleanerSolarDelayTime = 300; // 5min
+        if (typeof this.data.freezeCycleTime === 'undefined') this.data.freezeCycleTime = 15;
+        if (typeof this.data.freezeOverride === 'undefined') this.data.freezeOverride = 30;
     }
     public get clockMode(): number | any { return this.data.clockMode; }
     public set clockMode(val: number | any) { this.setDataVal('clockMode', sys.board.valueMaps.clockModes.encode(val)); }
@@ -857,6 +859,10 @@ export class Options extends EqItem {
     public set cooldownDelay(val: boolean) { this.setDataVal('cooldownDelay', val); }
     public get freezeThreshold(): number { return this.data.freezeThreshold; }
     public set freezeThreshold(val: number) { this.setDataVal('freezeThreshold', val); }
+    public get freezeCycleTime(): number { return this.data.freezeCycleTime; }
+    public set freezeCycleTime(val: number) { this.setDataVal('freezeCycleTime', val); }
+    public get freezeOverride(): number { return this.data.freezeOverride; }
+    public set freezeOverride(val: number) { this.setDataVal('freezeOverride', val); }
     public get heaterStartDelay(): boolean { return this.data.heaterStartDelay; }
     public set heaterStartDelay(val: boolean) { this.setDataVal('heaterStartDelay', val); }
     public get heaterStartDelayTime(): number { return this.data.heaterStartDelayTime; }

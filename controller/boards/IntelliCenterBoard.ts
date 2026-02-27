@@ -23,7 +23,7 @@ import { Protocol, Outbound, Inbound, Message, Response } from '../comms/message
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState, LightGroupState, VirtualCircuitState, ICircuitState, BodyTempState, CircuitGroupState, ICircuitGroupState, ChemControllerState } from '../State';
-import { utils } from '../../controller/Constants';
+import { utils, ControllerType } from '../../controller/Constants';
 import { InvalidEquipmentIdError, InvalidEquipmentDataError, EquipmentNotFoundError, MessageError, InvalidOperationError } from '../Errors';
 import { ncp } from '../nixie/Nixie';
 import { Timestamp } from "../Constants"
@@ -1188,6 +1188,21 @@ class IntelliCenterSystemCommands extends SystemCommands {
     }
     public async setOptionsAsync(obj?: any): Promise<Options> {
         let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : Math.abs(num) || 0; }
+        const isIntellicenterV3 = (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3);
+        const encodeFreezeOverride = (minutes: number): number => {
+            if (isNaN(minutes)) return 0;
+            // v3.008 appears to encode Frz Override as compact steps: 30 + (raw * 60).
+            if (minutes <= 30) return 0;
+            return Math.max(0, Math.min(3, Math.round((minutes - 30) / 60)));
+        };
+        const freezeCycleTime = parseInt((sys.general.options.freezeCycleTime || 15).toString(), 10) || 15;
+        const freezeOverrideRaw = encodeFreezeOverride(parseInt((sys.general.options.freezeOverride || 30).toString(), 10) || 30);
+        const pool = sys.bodies.getItemById(1, false);
+        const spa = sys.bodies.getItemById(2, false);
+        const manualPriorityPayloadIndex = isIntellicenterV3 ? 28 : 39;
+        const manualHeatPayloadIndex = isIntellicenterV3 ? 31 : 40;
+        const pumpDelayPayloadIndex = isIntellicenterV3 ? 29 : 30;
+        const cooldownDelayPayloadIndex = isIntellicenterV3 ? 30 : 31;
 
         let payload = [0, 0, 0,
             fnToByte(sys.equipment.tempSensors.getCalibration('water2')),
@@ -1206,20 +1221,36 @@ class IntelliCenterSystemCommands extends SystemCommands {
             0, 0,
             sys.general.options.clockSource === 'internet' ? 1 : 0, // 17
             3, 0, 0,
-            sys.bodies.getItemById(1, false).setPoint || 100, // 21
-            sys.bodies.getItemById(3, false).setPoint || 100,
-            sys.bodies.getItemById(2, false).setPoint || 100,
-            sys.bodies.getItemById(4, false).setPoint || 100,
-            sys.bodies.getItemById(1, false).heatMode || 0,
-            sys.bodies.getItemById(2, false).heatMode || 0,
-            sys.bodies.getItemById(3, false).heatMode || 0,
-            sys.bodies.getItemById(4, false).heatMode || 0,
-            15,
-            sys.general.options.pumpDelay ? 1 : 0,  // 30
-            sys.general.options.cooldownDelay ? 1 : 0,
-            0, 0, 100, 0, 0, 0, 0,
-            sys.general.options.manualPriority ? 1 : 0, // 39
-            sys.general.options.manualHeat ? 1 : 0];
+            // For v3.008+, Action 168 full options blocks place pool/spa setpoints at [20..23]
+            // and modes at [24..25]. Keep legacy layout for pre-v3 controllers.
+            ...(isIntellicenterV3
+                ? [
+                    pool.setPoint || 100, pool.coolSetpoint || (pool.setPoint || 100),
+                    spa.setPoint || 100, spa.coolSetpoint || (spa.setPoint || 100),
+                    pool.heatMode || 0, spa.heatMode || 0,
+                    freezeCycleTime, freezeOverrideRaw,
+                    sys.general.options.manualPriority ? 1 : 0,
+                    sys.general.options.pumpDelay ? 1 : 0,
+                    sys.general.options.cooldownDelay ? 1 : 0,
+                    sys.general.options.manualHeat ? 1 : 0,
+                    0, 0, 0, 0, 0, 0, 0, 0, 0
+                ]
+                : [
+                    sys.bodies.getItemById(1, false).setPoint || 100, // 21
+                    sys.bodies.getItemById(3, false).setPoint || 100,
+                    sys.bodies.getItemById(2, false).setPoint || 100,
+                    sys.bodies.getItemById(4, false).setPoint || 100,
+                    sys.bodies.getItemById(1, false).heatMode || 0,
+                    sys.bodies.getItemById(2, false).heatMode || 0,
+                    sys.bodies.getItemById(3, false).heatMode || 0,
+                    sys.bodies.getItemById(4, false).heatMode || 0,
+                    15,
+                    sys.general.options.pumpDelay ? 1 : 0,  // 30
+                    sys.general.options.cooldownDelay ? 1 : 0,
+                    0, 0, 100, 0, 0, 0, 0,
+                    sys.general.options.manualPriority ? 1 : 0, // 39
+                    sys.general.options.manualHeat ? 1 : 0
+                ])];
         let arr = [];
         try {
             if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.equipment.tempSensors.getCalibration('water1')) {
@@ -1333,12 +1364,13 @@ class IntelliCenterSystemCommands extends SystemCommands {
             }
             if ((typeof obj.clockMode !== 'undefined' && obj.clockMode !== sys.general.options.clockMode) ||
                 (typeof obj.adjustDST !== 'undefined' && obj.adjustDST !== sys.general.options.adjustDST)) {
-                let byte = 0x30; // These bits are always set.
+                const effectiveClockSource = (typeof obj.clockSource === 'string') ? obj.clockSource : sys.general.options.clockSource;
+                let byte = 0x10 | (effectiveClockSource === 'internet' ? 0x20 : 0x00);
                 if (typeof obj.clockMode === 'undefined') byte |= sys.general.options.clockMode === 24 ? 0x40 : 0x00;
                 else byte |= obj.clockMode === 24 ? 0x40 : 0x00;
                 if (typeof obj.adjustDST === 'undefined') byte |= sys.general.options.adjustDST ? 0x80 : 0x00;
                 else byte |= obj.adjustDST ? 0x80 : 0x00;
-                payload[2] = 11;
+                payload[2] = isIntellicenterV3 ? 0 : 11;
                 payload[14] = byte;
                 let out = Outbound.create({
                     action: 168,
@@ -1348,11 +1380,11 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 });
                 await out.sendAsync();
                 if (typeof obj.clockMode !== 'undefined') sys.general.options.clockMode = obj.clockMode === 24 ? 24 : 12;
-                if (typeof obj.adjustDST !== 'undefined' || sys.general.options.clockSource !== 'server') sys.general.options.adjustDST = obj.adjustDST ? true : false;
+                if (typeof obj.adjustDST !== 'undefined') sys.general.options.adjustDST = obj.adjustDST ? true : false;
             }
 
             if (typeof obj.clockSource != 'undefined' && obj.clockSource !== sys.general.options.clockSource) {
-                payload[2] = 11;
+                payload[2] = isIntellicenterV3 ? 0 : 11;
                 payload[17] = obj.clockSource === 'internet' ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
@@ -1365,9 +1397,41 @@ class IntelliCenterSystemCommands extends SystemCommands {
                     sys.general.options.clockSource = obj.clockSource;
                 sys.board.system.setTZ();
             }
+            if (isIntellicenterV3) {
+                const requestedFreezeCycleTime = typeof obj.freezeCycleTime !== 'undefined'
+                    ? parseInt(obj.freezeCycleTime, 10)
+                    : (typeof obj.frzCycleTime !== 'undefined' ? parseInt(obj.frzCycleTime, 10) : undefined);
+                if (typeof requestedFreezeCycleTime !== 'undefined' && !isNaN(requestedFreezeCycleTime) && requestedFreezeCycleTime !== sys.general.options.freezeCycleTime) {
+                    payload[2] = isIntellicenterV3 ? 0 : 26;
+                    payload[26] = Math.max(0, Math.min(255, requestedFreezeCycleTime));
+                    let out = Outbound.create({
+                        action: 168,
+                        retries: 5,
+                        payload: payload,
+                        response: IntelliCenterBoard.getAckResponse(168)
+                    });
+                    await out.sendAsync();
+                    sys.general.options.freezeCycleTime = payload[26];
+                }
+                const requestedFreezeOverride = typeof obj.freezeOverride !== 'undefined'
+                    ? parseInt(obj.freezeOverride, 10)
+                    : (typeof obj.frzOverride !== 'undefined' ? parseInt(obj.frzOverride, 10) : undefined);
+                if (typeof requestedFreezeOverride !== 'undefined' && !isNaN(requestedFreezeOverride) && requestedFreezeOverride !== sys.general.options.freezeOverride) {
+                    payload[2] = isIntellicenterV3 ? 0 : 27;
+                    payload[27] = encodeFreezeOverride(requestedFreezeOverride);
+                    let out = Outbound.create({
+                        action: 168,
+                        retries: 5,
+                        payload: payload,
+                        response: IntelliCenterBoard.getAckResponse(168)
+                    });
+                    await out.sendAsync();
+                    sys.general.options.freezeOverride = requestedFreezeOverride;
+                }
+            }
             if (typeof obj.pumpDelay !== 'undefined' && obj.pumpDelay !== sys.general.options.pumpDelay) {
-                payload[2] = 27;
-                payload[30] = obj.pumpDelay ? 0x01 : 0x00;
+                payload[2] = isIntellicenterV3 ? 0 : 27;
+                payload[pumpDelayPayloadIndex] = obj.pumpDelay ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
                     retries: 5,
@@ -1378,8 +1442,8 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 sys.general.options.pumpDelay = obj.pumpDelay ? true : false;
             }
             if (typeof obj.cooldownDelay !== 'undefined' && obj.cooldownDelay !== sys.general.options.cooldownDelay) {
-                payload[2] = 28;
-                payload[31] = obj.cooldownDelay ? 0x01 : 0x00;
+                payload[2] = isIntellicenterV3 ? 0 : 28;
+                payload[cooldownDelayPayloadIndex] = obj.cooldownDelay ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
                     retries: 5,
@@ -1390,8 +1454,8 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 sys.general.options.cooldownDelay = obj.cooldownDelay ? true : false;
             }
             if (typeof obj.manualPriority !== 'undefined' && obj.manualPriority !== sys.general.options.manualPriority) {
-                payload[2] = 36;
-                payload[39] = obj.manualPriority ? 0x01 : 0x00;
+                payload[2] = isIntellicenterV3 ? 0 : 36;
+                payload[manualPriorityPayloadIndex] = obj.manualPriority ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
                     retries: 5,
@@ -1402,8 +1466,8 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 sys.general.options.manualPriority = obj.manualPriority ? true : false;
             }
             if (typeof obj.manualHeat !== 'undefined' && obj.manualHeat !== sys.general.options.manualHeat) {
-                payload[2] = 37;
-                payload[40] = obj.manualHeat ? 0x01 : 0x00;
+                payload[2] = isIntellicenterV3 ? 0 : 37;
+                payload[manualHeatPayloadIndex] = obj.manualHeat ? 0x01 : 0x00;
                 let out = Outbound.create({
                     action: 168,
                     retries: 5,

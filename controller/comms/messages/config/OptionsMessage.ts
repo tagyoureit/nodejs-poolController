@@ -20,6 +20,10 @@ import { sys } from "../../../Equipment";
 import { state } from "../../../State";
 import { ControllerType } from "../../../Constants";
 export class OptionsMessage {
+    private static decodeFreezeOverride(raw: number): number {
+        // v3.008 captures show this as a compact code where 0 => 30 min and 1 => 90 min.
+        return raw <= 3 ? (30 + (raw * 60)) : raw;
+    }
     public static process(msg: Inbound): void {
         switch (sys.controllerType) {
             case ControllerType.IntelliCenter:
@@ -55,7 +59,17 @@ export class OptionsMessage {
                             // cooldownDelay
                             //[255, 0, 255][165, 63, 15, 16, 30, 40][0, 0, 1, 129, 0, 0, 0, 0, 0, 0, 0, 0, 0, 176, 149, 29, 35, 3, 0, 0, 92, 81, 91, 81, 3, 3, 0, 0, 15, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0][4, 194]
                             sys.general.options.cooldownDelay = msg.extractPayloadByte(30) === 1;
-                            sys.general.options.manualPriority = msg.extractPayloadByte(38) === 1;
+                            let manualPriorityByte = msg.extractPayloadByte(38, 255);
+                            const isIntellicenterV3 = (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3);
+                            if (isIntellicenterV3) {
+                                const v3ManualPriorityByte = msg.extractPayloadByte(28, 255);
+                                if (v3ManualPriorityByte === 0 || v3ManualPriorityByte === 1) manualPriorityByte = v3ManualPriorityByte;
+                                const freezeCycleTime = msg.extractPayloadByte(26, 255);
+                                if (freezeCycleTime !== 255) sys.general.options.freezeCycleTime = freezeCycleTime;
+                                const freezeOverrideRaw = msg.extractPayloadByte(27, 255);
+                                if (freezeOverrideRaw !== 255) sys.general.options.freezeOverride = OptionsMessage.decodeFreezeOverride(freezeOverrideRaw);
+                            }
+                            if (manualPriorityByte !== 255) sys.general.options.manualPriority = manualPriorityByte === 1;
                             sys.general.options.manualHeat = msg.extractPayloadByte(39) === 1;
                             let fnTranslateByte = (byte):number => { return (byte & 0x007F) * (((byte & 0x0080) > 0) ? -1 : 1); }
                             sys.equipment.tempSensors.setCalibration('water1', fnTranslateByte(msg.extractPayloadByte(3)));
@@ -79,7 +93,6 @@ export class OptionsMessage {
 
                             // v3.004+: payload layout shifted by 1 byte vs v1.x (timestamp insertion earlier in the packet).
                             // Evidence: replay.21 Action 30 type 0 has [.., 85,100,94,103, 3,3 ..] at bytes 19-24.
-                            const isIntellicenterV3 = (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3);
                             const poolHeatNdx = isIntellicenterV3 ? 19 : 20;
                             const poolCoolNdx = isIntellicenterV3 ? 20 : 21;
                             const spaHeatNdx = isIntellicenterV3 ? 21 : 22;

@@ -1149,7 +1149,10 @@ export class SystemCommands extends BoardCommands {
         let tzOffsetObj = state.time.calcTZOffset();
         if (sys.general.options.clockSource === 'server' || typeof sys.general.location.timeZone === 'undefined') {
             let tzs = sys.board.valueMaps.timeZones.toArray();
-            sys.general.location.timeZone = tzs.find(tz => tz.utcOffset === tzOffsetObj.tzOffset).val;
+            let tzMatch = tzs.find(tz => tz.utcOffset === tzOffsetObj.tzOffset);
+            // Some environments can report offsets that are not present in the map.
+            // Keep the current value instead of throwing when no map entry exists.
+            if (typeof tzMatch !== 'undefined') sys.general.location.timeZone = tzMatch.val;
         }
         if (sys.general.options.clockSource === 'server' || typeof sys.general.options.adjustDST === 'undefined') {
             sys.general.options.adjustDST = tzOffsetObj.adjustDST;
