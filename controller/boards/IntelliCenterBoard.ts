@@ -4333,6 +4333,9 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
         let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
         let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
         let borates = typeof data.borates !== 'undefined' ? parseInt(data.borates, 10) : chem.borates || 0;
+        let intellichemStandalone = sys.controllerType === ControllerType.Nixie
+            ? (typeof data.intellichemStandalone !== 'undefined' ? utils.makeBool(data.intellichemStandalone) : chem.intellichemStandalone)
+            : false;
         let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
         if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
         // Do a final validation pass so we dont send this off in a mess.
@@ -4421,6 +4424,7 @@ export class IntelliCenterChemControllerCommands extends ChemControllerCommands 
         chem.alkalinity = alkalinity;
         chem.borates = borates;
         chem.body = schem.body = body;
+        chem.intellichemStandalone = intellichemStandalone;
         schem.isActive = chem.isActive = true;
         chem.lsiRange.enabled = lsiRange.enabled;
         chem.lsiRange.low = lsiRange.low;

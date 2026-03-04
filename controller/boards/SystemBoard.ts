@@ -5073,6 +5073,8 @@ export class ChemControllerCommands extends BoardCommands {
                 if (t.hasAddress) chem.address = address;
             }
             chem.isActive = true;
+            // IntelliChem standalone polling is only valid when Nixie is the controller.
+            if (t.name === 'intellichem' && sys.controllerType !== ControllerType.Nixie) data.intellichemStandalone = false;
             // So here is the thing.  If you have an OCP then the IntelliChem must be controlled by that.
             // the messages on the bus will talk back to the OCP so if you do not do this mayhem will ensue.
             if (t.name === 'intellichem') {

@@ -234,9 +234,10 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
 
             let schem = state.chemControllers.getItemById(this.chem.id, !this.closing);
             schem.calculateSaturationIndex();
-            // If the body isn't on then we won't communicate with the chem controller.  There is no need
-            // since most of the time these are attached to the filter relay.
-            if (this.isBodyOn() && !this.closing) {
+            // By default IntelliChem tracks body relay state. When standalone is enabled,
+            // allow polling even if the body circuit is currently off.
+            let canCommunicate = this.isBodyOn() || this.chem.intellichemStandalone;
+            if (canCommunicate && !this.closing) {
                 if (!this.configSent) await this.sendConfig(schem);
                 if (!this.closing) await this.requestStatus(schem);
             }
@@ -257,6 +258,7 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
             let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
             let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
             let borates = typeof data.borates !== 'undefined' ? parseInt(data.borates, 10) : chem.borates || 0;
+            let intellichemStandalone = typeof data.intellichemStandalone !== 'undefined' ? utils.makeBool(data.intellichemStandalone) : chem.intellichemStandalone;
             let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
             if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
             // Do a final validation pass so we dont send this off in a mess.
@@ -309,6 +311,7 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
             chem.borates = borates;
             chem.body = schem.body = body;
             chem.type = schem.type = type.val;
+            chem.intellichemStandalone = intellichemStandalone;
 
             let acidTankLevel = typeof data.ph !== 'undefined' && typeof data.ph.tank !== 'undefined' && typeof data.ph.tank.level !== 'undefined' ? parseInt(data.ph.tank.level, 10) : schem.ph.tank.level;
             let orpTankLevel = typeof data.orp !== 'undefined' && typeof data.orp.tank !== 'undefined' && typeof data.orp.tank.level !== 'undefined' ? parseInt(data.orp.tank.level, 10) : schem.orp.tank.level;
@@ -320,6 +323,7 @@ export class NixieIntelliChemController extends NixieChemControllerBase {
             chem.alkalinity = alkalinity;
             chem.borates = borates;
             chem.body = schem.body = body;
+            chem.intellichemStandalone = intellichemStandalone;
             schem.isActive = chem.isActive = true;
             chem.lsiRange.enabled = lsiRange.enabled;
             chem.lsiRange.low = lsiRange.low;

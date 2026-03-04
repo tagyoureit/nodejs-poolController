@@ -2283,6 +2283,7 @@ export class ChemController extends EqItem implements IChemController {
         if (typeof this.data.lsiRange === 'undefined') this.data.lsiRange = { low: -.5, high: .5, enabled: true };
         if (typeof this.data.borates === 'undefined') this.data.borates = 0;
         if (typeof this.data.siCalcType === 'undefined') this.data.siCalcType = 0;
+        if (typeof this.data.intellichemStandalone === 'undefined') this.data.intellichemStandalone = false;
         super.initData();
     }
     public dataName = 'chemControllerConfig';
@@ -2298,6 +2299,8 @@ export class ChemController extends EqItem implements IChemController {
     public set address(val: number) { this.setDataVal('address', val); }
     public get isActive(): boolean { return this.data.isActive; }
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
+    public get intellichemStandalone(): boolean { return utils.makeBool(this.data.intellichemStandalone); }
+    public set intellichemStandalone(val: boolean) { this.setDataVal('intellichemStandalone', val); }
     public get calciumHardness(): number { return this.data.calciumHardness; }
     public set calciumHardness(val: number) { this.setDataVal('calciumHardness', val); }
     public get cyanuricAcid(): number { return this.data.cyanuricAcid; }

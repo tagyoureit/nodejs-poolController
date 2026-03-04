@@ -415,6 +415,7 @@ export class ConfigRoute {
                     // waterFlow: sys.board.valueMaps.chemControllerWaterFlow.toArray(), // remove
                     controllers: sys.chemControllers.get(),
                     maxChemControllers: sys.equipment.maxChemControllers,
+                    intellichemStandaloneSupported: sys.controllerType === ControllerType.Nixie,
                     doserTypes: sys.board.valueMaps.chemDoserTypes.toArray(),
                     chlorinators: sys.chlorinators.get(),
                 };
