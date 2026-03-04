@@ -424,7 +424,7 @@ export class IntelliCenterBoard extends SystemBoard {
         const verReq = Outbound.create({
             dest,
             action: 228,
-            scope: 'v3VersionSync',
+            scope: sys.equipment.isIntellicenterV3 ? 'v3VersionSync' : undefined,
             payload: [0],
             retries: 3,
             // v3.004+: require the version response (164) to be addressed to us (not to Wireless).
@@ -899,7 +899,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             let out = Outbound.create({
                 // v1: broadcast (15). v3: wireless/ICP unicasts to OCP (16).
                 dest,
-                scope: 'v3ConfigQueue',
+                scope: sys.equipment.isIntellicenterV3 ? 'v3ConfigQueue' : undefined,
                 action: 222, payload: [this.curr.category, itm], retries: 5,
                 // v3.004+: some config requests can yield an Action 30 with an empty payload (length=0).
                 // Those packets still indicate "done" for the requested item, but cannot be matched by payload prefix.
@@ -2300,7 +2300,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         let out = Outbound.create({
             dest,
             action: 222,
-            scope: 'v3CommandReadback',
+            scope: sys.equipment.isIntellicenterV3 ? 'v3CommandReadback' : undefined,
             retries: 3,
             payload: payload,
             response: Response.create({ dest: -1, action: 30, payload: payload })
@@ -2820,7 +2820,7 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
         let out = Outbound.create({
             dest,
             action: 222,
-            scope: 'v3CommandReadback',
+            scope: sys.equipment.isIntellicenterV3 ? 'v3CommandReadback' : undefined,
             retries: 3,
             payload: payload,
             response: Response.create({ dest: -1, action: 30, payload: payload })
