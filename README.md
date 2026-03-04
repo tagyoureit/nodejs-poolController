@@ -105,9 +105,8 @@ See the [wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/Docker).
 The project has multiple image channels. `latest` only means latest within that specific channel.
 
 * `ghcr.io/tagyoureit/njspc` - official controller image published from this repository's GitHub Actions (tracks upstream `master`).
-* `ghcr.io/sam2kb/njspc` - fork-maintained controller image (can lag upstream).
 * `msmi/nodejs-poolcontroller` - legacy Docker Hub controller image (can lag upstream).
-* `ghcr.io/sam2kb/njspc-dash` - dashPanel image currently published separately.
+* `ghcr.io/rstrouse/njspc-dash` - dashPanel image currently published separately.
 
 ### Docker Compose (Controller + Optional dashPanel UI)
 
@@ -146,7 +145,7 @@ services:
       # user: "0:0"
 
    njspc-dash:
-     image: ${NJSPC_DASH_IMAGE:-ghcr.io/sam2kb/njspc-dash}
+     image: ${NJSPC_DASH_IMAGE:-ghcr.io/rstrouse/njspc-dash}
      container_name: njspc-dash
      restart: unless-stopped
      depends_on:
@@ -183,7 +182,6 @@ Notes:
 * Provide either RS-485 device OR enable network (ScreenLogic) connection.
 * `latest` is channel-specific; use image labels to verify exact code revision:
   * `docker image inspect ghcr.io/tagyoureit/njspc:latest --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}'`
-  * `docker image inspect ghcr.io/sam2kb/njspc:latest --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}'`
   * `docker image inspect msmi/nodejs-poolcontroller:latest --format '{{ index .Config.Labels "git-commit" }}'`
 * Coordinates env vars prevent heliotrope warnings before the panel reports location.
 * Persistence (controller):
