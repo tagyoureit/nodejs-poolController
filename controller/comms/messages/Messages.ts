@@ -43,6 +43,7 @@ import { TouchScheduleCommands } from "controller/boards/EasyTouchBoard";
 import { IntelliValveStateMessage } from "./status/IntelliValveStateMessage";
 import { IntelliChemStateMessage } from "./status/IntelliChemStateMessage";
 import { RegalModbusStateMessage } from "./status/RegalModbusStateMessage";
+import { NeptuneModbusStateMessage } from "./status/NeptuneModbusStateMessage";
 import { OutboundMessageError } from "../../Errors";
 import { conn } from "../Comms"
 import extend = require("extend");
@@ -63,7 +64,8 @@ export enum Protocol {
     AquaLink = 'aqualink',
     Hayward = 'hayward',
     Unidentified = 'unidentified',
-    RegalModbus = 'regalmodbus'
+    RegalModbus = 'regalmodbus',
+    NeptuneModbus = 'neptunemodbus'
 }
 export class Message {
     constructor() { }
@@ -110,6 +112,9 @@ export class Message {
             else if (this.protocol === Protocol.RegalModbus) {
                 return this.header.length > 0 ? this.header[0] : -1;
             }
+            else if (this.protocol === Protocol.NeptuneModbus) {
+                return this.header.length > 0 ? this.header[0] : -1;
+            }
             else return this.header.length > 2 ? this.header[2] : -1;
         }
         else return -1;
@@ -137,6 +142,10 @@ export class Message {
             // No source address in RegalModbus.
             return -1;
         }
+        else if (this.protocol === Protocol.NeptuneModbus) {
+            // No source address in Neptune Modbus RTU messages.
+            return -1;
+        }
         if (this.header.length > 3) return this.header[3];
         else return -1;
     }
@@ -152,6 +161,9 @@ export class Message {
         }
         else if (this.protocol === Protocol.RegalModbus) {
             return this.header.length > 1 ? this.header[1]: -1;
+        }
+        else if (this.protocol === Protocol.NeptuneModbus) {
+            return this.header.length > 1 ? this.header[1] : -1;
         }
         else if (this.header.length > 4) return this.header[4];
         else return -1;
@@ -197,6 +209,21 @@ export class Message {
                     break;
                 case 0x65:  // Store configuration
                     return 0;
+            }
+        }
+        else if (this.protocol === Protocol.NeptuneModbus) {
+            let action = this.action;
+            if (action === 0x03 || action === 0x04) {
+                // Payload format: [byteCount, data...]
+                return this.payload.length > 0 ? this.payload[0] + 1 : -1;
+            }
+            if (action === 0x06 || action === 0x08 || action === 0x10) {
+                // Write single / diagnostics / write multiple response: addrHi, addrLo, val/qtyHi, val/qtyLo
+                return 4;
+            }
+            if ((action & 0x80) === 0x80) {
+                // Modbus exception response: one-byte exception code.
+                return 1;
             }
         }
         return this.header.length > 5 ? this.header[5] : -1;
@@ -315,6 +342,12 @@ export class Inbound extends Message {
                 const crcReceived = (this.chkLo << 8) | this.chkHi;
                 return crcComputed === crcReceived;
             }
+            case Protocol.NeptuneModbus: {
+                const data = this.header.concat(this.payload);
+                const crcComputed = computeCRC16(data);
+                const crcReceived = (this.chkLo << 8) | this.chkHi;
+                return crcComputed === crcReceived;
+            }
             default:
                 return (this.chkHi * 256) + this.chkLo === this.checksum;
         }
@@ -365,9 +398,44 @@ export class Inbound extends Message {
             // logger.debug('Testing RegalModbus header', bytes, addr, func, ack, acceptableAcks.includes(ack));
             // logger.debug(`Current bytes: ${JSON.stringify(bytes)}`);
 
-            if (addr >= 0x15 && addr <= 0xF7 && func >= 0x00 && func <= 0x7F && acceptableAcks.includes(ack)) {
+            if (addr >= 0x15 && addr <= 0xF7 && func >= 0x00 && func <= 0x7F && acceptableAcks.includes(ack) &&
+                this.isAddressForPumpType(addr, 'regalmodbus', ['neptunemodbus'])) {
                 return true;
             }
+        }
+        return false;
+    }
+    private isAddressForPumpType(address: number, pumpTypeName: string, peerPumpTypes: string[] = []): boolean {
+        let hasTargetType = false;
+        let hasPeerType = false;
+        for (let i = 0; i < sys.pumps.length; i++) {
+            const pump = sys.pumps.getItemByIndex(i);
+            const typeName = sys.board.valueMaps.pumpTypes.getName(pump.type);
+            if (typeName === pumpTypeName) {
+                hasTargetType = true;
+                if (pump.address === address) return true;
+            }
+            else if (peerPumpTypes.includes(typeName)) {
+                hasPeerType = true;
+            }
+        }
+        if (hasTargetType) return false;
+        if (hasPeerType) return false;
+        // If neither protocol type is configured yet, allow detection.
+        return true;
+    }
+    private testNeptuneModbusHeader(bytes: number[], ndx: number): boolean {
+        // Neptune Modbus RTU: address, function, payload..., crcLo, crcHi
+        if (bytes.length > ndx + 4 && sys.controllerType === 'nixie') {
+            const addr = bytes[ndx];
+            const func = bytes[ndx + 1];
+            const supportedFuncs = [0x03, 0x04, 0x06, 0x08, 0x10, 0x83, 0x84, 0x86, 0x88, 0x90];
+            if (addr < 1 || addr > 247) return false;
+            if (!supportedFuncs.includes(func)) return false;
+            if (!this.isAddressForPumpType(addr, 'neptunemodbus', ['regalmodbus'])) return false;
+            // For read responses, byte count must be reasonable.
+            if ((func === 0x03 || func === 0x04) && bytes[ndx + 2] > 250) return false;
+            return true;
         }
         return false;
     }
@@ -499,6 +567,11 @@ export class Inbound extends Message {
                     this.protocol = Protocol.Hayward;
                     break;
                 }
+                if (this.testNeptuneModbusHeader(bytes, ndx)) {
+                    this.protocol = Protocol.NeptuneModbus;
+                    logger.debug(`NeptuneModbus header detected. ${JSON.stringify(bytes)}`);
+                    break;
+                }
                 if (this.testRegalModbusHeader(bytes, ndx)) {
                     this.protocol = Protocol.RegalModbus;
                     logger.debug(`RegalModbus header detected. ${JSON.stringify(bytes)}`);
@@ -599,6 +672,15 @@ export class Inbound extends Message {
                     return ndxHeader;
                 }
                 break;
+            case Protocol.NeptuneModbus:
+                ndx = this.pushBytes(this.header, bytes, ndx, 2);
+                if (this.header.length < 2) {
+                    logger.debug(`We have an incoming NeptuneModbus message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    this.preamble = [];
+                    this.header = [];
+                    return ndxHeader;
+                }
+                break;
             default:
                 // We didn't get a message signature. don't do anything with it.
                 ndx = ndxStart;
@@ -681,6 +763,44 @@ export class Inbound extends Message {
                     }
                 }
                 break;
+            case Protocol.NeptuneModbus: {
+                // Neptune Modbus RTU: [addr, fn][payload][crcLo, crcHi]
+                const functionCode = this.action;
+                if (functionCode === 0x03 || functionCode === 0x04) {
+                    // Read response payload: [byteCount, data...]
+                    if (this.payload.length === 0 && ndx < bytes.length - 2) {
+                        this.payload.push(bytes[ndx++]);
+                    }
+                    const byteCount = this.payload[0];
+                    if (typeof byteCount !== 'undefined') {
+                        if (byteCount > 250) {
+                            this.isValid = false;
+                            logger.debug(`NeptuneModbus message marked invalid due to unreasonable byteCount ${byteCount}`);
+                            break;
+                        }
+                        ndx = this.pushBytes(this.payload, bytes, ndx, (byteCount + 1) - this.payload.length);
+                    }
+                }
+                else if (functionCode === 0x06 || functionCode === 0x08 || functionCode === 0x10) {
+                    // Echo response payload: 4 bytes.
+                    ndx = this.pushBytes(this.payload, bytes, ndx, 4 - this.payload.length);
+                }
+                else if ((functionCode & 0x80) === 0x80) {
+                    // Exception response payload: one-byte code.
+                    ndx = this.pushBytes(this.payload, bytes, ndx, 1 - this.payload.length);
+                }
+                else {
+                    while (ndx + 3 <= bytes.length) {
+                        this.payload.push(bytes[ndx++]);
+                        if (this.payload.length > 253) {
+                            this.isValid = false;
+                            logger.debug(`NeptuneModbus message marked invalid due to payload more than 253 bytes`);
+                            break;
+                        }
+                    }
+                }
+                break;
+            }
 
         }
         return ndx;
@@ -695,10 +815,11 @@ export class Inbound extends Message {
             case Protocol.IntelliChem:
             case Protocol.Heater:
             case Protocol.RegalModbus:
+            case Protocol.NeptuneModbus:
             case Protocol.Unidentified:
                 // If we don't have enough bytes to make the terminator then continue on and
                 // hope we get them on the next go around.
-                if (this.payload.length >= this.datalen && ndx + 2 <= bytes.length) {
+                if (this.datalen >= 0 && this.payload.length >= this.datalen && ndx + 2 <= bytes.length) {
                     this._complete = true;
                     ndx = this.pushBytes(this.term, bytes, ndx, 2);
                     this.isValid = this.isValidChecksum();
@@ -966,6 +1087,9 @@ export class Inbound extends Message {
             case Protocol.RegalModbus:
                 RegalModbusStateMessage.process(this);
                 break;
+            case Protocol.NeptuneModbus:
+                NeptuneModbusStateMessage.process(this);
+                break;
             default:
                 logger.debug(`Unprocessed Message ${this.toPacket()}`)
                 break;
@@ -979,6 +1103,7 @@ class OutboundCommon extends Message {
         if (this.protocol === Protocol.Chlorinator) this.header[2] = val;
         else if (this.protocol === Protocol.Hayward) this.header[4] = val;
         else if (this.protocol === Protocol.RegalModbus) this.header[0] = val;
+        else if (this.protocol === Protocol.NeptuneModbus) this.header[0] = val;
         else this.header[2] = val;
     }
     public get dest() { return super.dest; }
@@ -990,6 +1115,8 @@ class OutboundCommon extends Message {
                 this.header[3] = val;
                 break;
             case Protocol.RegalModbus:
+                break;
+            case Protocol.NeptuneModbus:
                 break;
             default:
                 this.header[3] = val;
@@ -1010,6 +1137,9 @@ class OutboundCommon extends Message {
             case Protocol.RegalModbus:
                 this.header[1] = val;
                 break;
+            case Protocol.NeptuneModbus:
+                this.header[1] = val;
+                break;
             default:
                 this.header[4] = val;
                 break;
@@ -1017,7 +1147,7 @@ class OutboundCommon extends Message {
     }
     public get action() { return super.action; }
     public set datalen(val: number) { 
-        if (this.protocol !== Protocol.Chlorinator && this.protocol !== Protocol.Hayward && this.protocol !== Protocol.RegalModbus) {
+        if (this.protocol !== Protocol.Chlorinator && this.protocol !== Protocol.Hayward && this.protocol !== Protocol.RegalModbus && this.protocol !== Protocol.NeptuneModbus) {
             this.header[5] = val; 
         }
     }
@@ -1055,6 +1185,13 @@ class OutboundCommon extends Message {
                 this.chkLo = (crc >> 8) & 0xFF;
                 this.chkHi = crc & 0xFF;
                 break;
+            case Protocol.NeptuneModbus:
+                // Modbus RTU CRC16 (LSB-first on the wire).
+                let modbusData: number[] = this.header.concat(this.payload);
+                const modbusCrc: number = computeCRC16(modbusData);
+                this.chkLo = (modbusCrc >> 8) & 0xFF;
+                this.chkHi = modbusCrc & 0xFF;
+                break;
         }
     }
 }
@@ -1089,6 +1226,10 @@ export class Outbound extends OutboundCommon {
         }
         else if (proto === Protocol.RegalModbus) {
             this.header.push.apply(this.header, [this.dest, this.action, 0x20]);
+        }
+        else if (proto === Protocol.NeptuneModbus) {
+            this.header.push.apply(this.header, [this.dest, this.action]);
+            this.term.push.apply(this.term, [0, 0]);
         }
         this.scope = scope;
         this.source = source;
@@ -1381,6 +1522,13 @@ export class Response extends OutboundCommon {
             // RegalModbus is a little different.  The action is the function code and the payload is the data.
             // We are looking for a match on the action an ack of 0x10.
             if (msgIn.action === msgOut.action && msgIn.header[2] === 0x10) return true;
+            return false;
+        }
+        else if (msgIn.protocol === Protocol.NeptuneModbus) {
+            // Neptune Modbus: match by address and function code; allow exception responses (fn | 0x80).
+            if (msgIn.dest !== msgOut.dest) return false;
+            if (msgIn.action === msgOut.action) return true;
+            if (msgIn.action === (msgOut.action | 0x80)) return true;
             return false;
         }
         else if (msgIn.protocol === Protocol.Chlorinator) {

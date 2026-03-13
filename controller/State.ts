@@ -1090,6 +1090,7 @@ export class PumpState extends EqState {
                 case 'vssvrs':
                 case 'vs':
                 case 'regalmodbus':
+                case 'neptunemodbus':
                     c.units = sys.board.valueMaps.pumpUnits.transformByName('rpm');
                     break;
                 case 'ss':

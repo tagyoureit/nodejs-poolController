@@ -33,6 +33,9 @@ const addrsPentairPump = Object.freeze([96, 97, 98, 99, 100, 101, 102, 103, 104,
 const addrsRegalModbusPump = Object.freeze(
     Array.from({ length: ((0xF7 - 0x15) / 2) + 1 }, (_, i) => 0x15 + i * 2)  // Odd numbers fro 0x15 through 0xF7
   );
+const addrsNeptuneModbusPump = Object.freeze(
+    Array.from({ length: 247 }, (_, i) => i + 1) // Modbus slave IDs 1..247
+);
 
 
 export class NixieBoard extends SystemBoard {
@@ -91,6 +94,7 @@ export class NixieBoard extends SystemBoard {
             [7, { name: 'hwrly', desc: 'Hayward Relay VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, maxSpeeds: 8, relays: [{ id: 1, name: 'Step #1' }, { id: 2, name: 'Step #2'}, { id: 3, name: 'Step #3' }, { id: 4, name: 'Pump On' }], addresses: [] }],
             [100, { name: 'sf', desc: 'SuperFlo VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1, maxSpeeds: 4, relays: [{ id: 1, name: 'Program #1' }, { id: 2, name: 'Program #2' }, { id: 3, name: 'Program #3' }, { id: 4, name: 'Program #4' }], addresses: [] }],
             [200, { name: 'regalmodbus', desc: 'Regal Modbus', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true, addresses: addrsRegalModbusPump}],
+            [201, { name: 'neptunemodbus', desc: 'Neptune Modbus', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true, addresses: addrsNeptuneModbusPump }],
         ]);
         // RSG - same as systemBoard definition; can delete.
         this.valueMaps.heatModes = new byteValueMap([
