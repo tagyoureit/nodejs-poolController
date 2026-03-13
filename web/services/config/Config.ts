@@ -35,6 +35,11 @@ import { screenlogic } from "node-screenlogic";
 
 export class ConfigRoute {
     private static securitySessions: Map<string, any> = new Map<string, any>();
+    private static isOcpWriteSecurityEnforced(): boolean {
+        // Intentionally hard-disabled until OCP security semantics are fully understood.
+        // This avoids accidentally locking users out of configuration writes.
+        return false;
+    }
     private static getClientKey(req: express.Request): string {
         const forwarded = (req.headers['x-forwarded-for'] || '') as string;
         const forwardedIp = forwarded.split(',')[0].trim();
@@ -80,6 +85,7 @@ export class ConfigRoute {
         return undefined;
     }
     private static validateWriteAccess(req: express.Request): { allowed: boolean; reason?: string; session?: any } {
+        if (!ConfigRoute.isOcpWriteSecurityEnforced()) return { allowed: true };
         if (!sys.security.enabled) return { allowed: true };
         const session = ConfigRoute.getSecuritySession(req);
         if (typeof session === 'undefined' || !session.isAuthenticated) {
