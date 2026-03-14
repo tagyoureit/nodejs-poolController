@@ -123,6 +123,17 @@
 **Generalization:** This applies to *anything* that is overridden by controller boards (IntelliCenter, EasyTouch, IntelliTouch, AquaLink, SunTouch, Nixie, etc.).  
 If you find yourself writing `if (sys.controllerType === ...)` inside `SystemBoard.ts`, that is almost always a design smell—create/extend the controller-specific command class in the appropriate board file and keep `SystemBoard.ts` purely generic.
 
+### 7.1 Nixie Chemistry Relay UI Sync: Circuits, Not Features (CRITICAL)
+**Rule:** For Nixie/REM chemistry relay status sync, treat **circuits** as the hardware-bound source of truth. Do **not** implement hardware binding logic on `Feature`.
+
+- `Feature` is logical/virtual state in this context; relay bindings (`connectionId`, `deviceBinding`) belong on `Circuit`.
+- When chemistry pump state changes (`NixieChemPump.turnOn/turnOff`), locate matching entries in `sys.circuits` by `connectionId` + `deviceBinding`.
+- Reflect state in `state.circuits` (including `setEndTime` semantics) and emit changes; do not bind/sync through `state.features`.
+- Avoid duplicate relay writes: if the chemistry code already sent the hardware command, sync in-memory circuit state instead of issuing an additional toggle command for that same relay.
+- If the UI "Features" panel must show the relay, use a **circuit** with `showInFeatures=true` (presentation concern), not a bound `Feature`.
+
+**Context:** Added after investigation/fix for discussion #1159 (acid feeder relay dot not reflecting REM dosing state in dashPanel).
+
 ## Analysis Patterns
 
 ### 6. Examine Working State, Not Just Failures
@@ -597,6 +608,6 @@ Each protocol file should include:
 
 ---
 
-**Last Updated:** December 16, 2025  
+**Last Updated:** March 13, 2026  
 **Source:** nodejs-poolController IntelliCenter v3.004 compatibility work
 

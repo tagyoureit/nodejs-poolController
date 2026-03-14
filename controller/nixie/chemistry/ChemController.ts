@@ -1421,7 +1421,7 @@ export class NixieChemPump extends NixieChildEquipment {
             // about an EZO pump all the values are maintained anyway through the state settings.
             let res = await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, { state: false });
             this.isOn = schem.pump.isDosing = false;
-            await this.syncBoundFeatureStatesAsync(false);
+            await this.syncBoundCircuitStatesAsync(false);
             return res;
         }
         catch (err) { logger.error(`chemController.pump.turnOff: ${err.message}`); return Promise.reject(err); }
@@ -1430,24 +1430,32 @@ export class NixieChemPump extends NixieChildEquipment {
         try {
             let res = await NixieEquipment.putDeviceService(this.pump.connectionId, `/state/device/${this.pump.deviceBinding}`, typeof latchTimeout !== 'undefined' ? { isOn: true, latch: latchTimeout } : { isOn: true });
             this.isOn = schem.pump.isDosing = true;
-            await this.syncBoundFeatureStatesAsync(true);
+            await this.syncBoundCircuitStatesAsync(true);
             return res;
         }
         catch (err) { logger.error(`chemController.pump.turnOn: ${err.message}`); return Promise.reject(err); }
     }
-    private async syncBoundFeatureStatesAsync(isOn: boolean): Promise<void> {
+    private async syncBoundCircuitStatesAsync(isOn: boolean): Promise<void> {
         if (utils.isNullOrEmpty(this.pump.connectionId) || utils.isNullOrEmpty(this.pump.deviceBinding)) return;
         try {
-            for (let i = 0; i < sys.features.length; i++) {
-                let feature = sys.features.getItemByIndex(i);
-                if (!feature.isActive) continue;
-                if (feature.connectionId !== this.pump.connectionId || feature.deviceBinding !== this.pump.deviceBinding) continue;
-                let fstate = state.features.getItemById(feature.id, false);
-                if (fstate.isOn === isOn) continue;
-                await sys.board.features.setFeatureStateAsync(feature.id, isOn, true);
+            let hasChanged = false;
+            for (let i = 0; i < sys.circuits.length; i++) {
+                let circuit = sys.circuits.getItemByIndex(i);
+                if (!circuit.isActive) continue;
+                if (circuit.connectionId !== this.pump.connectionId || circuit.deviceBinding !== this.pump.deviceBinding) continue;
+                let cstate = state.circuits.find(elem => elem.id === circuit.id);
+                if (typeof cstate === 'undefined' || cstate.isOn === isOn) continue;
+                sys.board.circuits.setEndTime(circuit, cstate, isOn);
+                cstate.isOn = isOn;
+                hasChanged = true;
+            }
+            if (hasChanged) {
+                sys.board.valves.syncValveStates();
+                ncp.pumps.syncPumpStates();
+                state.emitEquipmentChanges();
             }
         }
-        catch (err) { logger.warn(`chemController.pump.syncBoundFeatureStatesAsync: ${err.message}`); }
+        catch (err) { logger.warn(`chemController.pump.syncBoundCircuitStatesAsync: ${err.message}`); }
     }
 }
 export class NixieChemChlor extends NixieChildEquipment {
