@@ -190,8 +190,7 @@ export class EasyTouchBoard extends SystemBoard {
             [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true, hasCoolSetpoint: true, hasPreference: true }],
             [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
             [6, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
-            [7, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }],
-            [8, { name: 'ultratempdirect', desc: 'UltraTemp Direct', hasAddress: true, hasCoolSetpoint: true, hasPreference: true }]
+            [7, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }]
         ]);
 
 
@@ -2702,11 +2701,11 @@ class TouchHeaterCommands extends HeaterCommands {
         let heaters = sys.heaters.get();
         let types = sys.board.valueMaps.heaterTypes.toArray();
         let inst = { total: 0 };
-        // When an ultratempdirect heater (master=1) exists, it replaces the OCP's
-        // hybrid/ultratemp ghost heaters for heat-mode purposes.
-        let hasUltratempdirect = heaters.some(h => {
+        // When an NCP-controlled (master=1) ultratemp exists, it replaces the OCP's
+        // ghost heaters (hybrid/ultratemp/solar) for heat-mode purposes.
+        let hasNcpUltratemp = heaters.some(h => {
             let t = types.find(elem => elem.val === h.type);
-            return t && t.name === 'ultratempdirect' && h.master === 1;
+            return t && (t.name === 'ultratemp' || t.name === 'heatpump') && h.master === 1;
         });
         for (let i = 0; i < types.length; i++) if (types[i].name !== 'none') inst[types[i].name] = 0;
         for (let i = 0; i < heaters.length; i++) {
@@ -2716,8 +2715,8 @@ class TouchHeaterCommands extends HeaterCommands {
             }
             let type = types.find(elem => elem.val === heater.type);
             if (typeof type !== 'undefined') {
-                // Skip OCP hybrid/ultratemp/solar heaters when ultratempdirect replaces them.
-                if (hasUltratempdirect && heater.master === 0 && (type.name === 'hybrid' || type.name === 'ultratemp' || type.name === 'solar')) continue;
+                // Skip OCP ghost heaters when NCP directly controls an ultratemp/heatpump.
+                if (hasNcpUltratemp && heater.master === 0 && (type.name === 'hybrid' || type.name === 'ultratemp' || type.name === 'solar')) continue;
                 if (inst[type.name] === 'undefined') inst[type.name] = 0;
                 inst[type.name] = inst[type.name] + 1;
                 if (heater.coolingEnabled === true && type.hasCoolSetpoint === true) inst['hasCoolSetpoint'] = true;
@@ -2927,7 +2926,7 @@ class TouchHeaterCommands extends HeaterCommands {
         let htypes = sys.board.heaters.getInstalledHeaterTypes();
         let solarInstalled = htypes.solar > 0;
         let heatPumpInstalled = htypes.heatpump > 0;
-        let ultratempInstalled = htypes.ultratemp > 0 || htypes.ultratempdirect > 0;
+        let ultratempInstalled = htypes.ultratemp > 0;
         let gasHeaterInstalled = htypes.gas > 0;
         let hybridInstalled = htypes.hybrid > 0;
         sys.board.valueMaps.heatModes.set(0, { name: 'off', desc: 'Off' });

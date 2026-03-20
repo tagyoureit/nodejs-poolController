@@ -457,7 +457,6 @@ export class byteValueMaps {
         [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
         [6, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }],
         [7, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
-        [8, { name: 'ultratempdirect', desc: 'UltraTemp Direct', hasAddress: true, hasCoolSetpoint: true, hasPreference: true }],
     ]);
     public heatModes: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
@@ -1797,13 +1796,15 @@ export class BodyCommands extends BoardCommands {
             heatSources.push(hm);
             if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('solarpref'));
         }
-        if (heatTypes.heatpump > 0 || heatTypes.ultratempdirect > 0) {
+        if (heatTypes.heatpump > 0) {
             let hm = this.board.valueMaps.heatSources.transformByName('heatpump');
             heatSources.push(hm);
             if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('heatpumppref'));
         }
         if (heatTypes.ultratemp > 0) {
             let hm = this.board.valueMaps.heatSources.transformByName('ultratemp');
+            // EasyTouch with standalone ultratemp (no gas) uses 'heatpump' source instead of 'ultratemp'
+            if (typeof hm.val === 'undefined') hm = this.board.valueMaps.heatSources.transformByName('heatpump');
             heatSources.push(hm);
             if (heatTypes.total > 1) heatSources.push(this.board.valueMaps.heatSources.transformByName('ultratemppref'));
         }
@@ -1840,13 +1841,15 @@ export class BodyCommands extends BoardCommands {
             heatModes.push(hm);
             if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('solarpref'));
         }
-        if (heatTypes.heatpump > 0 || heatTypes.ultratempdirect > 0) {
+        if (heatTypes.heatpump > 0) {
             let hm = this.board.valueMaps.heatModes.transformByName('heatpump');
             heatModes.push(hm);
             if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('heatpumppref'));
         }
         if (heatTypes.ultratemp > 0) {
             let hm = this.board.valueMaps.heatModes.transformByName('ultratemp');
+            // EasyTouch with standalone ultratemp (no gas) uses 'heatpump' mode instead of 'ultratemp'
+            if (typeof hm.val === 'undefined') hm = this.board.valueMaps.heatModes.transformByName('heatpump');
             heatModes.push(hm);
             if (heatTypes.total > 1) heatModes.push(this.board.valueMaps.heatModes.transformByName('ultratemppref'));
         }
@@ -4033,7 +4036,7 @@ export class HeaterCommands extends BoardCommands {
     public updateHeaterServices() {
         let htypes = sys.board.heaters.getInstalledHeaterTypes();
         let solarInstalled = htypes.solar > 0;
-        let heatPumpInstalled = htypes.heatpump > 0 || htypes.ultratemp > 0 || htypes.ultratempdirect > 0;
+        let heatPumpInstalled = htypes.heatpump > 0 || htypes.ultratemp > 0;
         let gasHeaterInstalled = htypes.gas > 0;
         if (sys.heaters.length > 0) sys.board.valueMaps.heatSources = new byteValueMap([[0, { name: 'off', desc: 'Off' }]]);
         if (gasHeaterInstalled) sys.board.valueMaps.heatSources.set(3, { name: 'heater', desc: 'Heater' });
@@ -4297,7 +4300,6 @@ export class HeaterCommands extends BoardCommands {
                                         }
                                         break;
                                     case 'ultratemp':
-                                    case 'ultratempdirect':
                                         // There is a temperature differential setting on UltraTemp.  This is how
                                         // much the water temperature needs to drop below the set temperature, for the heater
                                         // to start up again.  For instance, if the set temperature and the water temperature is 82 and then the
@@ -4456,7 +4458,6 @@ export class HeaterCommands extends BoardCommands {
                                     if (hstatus === 'mtheat' || hstatus === 'heater' || hstatus === 'dual' || hstatus === 'hybheat') isHeating = isOn = true;
                                     break;
                                 case 'ultratemp':
-                                case 'ultratempdirect':
                                 case 'heatpump':
                                     if (mode === 'ultratemp' || mode === 'ultratemppref' || mode === 'heatpump' || mode === 'heatpumppref') {
                                         if (hstatus === 'heater') isHeating = isOn = true;

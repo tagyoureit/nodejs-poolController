@@ -130,7 +130,6 @@ export class NixieHeaterBase extends NixieEquipment {
             case 'heatpump':
                 return new NixieHeatpump(ncp, heater);
             case 'ultratemp':
-            case 'ultratempdirect':
                 return new NixieUltratemp(ncp, heater);
             case 'gas':
                 return new NixieGasHeater(ncp, heater);
