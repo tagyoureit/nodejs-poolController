@@ -1618,6 +1618,27 @@ export class TouchCircuitCommands extends CircuitCommands {
         }
         return await this.setCircuitStateAsync(id, !cstate.isOn);
     }
+    public async setDimmerLevelAsync(id: number, level: number): Promise<ICircuitState> {
+        let circ = state.circuits.getItemById(id);
+        // Valid dimmer levels are 30-100 in steps of 10, or 0 to turn off.
+        if (level > 0) level = Math.min(100, Math.max(30, Math.round(level / 10) * 10));
+        if (sl.enabled) {
+            await sl.circuits.setCircuitStateAsync(id, level > 0);
+        } else {
+            let out = Outbound.create({
+                action: 134,
+                payload: [id, level > 0 ? 128 + level : 0],
+                retries: 3,
+                response: true,
+                scope: `circuitState${id}`
+            });
+            await out.sendAsync();
+        }
+        circ.level = level;
+        circ.isOn = level > 0;
+        state.emitEquipmentChanges();
+        return circ as ICircuitState;
+    }
 
     public async setLightGroupAsync(obj: any, send: boolean = true): Promise<LightGroup> {
         try {
