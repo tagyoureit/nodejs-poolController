@@ -429,6 +429,7 @@ export class NixieChemDoser extends NixieChemDoserBase implements INixieChemical
                     (typeof data.mixingTimeSeconds !== 'undefined' ? parseInt(data.mixingTimeSeconds, 10) : 0);
             }
             chem.mixingTime = typeof data.mixingTime !== 'undefined' ? parseInt(data.mixingTime, 10) : chem.mixingTime;
+            if (typeof data.singleMixPeriod !== 'undefined') chem.singleMixPeriod = utils.makeBool(data.singleMixPeriod);
             await this.flowSensor.setSensorAsync(data.flowSensor);
             await this.tank.setTankAsync(schem.tank, data.tank);
             await this.pump.setPumpAsync(schem.pump, data.pump);
@@ -586,6 +587,22 @@ export class NixieChemDoser extends NixieChemDoserBase implements INixieChemical
                 await this.cancelDosing(sd, 'daily limit');
             }
             else if (status === 'monitoring' || status === 'dosing') {
+                // Check if any other chem doser is currently mixing - only if singleMixPeriod is enabled
+                if (this.chem.singleMixPeriod) {
+                    let otherDoserMixing = false;
+                    for (let i = 0; i < state.chemDosers.length; i++) {
+                        let otherDoser = state.chemDosers.getItemByIndex(i);
+                        if (otherDoser.id !== sd.id && otherDoser.dosingStatus === 1) { // 1 is mixing
+                            logger.info(`Cannot dose ${sd.chemType} - ${otherDoser.chemType} doser is currently mixing`);
+                            otherDoserMixing = true;
+                            break;
+                        }
+                    }
+                    if (otherDoserMixing) {
+                        await this.cancelDosing(sd, 'another doser mixing');
+                        return;
+                    }
+                }
                 // Figure out what mode we are in and what mode we should be in.
                 //sph.level = 7.61;
                 // Check the setpoint and the current level to see if we need to dose.
