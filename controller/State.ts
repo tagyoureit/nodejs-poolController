@@ -1106,6 +1106,7 @@ export class PumpState extends EqState {
                     c.units = sys.board.valueMaps.pumpUnits.transformByName('gpm');
                     break;
                 case 'hwvs':
+                case 'hwsp':
                 case 'vssvrs':
                 case 'vs':
                 case 'regalmodbus':

@@ -135,6 +135,7 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
             case 'vs':
                 return new NixiePumpVS(this.controlPanel, pump);
             case 'hwvs':
+            case 'hwsp':
                 return new NixiePumpHWVS(this.controlPanel, pump);
             case 'hwrly':
                 return new NixiePumpHWRLY(this.controlPanel, pump);
