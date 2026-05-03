@@ -29,6 +29,9 @@ import { setTimeout as setTimeoutSync } from 'timers';
 
 
 export class byteValueMap extends Map<number, any> {
+    constructor(entries?: [number, any][]) {
+        super(entries);
+    }
     public transform(byte: number, ext?: number) { return extend(true, { val: byte || 0 }, this.get(byte) || this.get(0)); }
     public toArray(): any[] {
         let arrKeys = Array.from(this.keys());
