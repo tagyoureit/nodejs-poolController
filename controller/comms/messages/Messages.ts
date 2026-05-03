@@ -339,6 +339,9 @@ export class Message {
     }
 }
 export class Inbound extends Message {
+    private static readonly MAX_REWINDS_PER_MESSAGE = 250;
+    private static readonly REWIND_LOG_EVERY = 25;
+    private static readonly REWIND_LOG_PREVIEW_BYTES = 32;
     // /usr/bin/socat TCP-LISTEN:9801,fork,reuseaddr FILE:/dev/ttyUSB0,b9600,raw
     // /usr/bin/socat TCP-LISTEN:9801,fork,reuseaddr FILE:/dev/ttyUSB0,b9600,cs8,cstopb=1,parenb=0,raw
     // /usr/bin / socat TCP - LISTEN: 9801,fork,reuseaddr FILE:/dev/ttyUSB0, b9600, cs8, cstopb = 1, parenb = 0, raw
@@ -358,6 +361,12 @@ export class Inbound extends Message {
     public isProcessed: boolean = false;
     public collisions: number = 0;
     public rewinds: number = 0;
+    private logRewindCollision(buff: number[], ndx: number, inLen: number) {
+        if (this.collisions === 1 || this.collisions % Inbound.REWIND_LOG_EVERY === 0) {
+            const preview = buff.slice(0, Inbound.REWIND_LOG_PREVIEW_BYTES);
+            logger.warn(`rewinding message collision count=${this.collisions} rewinds=${this.rewinds} ndx=${ndx} inLen=${inLen} buffLen=${buff.length} preview=${JSON.stringify(preview)}${buff.length > preview.length ? '...truncated' : ''}`);
+        }
+    }
     // Private methods
     private isValidChecksum(): boolean {
         switch (this.protocol) {
@@ -543,7 +552,13 @@ export class Inbound extends Message {
 
         this.collisions++;
         this.rewinds++;
-        logger.info(`rewinding message collision ${this.collisions} ${ndx} ${bytes.length} ${JSON.stringify(buff)}`);
+        if (this.rewinds > Inbound.MAX_REWINDS_PER_MESSAGE) {
+            logger.warn(`rewind limit exceeded for inbound message: rewinds=${this.rewinds} collisions=${this.collisions} inLen=${bytes.length}. Dropping current packet to protect heap.`);
+            this._complete = true;
+            this.isValid = false;
+            return bytes.length;
+        }
+        this.logRewindCollision(buff, ndx, bytes.length);
         this.readPacket(buff);
         return ndx;
         //return this.padding.length + this.preamble.length;
