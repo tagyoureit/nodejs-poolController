@@ -90,8 +90,10 @@ export class EquipmentStateMessage {
         // RKS: 06-15-20 -- While this works for now the way we are detecting seems a bit dubious.  First, the 2 status message
         // contains two model bytes.  Right now the ones witness in the wild include 23 = fw1.023, 40 = fw1.040, 47 = fw1.047.
         // RKS: 07-21-22 -- Pentair is about to release fw1.232.  Unfortunately, the byte mapping for this has changed such that
-        // the bytes [27,28] are [0,2] respectively.  This looks like it might be in conflict with IntelliTouch but it is not.  Below
-        // are the combinations of 27,28 we have seen for IntelliTouch
+        // the bytes [27,28] are [0,2] respectively.  This IS in conflict with IntelliTouch i9+3 (also [0,2]).
+        // We disambiguate via header[1]: IntelliCenter uses 1, Touch systems use other values (e.g. 18).
+        // Below are the combinations of 27,28 we have seen for IntelliTouch
+        // [0,2] = i9+3 (Rev B, part 520074) -- header[1] != 1 distinguishes from IntelliCenter
         // [1,0] = i5+3
         // [0,1] = i7+3
         // [1,3] = i5+3s
@@ -104,7 +106,7 @@ export class EquipmentStateMessage {
         // No IntelliTouch variant has ever reported model1=3, so `model1 === 3` is a safe
         // single-check marker for IntelliCenter v3 regardless of which panel variant byte 28 carries.
         if ((model2 === 0 && (model1 === 23 || model1 >= 40)) ||
-            (model2 === 2 && model1 == 0) ||
+            (model2 === 2 && model1 == 0 && msg.header[1] === 1) ||
             (model1 === 3)) {
             state.equipment.controllerType = 'intellicenter';
             sys.board.modulesAcquired = false;
