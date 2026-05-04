@@ -2292,6 +2292,7 @@ export class ChemController extends EqItem implements IChemController {
         if (typeof this.data.borates === 'undefined') this.data.borates = 0;
         if (typeof this.data.siCalcType === 'undefined') this.data.siCalcType = 0;
         if (typeof this.data.intellichemStandalone === 'undefined') this.data.intellichemStandalone = false;
+        if (typeof this.data.singleMixPeriod === 'undefined') this.data.singleMixPeriod = false;
         super.initData();
     }
     public dataName = 'chemControllerConfig';
@@ -2327,6 +2328,8 @@ export class ChemController extends EqItem implements IChemController {
     public get lsiRange(): AlarmSetting { return new AlarmSetting(this.data, 'lsiRange', this); }
     public get firmware(): string { return this.data.firmware; }
     public set firmware(val: string) { this.setDataVal('firmware', val); }
+    public get singleMixPeriod(): boolean { return this.data.singleMixPeriod; }
+    public set singleMixPeriod(val: boolean) { this.setDataVal('singleMixPeriod', val); }
     public getExtended() {
         let chem = this.get(true);
         chem.type = sys.board.valueMaps.chemControllerTypes.transform(this.type);
@@ -2364,6 +2367,7 @@ export class ChemDoser extends EqItem implements IChemical {
         if (typeof this.mixingTime === 'undefined') this.data.mixingTime = 3600;
         if (typeof this.data.setpoint === 'undefined') this.data.setpoint = 100;
         if (typeof this.data.type === 'undefined') this.data.type = 0;
+        if (typeof this.data.singleMixPeriod === 'undefined') this.data.singleMixPeriod = false;
         super.initData();
     }
     public get id(): number { return this.data.id; }
@@ -2402,6 +2406,8 @@ export class ChemDoser extends EqItem implements IChemical {
     public get flowSensor(): ChemFlowSensor { return new ChemFlowSensor(this.data, 'flowSensor', this); }
     public get flowOnlyMixing(): boolean { return utils.makeBool(this.data.flowOnlyMixing); }
     public set flowOnlyMixing(val: boolean) { this.setDataVal('flowOnlyMixing', val); }
+    public get singleMixPeriod(): boolean { return this.data.singleMixPeriod; }
+    public set singleMixPeriod(val: boolean) { this.setDataVal('singleMixPeriod', val); }
     public get pump(): ChemicalPump { return new ChemicalPump(this.data, 'pump', this); }
     public get tank(): ChemicalTank { return new ChemicalTank(this.data, 'tank', this); }
     public getExtended() {
