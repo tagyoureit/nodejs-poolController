@@ -586,6 +586,7 @@ export class NixieChemController extends NixieChemControllerBase {
                 if (typeof data.lsiRange.low === 'number') chem.lsiRange.low = data.lsiRange.low;
                 if (typeof data.lsiRange.high === 'number') chem.lsiRange.high = data.lsiRange.high;
             }
+            if (typeof data.singleMixPeriod !== 'undefined') chem.singleMixPeriod = utils.makeBool(data.singleMixPeriod);
             if (typeof data.siCalcType !== 'undefined') schem.siCalcType = chem.siCalcType = data.siCalcType;
             await this.flowSensor.setSensorAsync(data.flowSensor);
             // Alright we are down to the equipment items all validation should have been completed by now.
@@ -1794,6 +1795,11 @@ export class NixieChemicalPh extends NixieChemical {
             else if (sph.dailyLimitReached) {
                 await this.cancelDosing(sph, 'daily limit');
             }
+            else if (this.chemController.chem.singleMixPeriod && sph.chemController.orp.dosingStatus === 1) {
+                // Don't dose pH if ORP is mixing - enforce single mixing period (only when enabled)
+                await this.cancelDosing(sph, 'orp mixing');
+                return;
+            }
             else if (status === 'monitoring' || status === 'dosing') {
                 // Figure out what mode we are in and what mode we should be in.
                 //sph.level = 7.61;
@@ -2287,6 +2293,11 @@ export class NixieChemicalORP extends NixieChemical {
             // if the ph pump is dosing and dosePriority is enabled, do not dose
             else if (sorp.chemController.ph.pump.isDosing && chem.ph.dosePriority) {
                 await this.cancelDosing(sorp, 'ph pump dosing + dose priority');
+                return;
+            }
+            else if (chem.singleMixPeriod && sorp.chemController.ph.dosingStatus === 1) {
+                // Don't dose ORP if pH is mixing - enforce single mixing period (only when enabled)
+                await this.cancelDosing(sorp, 'ph mixing');
                 return;
             }
             else if (status === 'monitoring' || status === 'dosing') {
