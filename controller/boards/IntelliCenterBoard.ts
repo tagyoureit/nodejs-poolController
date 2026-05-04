@@ -636,8 +636,7 @@ export class IntelliCenterBoard extends SystemBoard {
         if (!inv.shared && !inv.dual) { sys.board.equipmentIds.circuits.start = 2; } // We are a single body system.
         this.processExpansionModules(sys.equipment.expansions.getItemById(1, true), xcp1A, xcp1B, inv);
         this.processExpansionModules(sys.equipment.expansions.getItemById(2, true), xcp2A, xcp2B, inv);
-        // We are still unsure how the 3rd power center is encoded.  For now we are simply un-installing it.
-        this.processExpansionModules(sys.equipment.expansions.getItemById(3, true), 0, 0, inv);
+        this.processExpansionModules(sys.equipment.expansions.getItemById(3, true), xcp3A, xcp3B, inv);
         if (inv.bodies !== sys.equipment.maxBodies ||
             inv.circuits !== sys.equipment.maxCircuits ||
             inv.chlorinators !== sys.equipment.maxChlorinators ||
@@ -647,7 +646,7 @@ export class IntelliCenterBoard extends SystemBoard {
             this.processMasterModules(sys.equipment.modules, ocp0A, ocp0B);
             this.processExpansionModules(sys.equipment.expansions.getItemById(1, true), xcp1A, xcp1B);
             this.processExpansionModules(sys.equipment.expansions.getItemById(2, true), xcp2A, xcp2B);
-            this.processExpansionModules(sys.equipment.expansions.getItemById(3, true), 0, 0);
+            this.processExpansionModules(sys.equipment.expansions.getItemById(3, true), xcp3A, xcp3B);
         }
         sys.equipment.maxBodies = inv.bodies;
         sys.equipment.maxValves = inv.valves;
