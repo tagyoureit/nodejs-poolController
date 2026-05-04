@@ -2006,24 +2006,25 @@ export class NixieChemicalORP extends NixieChemical {
             if (typeof data !== 'undefined') {
                 this.orp.useChlorinator = typeof data.useChlorinator !== 'undefined' ? utils.makeBool(data.useChlorinator) : this.orp.useChlorinator;
                 if (this.orp.useChlorinator) {
-                    if (typeof data.chlorId === 'undefined') {
-                        return Promise.reject(new InvalidEquipmentDataError(`Chlorinator ID must be provided when useChlorinator is true`, 'chemController', data.chlorId));
+                    let chlorId = typeof data.chlorId !== 'undefined' ? data.chlorId : this.orp.chlorId;
+                    if (typeof chlorId === 'undefined') {
+                        return Promise.reject(new InvalidEquipmentDataError(`Chlorinator ID must be provided when useChlorinator is true`, 'chemController', chlorId));
                     }
-                    let chlor = sys.chlorinators.getItemById(data.chlorId);
+                    let chlor = sys.chlorinators.getItemById(chlorId);
                     if (typeof chlor === 'undefined') {
-                        return Promise.reject(new InvalidEquipmentDataError(`Chlorinator with ID ${data.chlorId} not found`, 'chemController', data.chlorId));
+                        return Promise.reject(new InvalidEquipmentDataError(`Chlorinator with ID ${chlorId} not found`, 'chemController', chlorId));
                     }
                     if (chlor.body !== this.chemController.chem.body && chlor.body !== 32) {
-                        return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body does not match the chem controller body`, 'chemController', data.chlorId));
+                        return Promise.reject(new InvalidEquipmentDataError(`Chlorinator body does not match the chem controller body`, 'chemController', chlorId));
                     }
-                    let assignedChemController = sys.chemControllers.get().find((cc: ChemController) => 
+                    let assignedChemController = sys.chemControllers.get().find((cc: ChemController) =>
                         {
-                            return cc.orp.chlorId === data.chlorId && cc.id !== this.chemController.id;
+                            return cc.orp.chlorId === chlorId && cc.id !== this.chemController.id;
                         });
                     if (assignedChemController) {
-                        return Promise.reject(new InvalidEquipmentDataError(`Chlorinator is already assigned to another chem controller`, 'chemController', data.chlorId));
+                        return Promise.reject(new InvalidEquipmentDataError(`Chlorinator is already assigned to another chem controller`, 'chemController', chlorId));
                     }
-                    this.orp.chlorId = data.chlorId;
+                    this.orp.chlorId = chlorId;
                     if (typeof data.chlorDosingMethod !== 'undefined') { this.orp.chlorDosingMethod = data.chlorDosingMethod; }
                 } else {
                     this.orp.chlorId = undefined;
