@@ -168,9 +168,18 @@ export class HeaterStateMessage {
         sheater.isOn = heatByte === 0x08;
         sheater.commStatus = 0;
         state.equipment.messages.removeItemByCode(`heater:${heater.id}:comms`);
-        if (errByte & 0x10) logger.warn(`JXi heater ${heater.name}: hi-limit/flue fault (0x${errByte.toString(16)})`);
-        if (errByte & 0x02) logger.warn(`JXi heater ${heater.name}: water sensor fault (0x${errByte.toString(16)})`);
-        if (errByte & 0x08) logger.warn(`JXi heater ${heater.name}: pump/AUX fault (0x${errByte.toString(16)})`);
+        if (errByte & 0x10)
+            state.equipment.messages.setMessageByCode(`heater:${heater.id}:hilimit`, 'error', `${heater.name}: Hi-limit/flue temperature fault`);
+        else
+            state.equipment.messages.removeItemByCode(`heater:${heater.id}:hilimit`);
+        if (errByte & 0x02)
+            state.equipment.messages.setMessageByCode(`heater:${heater.id}:sensor`, 'error', `${heater.name}: Water sensor fault`);
+        else
+            state.equipment.messages.removeItemByCode(`heater:${heater.id}:sensor`);
+        if (errByte & 0x08)
+            state.equipment.messages.setMessageByCode(`heater:${heater.id}:pump`, 'warning', `${heater.name}: Pump/AUX monitor fault`);
+        else
+            state.equipment.messages.removeItemByCode(`heater:${heater.id}:pump`);
         msg.isProcessed = true;
     }
     public static processJxiTempResponse(msg: Inbound) {

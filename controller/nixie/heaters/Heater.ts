@@ -674,6 +674,9 @@ export class NixieJxiHeater extends NixieHeaterBase {
             this._pollTimer = null;
             let sheater = state.heaters.getItemById(this.heater.id);
             await this.setStatus(sheater);
+            state.equipment.messages.removeItemByCode(`heater:${sheater.id}:hilimit`);
+            state.equipment.messages.removeItemByCode(`heater:${sheater.id}:sensor`);
+            state.equipment.messages.removeItemByCode(`heater:${sheater.id}:pump`);
             logger.info(`Closing JXi Heater ${this.heater.name}`);
         }
         catch (err) { logger.error(`JXi heater closeAsync: ${err.message}`); return Promise.reject(err); }
