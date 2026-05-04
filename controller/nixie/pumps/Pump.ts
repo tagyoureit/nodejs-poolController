@@ -958,7 +958,7 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
                     }
                 }
             }
-        } catch(err) { `Error sending setPumpToRemoteControl message for ${this.pump.name}: ${err.message}` };
+        } catch(err) { logger.error(`Error sending setPumpToRemoteControl message for ${this.pump.name}: ${err.message}`); };
     }
     protected async setPumpRPMAsync() {
         // Address 1
