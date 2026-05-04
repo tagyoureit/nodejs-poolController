@@ -457,6 +457,8 @@ export class byteValueMaps {
         [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
         [6, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }],
         [7, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
+        [8, { name: 'jxi', desc: 'Jandy JXi', hasAddress: true }],
+        [9, { name: 'lxi', desc: 'Jandy LXi', hasAddress: true }],
     ]);
     public heatModes: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],

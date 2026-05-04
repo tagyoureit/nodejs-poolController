@@ -22,6 +22,17 @@ import { logger } from '../../../../logger/Logger';
 
 export class HeaterStateMessage {
     public static process(msg: Inbound) {
+        if (msg.protocol === Protocol.Jandy) {
+            switch (msg.action) {
+                case 0x0D:
+                    HeaterStateMessage.processJxiStatus(msg);
+                    break;
+                case 0x25:
+                    HeaterStateMessage.processJxiTempResponse(msg);
+                    break;
+            }
+            return;
+        }
         if (msg.protocol === Protocol.Heater) {
             switch (msg.action) {
                 case 112: // This is a message from a master controlling MasterTemp or UltraTemp ETi
@@ -142,6 +153,38 @@ export class HeaterStateMessage {
         sheater.isCooling = false;
         sheater.commStatus = 0;
         state.equipment.messages.removeItemByCode(`heater:${heater.id}:comms`);
+        msg.isProcessed = true;
+    }
+    public static processJxiStatus(msg: Inbound) {
+        let jxiType = sys.board.valueMaps.heaterTypes.getValue('jxi');
+        let lxiType = sys.board.valueMaps.heaterTypes.getValue('lxi');
+        let heater = sys.heaters.find(h =>
+            (h.type === jxiType || h.type === lxiType) && h.isActive !== false
+        );
+        if (typeof heater === 'undefined') { msg.isProcessed = true; return; }
+        let sheater = state.heaters.getItemById(heater.id);
+        let heatByte = msg.extractPayloadByte(0);
+        let errByte = msg.extractPayloadByte(2);
+        sheater.isOn = heatByte === 0x08;
+        sheater.commStatus = 0;
+        state.equipment.messages.removeItemByCode(`heater:${heater.id}:comms`);
+        if (errByte & 0x10) logger.warn(`JXi heater ${heater.name}: hi-limit/flue fault (0x${errByte.toString(16)})`);
+        if (errByte & 0x02) logger.warn(`JXi heater ${heater.name}: water sensor fault (0x${errByte.toString(16)})`);
+        if (errByte & 0x08) logger.warn(`JXi heater ${heater.name}: pump/AUX fault (0x${errByte.toString(16)})`);
+        msg.isProcessed = true;
+    }
+    public static processJxiTempResponse(msg: Inbound) {
+        let jxiType = sys.board.valueMaps.heaterTypes.getValue('jxi');
+        let lxiType = sys.board.valueMaps.heaterTypes.getValue('lxi');
+        let heater = sys.heaters.find(h =>
+            (h.type === jxiType || h.type === lxiType) && h.isActive !== false
+        );
+        if (typeof heater === 'undefined') { msg.isProcessed = true; return; }
+        let tempByte = msg.extractPayloadByte(5);
+        if (typeof tempByte !== 'undefined' && tempByte > 20) {
+            let tempF = tempByte - 20;
+            logger.info(`JXi heater ${heater.name}: water temp ${tempF}°F`);
+        }
         msg.isProcessed = true;
     }
 
