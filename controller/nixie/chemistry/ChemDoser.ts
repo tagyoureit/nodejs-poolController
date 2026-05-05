@@ -587,20 +587,14 @@ export class NixieChemDoser extends NixieChemDoserBase implements INixieChemical
                 await this.cancelDosing(sd, 'daily limit');
             }
             else if (status === 'monitoring' || status === 'dosing') {
-                // Check if any other chem doser is currently mixing - only if singleMixPeriod is enabled
                 if (this.chem.singleMixPeriod) {
-                    let otherDoserMixing = false;
                     for (let i = 0; i < state.chemDosers.length; i++) {
                         let otherDoser = state.chemDosers.getItemByIndex(i);
-                        if (otherDoser.id !== sd.id && otherDoser.dosingStatus === 1) { // 1 is mixing
+                        if (otherDoser.id !== sd.id && otherDoser.dosingStatus === 1) {
                             logger.info(`Cannot dose ${sd.chemType} - ${otherDoser.chemType} doser is currently mixing`);
-                            otherDoserMixing = true;
-                            break;
+                            await this.cancelDosing(sd, 'another doser mixing');
+                            return;
                         }
-                    }
-                    if (otherDoserMixing) {
-                        await this.cancelDosing(sd, 'another doser mixing');
-                        return;
                     }
                 }
                 // Figure out what mode we are in and what mode we should be in.
