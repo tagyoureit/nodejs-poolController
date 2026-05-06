@@ -107,7 +107,7 @@ export class EquipmentStateMessage {
         // single-check marker for IntelliCenter v3 regardless of which panel variant byte 28 carries.
         if ((model2 === 0 && (model1 === 23 || model1 >= 40)) ||
             (model2 === 2 && model1 == 0 && msg.header[1] === 1) ||
-            (model1 === 3)) {
+            (model1 === 3 && msg.header[1] === 1)) {
             state.equipment.controllerType = 'intellicenter';
             sys.board.modulesAcquired = false;
             sys.controllerType = ControllerType.IntelliCenter;
