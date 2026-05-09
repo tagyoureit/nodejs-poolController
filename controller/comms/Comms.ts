@@ -360,10 +360,13 @@ export class Connection {
     public queueSendMessage(msg: Outbound) {
         let port = this.findPortById(msg.portId);
         if (typeof port !== 'undefined') {
-            // In mock mode:
-            // - never retry the same outbound packet multiple times
-            // - never wait for responses (so API callers get "sent" semantics)
             if (port.mock) {
+                msg.retries = 0;
+                if (msg.requiresResponse) msg.response = undefined;
+            }
+            const vEquip = sys.virtualEquipment;
+            if (vEquip && vEquip.shouldAnswerOutbound(msg)) {
+                vEquip.processOutbound(msg);
                 msg.retries = 0;
                 if (msg.requiresResponse) msg.response = undefined;
             }
@@ -389,6 +392,14 @@ export class Connection {
             if (port.mock) {
                 msg.retries = 0;
                 if (msg.requiresResponse) msg.response = undefined;
+            }
+            const vEquip = sys.virtualEquipment;
+            if (vEquip && vEquip.shouldAnswerOutbound(msg)) {
+                vEquip.processOutbound(msg);
+                msg.retries = 0;
+                if (msg.requiresResponse) msg.response = undefined;
+                resolve(true);
+                return;
             }
             // also send to other broadcast ports
             // let msgs = conn.queueOutboundToAnslq25(msg);

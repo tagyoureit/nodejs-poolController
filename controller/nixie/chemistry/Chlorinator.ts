@@ -23,6 +23,7 @@ export class NixieChlorinatorCollection extends NixieEquipmentCollection<NixieCh
                     await ncp.chemControllers.deleteChlorAsync(c as NixieChlorinator);
                     await c.closeAsync();
                     this.splice(i, 1);
+                    state.equipment.messages.removeItemByCode(`chlorinator:${id}:comms`);
                 }
             }
         } catch (err) { logger.error(`NCP: Error removing chlorinator`); }
@@ -268,6 +269,7 @@ export class NixieChlorinator extends NixieEquipment {
                 this.chlor.superChlor = cstate.superChlor = false;
                 this.setSuperChlor(cstate);
                 cstate.status = 128;
+                state.equipment.messages.setMessageByCode(`chlorinator:${this.chlor.id}:comms`, 'error', `Communication error with ${this.chlor.name}`);
             }
         }
     }
@@ -327,6 +329,7 @@ export class NixieChlorinator extends NixieEquipment {
             catch (err) {
                 cstate.currentOutput = 0;
                 cstate.status = 128;
+                state.equipment.messages.setMessageByCode(`chlorinator:${this.chlor.id}:comms`, 'error', `Communication error with ${this.chlor.name}`);
             }
         }
         else {

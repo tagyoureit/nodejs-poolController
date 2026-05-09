@@ -672,6 +672,32 @@ export class ConfigRoute {
                 return res.status(200).send(pump.toSnapshot());
             } catch (err) { next(err); }
         });
+        app.put('/config/virtualEquipment/chlorinator', async (req, res, next) => {
+            try {
+                if (!sys.virtualEquipment) return res.status(503).send({ error: 'VirtualEquipment not initialized' });
+                const chlor = await sys.virtualEquipment.upsertChlorinatorAsync(req.body || {});
+                return res.status(200).send(chlor.toSnapshot());
+            } catch (err) { next(err); }
+        });
+        app.delete('/config/virtualEquipment/chlorinator/:address', async (req, res, next) => {
+            try {
+                if (!sys.virtualEquipment) return res.status(503).send({ error: 'VirtualEquipment not initialized' });
+                const address = parseInt(req.params.address, 10);
+                if (!Number.isFinite(address)) return res.status(400).send({ error: 'invalid address' });
+                await sys.virtualEquipment.deleteChlorinatorAsync(address);
+                return res.status(200).send(sys.virtualEquipment.getSnapshot());
+            } catch (err) { next(err); }
+        });
+        app.put('/config/virtualEquipment/chlorinator/:address/reenable', async (req, res, next) => {
+            try {
+                if (!sys.virtualEquipment) return res.status(503).send({ error: 'VirtualEquipment not initialized' });
+                const address = parseInt(req.params.address, 10);
+                if (!Number.isFinite(address)) return res.status(400).send({ error: 'invalid address' });
+                const chlor = await sys.virtualEquipment.reenableChlorinatorAsync(address);
+                if (!chlor) return res.status(404).send({ error: `no virtual chlorinator at address ${address}` });
+                return res.status(200).send(chlor.toSnapshot());
+            } catch (err) { next(err); }
+        });
         app.delete('/config/filter', async (req, res, next) => {
             try {
                 let sfilter = await sys.board.filters.deleteFilterAsync(req.body);

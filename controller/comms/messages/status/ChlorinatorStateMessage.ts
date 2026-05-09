@@ -40,6 +40,7 @@ export class ChlorinatorStateMessage {
                 else if (cstate.lastComm + (30 * 1000) < new Date().getTime()) {
                     // We have not talked to the chlorinator in 30 seconds so we have lost communication.
                     cstate.status = 128;
+                    state.equipment.messages.setMessageByCode(`chlorinator:${chlor.id}:comms`, 'error', `Communication error with ${cstate.name || chlor.name}`);
                 }
                 // chlor = sys.chlorinators.getItemById(msg.dest - 79, true); chlor is retrieved above; don't get in incorrectly here.
                 chlor.address = msg.dest; // Theoretically, this will always be 80.
@@ -49,7 +50,10 @@ export class ChlorinatorStateMessage {
                 // Response message from chlorinator.  If the chlorinator is speaking to us then we need to hear it and clear the status when
                 // the previous status was no comms.
                 cstate.lastComm = new Date().getTime();
-                if (cstate.status === 128) cstate.status = 0;
+                if (cstate.status === 128) {
+                    cstate.status = 0;
+                    state.equipment.messages.removeItemByCode(`chlorinator:${chlor.id}:comms`);
+                }
             }
             cstate.body = chlor.body;
             switch (msg.action) {

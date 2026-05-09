@@ -17,17 +17,18 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as path from 'path';
 import * as fs from 'fs';
-import { Inbound, Message, Protocol } from '../comms/messages/Messages';
+import { Direction, Inbound, Message, Outbound, Protocol } from '../comms/messages/Messages';
 import { logger } from '../../logger/Logger';
 import { webApp } from '../../web/Server';
 import { VirtualPump } from './pumps/VirtualPump';
 import { VirtualPumpVS } from './pumps/VirtualPumpVS';
+import { VirtualChlorinator } from './chlorinators/VirtualChlorinator';
 
 /**
  * VirtualEquipmentManager
  *
- * Simulates downstream bus-attached equipment (pumps, etc.) that an upstream
- * master (real OCP or njsPC/Nixie) believes is physically present.
+ * Simulates downstream bus-attached equipment (pumps, chlorinators, etc.) that
+ * an upstream master (real OCP or njsPC/Nixie) believes is physically present.
  *
  * This is NOT configured in poolConfig.json and does NOT appear anywhere in
  * sys.* or state.* equipment collections.  It is a wire-level impersonator
@@ -44,6 +45,7 @@ import { VirtualPumpVS } from './pumps/VirtualPumpVS';
 export class VirtualEquipmentManager {
     public static readonly CONFLICT_WINDOW_MS = 1000;
     private _pumps: VirtualPump[] = [];
+    private _chlorinators: VirtualChlorinator[] = [];
     private _filePath: string;
     private _loaded = false;
 
@@ -52,18 +54,12 @@ export class VirtualEquipmentManager {
     }
 
     public get pumps(): VirtualPump[] { return this._pumps; }
+    public get chlorinators(): VirtualChlorinator[] { return this._chlorinators; }
     public get filePath(): string { return this._filePath; }
 
-    /**
-     * Load the persisted virtualEquipment.json file and construct in-memory
-     * virtual devices.  Missing file is a no-op (first run).
-     */
     public async loadAsync(): Promise<void> {
         try {
             if (!fs.existsSync(this._filePath)) {
-                // Fail-off default: write an empty skeleton so the file's
-                // existence is explicit and any future hand-edits start from
-                // a known-disabled baseline.  We never auto-populate pumps.
                 this._loaded = true;
                 try {
                     await this.saveAsync();
@@ -84,9 +80,19 @@ export class VirtualEquipmentManager {
                     logger.warn(`VirtualEquipment: skipping bad pump definition ${JSON.stringify(def)}: ${(err as Error).message}`);
                 }
             }
+            const chlorDefs: any[] = Array.isArray(parsed.chlorinators) ? parsed.chlorinators : [];
+            for (const def of chlorDefs) {
+                try {
+                    const chlor = this._constructChlorinator(def);
+                    if (chlor) this._chlorinators.push(chlor);
+                } catch (err) {
+                    logger.warn(`VirtualEquipment: skipping bad chlorinator definition ${JSON.stringify(def)}: ${(err as Error).message}`);
+                }
+            }
             this._loaded = true;
-            const effective = this._pumps.filter(p => p.isEffective).length;
-            logger.info(`VirtualEquipment: loaded ${this._pumps.length} pump definitions (${effective} effective)`);
+            const effectivePumps = this._pumps.filter(p => p.isEffective).length;
+            const effectiveChlors = this._chlorinators.filter(c => c.isEffective).length;
+            logger.info(`VirtualEquipment: loaded ${this._pumps.length} pump(s) (${effectivePumps} effective), ${this._chlorinators.length} chlorinator(s) (${effectiveChlors} effective)`);
         } catch (err) {
             logger.error(`VirtualEquipment: failed to load ${this._filePath}: ${(err as Error).message}`);
         }
@@ -100,8 +106,6 @@ export class VirtualEquipmentManager {
                 return new VirtualPumpVS({
                     address: def.address,
                     portId: typeof def.portId === 'number' ? def.portId : 0,
-                    // Fail-off: only an explicit `enabled: true` in the
-                    // persisted/incoming definition enables the pump.
                     enabled: def.enabled === true,
                     autoDisabled: def.autoDisabled === true,
                     autoDisabledAt: def.autoDisabledAt || null,
@@ -113,62 +117,113 @@ export class VirtualEquipmentManager {
         }
     }
 
-    /**
-     * Gate: should we synthesize a response for this inbound packet?
-     * All four conditions must hold:
-     *  - Protocol is Pump
-     *  - dest matches an effective (enabled and not auto-disabled) virtual pump
-     *  - source is a recognized master (real OCP = 16, or njsPC/Nixie = Message.pluginAddress)
-     *  - action is one we implement
-     */
+    private _constructChlorinator(def: any): VirtualChlorinator | null {
+        if (typeof def.address !== 'number') throw new Error('address is required');
+        return new VirtualChlorinator({
+            address: def.address,
+            portId: typeof def.portId === 'number' ? def.portId : 0,
+            enabled: def.enabled === true,
+            autoDisabled: def.autoDisabled === true,
+            autoDisabledAt: def.autoDisabledAt || null,
+            autoDisabledReason: def.autoDisabledReason || null,
+            saltLevel: typeof def.saltLevel === 'number' ? def.saltLevel : 3400,
+            modelName: def.modelName || 'Intellichlor--40'
+        });
+    }
+
     public shouldAnswer(msg: Inbound): boolean {
-        if (msg.protocol !== Protocol.Pump) return false;
-        const pump = this.findEffectivePumpByAddress(msg.dest);
-        if (!pump) return false;
-        if (msg.source !== 16 && msg.source !== Message.pluginAddress) return false;
-        return pump.supportsAction(msg.action);
+        if (msg.protocol === Protocol.Pump) {
+            const pump = this.findEffectivePumpByAddress(msg.dest);
+            if (!pump) return false;
+            if (msg.source !== 16 && msg.source !== Message.pluginAddress) return false;
+            return pump.supportsAction(msg.action);
+        }
+        if (msg.protocol === Protocol.Chlorinator) {
+            if (msg.dest < 80 || msg.dest > 83) return false;
+            const chlor = this.findEffectiveChlorinatorByAddress(msg.dest);
+            if (!chlor) return false;
+            return chlor.supportsAction(msg.action);
+        }
+        return false;
     }
 
-    /**
-     * Synthesize and queue a response.  Caller must only invoke this after
-     * shouldAnswer() returned true.
-     */
     public process(msg: Inbound): void {
-        const pump = this.findEffectivePumpByAddress(msg.dest);
-        if (!pump) return;
-        try {
-            pump.process(msg);
-            // Emit live runtime state after any mutation.
-            this.emit();
-        } catch (err) {
-            logger.error(`VirtualEquipment: pump at address ${pump.address} failed to process action ${msg.action}: ${(err as Error).message}`);
+        if (msg.protocol === Protocol.Pump) {
+            const pump = this.findEffectivePumpByAddress(msg.dest);
+            if (!pump) return;
+            try {
+                pump.process(msg);
+                this.emit();
+            } catch (err) {
+                logger.error(`VirtualEquipment: pump at address ${pump.address} failed to process action ${msg.action}: ${(err as Error).message}`);
+            }
+        } else if (msg.protocol === Protocol.Chlorinator) {
+            const chlor = this.findEffectiveChlorinatorByAddress(msg.dest);
+            if (!chlor) return;
+            try {
+                chlor.process(msg);
+                this.emit();
+            } catch (err) {
+                logger.error(`VirtualEquipment: chlorinator at address ${chlor.address} failed to process action ${msg.action}: ${(err as Error).message}`);
+            }
         }
     }
 
-    /**
-     * Observe every inbound packet for collision detection.  If two or more
-     * inbound packets with source=<ourVirtualAddress> appear within
-     * CONFLICT_WINDOW_MS, a real pump must be answering on the bus too.
-     * Auto-disable the virtual pump and persist that flag.
-     *
-     * One inbound per window is expected: it's our own loopback/echo.
-     */
     public observe(msg: Inbound): void {
-        if (msg.protocol !== Protocol.Pump) return;
-        const pump = this.findPumpByAddress(msg.source);
-        if (!pump || !pump.isEffective) return;
-
-        const now = Date.now();
-        pump.pushRecentInboundEcho(now);
-        const windowStart = now - VirtualEquipmentManager.CONFLICT_WINDOW_MS;
-        const echoes = pump.recentEchoes.filter(t => t >= windowStart);
-        if (echoes.length >= 2) {
-            const reason = `Collision: ${echoes.length} inbound packets with source=${pump.address} within ${VirtualEquipmentManager.CONFLICT_WINDOW_MS}ms — a real pump is likely on the bus.`;
-            pump.setAutoDisabled(true, reason);
-            logger.warn(`VirtualEquipment: auto-disabling pump at address ${pump.address}. ${reason}`);
-            this.saveAsync().catch(e => logger.error(`VirtualEquipment: save after auto-disable failed: ${e.message}`));
-            this.emit();
+        if (msg.protocol === Protocol.Pump) {
+            const pump = this.findPumpByAddress(msg.source);
+            if (!pump || !pump.isEffective) return;
+            const now = Date.now();
+            pump.pushRecentInboundEcho(now);
+            const windowStart = now - VirtualEquipmentManager.CONFLICT_WINDOW_MS;
+            const echoes = pump.recentEchoes.filter(t => t >= windowStart);
+            if (echoes.length >= 2) {
+                const reason = `Collision: ${echoes.length} inbound packets with source=${pump.address} within ${VirtualEquipmentManager.CONFLICT_WINDOW_MS}ms — a real pump is likely on the bus.`;
+                pump.setAutoDisabled(true, reason);
+                logger.warn(`VirtualEquipment: auto-disabling pump at address ${pump.address}. ${reason}`);
+                this.saveAsync().catch(e => logger.error(`VirtualEquipment: save after auto-disable failed: ${e.message}`));
+                this.emit();
+            }
+        } else if (msg.protocol === Protocol.Chlorinator) {
+            if (msg.dest >= 80 && msg.dest <= 83) return;
+            const chlor = this.findChlorinatorByAddress(80);
+            if (!chlor || !chlor.isEffective) return;
+            const now = Date.now();
+            chlor.pushRecentInboundEcho(now);
+            const windowStart = now - VirtualEquipmentManager.CONFLICT_WINDOW_MS;
+            const echoes = chlor.recentEchoes.filter(t => t >= windowStart);
+            if (echoes.length >= 2) {
+                const reason = `Collision: ${echoes.length} chlorinator response packets within ${VirtualEquipmentManager.CONFLICT_WINDOW_MS}ms — a real chlorinator is likely on the bus.`;
+                chlor.setAutoDisabled(true, reason);
+                logger.warn(`VirtualEquipment: auto-disabling chlorinator at address ${chlor.address}. ${reason}`);
+                this.saveAsync().catch(e => logger.error(`VirtualEquipment: save after auto-disable failed: ${e.message}`));
+                this.emit();
+            }
         }
+    }
+
+    public shouldAnswerOutbound(msg: Outbound): boolean {
+        const synth = this._outboundToInbound(msg);
+        return this.shouldAnswer(synth);
+    }
+
+    public processOutbound(msg: Outbound): void {
+        const synth = this._outboundToInbound(msg);
+        this.process(synth);
+    }
+
+    private _outboundToInbound(msg: Outbound): Inbound {
+        const inbound = new Inbound();
+        inbound.protocol = msg.protocol;
+        inbound.direction = Direction.In;
+        inbound.portId = msg.portId;
+        inbound.preamble = msg.preamble.slice();
+        inbound.header = msg.header.slice();
+        inbound.payload = msg.payload.slice();
+        inbound.term = msg.term.slice();
+        inbound.isValid = true;
+        inbound.timestamp = new Date();
+        return inbound;
     }
 
     public findPumpByAddress(address: number): VirtualPump | undefined {
@@ -179,11 +234,14 @@ export class VirtualEquipmentManager {
         return p && p.isEffective ? p : undefined;
     }
 
-    /**
-     * Upsert a pump definition.  Called by the REST PUT handler.  Clears any
-     * prior autoDisabled flag because the user is explicitly re-asserting
-     * intent.
-     */
+    public findChlorinatorByAddress(address: number): VirtualChlorinator | undefined {
+        return this._chlorinators.find(c => c.address === address);
+    }
+    public findEffectiveChlorinatorByAddress(address: number): VirtualChlorinator | undefined {
+        const c = this.findChlorinatorByAddress(address);
+        return c && c.isEffective ? c : undefined;
+    }
+
     public async upsertPumpAsync(def: any): Promise<VirtualPump> {
         if (typeof def.address !== 'number') throw new Error('address is required');
         const type = (def.type || 'vs').toLowerCase();
@@ -194,10 +252,6 @@ export class VirtualEquipmentManager {
                 pump = null;
             } else {
                 pump.applyUserConfig({
-                    // Fail-off: a PUT body without an explicit `enabled: true`
-                    // is treated as disabled.  The dP widget always sends the
-                    // checkbox value explicitly, so this only matters for
-                    // hand-crafted PUTs or partial payloads.
                     enabled: def.enabled === true,
                     portId: typeof def.portId === 'number' ? def.portId : pump.portId,
                     wattModel: def.wattModel || pump.wattModel
@@ -232,20 +286,56 @@ export class VirtualEquipmentManager {
         return pump;
     }
 
+    public async upsertChlorinatorAsync(def: any): Promise<VirtualChlorinator> {
+        if (typeof def.address !== 'number') throw new Error('address is required');
+        let chlor = this.findChlorinatorByAddress(def.address);
+        if (chlor) {
+            chlor.applyUserConfig({
+                enabled: def.enabled === true,
+                portId: typeof def.portId === 'number' ? def.portId : chlor.portId,
+                saltLevel: typeof def.saltLevel === 'number' ? def.saltLevel : chlor.saltLevel,
+                modelName: def.modelName || chlor.modelName
+            });
+            chlor.clearAutoDisabled();
+        } else {
+            chlor = this._constructChlorinator({ ...def, autoDisabled: false });
+            this._chlorinators.push(chlor);
+        }
+        await this.saveAsync();
+        this.emit();
+        return chlor;
+    }
+
+    public async deleteChlorinatorAsync(address: number): Promise<void> {
+        const before = this._chlorinators.length;
+        this._chlorinators = this._chlorinators.filter(c => c.address !== address);
+        if (this._chlorinators.length !== before) {
+            await this.saveAsync();
+            this.emit();
+        }
+    }
+
+    public async reenableChlorinatorAsync(address: number): Promise<VirtualChlorinator | undefined> {
+        const chlor = this.findChlorinatorByAddress(address);
+        if (!chlor) return undefined;
+        chlor.clearAutoDisabled();
+        await this.saveAsync();
+        this.emit();
+        return chlor;
+    }
+
     public getSnapshot(): any {
         return {
             filePath: this._filePath,
-            pumps: this._pumps.map(p => p.toSnapshot())
+            pumps: this._pumps.map(p => p.toSnapshot()),
+            chlorinators: this._chlorinators.map(c => c.toSnapshot())
         };
     }
 
-    /**
-     * Persist the current set of pump definitions.  Only intent + auto-disable
-     * fields are written; runtime state (rpm, running, etc.) is not persisted.
-     */
     public async saveAsync(): Promise<void> {
         const data = {
-            pumps: this._pumps.map(p => p.toPersisted())
+            pumps: this._pumps.map(p => p.toPersisted()),
+            chlorinators: this._chlorinators.map(c => c.toPersisted())
         };
         const dir = path.dirname(this._filePath);
         try {
@@ -257,7 +347,6 @@ export class VirtualEquipmentManager {
         }
     }
 
-    /** Emit the current snapshot on the "virtualEquipment" socket event. */
     public emit(): void {
         try {
             webApp.emitToClients('virtualEquipment', this.getSnapshot());
