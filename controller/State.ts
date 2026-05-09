@@ -940,6 +940,12 @@ export class EquipmentMessages extends EqStateCollection<EquipmentMessage> {
         webApp.emitToClients('sysmessages', this.get(true));
         return msg;
     }
+    public clearAll() {
+        if (this.data.length > 0) {
+            this.data.length = 0;
+            webApp.emitToClients('sysmessages', this.get(true));
+        }
+    }
 }
 export class EquipmentMessage extends ChildEqState {
     public initData() {

@@ -292,6 +292,7 @@ export class PoolSystem implements IPoolSystem {
         if (this.controllerType !== val) {
             console.log(`RESETTING DATA -- Controller type changed from ${this.controllerType} to ${val}`);
             // Only go in here if there is a change to the controller type.
+            state.equipment.messages.clearAll();
             this.resetData(); // Clear the configuration data.
             state.resetData(); // Clear the state data.
             state.status = 0; // We are performing a re-initialize.

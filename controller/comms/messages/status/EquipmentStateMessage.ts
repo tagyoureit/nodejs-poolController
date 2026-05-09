@@ -783,8 +783,8 @@ export class EquipmentStateMessage {
     // Bit / byte map (see .plan/ISSUES-3.md ISSUE-072 progress notes):
     //   byte[31] — pumps 9–16 comms-lost bitmap (bit N → slot 9+N)
     //   byte[32] — pumps 1–8  comms-lost bitmap (bit N → slot 1+N)
-    //   byte[33] — TBD (candidate: chlorinator / IntelliChem family bitmap)
-    //   byte[34] — "any heater alert" flag (0 or 1)
+    //   byte[33] — TBD (candidate: IntelliChem family bitmap)
+    //   byte[34] — chlorinator comms-lost flag (0=ok, 1=comms lost) — confirmed 2026-05-09
     //   byte[36] — heaters 1–8 comms-lost bitmap (bit N → heater slot 1+N), working hypothesis:
     //              mirrors the pump bitmap layout (user intuition reconfirmed 2026-04-20);
     //              prior "family bitmap" theory was an artefact of the test topology (HP at slot 2,
@@ -835,9 +835,16 @@ export class EquipmentStateMessage {
             const name = heater && heater.isActive && heater.name ? heater.name : `Heater ${slot}`;
             syncAlert(code, isAlerting, 'error', `Communication lost with ${name}`);
         }
+        // Chlorinator comms-lost (byte 34) — simple boolean flag (0=ok, 1=comms lost).
+        // Confirmed 2026-05-09: flips to 1 ~2.5min after chlorinator stops responding,
+        // clears to 0 ~30s after comms restored.
+        const chlorByte = msg.extractPayloadByte(34, 0);
+        const chlor = sys.chlorinators.getItemById(1);
+        const chlorName = chlor && chlor.isActive && chlor.name ? chlor.name : 'Chlorinator 1';
+        syncAlert('chlorinator:1:comms', chlorByte !== 0, 'error', `Communication lost with ${chlorName}`);
         // Remaining bytes (33, 38, 39) + heaters 9–16 — not decoded yet. Intentionally NOT
         // emitted to state.equipment.messages to avoid false positives. See ISSUE-072 progress
-        // notes for the remaining test plan (chlorinator / IntelliChem isolation, heater 9–16 probe).
+        // notes for the remaining test plan (IntelliChem isolation, heater 9–16 probe).
     }
     private static processCircuitState(msg: Inbound) {
         // The way this works is that there is one byte per 8 circuits for a total of 5 bytes or 40 circuits.  The
