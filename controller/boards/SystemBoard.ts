@@ -457,8 +457,8 @@ export class byteValueMaps {
         [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
         [6, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }],
         [7, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
-        [8, { name: 'jxi', desc: 'Jandy JXi', hasAddress: true }],
-        [9, { name: 'lxi', desc: 'Jandy LXi', hasAddress: true }],
+        [8, { name: 'jxi', desc: 'Jandy JXi', hasAddress: true, defaultAddress: 104 }],
+        [9, { name: 'lxi', desc: 'Jandy LXi', hasAddress: true, defaultAddress: 56 }],
     ]);
     public heatModes: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
@@ -4034,6 +4034,9 @@ export class HeaterCommands extends BoardCommands {
                     heater[s] = obj[s];
                 }
             }
+            let htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
+            if (htype.hasAddress && !heater.address && htype.defaultAddress)
+                heater.address = htype.defaultAddress;
             let hstate = state.heaters.getItemById(id, true);
             //hstate.isVirtual = heater.isVirtual = true;
             hstate.name = heater.name;
@@ -4469,7 +4472,7 @@ export class HeaterCommands extends BoardCommands {
                                         isOn = utils.makeBool(hstate.isOn);
                                         break;
                                 }
-                                logger.debug(`Heater Type: ${htype.name} Mode:${mode} Temp: ${body.temp} Setpoint: ${cfgBody.setPoint} Status: ${body.heatStatus}`);
+                                // logger.debug(`Heater Type: ${htype.name} Mode:${mode} Temp: ${body.temp} Setpoint: ${cfgBody.setPoint} Status: ${body.heatStatus}`);
                             }
                         }
                         else {

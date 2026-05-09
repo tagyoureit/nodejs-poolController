@@ -1800,6 +1800,10 @@ export class Heater extends EqItem {
     public initData() {
         if (typeof this.data.isActive === 'undefined') this.data.isActive = true;
         if (typeof this.data.portId === 'undefined') this.data.portId = 0;
+        if (typeof this.data.address === 'undefined' || this.data.address === 0) {
+            let htype = sys.board.valueMaps.heaterTypes.transform(this.data.type);
+            if (htype.hasAddress && htype.defaultAddress) this.data.address = htype.defaultAddress;
+        }
     }
     public get id(): number { return this.data.id; }
     public set id(val: number) { this.setDataVal('id', val); }
