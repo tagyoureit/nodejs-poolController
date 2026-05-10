@@ -36,9 +36,7 @@ import { screenlogic } from "node-screenlogic";
 export class ConfigRoute {
     private static securitySessions: Map<string, any> = new Map<string, any>();
     private static isOcpWriteSecurityEnforced(): boolean {
-        // Intentionally hard-disabled until OCP security semantics are fully understood.
-        // This avoids accidentally locking users out of configuration writes.
-        return false;
+        return sys.controllerType === 'intellicenter' && sys.security.enabled;
     }
     private static getClientKey(req: express.Request): string {
         const forwarded = (req.headers['x-forwarded-for'] || '') as string;
@@ -68,6 +66,8 @@ export class ConfigRoute {
             isAdmin: role.id === 1 || typeof role.name === 'string' && role.name.toLowerCase().indexOf('admin') >= 0,
             roleId: role.id || 0,
             roleName: role.name || '',
+            permissionsMask: role.permissionsMask || 0,
+            timeout: role.timeout || 5,
             ip: key,
             updatedAt: new Date().toISOString()
         };
@@ -89,20 +89,33 @@ export class ConfigRoute {
         if (!sys.security.enabled) return { allowed: true };
         const session = ConfigRoute.getSecuritySession(req);
         if (typeof session === 'undefined' || !session.isAuthenticated) {
-            return { allowed: false, reason: 'Security is enabled; log in with an administrator PIN to change configuration.' };
+            return { allowed: false, reason: 'Security is enabled; log in with a PIN to change configuration.' };
         }
-        if (!session.isAdmin) return { allowed: false, reason: 'Guest sessions are read-only.' };
+        if (session.permissionsMask === 0 && !session.isAdmin) {
+            return { allowed: false, reason: 'Guest sessions are read-only.' };
+        }
         return { allowed: true, session: session };
     }
     private static getSessionResponse(req: express.Request): any {
         const session = ConfigRoute.getSecuritySession(req);
+        const guestEnabled = (sys.security.enabledByte & 0x40) !== 0;
+        let guestPermissionsMask = 0;
+        if (guestEnabled) {
+            const roles = sys.security.roles.toArray();
+            const guest = roles.find((r: any) => r.id === 9 || (typeof r.name === 'string' && r.name.toLowerCase() === 'guest'));
+            if (guest) guestPermissionsMask = (guest as any).permissionsMask || 0;
+        }
         return {
             enabled: sys.security.enabled,
+            guestEnabled: guestEnabled,
+            guestPermissionsMask: guestPermissionsMask,
             session: typeof session === 'undefined' ? {
                 isAuthenticated: false,
                 isAdmin: false,
                 roleId: 0,
                 roleName: '',
+                permissionsMask: 0,
+                timeout: 5,
                 ip: ConfigRoute.getClientKey(req)
             } : session
         };
@@ -1162,6 +1175,13 @@ export class ConfigRoute {
                 enabled: sys.security.enabled,
                 session: ConfigRoute.clearSecuritySession(req)
             });
+        });
+        app.put('/config/security/role', async (req, res, next) => {
+            try {
+                let result = await (sys.board as any).setSecurityRoleAsync(req.body);
+                return res.status(200).send(result);
+            }
+            catch (err) { next(err); }
         });
         app.get('/config', (req, res) => {
             return res.status(200).send(sys.getSection('all'));

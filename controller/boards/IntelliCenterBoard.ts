@@ -1038,6 +1038,54 @@ export class IntelliCenterBoard extends SystemBoard {
         modules.removeItemById(2);
         modules.removeItemById(3);
     }
+    public async setSecurityRoleAsync(obj: any): Promise<any> {
+        let roleId = typeof obj.id !== 'undefined' ? parseInt(obj.id, 10) : -1;
+        if (isNaN(roleId) || roleId < 1 || roleId > 9) return Promise.reject(new InvalidEquipmentIdError(`Invalid security role id: ${obj.id}`, obj.id, 'securityRole'));
+        let role = sys.security.roles.getItemById(roleId, false);
+        let item = roleId - 1;
+        let name = typeof obj.name !== 'undefined' ? obj.name.toString().substring(0, 16) : (role ? role.name : '');
+        let pin = typeof obj.pin !== 'undefined' ? obj.pin.toString().replace(/\D/g, '').padStart(4, '0').substring(0, 4) : (role ? role.pin : '0000');
+        let pinNum = parseInt(pin, 10) || 0;
+        let timeout = typeof obj.timeout !== 'undefined' ? Math.max(1, Math.min(10, parseInt(obj.timeout, 10) || 5)) : (role ? role.timeout : 5);
+        let permBytes = Array.isArray(obj.permissionsBytes) ? obj.permissionsBytes.slice(0, 4) : (role ? role.permissionsBytes : [0, 0, 0, 0]);
+        while (permBytes.length < 4) permBytes.push(0);
+        if (roleId === 1) {
+            if (typeof obj.enabled !== 'undefined') {
+                if (obj.enabled) permBytes[3] = permBytes[3] | 0x80;
+                else permBytes[3] = permBytes[3] & ~0x80;
+            }
+            if (typeof obj.guestEnabled !== 'undefined') {
+                if (obj.guestEnabled) permBytes[3] = permBytes[3] | 0x40;
+                else permBytes[3] = permBytes[3] & ~0x40;
+            }
+        }
+        let payload: number[] = [11, item, 1, (pinNum >> 8) & 0xFF, pinNum & 0xFF];
+        let nameBytes: number[] = [];
+        for (let i = 0; i < 16; i++) nameBytes.push(i < name.length ? name.charCodeAt(i) : 0);
+        payload.push(...nameBytes);
+        payload.push(permBytes[0] & 0xFF, permBytes[1] & 0xFF, permBytes[2] & 0xFF, permBytes[3] & 0xFF);
+        payload.push(timeout & 0xFF);
+        payload.push(0, 0, 0);
+        let out = Outbound.create({
+            action: 168,
+            payload: payload,
+            response: IntelliCenterBoard.getAckResponse(168),
+            retries: 5
+        });
+        await out.sendAsync();
+        if (role) {
+            role.name = name;
+            role.pin = pin;
+            role.timeout = timeout;
+            role.permissionsBytes = permBytes;
+            role.permissionsMask = ((permBytes[0] & 0xFF) * 16777216) + ((permBytes[1] & 0xFF) * 65536) + ((permBytes[2] & 0xFF) * 256) + (permBytes[3] & 0xFF);
+            if (item === 0) {
+                sys.security.enabledByte = permBytes[3];
+                sys.security.enabled = (permBytes[3] & 0x80) === 0x80;
+            }
+        }
+        return sys.security.get(true);
+    }
     public get commandSourceAddress(): number { return this.getRegistrationAddress(); }
     public get commandDestAddress(): number { return sys.equipment.isIntellicenterV3 ? 16 : 15; }
     public static getAckResponse(action: number, source?: number, dest?: number): Response { return Response.create({ source: source, dest: dest || sys.board.commandSourceAddress, action: 1, payload: [action] }); }
@@ -2172,8 +2220,12 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     (i < obj.circuits.length) ? out.payload.push(obj.circuits[i].circuit - 1) : out.payload.push(255);
             }
             for (let i = 0; i < 16; i++) out.payload.push(0);
-            out.payload.push(eggHours);
-            out.payload.push(eggMins);
+            if (sys.equipment.isIntellicenterV3) {
+                out.payload.push(0, 0, eggHours, eggMins, 0, 0, 0);
+            } else {
+                out.payload.push(eggHours);
+                out.payload.push(eggMins);
+            }
             await out.sendAsync();
             group.eggTimer = eggTimer;
             group.dontStop = obj.dontStop;
@@ -2343,8 +2395,12 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     else out.payload.push(0);
                 }
             }
-            out.payload.push(eggHours);
-            out.payload.push(eggMins);
+            if (sys.equipment.isIntellicenterV3) {
+                out.payload.push(0, 0, eggHours, eggMins, 0, 0, 0);
+            } else {
+                out.payload.push(eggHours);
+                out.payload.push(eggMins);
+            }
             await out.sendAsync();
             sgroup.type = group.type = 1;
             sgroup.lightingTheme = group.lightingTheme = theme;
