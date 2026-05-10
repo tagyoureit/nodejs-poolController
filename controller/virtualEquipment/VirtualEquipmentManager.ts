@@ -23,6 +23,7 @@ import { webApp } from '../../web/Server';
 import { VirtualPump } from './pumps/VirtualPump';
 import { VirtualPumpVS } from './pumps/VirtualPumpVS';
 import { VirtualChlorinator } from './chlorinators/VirtualChlorinator';
+import { VirtualIntelliChem } from './intellichem/VirtualIntelliChem';
 
 /**
  * VirtualEquipmentManager
@@ -46,8 +47,10 @@ export class VirtualEquipmentManager {
     public static readonly CONFLICT_WINDOW_MS = 1000;
     private _pumps: VirtualPump[] = [];
     private _chlorinators: VirtualChlorinator[] = [];
+    private _intellichems: VirtualIntelliChem[] = [];
     private _filePath: string;
     private _loaded = false;
+    private _saveTimer: NodeJS.Timeout | null = null;
 
     constructor(dataDir?: string) {
         this._filePath = path.posix.join(dataDir || path.posix.join(process.cwd(), 'data'), 'virtualEquipment.json');
@@ -55,6 +58,7 @@ export class VirtualEquipmentManager {
 
     public get pumps(): VirtualPump[] { return this._pumps; }
     public get chlorinators(): VirtualChlorinator[] { return this._chlorinators; }
+    public get intellichems(): VirtualIntelliChem[] { return this._intellichems; }
     public get filePath(): string { return this._filePath; }
 
     public async loadAsync(): Promise<void> {
@@ -89,10 +93,20 @@ export class VirtualEquipmentManager {
                     logger.warn(`VirtualEquipment: skipping bad chlorinator definition ${JSON.stringify(def)}: ${(err as Error).message}`);
                 }
             }
+            const ichemDefs: any[] = Array.isArray(parsed.intellichems) ? parsed.intellichems : [];
+            for (const def of ichemDefs) {
+                try {
+                    const ic = new VirtualIntelliChem(def);
+                    this._intellichems.push(ic);
+                } catch (err) {
+                    logger.warn(`VirtualEquipment: skipping bad intellichem definition ${JSON.stringify(def)}: ${(err as Error).message}`);
+                }
+            }
             this._loaded = true;
             const effectivePumps = this._pumps.filter(p => p.isEffective).length;
             const effectiveChlors = this._chlorinators.filter(c => c.isEffective).length;
-            logger.info(`VirtualEquipment: loaded ${this._pumps.length} pump(s) (${effectivePumps} effective), ${this._chlorinators.length} chlorinator(s) (${effectiveChlors} effective)`);
+            const effectiveIChems = this._intellichems.filter(ic => ic.isEffective).length;
+            logger.info(`VirtualEquipment: loaded ${this._pumps.length} pump(s) (${effectivePumps} effective), ${this._chlorinators.length} chlorinator(s) (${effectiveChlors} effective), ${this._intellichems.length} intellichem(s) (${effectiveIChems} effective)`);
         } catch (err) {
             logger.error(`VirtualEquipment: failed to load ${this._filePath}: ${(err as Error).message}`);
         }
@@ -144,6 +158,16 @@ export class VirtualEquipmentManager {
             if (!chlor) return false;
             return chlor.supportsAction(msg.action);
         }
+        if (msg.protocol === Protocol.Broadcast && msg.dest >= 144 && msg.dest <= 158) {
+            const ic = this.findEffectiveIntelliChemByAddress(msg.dest);
+            if (!ic) return false;
+            return ic.supportsAction(msg.action);
+        }
+        if (msg.protocol === Protocol.IntelliChem) {
+            const ic = this.findEffectiveIntelliChemByAddress(msg.dest);
+            if (!ic) return false;
+            return ic.supportsAction(msg.action);
+        }
         return false;
     }
 
@@ -165,6 +189,26 @@ export class VirtualEquipmentManager {
                 this.emit();
             } catch (err) {
                 logger.error(`VirtualEquipment: chlorinator at address ${chlor.address} failed to process action ${msg.action}: ${(err as Error).message}`);
+            }
+        } else if (msg.protocol === Protocol.Broadcast && msg.dest >= 144 && msg.dest <= 158) {
+            const ic = this.findEffectiveIntelliChemByAddress(msg.dest);
+            if (!ic) return;
+            try {
+                ic.process(msg);
+                if (ic._dirty) { ic._dirty = false; this._debounceSave(); }
+                this.emit();
+            } catch (err) {
+                logger.error(`VirtualEquipment: intellichem at address ${ic.address} failed to process action ${msg.action}: ${(err as Error).message}`);
+            }
+        } else if (msg.protocol === Protocol.IntelliChem) {
+            const ic = this.findEffectiveIntelliChemByAddress(msg.dest);
+            if (!ic) return;
+            try {
+                ic.process(msg);
+                if (ic._dirty) { ic._dirty = false; this._debounceSave(); }
+                this.emit();
+            } catch (err) {
+                logger.error(`VirtualEquipment: intellichem at address ${ic.address} failed to process action ${msg.action}: ${(err as Error).message}`);
             }
         }
     }
@@ -240,6 +284,14 @@ export class VirtualEquipmentManager {
     public findEffectiveChlorinatorByAddress(address: number): VirtualChlorinator | undefined {
         const c = this.findChlorinatorByAddress(address);
         return c && c.isEffective ? c : undefined;
+    }
+
+    public findIntelliChemByAddress(address: number): VirtualIntelliChem | undefined {
+        return this._intellichems.find(ic => ic.address === address);
+    }
+    public findEffectiveIntelliChemByAddress(address: number): VirtualIntelliChem | undefined {
+        const ic = this.findIntelliChemByAddress(address);
+        return ic && ic.isEffective ? ic : undefined;
     }
 
     public async upsertPumpAsync(def: any): Promise<VirtualPump> {
@@ -324,18 +376,61 @@ export class VirtualEquipmentManager {
         return chlor;
     }
 
+    public async upsertIntelliChemAsync(def: any): Promise<VirtualIntelliChem> {
+        if (typeof def.address !== 'number') throw new Error('address is required');
+        let ic = this.findIntelliChemByAddress(def.address);
+        if (ic) {
+            ic.applyUserConfig(def);
+            ic.clearAutoDisabled();
+        } else {
+            ic = new VirtualIntelliChem({ ...def, autoDisabled: false });
+            this._intellichems.push(ic);
+        }
+        await this.saveAsync();
+        this.emit();
+        return ic;
+    }
+
+    public async deleteIntelliChemAsync(address: number): Promise<void> {
+        const before = this._intellichems.length;
+        this._intellichems = this._intellichems.filter(ic => ic.address !== address);
+        if (this._intellichems.length !== before) {
+            await this.saveAsync();
+            this.emit();
+        }
+    }
+
+    public async reenableIntelliChemAsync(address: number): Promise<VirtualIntelliChem | undefined> {
+        const ic = this.findIntelliChemByAddress(address);
+        if (!ic) return undefined;
+        ic.clearAutoDisabled();
+        await this.saveAsync();
+        this.emit();
+        return ic;
+    }
+
     public getSnapshot(): any {
         return {
             filePath: this._filePath,
             pumps: this._pumps.map(p => p.toSnapshot()),
-            chlorinators: this._chlorinators.map(c => c.toSnapshot())
+            chlorinators: this._chlorinators.map(c => c.toSnapshot()),
+            intellichems: this._intellichems.map(ic => ic.toSnapshot())
         };
+    }
+
+    private _debounceSave(): void {
+        if (this._saveTimer) return;
+        this._saveTimer = setTimeout(() => {
+            this._saveTimer = null;
+            this.saveAsync().catch(e => logger.error(`VirtualEquipment: debounced save failed: ${e.message}`));
+        }, 2000);
     }
 
     public async saveAsync(): Promise<void> {
         const data = {
             pumps: this._pumps.map(p => p.toPersisted()),
-            chlorinators: this._chlorinators.map(c => c.toPersisted())
+            chlorinators: this._chlorinators.map(c => c.toPersisted()),
+            intellichems: this._intellichems.map(ic => ic.toPersisted())
         };
         const dir = path.dirname(this._filePath);
         try {

@@ -200,7 +200,9 @@ export abstract class VirtualPump {
         }
 
         try {
-            conn.queueSendMessage(response);
+            let port = conn.findPortById(response.portId);
+            if (port) port.emitter.emit('messagewritepriority', response);
+            else conn.queueSendMessage(response);
             logger.verbose(`VirtualPump ${this.address}: answered action ${msg.action} with ${response.toShortPacket()}`);
         } catch (err) {
             logger.error(`VirtualPump ${this.address}: failed to queue response for action ${msg.action}: ${(err as Error).message}`);

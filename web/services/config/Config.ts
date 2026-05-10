@@ -698,6 +698,32 @@ export class ConfigRoute {
                 return res.status(200).send(chlor.toSnapshot());
             } catch (err) { next(err); }
         });
+        app.put('/config/virtualEquipment/intellichem', async (req, res, next) => {
+            try {
+                if (!sys.virtualEquipment) return res.status(503).send({ error: 'VirtualEquipment not initialized' });
+                const ic = await sys.virtualEquipment.upsertIntelliChemAsync(req.body || {});
+                return res.status(200).send(ic.toSnapshot());
+            } catch (err) { next(err); }
+        });
+        app.delete('/config/virtualEquipment/intellichem/:address', async (req, res, next) => {
+            try {
+                if (!sys.virtualEquipment) return res.status(503).send({ error: 'VirtualEquipment not initialized' });
+                const address = parseInt(req.params.address, 10);
+                if (!Number.isFinite(address)) return res.status(400).send({ error: 'invalid address' });
+                await sys.virtualEquipment.deleteIntelliChemAsync(address);
+                return res.status(200).send(sys.virtualEquipment.getSnapshot());
+            } catch (err) { next(err); }
+        });
+        app.put('/config/virtualEquipment/intellichem/:address/reenable', async (req, res, next) => {
+            try {
+                if (!sys.virtualEquipment) return res.status(503).send({ error: 'VirtualEquipment not initialized' });
+                const address = parseInt(req.params.address, 10);
+                if (!Number.isFinite(address)) return res.status(400).send({ error: 'invalid address' });
+                const ic = await sys.virtualEquipment.reenableIntelliChemAsync(address);
+                if (!ic) return res.status(404).send({ error: `no virtual intellichem at address ${address}` });
+                return res.status(200).send(ic.toSnapshot());
+            } catch (err) { next(err); }
+        });
         app.delete('/config/filter', async (req, res, next) => {
             try {
                 let sfilter = await sys.board.filters.deleteFilterAsync(req.body);

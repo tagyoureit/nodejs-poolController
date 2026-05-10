@@ -134,7 +134,7 @@ export class VersionMessage {
             ackedAction === 168
                 ? `ACK(168) Trigger (device ${msg.dest})`
                 : `ACK(184) Trigger (device ${msg.dest})`;
-        this.triggerConfigRefresh(label);
+        this.scheduleConfigRefresh(5000, label, 'ACK debounce');
         msg.isProcessed = true;
     }
 
