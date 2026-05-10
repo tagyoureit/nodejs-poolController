@@ -524,6 +524,14 @@ export class RS485Port {
         this._outBuffer = [];
         this.procTimer = null;
         this.emitter.on('messagewrite', (msg) => { this.pushOut(msg); });
+        this.emitter.on('messagewritepriority', (msg) => {
+            if (this.isOpen && this.isRTS) {
+                this.writeMessage(msg);
+            } else {
+                this._outBuffer.unshift(msg);
+                setImmediate(() => { this.processPackets(); });
+            }
+        });
         this.emitter.on('mockmessagewrite', (msg) => {
             let bytes = msg.toPacket();
             this.counter.bytesSent += bytes.length;

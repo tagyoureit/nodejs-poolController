@@ -30,7 +30,7 @@ export class VersionMessage {
         if (!this.pendingConfigRefreshTimer) {
             this.pendingConfigRefreshTimer = setTimeout(() => {
                 this.pendingConfigRefreshTimer = undefined;
-                const src = this.pendingConfigRefreshSource ? `${this.pendingConfigRefreshSource} (trailing)` : 'Trailing';
+                const src = this.pendingConfigRefreshSource || 'Trailing';
                 this.pendingConfigRefreshSource = undefined;
                 this.triggerConfigRefresh(src);
             }, delayMs);

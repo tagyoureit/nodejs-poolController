@@ -149,13 +149,15 @@ export class VirtualChlorinator {
                 break;
             }
             default:
-                logger.verbose(`VirtualChlorinator ${this.address}: ignoring unsupported action ${msg.action}`);
+                //logger.verbose(`VirtualChlorinator ${this.address}: ignoring unsupported action ${msg.action}`);
                 return;
         }
 
         try {
-            conn.queueSendMessage(response);
-            logger.verbose(`VirtualChlorinator ${this.address}: answered action ${msg.action} with response action ${response.action}`);
+            let port = conn.findPortById(response.portId);
+            if (port) port.emitter.emit('messagewritepriority', response);
+            else conn.queueSendMessage(response);
+            //logger.verbose(`VirtualChlorinator ${this.address}: answered action ${msg.action} with response action ${response.action}`);
         } catch (err) {
             logger.error(`VirtualChlorinator ${this.address}: failed to queue response for action ${msg.action}: ${(err as Error).message}`);
         }

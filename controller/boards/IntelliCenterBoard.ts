@@ -3399,14 +3399,28 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
 
         let out = Outbound.create({
             action: 168,
-            payload: [7, 0, id - 1, body.val, 1,
-                disabled ? 0 : isDosing ? 100 : poolSetpoint,
-                disabled ? 0 : isDosing ? 100 : spaSetpoint,
-                superChlorinate ? 1 : 0, superChlorHours, 0, 1],
+            payload: sys.equipment.isIntellicenterV3
+                ? [7, 0, id - 1, body.val, 1,
+                    disabled ? 0 : isDosing ? 100 : poolSetpoint,
+                    disabled ? 0 : isDosing ? 100 : spaSetpoint,
+                    0, 0, superChlorHours, 1, 20, 20]
+                : [7, 0, id - 1, body.val, 1,
+                    disabled ? 0 : isDosing ? 100 : poolSetpoint,
+                    disabled ? 0 : isDosing ? 100 : spaSetpoint,
+                    superChlorinate ? 1 : 0, superChlorHours, 0, 1],
             response: IntelliCenterBoard.getAckResponse(168),
             retries: 5
         });
         await out.sendAsync();
+        if (sys.equipment.isIntellicenterV3 && superChlorinate !== utils.makeBool(chlor.superChlor)) {
+            let scOut = Outbound.createMessage(184, [
+                128, 142, 0, 0, 236, 239, superChlorinate ? 1 : 0, 0, 0, 0
+            ], 3);
+            scOut.dest = 16;
+            scOut.retries = 5;
+            scOut.response = IntelliCenterBoard.getAckResponse(184);
+            await scOut.sendAsync();
+        }
         let schlor = state.chlorinators.getItemById(id, true);
         let cchlor = sys.chlorinators.getItemById(id, true);
         chlor.master = 0;

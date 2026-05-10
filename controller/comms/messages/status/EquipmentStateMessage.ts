@@ -28,6 +28,7 @@ import { ExternalMessage } from '../config/ExternalMessage';
 import { Inbound, Message, Outbound } from '../Messages';
 
 export class EquipmentStateMessage {
+    private static _superChlorOffCount: number = 0;
     private static initIntelliCenter(msg: Inbound) {
         sys.controllerType = ControllerType.IntelliCenter;
         sys.equipment.maxSchedules = 100;
@@ -716,13 +717,19 @@ export class EquipmentStateMessage {
                 // Byte 46: Second (0-59)
                 // Byte 47: Unknown - possibly DST indicator or status flag
                 if (sys.chlorinators.length > 0) {
-                    if (msg.extractPayloadByte(37, 255) !== 255) {
-                        const chlor = state.chlorinators.getItemById(1);
-                        chlor.superChlorRemaining = msg.extractPayloadByte(37) * 3600 + msg.extractPayloadByte(38) * 60;
+                    const chlor = state.chlorinators.getItemById(1);
+                    const hours = msg.extractPayloadByte(37, 255);
+                    const minutes = msg.extractPayloadByte(38, 0);
+                    if (hours !== 255) {
+                        chlor.superChlorRemaining = hours * 3600 + minutes * 60;
+                        chlor.superChlor = true;
+                        EquipmentStateMessage._superChlorOffCount = 0;
                     } else {
-                        const chlor = state.chlorinators.getItemById(1);
-                        chlor.superChlorRemaining = 0;
-                        chlor.superChlor = false;
+                        EquipmentStateMessage._superChlorOffCount = (EquipmentStateMessage._superChlorOffCount || 0) + 1;
+                        if (EquipmentStateMessage._superChlorOffCount >= 2) {
+                            chlor.superChlorRemaining = 0;
+                            chlor.superChlor = false;
+                        }
                     }
                 }
                 // v3.004+: Do NOT process feature states from Action 204!

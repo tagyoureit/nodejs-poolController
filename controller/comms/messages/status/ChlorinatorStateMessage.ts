@@ -122,7 +122,7 @@ export class ChlorinatorStateMessage {
                     // source like REM.
                     if (!chlor.ignoreSaltReading) cstate.saltLevel = msg.extractPayloadByte(0) * 50 || cstate.saltLevel || 0;
                     cstate.status = (msg.extractPayloadByte(1) & 0x007F); // Strip off the high bit.  The chlorinator does not actually report this. 
-                    cstate.currentOutput = chlor.disabled ? 0 : cstate.setPointForCurrentBody;
+                    cstate.currentOutput = chlor.disabled ? 0 : cstate.targetOutput || cstate.setPointForCurrentBody;
                     state.emitEquipmentChanges();
                     break;
                 case 19:
