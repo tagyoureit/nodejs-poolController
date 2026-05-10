@@ -165,7 +165,7 @@ export class HeaterStateMessage {
         let sheater = state.heaters.getItemById(heater.id);
         let heatByte = msg.extractPayloadByte(0);
         let errByte = msg.extractPayloadByte(2);
-        sheater.isOn = heatByte === 0x08;
+        sheater.isOn = (heatByte & 0x08) !== 0;
         sheater.commStatus = 0;
         state.equipment.messages.removeItemByCode(`heater:${heater.id}:comms`);
         if (errByte & 0x10)
