@@ -17,8 +17,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import * as extend from 'extend';
 import { EventEmitter } from 'events';
-import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChlorinatorCommands, PumpCommands, BodyCommands, ScheduleCommands, HeaterCommands, EquipmentIdRange, ValveCommands, SystemCommands, ChemControllerCommands, CoverCommands } from './SystemBoard';
-import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup, ExpansionPanel, ExpansionModule, ExpansionModuleCollection, Valve, General, Options, Location, Owner, ICircuit, Feature, CircuitGroup, ChemController, TempSensorCollection, Chlorinator, Cover } from '../Equipment';
+import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, CircuitCommands, FeatureCommands, ChlorinatorCommands, PumpCommands, BodyCommands, ScheduleCommands, HeaterCommands, EquipmentIdRange, ValveCommands, SystemCommands, ChemControllerCommands, CoverCommands, RemoteCommands } from './SystemBoard';
+import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup, ExpansionPanel, ExpansionModule, ExpansionModuleCollection, Valve, General, Options, Location, Owner, ICircuit, Feature, CircuitGroup, ChemController, TempSensorCollection, Chlorinator, Cover, Remote } from '../Equipment';
 import { Protocol, Outbound, Inbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
 import { logger } from '../../logger/Logger';
@@ -303,6 +303,7 @@ export class IntelliCenterBoard extends SystemBoard {
     public heaters: IntelliCenterHeaterCommands = new IntelliCenterHeaterCommands(this);
     public valves: IntelliCenterValveCommands = new IntelliCenterValveCommands(this);
     public covers: IntelliCenterCoverCommands = new IntelliCenterCoverCommands(this);
+    public remotes: IntelliCenterRemoteCommands = new IntelliCenterRemoteCommands(this);
     public chemControllers: IntelliCenterChemControllerCommands = new IntelliCenterChemControllerCommands(this);
     public reloadConfig() {
         //sys.resetSystem();
@@ -5007,6 +5008,46 @@ class IntelliCenterValveCommands extends ValveCommands {
         valve.circuit = v.circuit;
         valve.type = v.type;
         return valve;
+    }
+}
+class IntelliCenterRemoteCommands extends RemoteCommands {
+    public async setRemoteAsync(obj: any): Promise<Remote> {
+        let id = parseInt(obj.id, 10);
+        if (isNaN(id) || id < 1 || id > sys.equipment.maxRemotes) return Promise.reject(new InvalidEquipmentIdError('Remote Id is not valid', obj.id, 'Remote'));
+        let remote = sys.remotes.getItemById(id);
+        let v = extend(true, remote.get(true), obj);
+        const nameStr = normalizeIntelliCenterName(v.name, remote.name || `Remote ${id}`);
+        let type = typeof v.type !== 'undefined' ? parseInt(v.type, 10) : remote.type;
+        let isActive = typeof v.isActive !== 'undefined' ? utils.makeBool(v.isActive) : remote.isActive;
+        let pumpId = typeof v.pumpId !== 'undefined' ? parseInt(v.pumpId, 10) : (remote.pumpId !== undefined ? remote.pumpId : 255);
+        let address = typeof v.address !== 'undefined' ? parseInt(v.address, 10) : (remote.address || 0);
+        let body = typeof v.body !== 'undefined' ? parseInt(v.body, 10) : (remote.body || 0);
+        let payload = [5, 0, id - 1, type, isActive ? 1 : 0,
+            (pumpId !== undefined && pumpId < 255) ? pumpId : 255,
+            address > 0 ? address + 63 : 0,
+            body];
+        for (let b = 1; b <= 10; b++) {
+            let btn = typeof v['button' + b] !== 'undefined' ? parseInt(v['button' + b], 10) : (remote['button' + b] !== undefined ? remote['button' + b] : 255);
+            payload.push(isNaN(btn) || btn >= 255 ? 255 : btn);
+        }
+        let out = Outbound.create({
+            action: 168,
+            payload: payload,
+            response: IntelliCenterBoard.getAckResponse(168),
+            retries: 5
+        });
+        out.appendPayloadString(nameStr, 16);
+        await out.sendAsync();
+        remote.type = type;
+        remote.name = nameStr;
+        remote.isActive = isActive;
+        remote.pumpId = pumpId;
+        remote.address = address;
+        remote.body = body;
+        for (let b = 1; b <= 10; b++) {
+            remote['button' + b] = payload[7 + b];
+        }
+        return remote;
     }
 }
 export class IntelliCenterChemControllerCommands extends ChemControllerCommands {

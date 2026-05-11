@@ -16,7 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Inbound } from "../Messages";
-import { sys, Body, ICircuitGroup, LightGroup, CircuitGroup, Cover, SecurityRole } from "../../../Equipment";
+import { sys, Body, ICircuitGroup, LightGroup, CircuitGroup, Cover, SecurityRole, Remote } from "../../../Equipment";
 import { state, ICircuitGroupState, LightGroupState, CircuitGroupState } from "../../../State";
 import { ControllerType, Timestamp, utils } from "../../../Constants";
 import { logger } from "../../../../logger/Logger";
@@ -113,6 +113,7 @@ export class ExternalMessage {
                 ExternalMessage.processPump(msg);
                 break;
             case 5: // Remotes
+                ExternalMessage.processRemotes(msg);
                 break;
             case 6: // Light/Circuit group
                 ExternalMessage.processGroupSettings(msg);
@@ -560,6 +561,24 @@ export class ExternalMessage {
             }
         }
         state.emitEquipmentChanges();
+        msg.isProcessed = true;
+    }
+
+    private static processRemotes(msg: Inbound) {
+        let remoteId = msg.extractPayloadByte(2) + 1;
+        let remote: Remote = sys.remotes.getItemById(remoteId, true);
+        remote.type = msg.extractPayloadByte(3);
+        remote.isActive = msg.extractPayloadByte(4) === 1;
+        remote.pumpId = msg.extractPayloadByte(5);
+        remote.address = Math.max(msg.extractPayloadByte(6) - 63, 0);
+        remote.body = msg.extractPayloadByte(7);
+        let type = sys.board.valueMaps.remoteTypes.transform(remote.type);
+        for (let b = 0; b < 10; b++) {
+            if (b >= type.maxButtons) { remote['button' + (b + 1)] = undefined; continue; }
+            remote['button' + (b + 1)] = msg.extractPayloadByte(8 + b);
+        }
+        remote.name = msg.extractPayloadString(18, 16);
+        if (remote.type === 0 || !remote.isActive) sys.remotes.removeItemById(remoteId);
         msg.isProcessed = true;
     }
 

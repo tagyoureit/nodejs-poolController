@@ -206,9 +206,14 @@ export class ConfigRoute {
                 remoteTypes: sys.board.valueMaps.remoteTypes.toArray(),
                 circuits: circuits,
                 pumps: sys.pumps.get().filter(p => p.isActive),
+                bodies: sys.bodies.get().map((b, i) => ({ val: i, desc: b.name })),
                 remotes: sys.remotes.get()
             };
             return res.status(200).send(opts);
+        });
+        app.put('/config/remote', async (req, res, next) => {
+            try { res.status(200).send(await sys.board.remotes.setRemoteAsync(req.body)); }
+            catch (err) { next(err); }
         });
         app.get('/config/options/alerts', (req, res) => {
             return res.status(200).send({
