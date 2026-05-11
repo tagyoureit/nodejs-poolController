@@ -171,17 +171,24 @@ export class EquipmentStateMessage {
                 // (bit 0 = EXP1, bit 1 = EXP2, bit 2 = EXP3) on v1.x firmware.  On v3.008
                 // byte 40 reports 0x50 on BOTH a single-panel i8PS (no expansions) and on an
                 // i10D + 2x i10X system (two expansions populated) — see ISSUE-081.  So for
-                // v3 we bypass the pc gate and pass the raw module bytes through; the
-                // board-level processExpansionModules decoder treats all-zero slot bytes as
-                // empty and deactivates those panels.
+                // v3 we bypass the pc gate for slots 1 and 2 (bytes 15-18) and pass raw bytes
+                // through; the board-level processExpansionModules decoder treats all-zero
+                // slot bytes as empty and deactivates those panels.
+                //
+                // ISSUE-088: Byte 19 always reports 0x02 on v3 firmware regardless of whether
+                // an expansion panel is installed (confirmed across 60+ captures on i8PS with
+                // no expansions).  This is a firmware constant, NOT an expansion indicator.
+                // Slot 3 (bytes 19-20) is only passed through when a lower expansion slot is
+                // populated, confirming a multi-expansion stack.
                 const isV3 = sys.equipment.isIntellicenterV3;
                 const pc = msg.extractPayloadByte(40);
                 const exp1A = isV3 || (pc & 0x01) ? msg.extractPayloadByte(15) : 0x00;
                 const exp1B = isV3 || (pc & 0x01) ? msg.extractPayloadByte(16) : 0x00;
                 const exp2A = isV3 || (pc & 0x02) ? msg.extractPayloadByte(17) : 0x00;
                 const exp2B = isV3 || (pc & 0x02) ? msg.extractPayloadByte(18) : 0x00;
-                const exp3A = isV3 || (pc & 0x04) ? msg.extractPayloadByte(19) : 0x00;
-                const exp3B = isV3 || (pc & 0x04) ? msg.extractPayloadByte(20) : 0x00;
+                const hasLowerExpansion = exp1A !== 0 || exp2A !== 0;
+                const exp3A = (isV3 && hasLowerExpansion) || (pc & 0x04) ? msg.extractPayloadByte(19) : 0x00;
+                const exp3B = (isV3 && hasLowerExpansion) || (pc & 0x04) ? msg.extractPayloadByte(20) : 0x00;
                 (sys.board as IntelliCenterBoard).initExpansionModules(
                     msg.extractPayloadByte(13), msg.extractPayloadByte(14),
                     exp1A, exp1B, exp2A, exp2B, exp3A, exp3B);
@@ -678,6 +685,71 @@ export class EquipmentStateMessage {
                 break;
             }
             case 184: {
+                if (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3) {
+                    const chan0 = msg.extractPayloadByte(0);
+                    const chan1 = msg.extractPayloadByte(1);
+                    const circIdx = msg.extractPayloadByte(2);
+                    const target0 = msg.extractPayloadByte(4);
+                    const target1 = msg.extractPayloadByte(5);
+                    if (chan0 === 148 && chan1 === 175) {
+                        const circuitId = circIdx + 1;
+                        let cstate = state.circuits.getInterfaceById(circuitId);
+                        if (cstate && cstate.isActive !== false) {
+                            if (target0 === 196 && target1 === 144) {
+                                cstate.action = sys.board.valueMaps.circuitActions.getValue('colorsync');
+                                cstate.emitEquipmentChange();
+                                for (let i = 0; i < sys.lightGroups.length; i++) {
+                                    let lg = sys.lightGroups.getItemByIndex(i);
+                                    if (lg.circuits.find(elem => elem.circuit === circuitId)) {
+                                        let sgrp = state.lightGroups.getItemById(lg.id);
+                                        if (sgrp.action === 0) {
+                                            sgrp.action = sys.board.valueMaps.circuitActions.getValue('colorsync');
+                                            sgrp.emitEquipmentChange();
+                                        }
+                                    }
+                                }
+                            } else if (target0 === 198 && target1 === 156) {
+                                cstate.action = 0;
+                                cstate.emitEquipmentChange();
+                                for (let i = 0; i < sys.lightGroups.length; i++) {
+                                    let lg = sys.lightGroups.getItemByIndex(i);
+                                    if (lg.circuits.find(elem => elem.circuit === circuitId)) {
+                                        let sgrp = state.lightGroups.getItemById(lg.id);
+                                        if (sgrp.action === sys.board.valueMaps.circuitActions.getValue('colorsync')) {
+                                            let allReady = true;
+                                            for (let j = 0; j < lg.circuits.length; j++) {
+                                                let mc = lg.circuits.getItemByIndex(j);
+                                                if (mc.circuit === circuitId) continue;
+                                                let ms = state.circuits.getItemById(mc.circuit);
+                                                if (ms && ms.action !== 0) { allReady = false; break; }
+                                            }
+                                            if (allReady) {
+                                                sgrp.action = 0;
+                                                sgrp.emitEquipmentChange();
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (chan0 === 88 && chan1 === 163 && target0 === 138 && target1 === 177) {
+                        const groupIdx = msg.extractPayloadByte(2);
+                        const cmdByte = msg.extractPayloadByte(6);
+                        const groupId = groupIdx + sys.board.equipmentIds.circuitGroups.start;
+                        let sgrp = state.lightGroups.getItemById(groupId, false);
+                        if (sgrp && sgrp.id === groupId) {
+                            if (cmdByte > 0) {
+                                let actionName = cmdByte === 1 ? 'colorswim' : cmdByte === 2 ? 'colorset' : 'colorsync';
+                                sgrp.action = sys.board.valueMaps.circuitActions.getValue(actionName);
+                                sgrp.emitEquipmentChange();
+                            } else {
+                                sgrp.action = 0;
+                                sgrp.emitEquipmentChange();
+                            }
+                        }
+                    }
+                }
                 msg.isProcessed = true;
                 break;
             }

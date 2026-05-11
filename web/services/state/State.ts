@@ -539,21 +539,21 @@ export class StateRoute {
         });
         app.put('/state/lightGroup/:id/colorSync', async (req, res, next) => {
             try {
-                let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'colorsync');
+                let sgroup = await sys.board.circuits.runLightGroupCommandAsync({ id: parseInt(req.params.id, 10), command: 'colorsync' });
                 return res.status(200).send(sgroup.get(true));
             }
             catch (err) { next(err); }
         });
         app.put('/state/lightGroup/:id/colorSet', async (req, res, next) => {
             try {
-                let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'colorset');
+                let sgroup = await sys.board.circuits.runLightGroupCommandAsync({ id: parseInt(req.params.id, 10), command: 'colorset' });
                 return res.status(200).send(sgroup.get(true));
             }
             catch (err) { next(err); }
         });
         app.put('/state/lightGroup/:id/colorSwim', async (req, res, next) => {
             try {
-                let sgroup = await sys.board.circuits.sequenceLightGroupAsync(parseInt(req.params.id, 10), 'colorswim');
+                let sgroup = await sys.board.circuits.runLightGroupCommandAsync({ id: parseInt(req.params.id, 10), command: 'colorswim' });
                 return res.status(200).send(sgroup.get(true));
             }
             catch (err) { next(err); }

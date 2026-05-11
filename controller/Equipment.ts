@@ -1050,7 +1050,7 @@ export class Equipment extends EqItem {
         // Note: We intentionally do NOT check controllerType here because this property
         // is queried during early initialization before controllerType is confirmed.
         // All callers either run in IntelliCenter-specific code paths or explicitly check controllerType.
-        const fw = parseFloat(this.controllerFirmware || '');
+        const fw = parseFloat(this.controllerFirmware || this.data.softwareVersion || '');
         if (!Number.isFinite(fw)) return false;
         return fw >= 3.0;
     }
@@ -2207,10 +2207,13 @@ export class Security extends EqItem {
     public dataName = 'securityConfig';
     public initData() {
         if (typeof this.data.enabled === 'undefined') this.data.enabled = false;
+        if (typeof this.data.guestEnabled === 'undefined') this.data.guestEnabled = false;
         if (typeof this.data.enabledByte === 'undefined') this.data.enabledByte = 0;
     }
     public get enabled(): boolean { return this.data.enabled; }
     public set enabled(val: boolean) { this.setDataVal('enabled', val); }
+    public get guestEnabled(): boolean { return this.data.guestEnabled; }
+    public set guestEnabled(val: boolean) { this.setDataVal('guestEnabled', val); }
     public get enabledByte(): number { return this.data.enabledByte; }
     public set enabledByte(val: number) { this.setDataVal('enabledByte', val); }
     public get roles(): SecurityRoleCollection { return new SecurityRoleCollection(this.data, "roles"); }

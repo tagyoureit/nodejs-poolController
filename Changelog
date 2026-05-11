@@ -1,5 +1,34 @@
 # Changelog
 
+## 9.1.0
+IntelliCenter security rationalization, JXi/LXi heater support, virtual IntelliChem, and various fixes.
+
+### Security
+1. IntelliCenter v3 PIN-based security: full role management with up to 9 roles, 22-section granular permissions, session timeout with activity tracking, and server-side write protection on `/config/*` routes.
+2. dashPanel security integration: Guest mode auto-session on page load, "Guest" badge, config tab gating by permission bitmask, dashboard widget permission gating (bodies, circuits, lights, chemistry, pumps), PIN dialog via lock icon, and session timeout auto-revert.
+3. Permission bit map empirically verified against OCP firmware (bit order differs from OCP display order).
+
+### New Features
+4. Jandy JXi/LXi heater RS485 protocol support with fault message handling (#1128).
+5. Virtual IntelliChem support with alarm sync and API routes for testing without hardware.
+6. Virtual chlorinator support with full emulation of chlorinator protocol responses.
+7. Chlorinator comms-lost alert from Action 204 byte 34.
+8. Configurable single mixing period option for chemistry controllers (#1181). Thanks to @johnny2678.
+9. IntelliBrite light sequencing delay detection: OCP/ICP "gray-out" state now propagates to dashPanel via inbound A184 channel 0x94AF decode. Circuit button dims and disables clicks during theme sequencing.
+10. v3 light group Swim/Set/Sync commands: dashPanel triggers via v3 A184 protocol (channel 0x58A3, target 0x8AB1) instead of v1 rapid-toggle sequencing. Group and member circuits show disabled state until OCP confirms completion.
+
+### Bug Fixes
+10. IntelliCenter v3 circuit/light group eggTimer offset regression: outbound A168 cat=6 now sends 45-byte payload with eggTimer at bytes 40-41 (was incorrectly at 38-39). Inbound ExternalMessage.processGroupSettings also reads v3 offset. Added processEggTimer protection guard against OCP overwriting valid local values with 0.
+11. IntelliCenter V3 chlorinator: fixed payload format, improved superChlor handling, debounced spurious 255 values.
+12. JXi burner-on status: use bitmask check instead of equality for reliable detection.
+13. JXi/LXi heater: default RS485 address to 0x68/0x38.
+14. EquipmentStateMessage: header byte check to disambiguate IntelliCenter from IntelliTouch i9+3 (#1179).
+15. IntelliCenterBoard: process 3rd power center expansion modules correctly (#1171).
+16. Chlorinator ID fallback when `useChlorinator` is true in `setORPAsync`. Thanks to @johnny2678 — [PR #1178](https://github.com/tagyoureit/nodejs-poolController/pull/1178).
+17. Hayward remote control handler: fix no-op catch (#1182).
+18. ChemDoser: simplify singleMixPeriod loop.
+19. IntelliCenter v3 expansion panel decoding and plugin address management improvements.
+
 ## 9.0.0
 Focused release on IntelliCenter v3.008 firmware compatibility, finishing the v3 work started in 8.4.1, plus the Regal Century pump Modbus fixes.
 

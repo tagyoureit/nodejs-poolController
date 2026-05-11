@@ -1059,13 +1059,13 @@ export class IntelliCenterBoard extends SystemBoard {
                 else permBytes[3] = permBytes[3] & ~0x40;
             }
         }
-        let payload: number[] = [11, item, 1, (pinNum >> 8) & 0xFF, pinNum & 0xFF];
+        let payload: number[] = [11, item, item, (pinNum >> 8) & 0xFF, pinNum & 0xFF];
         let nameBytes: number[] = [];
         for (let i = 0; i < 16; i++) nameBytes.push(i < name.length ? name.charCodeAt(i) : 0);
         payload.push(...nameBytes);
         payload.push(permBytes[0] & 0xFF, permBytes[1] & 0xFF, permBytes[2] & 0xFF, permBytes[3] & 0xFF);
         payload.push(timeout & 0xFF);
-        payload.push(0, 0, 0);
+        payload.push(0xFF, 0xFF, 0xFF);
         let out = Outbound.create({
             action: 168,
             payload: payload,
@@ -1082,8 +1082,18 @@ export class IntelliCenterBoard extends SystemBoard {
             if (item === 0) {
                 sys.security.enabledByte = permBytes[3];
                 sys.security.enabled = (permBytes[3] & 0x80) === 0x80;
+                sys.security.guestEnabled = (permBytes[3] & 0x40) === 0x40;
             }
         }
+        try {
+            let verifyReq = Outbound.create({
+                action: 222,
+                payload: [11, item],
+                response: Response.create({ action: 168 }),
+                retries: 3
+            });
+            await verifyReq.sendAsync();
+        } catch (err) { logger.warn(`Security role verify read failed: ${err.message}`); }
         return sys.security.get(true);
     }
     public get commandSourceAddress(): number { return this.getRegistrationAddress(); }
@@ -1367,8 +1377,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         this.maybeQueueItems(curr.security, ver.security, ConfigCategories.security, [0, 1, 2, 3, 4, 5, 6, 7, 8]);
         if (this.compareVersions(curr.remotes, ver.remotes)) {
             let req = new IntelliCenterConfigRequest(ConfigCategories.remotes, ver.remotes, [0, 1], function (req: IntelliCenterConfigRequest) {
-                // Only get remote attributes if we actually have something other than the 2 is4s.
-                if (sys.remotes.length > 2) req.fillRange(3, sys.remotes.length - 2 + 3);
+                if (sys.remotes.length > 2) req.fillRange(2, sys.remotes.length - 1);
             });
             this.push(req);
         }
@@ -2559,35 +2568,59 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
         catch (err) { return Promise.reject(err); }
     }
     public async runLightGroupCommandAsync(obj: any): Promise<ICircuitState> {
-        // Do all our validation.
         try {
             let id = parseInt(obj.id, 10);
             let cmd = typeof obj.command !== 'undefined' ? sys.board.valueMaps.lightGroupCommands.findItem(obj.command) : { val: 0, name: 'undefined' };
             if (cmd.val === 0) return Promise.reject(new InvalidOperationError(`Light group command ${cmd.name} does not exist`, 'runLightGroupCommandAsync'));
             if (isNaN(id)) return Promise.reject(new InvalidOperationError(`Light group ${id} does not exist`, 'runLightGroupCommandAsync'));
             let grp = sys.lightGroups.getItemById(id);
-            let nop = sys.board.valueMaps.circuitActions.getValue(cmd.name);
             let sgrp = state.lightGroups.getItemById(grp.id);
-            sgrp.action = nop;
-            sgrp.emitEquipmentChange();
-            switch (cmd.name) {
-                case 'colorset':
-                    await this.sequenceLightGroupAsync(id, 'colorset');
-                    break;
-                case 'colorswim':
-                    await this.sequenceLightGroupAsync(id, 'colorswim');
-                    break;
-                case 'colorhold':
-                    await this.setLightGroupThemeAsync(id, 12);
-                    break;
-                case 'colorrecall':
-                    await this.setLightGroupThemeAsync(id, 13);
-                    break;
-                case 'lightthumper':
-                    break;
+            if (sys.equipment.isIntellicenterV3) {
+                let cmdByte = 0;
+                let actionName = '';
+                switch (cmd.name) {
+                    case 'colorswim': cmdByte = 1; actionName = 'colorswim'; break;
+                    case 'colorset': cmdByte = 2; actionName = 'colorset'; break;
+                    case 'colorsync': cmdByte = 3; actionName = 'colorsync'; break;
+                    default: return sgrp;
+                }
+                let nop = sys.board.valueMaps.circuitActions.getValue(actionName);
+                sgrp.action = nop;
+                sgrp.emitEquipmentChange();
+                for (let i = 0; i < grp.circuits.length; i++) {
+                    let mc = grp.circuits.getItemByIndex(i);
+                    if (mc.circuit) {
+                        let cs = state.circuits.getItemById(mc.circuit);
+                        if (cs) { cs.action = nop; cs.emitEquipmentChange(); }
+                    }
+                }
+                let groupIdx = id - sys.board.equipmentIds.circuitGroups.start;
+                let out = Outbound.createMessage(184, [88, 163, groupIdx, 0, 138, 177, cmdByte, 0, 0, 0], 3);
+                out.dest = 16;
+                await out.sendAsync();
+            } else {
+                let nop = sys.board.valueMaps.circuitActions.getValue(cmd.name);
+                sgrp.action = nop;
+                sgrp.emitEquipmentChange();
+                switch (cmd.name) {
+                    case 'colorset':
+                        await this.sequenceLightGroupAsync(id, 'colorset');
+                        break;
+                    case 'colorswim':
+                        await this.sequenceLightGroupAsync(id, 'colorswim');
+                        break;
+                    case 'colorhold':
+                        await this.setLightGroupThemeAsync(id, 12);
+                        break;
+                    case 'colorrecall':
+                        await this.setLightGroupThemeAsync(id, 13);
+                        break;
+                    case 'lightthumper':
+                        break;
+                }
+                sgrp.action = 0;
+                sgrp.emitEquipmentChange();
             }
-            sgrp.action = 0;
-            sgrp.emitEquipmentChange();
             return sgrp;
         }
         catch (err) { return Promise.reject(`Error runLightGroupCommandAsync ${err.message}`); }
@@ -5308,7 +5341,7 @@ class IntelliCenterCoverCommands extends CoverCommands {
             (postChlorActive ? 0x01 : 0) |
             (normallyOn ? 0x02 : 0) |
             (isActive ? 0x04 : 0) |
-            (body === poolBodyId ? 0x08 : 0);
+            (body === spaBodyId ? 0x08 : 0);
 
         const slot = id - 1;
         const out = Outbound.create({
@@ -5320,8 +5353,9 @@ class IntelliCenterCoverCommands extends CoverCommands {
         // Name: preserve OCP-fixed value ("Cover 1"/"Cover 2"), 16 bytes, null-padded.
         out.appendPayloadString(cover.name || `Cover ${id}`, 16);
         // Circuits: 10 slots, unused filled with 0xFF.
+        // Wire protocol is 0-indexed (wire 0 = njsPC circuit id 1).
         for (let i = 0; i < 10; i++) {
-            out.appendPayloadByte(i < circuits.length ? circuits[i] : 0xFF);
+            out.appendPayloadByte(i < circuits.length ? circuits[i] - 1 : 0xFF);
         }
         out.appendPayloadByte(flags);
 

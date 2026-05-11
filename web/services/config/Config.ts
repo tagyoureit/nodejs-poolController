@@ -98,7 +98,7 @@ export class ConfigRoute {
     }
     private static getSessionResponse(req: express.Request): any {
         const session = ConfigRoute.getSecuritySession(req);
-        const guestEnabled = (sys.security.enabledByte & 0x40) !== 0;
+        const guestEnabled = sys.security.guestEnabled;
         let guestPermissionsMask = 0;
         if (guestEnabled) {
             const roles = sys.security.roles.toArray();
@@ -174,10 +174,41 @@ export class ConfigRoute {
             return res.status(200).send(opts);
         });
         app.get('/config/options/security', (req, res) => {
+            let sec = sys.security.get(true);
+            let roles = (sec.roles || []).filter((r: any) => {
+                if (r.id === 1) return true;
+                if (!sys.security.enabled) return false;
+                if (r.id === 9 && !sys.security.guestEnabled) return false;
+                return true;
+            });
             return res.status(200).send({
-                security: sys.security.get(true),
+                security: { ...sec, roles: roles },
                 session: ConfigRoute.getSessionResponse(req).session
             });
+        });
+        app.get('/config/options/remotes', (req, res) => {
+            let circuits = sys.board.circuits.getCircuitReferences(true, true, false, true);
+            let remoteVirtuals = [
+                { id: 237, name: 'Heat Boost' },
+                { id: 238, name: 'Heat Enable' },
+                { id: 239, name: 'Pump Speed +' },
+                { id: 240, name: 'Pump Speed -' },
+                { id: 253, name: 'Pool Heat Enable' },
+                { id: 254, name: 'All Lights On' },
+                { id: 255, name: 'All Lights Off' }
+            ];
+            for (let i = 0; i < remoteVirtuals.length; i++) {
+                circuits.push({ id: remoteVirtuals[i].id, name: remoteVirtuals[i].name, equipmentType: 'virtual' });
+            }
+            circuits.sort((a, b) => a.id - b.id);
+            let opts = {
+                maxRemotes: sys.equipment.maxRemotes,
+                remoteTypes: sys.board.valueMaps.remoteTypes.toArray(),
+                circuits: circuits,
+                pumps: sys.pumps.get().filter(p => p.isActive),
+                remotes: sys.remotes.get()
+            };
+            return res.status(200).send(opts);
         });
         app.get('/config/options/alerts', (req, res) => {
             return res.status(200).send({

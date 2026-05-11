@@ -516,8 +516,9 @@ export class ExternalMessage {
                     // Now calculate out the sync/set/swim operations.
                     if (gstate.dataName === 'lightGroup') {
                         let lg = gstate as LightGroupState;
-                        // Sequencing is only meaningful while the group is ON.
                         if (!isOn) lg.action = 0;
+                        else if (sys.equipment.isIntellicenterV3) {
+                        }
                         else if (start === 13) {
                             let ndx = lg.id - sys.board.equipmentIds.circuitGroups.start;
                             let byteNdx = Math.floor(ndx / 4);
@@ -582,7 +583,7 @@ export class ExternalMessage {
             ((permissionsBytes[2] & 0xFF) * 256) +
             (permissionsBytes[3] & 0xFF);
         const timeout = msg.extractPayloadByte(25, 0);
-        const hasRoleData = roleName.length > 0 || pinNumber > 0 || timeout > 0 || permissionsMask > 0;
+        const hasRoleData = item === 0 || roleName.length > 0 || permissionsMask > 0;
         if (hasRoleData) {
             const role: SecurityRole = sys.security.roles.getItemById(roleId, true);
             role.name = roleName;
@@ -595,6 +596,7 @@ export class ExternalMessage {
             if (item === 0) {
                 sys.security.enabledByte = permissionsBytes[3];
                 sys.security.enabled = (permissionsBytes[3] & 0x80) === 0x80;
+                sys.security.guestEnabled = (permissionsBytes[3] & 0x40) === 0x40;
             }
         } else {
             sys.security.roles.removeItemById(roleId);

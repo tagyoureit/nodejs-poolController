@@ -95,15 +95,15 @@ export class CoverMessage {
     cover.chlorActive = (flags & 0x01) === 0x01;
     cover.normallyOn = (flags & 0x02) === 0x02;
     cover.isActive = (flags & 0x04) === 0x04;
-    // Body: bit 3 set → Pool (0), clear → Spa (1). Confirmed by body-swap test 2026-04-19 19:29.
-    // Using the valueMap so either encode form is acceptable to callers reading cover.body.
-    cover.body = (flags & 0x08) === 0x08 ? 0 : 1;
+    // Body: bit 3 set → Spa (1), clear → Pool (0). Corrected 2026-05-10 per OCP observation.
+    cover.body = (flags & 0x08) === 0x08 ? 1 : 0;
 
     // Circuits: up to 10 slots, 0xFF = empty. Fixed from `i=1..9` to cover all 10 bytes.
+    // Wire protocol is 0-indexed (wire 0 = njsPC circuit id 1).
     cover.circuits.length = 0;
     for (let i = 0; i < 10; i++) {
       const b = msg.extractPayloadByte(i + circuitsOffset);
-      if (b !== 0xFF) cover.circuits.push(b);
+      if (b !== 0xFF) cover.circuits.push(b + 1);
     }
 
     // Rule 18: mirror to state so dashPanel doesn't lag between the ingest and the next websocket tick.

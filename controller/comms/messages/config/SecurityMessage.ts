@@ -17,15 +17,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { Inbound } from "../Messages";
 import { sys, SecurityRole } from "../../../Equipment";
+import { logger } from "../../../../logger/Logger";
 
 export class SecurityMessage {
     public static process(msg: Inbound): void {
         const item = msg.extractPayloadByte(1, 0);
-        if (item === 0) {
-            // Item 0 is always the admin role and marks a full role block refresh.
-            sys.security.roles.clear();
-        }
-
         const roleId = item + 1;
         const roleName = msg.extractPayloadString(5, 16).trim();
         const pinNumber = ((msg.extractPayloadByte(3, 0) & 0xFF) << 8) | (msg.extractPayloadByte(4, 0) & 0xFF);
@@ -41,7 +37,9 @@ export class SecurityMessage {
             ((permissionsBytes[1] & 0xFF) * 65536) +
             ((permissionsBytes[2] & 0xFF) * 256) +
             (permissionsBytes[3] & 0xFF);
-        const hasRoleData = roleName.length > 0 || pinNumber > 0 || timeout > 0 || permissionsMask > 0;
+        const hasRoleData = item === 0 || roleName.length > 0 || permissionsMask > 0;
+
+        logger.debug(`SecurityMessage: item=${item} roleId=${roleId} name="${roleName}" pin=${pinNumber.toString().padStart(4, '0')} timeout=${timeout} bytes=[${permissionsBytes}] mask=0x${permissionsMask.toString(16).padStart(8, '0')} hasData=${hasRoleData}`);
 
         if (hasRoleData) {
             const role: SecurityRole = sys.security.roles.getItemById(roleId, true);
@@ -55,6 +53,7 @@ export class SecurityMessage {
             if (item === 0) {
                 sys.security.enabledByte = permissionsBytes[3];
                 sys.security.enabled = (permissionsBytes[3] & 0x80) === 0x80;
+                sys.security.guestEnabled = (permissionsBytes[3] & 0x40) === 0x40;
             }
         } else {
             sys.security.roles.removeItemById(roleId);
