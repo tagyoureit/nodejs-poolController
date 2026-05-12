@@ -57,6 +57,7 @@ export class IntelliCenterBoard extends SystemBoard {
         this.valueMaps.panelModes = new byteValueMap([
             [0, { val: 0, name: 'auto', desc: 'Auto' }],
             [1, { val: 1, name: 'service', desc: 'Service' }],
+            [2, { val: 2, name: 'timeout', desc: 'Timeout' }],
             [8, { val: 8, name: 'freeze', desc: 'Freeze' }],
             [255, { name: 'error', desc: 'System Error' }]
         ]);
@@ -1507,6 +1508,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
             }
             if (typeof obj.options !== 'undefined') {
                 try {
+                    if (typeof obj.options.vacation !== 'undefined') await (this as any).setVacationAsync(obj.options.vacation);
                     await sys.board.system.setOptionsAsync(obj.options)
                 }
                 catch (err) {
@@ -1542,6 +1544,19 @@ class IntelliCenterSystemCommands extends SystemCommands {
         catch (err) { return Promise.reject(err); }
 
     }
+    public async cancelDelay(): Promise<any> {
+        if (sys.equipment.isIntellicenterV3) {
+            let out = Outbound.create({
+                action: 168,
+                retries: 3,
+                payload: [19, 0, 0],
+                response: IntelliCenterBoard.getAckResponse(168)
+            });
+            await out.sendAsync();
+        }
+        state.delay = sys.board.valueMaps.delay.getValue('nodelay');
+        return state.data.delay;
+    }
     public async setOptionsAsync(obj?: any): Promise<Options> {
         let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : Math.abs(num) || 0; }
         const isIntellicenterV3 = (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3);
@@ -1555,10 +1570,10 @@ class IntelliCenterSystemCommands extends SystemCommands {
         const freezeOverrideRaw = encodeFreezeOverride(parseInt((sys.general.options.freezeOverride || 30).toString(), 10) || 30);
         const pool = sys.bodies.getItemById(1, false);
         const spa = sys.bodies.getItemById(2, false);
-        const manualPriorityPayloadIndex = isIntellicenterV3 ? 28 : 39;
+        const manualPriorityPayloadIndex = isIntellicenterV3 ? 29 : 39;
         const manualHeatPayloadIndex = isIntellicenterV3 ? 31 : 40;
-        const pumpDelayPayloadIndex = isIntellicenterV3 ? 29 : 30;
-        const cooldownDelayPayloadIndex = isIntellicenterV3 ? 30 : 31;
+        const pumpDelayPayloadIndex = isIntellicenterV3 ? 30 : 30;
+        const cooldownDelayPayloadIndex = isIntellicenterV3 ? 28 : 31;
 
         let payload = [0, 0, 0,
             fnToByte(sys.equipment.tempSensors.getCalibration('water2')),
@@ -1584,12 +1599,13 @@ class IntelliCenterSystemCommands extends SystemCommands {
                     pool.setPoint || 100, pool.coolSetpoint || (pool.setPoint || 100),
                     spa.setPoint || 100, spa.coolSetpoint || (spa.setPoint || 100),
                     pool.heatMode || 0, spa.heatMode || 0,
-                    freezeCycleTime, freezeOverrideRaw,
+                    freezeCycleTime,
+                    sys.general.options.valveDelay ? 1 : 0,
+                    sys.general.options.cooldownDelay ? 1 : 0,
                     sys.general.options.manualPriority ? 1 : 0,
                     sys.general.options.pumpDelay ? 1 : 0,
-                    sys.general.options.cooldownDelay ? 1 : 0,
                     sys.general.options.manualHeat ? 1 : 0,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0
+                    0, 0, 0, 0, 0, 0, 0, 0
                 ]
                 : [
                     sys.bodies.getItemById(1, false).setPoint || 100, // 21
@@ -1827,12 +1843,13 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 }
             }
             if (isIntellicenterV3) {
-                const requestedFreezeCycleTime = typeof obj.freezeCycleTime !== 'undefined'
-                    ? parseInt(obj.freezeCycleTime, 10)
-                    : (typeof obj.frzCycleTime !== 'undefined' ? parseInt(obj.frzCycleTime, 10) : undefined);
-                if (typeof requestedFreezeCycleTime !== 'undefined' && !isNaN(requestedFreezeCycleTime) && requestedFreezeCycleTime !== sys.general.options.freezeCycleTime) {
-                    payload[2] = isIntellicenterV3 ? 0 : 26;
-                    payload[26] = Math.max(0, Math.min(255, requestedFreezeCycleTime));
+                let delayRequested = typeof obj.freezeCycleTime !== 'undefined' || typeof obj.valveDelay !== 'undefined' || typeof obj.cooldownDelay !== 'undefined';
+                if (delayRequested) {
+                    const requestedFreezeCycleTime = typeof obj.freezeCycleTime !== 'undefined'
+                        ? parseInt(obj.freezeCycleTime, 10) : sys.general.options.freezeCycleTime;
+                    payload[26] = Math.max(1, Math.min(60, requestedFreezeCycleTime || 15));
+                    payload[27] = (typeof obj.valveDelay !== 'undefined' ? obj.valveDelay : sys.general.options.valveDelay) ? 0x01 : 0x00;
+                    payload[28] = (typeof obj.cooldownDelay !== 'undefined' ? obj.cooldownDelay : sys.general.options.cooldownDelay) ? 0x01 : 0x00;
                     let out = Outbound.create({
                         action: 168,
                         retries: 5,
@@ -1841,21 +1858,8 @@ class IntelliCenterSystemCommands extends SystemCommands {
                     });
                     await out.sendAsync();
                     sys.general.options.freezeCycleTime = payload[26];
-                }
-                const requestedFreezeOverride = typeof obj.freezeOverride !== 'undefined'
-                    ? parseInt(obj.freezeOverride, 10)
-                    : (typeof obj.frzOverride !== 'undefined' ? parseInt(obj.frzOverride, 10) : undefined);
-                if (typeof requestedFreezeOverride !== 'undefined' && !isNaN(requestedFreezeOverride) && requestedFreezeOverride !== sys.general.options.freezeOverride) {
-                    payload[2] = isIntellicenterV3 ? 0 : 27;
-                    payload[27] = encodeFreezeOverride(requestedFreezeOverride);
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: payload,
-                        response: IntelliCenterBoard.getAckResponse(168)
-                    });
-                    await out.sendAsync();
-                    sys.general.options.freezeOverride = requestedFreezeOverride;
+                    sys.general.options.valveDelay = payload[27] === 1;
+                    sys.general.options.cooldownDelay = payload[28] === 1;
                 }
             }
             if (typeof obj.pumpDelay !== 'undefined' && obj.pumpDelay !== sys.general.options.pumpDelay) {
@@ -1907,6 +1911,34 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 sys.general.options.manualHeat = obj.manualHeat ? true : false;
             }
             return Promise.resolve(sys.general.options);
+        }
+        catch (err) { return Promise.reject(err); }
+    }
+    public async setVacationAsync(obj?: any): Promise<Options> {
+        try {
+            let opts = sys.general.options;
+            let enabled = typeof obj.enabled !== 'undefined' ? (obj.enabled ? true : false) : opts.vacation.enabled;
+            let useTimeframe = typeof obj.useTimeframe !== 'undefined' ? (obj.useTimeframe ? true : false) : opts.vacation.useTimeframe;
+            let startDate = new Date(obj.startDate || opts.vacation.startDate);
+            let endDate = new Date(obj.endDate || opts.vacation.endDate);
+            let payload = [0, 0, 64,
+                enabled ? 1 : 0,
+                useTimeframe ? 1 : 0,
+                startDate.getFullYear() - 2000, startDate.getMonth() + 1, startDate.getDate(),
+                endDate.getFullYear() - 2000, endDate.getMonth() + 1, endDate.getDate()
+            ];
+            let out = Outbound.create({
+                action: 168,
+                retries: 5,
+                payload: payload,
+                response: IntelliCenterBoard.getAckResponse(168)
+            });
+            await out.sendAsync();
+            opts.vacation.enabled = enabled;
+            opts.vacation.useTimeframe = useTimeframe;
+            opts.vacation.startDate = startDate;
+            opts.vacation.endDate = endDate;
+            return Promise.resolve(opts);
         }
         catch (err) { return Promise.reject(err); }
     }
@@ -2782,6 +2814,10 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             logger.info(`v3.004+ setCircuitStateAsync: ID ${id} is a feature; delegating to setFeatureStateAsync -> ${val ? 'ON' : 'OFF'}`);
             return await this.board.features.setFeatureStateAsync(id, val, ignoreDelays);
         }
+        if (sys.equipment.isIntellicenterV3 && sys.board.equipmentIds.circuitGroups.isInRange(id)) {
+            await this.setCircuitGroupStateAsync(id, val);
+            return state.circuitGroups.getInterfaceById(id);
+        }
         let c = sys.circuits.getInterfaceById(id);
         if (c.master !== 0) return await super.setCircuitStateAsync(id, val);
         // As of 1.047 there is a sequence to this.
@@ -2991,7 +3027,24 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             gstate.emitEquipmentChange();
         }
         try {
-            await sys.board.circuits.setCircuitStateAsync(id, val);
+            if (sys.equipment.isIntellicenterV3) {
+                let groupIdx = id - sys.board.equipmentIds.circuitGroups.start;
+                let out = Outbound.createMessage(184, [
+                    88, 163,         // Channel 0x58A3 (groups)
+                    groupIdx,        // Index (groupId - circuitGroups.start)
+                    0,               // Format
+                    168, 237,        // Primitive 0xA8ED (toggle)
+                    val ? 1 : 0,     // State
+                    0, 0, 0
+                ], 3);
+                out.dest = 16;
+                out.scope = `circuitGroupState${id}`;
+                out.retries = 5;
+                out.response = IntelliCenterBoard.getAckResponse(184);
+                await out.sendAsync();
+            } else {
+                await sys.board.circuits.setCircuitStateAsync(id, val);
+            }
             if (isLightGroup && val) {
                 setTimeout(() => {
                     (gstate as LightGroupState).action = 0;
@@ -4499,6 +4552,8 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             let runOnce = schedType !== 128 ? 129 : 128;
             if (startTimeType !== 0) runOnce |= (1 << (startTimeType + 1));
             if (endTimeType !== 0) runOnce |= (1 << (endTimeType + 3));
+            let schedGroup = typeof data.schedGroup !== 'undefined' ? parseInt(data.schedGroup, 10) : sched.schedGroup || 0;
+            if (schedGroup === 1) runOnce |= 0x40;
             // This was always the cooling setpoint for ultratemp.
             //let flags = (circuit === 1 || circuit === 6) ? 81 : 100;
             // v3.004+ uses big-endian for 16-bit time values
@@ -4537,6 +4592,7 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             sched.circuit = ssched.circuit = circuit;
             sched.scheduleDays = ssched.scheduleDays = schedDays;
             sched.scheduleType = ssched.scheduleType = schedType;
+            sched.schedGroup = ssched.schedGroup = schedGroup;
             sched.heatSetpoint = ssched.heatSetpoint = heatSetpoint;
             sched.coolSetpoint = ssched.coolSetpoint = coolSetpoint;
             sched.heatSource = ssched.heatSource = heatSource;

@@ -319,6 +319,7 @@ export class ScheduleMessage {
                 schedule.isActive = true;
                 schedule.master = 0;
                 schedule.scheduleType = (byte & 1 & 0xFF) === 1 ? 0 : 128;
+                schedule.schedGroup = (byte & 0x40) ? 1 : 0;
                 if ((byte & 4 & 0xFF) === 4) schedule.startTimeType = 1;
                 else if ((byte & 8 & 0xFF) === 8) schedule.startTimeType = 2;
                 else schedule.startTimeType = 0;
@@ -331,6 +332,7 @@ export class ScheduleMessage {
                 csched.startTimeType = schedule.startTimeType;
                 csched.endTimeType = schedule.endTimeType;
                 csched.scheduleType = schedule.scheduleType;
+                csched.schedGroup = schedule.schedGroup;
             }
             else {
                 // Now we need to remove this pig because this is not an active schedule.

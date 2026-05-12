@@ -16,6 +16,7 @@ IntelliCenter security rationalization, JXi/LXi heater support, virtual IntelliC
 8. Configurable single mixing period option for chemistry controllers (#1181). Thanks to @johnny2678.
 9. IntelliBrite light sequencing delay detection: OCP/ICP "gray-out" state now propagates to dashPanel via inbound A184 channel 0x94AF decode. Circuit button dims and disables clicks during theme sequencing.
 10. v3 light group Swim/Set/Sync commands: dashPanel triggers via v3 A184 protocol (channel 0x58A3, target 0x8AB1) instead of v1 rapid-toggle sequencing. Group and member circuits show disabled state until OCP confirms completion.
+11. Automatic lat/lon resolution from zip code: heliotrope sunrise/sunset calculations now fall back to a bundled US zip code coordinate table when latitude/longitude are not explicitly configured or provided via environment variables.
 
 ### Bug Fixes
 10. IntelliCenter v3 circuit/light group eggTimer offset regression: outbound A168 cat=6 now sends 45-byte payload with eggTimer at bytes 40-41 (was incorrectly at 38-39). Inbound ExternalMessage.processGroupSettings also reads v3 offset. Added processEggTimer protection guard against OCP overwriting valid local values with 0.
@@ -28,6 +29,8 @@ IntelliCenter security rationalization, JXi/LXi heater support, virtual IntelliC
 17. Hayward remote control handler: fix no-op catch (#1182).
 18. ChemDoser: simplify singleMixPeriod loop.
 19. IntelliCenter v3 expansion panel decoding and plugin address management improvements.
+20. Schedule calculation crash when heliotrope invalid: `calcAdjustedTimes` now guards against undefined `dt` and missing lat/lon; `calcSchedule` null-checks `endTime` before calling `.getTime()`.
+21. Schedule `nsod` (tomorrow start-of-day) was calculated as yesterday due to copy-paste typo (`addHours(-24)` → `addHours(24)`).
 
 ## 9.0.0
 Focused release on IntelliCenter v3.008 firmware compatibility, finishing the v3 work started in 8.4.1, plus the Regal Century pump Modbus fixes.

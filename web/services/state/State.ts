@@ -600,6 +600,12 @@ export class StateRoute {
         app.get('/state/emitAll', (req, res) => {
             res.status(200).send(state.emitAllEquipmentChanges());
         });
+        app.put('/state/cancelDelay', async (req, res, next) => {
+            try {
+                let result = await (sys.board as any).cancelDelay();
+                return res.status(200).send(result);
+            } catch (err) { next(err); }
+        });
         app.get('/state/:section', (req, res) => {
             res.status(200).send(state.getState(req.params.section));
         });

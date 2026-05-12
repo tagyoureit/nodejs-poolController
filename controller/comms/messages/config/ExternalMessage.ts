@@ -277,9 +277,20 @@ export class ExternalMessage {
                             sgroup = state.lightGroups.getItemById(groupId, true);
                             sys.circuitGroups.removeItemById(groupId);
                             state.circuitGroups.removeItemById(groupId);
-                            sgroup.lightingTheme = group.lightingTheme = msg.extractPayloadByte(4) >> 2;
+                            let newTheme = msg.extractPayloadByte(4) >> 2;
+                            let oldTheme = sgroup.lightingTheme;
+                            sgroup.lightingTheme = group.lightingTheme = newTheme;
                             sgroup.type = group.type = type;
                             sgroup.isActive = group.isActive = true;
+                            if (newTheme !== oldTheme && sgroup.isOn) {
+                                let lgState = sgroup as LightGroupState;
+                                lgState.action = sys.board.valueMaps.circuitActions.getValue('settheme');
+                                lgState.emitEquipmentChange();
+                                setTimeout(() => {
+                                    lgState.action = 0;
+                                    lgState.emitEquipmentChange();
+                                }, 15000);
+                            }
                             msg.isProcessed = true;
                             break;
                         case 2:
@@ -1032,8 +1043,9 @@ export class ExternalMessage {
                 poolMode: msg.extractPayloadByte(24 + shift),
                 spaMode: msg.extractPayloadByte(25 + shift),
                 freezeCycleTime: msg.extractPayloadByte(26 + shift, 255),
-                freezeOverrideRaw: msg.extractPayloadByte(27 + shift, 255),
-                manualPriority: msg.extractPayloadByte(28 + shift, 255)
+                valveDelay: msg.extractPayloadByte(27 + shift, 255),
+                freezeOverrideRaw: msg.extractPayloadByte(28 + shift, 255),
+                manualPriority: msg.extractPayloadByte(29 + shift, 255)
             });
             const scoreCandidate = (c: { poolHeat: number, poolCool: number, spaHeat: number, spaCool: number, poolMode: number, spaMode: number }) => {
                 let score = 0;
@@ -1088,6 +1100,7 @@ export class ExternalMessage {
                 sbody.heatMode = body.heatMode;
             }
             if (selected.freezeCycleTime !== 255) sys.general.options.freezeCycleTime = selected.freezeCycleTime;
+            if (selected.valveDelay !== 255) sys.general.options.valveDelay = selected.valveDelay > 0;
             if (selected.freezeOverrideRaw !== 255) sys.general.options.freezeOverride = decodeFreezeOverride(selected.freezeOverrideRaw);
             if (selected.manualPriority !== 255) sys.general.options.manualPriority = selected.manualPriority > 0;
             const unitsRaw = msg.extractPayloadByte(32 + selected.shift, 255);

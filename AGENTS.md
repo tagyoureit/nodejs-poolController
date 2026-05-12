@@ -15,6 +15,30 @@
 
 ## Architecture Patterns (CRITICAL)
 
+### 0a. Outbound Packet Completeness (MANDATORY — NO EXCEPTIONS)
+**Rule:** When sending ANY outbound A168 (or similar config write) to OCP, the packet MUST be a COMPLETE, fully-populated payload. OCP reads ALL fields from the packet, not just the "changed" one.
+
+**Anti-patterns (NEVER DO THIS):**
+- ❌ Sending one packet per changed field with zeros/stale values in other positions
+- ❌ Assuming OCP only reads the specific byte you modified
+- ❌ Building a packet from only the changed field and leaving defaults elsewhere
+
+**Correct pattern:**
+1. Build the FULL payload from CURRENT state values (all fields populated correctly)
+2. Override the specific field(s) the user requested to change
+3. Send ONE packet with everything correct
+
+**Why:** OCP applies the ENTIRE payload. If byte[26]=freezeCycleTime is correct but byte[27]=valveDelay has a stale/wrong value, OCP will apply BOTH — corrupting the field you didn't intend to change.
+
+**Example (v3 delay writes):**
+```typescript
+// CORRECT: Build full payload, modify requested fields, send ONCE
+payload[26] = requestedFreezeCycleTime; // from obj or current state
+payload[27] = obj.valveDelay ?? sys.general.options.valveDelay ? 1 : 0;
+payload[28] = obj.cooldownDelay ?? sys.general.options.cooldownDelay ? 1 : 0;
+await out.sendAsync(); // ONE send with all fields correct
+```
+
 ### 0. State Access Pattern: Use Accessors, Not Raw JSON
 **Rule:** Do NOT set/get nested state JSON objects directly unless the accessor is explicitly designed to work with an object.
 - Most state fields are **persisted as JSON**, but the public API should be **scalar getters/setters** (number/string/boolean) that:

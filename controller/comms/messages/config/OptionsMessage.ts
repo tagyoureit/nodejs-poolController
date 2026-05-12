@@ -64,10 +64,12 @@ export class OptionsMessage {
                             if (isIntellicenterV3) {
                                 const v3ManualPriorityByte = msg.extractPayloadByte(28, 255);
                                 if (v3ManualPriorityByte === 0 || v3ManualPriorityByte === 1) manualPriorityByte = v3ManualPriorityByte;
-                                const freezeCycleTime = msg.extractPayloadByte(26, 255);
-                                if (freezeCycleTime !== 255) sys.general.options.freezeCycleTime = freezeCycleTime;
-                                const freezeOverrideRaw = msg.extractPayloadByte(27, 255);
-                                if (freezeOverrideRaw !== 255) sys.general.options.freezeOverride = OptionsMessage.decodeFreezeOverride(freezeOverrideRaw);
+                                const freezeCycleTime = msg.extractPayloadByte(25, 255);
+                                if (freezeCycleTime !== 255 && freezeCycleTime >= 1 && freezeCycleTime <= 60) {
+                                    sys.general.options.freezeCycleTime = freezeCycleTime;
+                                    sys.general.options.valveDelay = msg.extractPayloadByte(26) > 0;
+                                    sys.general.options.cooldownDelay = msg.extractPayloadByte(27) === 1;
+                                }
                             }
                             if (manualPriorityByte !== 255) sys.general.options.manualPriority = manualPriorityByte === 1;
                             sys.general.options.manualHeat = msg.extractPayloadByte(39) === 1;

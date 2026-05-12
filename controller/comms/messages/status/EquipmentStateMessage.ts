@@ -219,7 +219,10 @@ export class EquipmentStateMessage {
                     state.time.hours = msg.extractPayloadByte(0);
                     state.time.minutes = msg.extractPayloadByte(1);
                     state.time.seconds = dt.getSeconds();
-                    state.mode = sys.controllerType !== ControllerType.IntelliCenter ? (msg.extractPayloadByte(9) & 0x81) : (msg.extractPayloadByte(9) & 0x01);
+                    state.mode = sys.controllerType !== ControllerType.IntelliCenter ? (msg.extractPayloadByte(9) & 0x81) : (msg.extractPayloadByte(9) & 0x03);
+                    if (sys.controllerType === ControllerType.IntelliCenter) {
+                        state.vacation = sys.general.options.vacation.enabled === true;
+                    }
 
                     // RKS: The units have been normalized for English and Metric for the overall panel.  It is important that the val numbers match for at least the temp units since
                     // the only unit of measure native to the Touch controllers is temperature they chose to name these C or F.  However, with the njsPC extensions this is non-semantic
@@ -711,25 +714,6 @@ export class EquipmentStateMessage {
                             } else if (target0 === 198 && target1 === 156) {
                                 cstate.action = 0;
                                 cstate.emitEquipmentChange();
-                                for (let i = 0; i < sys.lightGroups.length; i++) {
-                                    let lg = sys.lightGroups.getItemByIndex(i);
-                                    if (lg.circuits.find(elem => elem.circuit === circuitId)) {
-                                        let sgrp = state.lightGroups.getItemById(lg.id);
-                                        if (sgrp.action === sys.board.valueMaps.circuitActions.getValue('colorsync')) {
-                                            let allReady = true;
-                                            for (let j = 0; j < lg.circuits.length; j++) {
-                                                let mc = lg.circuits.getItemByIndex(j);
-                                                if (mc.circuit === circuitId) continue;
-                                                let ms = state.circuits.getItemById(mc.circuit);
-                                                if (ms && ms.action !== 0) { allReady = false; break; }
-                                            }
-                                            if (allReady) {
-                                                sgrp.action = 0;
-                                                sgrp.emitEquipmentChange();
-                                            }
-                                        }
-                                    }
-                                }
                             }
                         }
                     }
@@ -747,6 +731,16 @@ export class EquipmentStateMessage {
                                 sgrp.action = 0;
                                 sgrp.emitEquipmentChange();
                             }
+                        }
+                    }
+                    if (chan0 === 88 && chan1 === 163 && target0 === 168 && target1 === 237) {
+                        const groupIdx = msg.extractPayloadByte(2);
+                        const stateByte = msg.extractPayloadByte(6);
+                        const groupId = groupIdx + sys.board.equipmentIds.circuitGroups.start;
+                        let gstate = state.circuitGroups.getInterfaceById(groupId);
+                        if (gstate && gstate.id === groupId) {
+                            gstate.isOn = stateByte > 0;
+                            gstate.emitEquipmentChange();
                         }
                     }
                 }
@@ -924,6 +918,15 @@ export class EquipmentStateMessage {
         // Remaining bytes (33, 38, 39) + heaters 9–16 — not decoded yet. Intentionally NOT
         // emitted to state.equipment.messages to avoid false positives. See ISSUE-072 progress
         // notes for the remaining test plan (IntelliChem isolation, heater 9–16 probe).
+
+        // Active delay state (bytes 26-28) — runtime indicators of currently-running delays.
+        const freezeDelay = msg.extractPayloadByte(26, 0);
+        const valveDelay = msg.extractPayloadByte(27, 0);
+        const heaterCooldownDelay = msg.extractPayloadByte(28, 0);
+        if (heaterCooldownDelay > 0) state.delay = 34;
+        else if (valveDelay > 0) state.delay = 36;
+        else if (freezeDelay > 0) state.delay = 38;
+        else state.delay = 0;
     }
     private static processCircuitState(msg: Inbound) {
         // The way this works is that there is one byte per 8 circuits for a total of 5 bytes or 40 circuits.  The

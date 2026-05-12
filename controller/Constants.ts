@@ -246,9 +246,11 @@ export class Heliotrope {
     }
     public get calculatedTimes(): { sunrise?: Date, sunset?: Date, nextSunrise?: Date, nextSunset?: Date, prevSunrise?: Date, prevSunset: Date, isValid: boolean } { return { sunrise: this.sunrise, sunset: this.sunset, nextSunrise: this.nextSunrise, nextSunset: this.nextSunset, prevSunrise: this.prevSunrise, prevSunset: this.prevSunset, isValid: this.isValid }; }
     public calcAdjustedTimes(dt: Date, hours = 0, min = 0): { sunrise?: Date, sunset?: Date, nextSunrise?: Date, nextSunset?: Date, prevSunrise?: Date, prevSunset: Date, isValid: boolean } {
+        if (!this.isValid) return { sunrise: undefined, sunset: undefined, nextSunrise: undefined, nextSunset: undefined, prevSunrise: undefined, prevSunset: undefined, isValid: false };
         if (this.dt.getFullYear() === dt.getFullYear() && this.dt.getMonth() === dt.getMonth() && this.dt.getDate() === dt.getDate()) return this.getAdjustedTimes(hours, min);
         let ms = (hours * 3600000) + (min * 60000);
         let times = this.calculate(dt);
+        if (!times.isValid) return { sunrise: undefined, sunset: undefined, nextSunrise: undefined, nextSunset: undefined, prevSunrise: undefined, prevSunset: undefined, isValid: false };
         return {
             sunrise: new Date(times.sunrise.getTime() + ms),
             sunset: new Date(times.sunset.getTime() + ms),
@@ -256,7 +258,7 @@ export class Heliotrope {
             nextSunset: new Date(times.nextSunset.getTime() + ms),
             prevSunrise: new Date(times.prevSunrise.getTime() + ms),
             prevSunset: new Date(times.prevSunset.getTime() + ms),
-            isValid: this.isValid
+            isValid: true
         } 
     }
     public getAdjustedTimes(hours = 0, min = 0): { sunrise?: Date, sunset?: Date, nextSunrise?: Date, nextSunset?: Date, prevSunrise?: Date, prevSunset: Date, isValid: boolean } {

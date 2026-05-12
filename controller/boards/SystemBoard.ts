@@ -839,8 +839,9 @@ export class byteValueMaps {
     public delay: byteValueMap = new byteValueMap([
         [0, { name: 'nodelay', desc: 'No Delay' }],
         [32, { name: 'nodelay', desc: 'No Delay' }],
-        [34, { name: 'heaterdelay', desc: 'Heater Delay' }],
-        [36, { name: 'cleanerdelay', desc: 'Cleaner Delay' }]
+        [34, { name: 'heaterdelay', desc: 'Heater Cooldown Delay' }],
+        [36, { name: 'valvedelay', desc: 'Valve Delay' }],
+        [38, { name: 'freezedelay', desc: 'Freeze Delay' }]
     ]);
     public remoteTypes: byteValueMap = new byteValueMap([
         [0, { name: 'none', desc: 'Not Installed', maxButtons: 0 }],

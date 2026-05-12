@@ -838,6 +838,7 @@ export class Options extends EqItem {
         if (typeof this.data.adjustDST === 'undefined') this.data.adjustDST = true;
         if (typeof this.data.freezeThreshold === 'undefined') this.data.freezeThreshold = 35;
         if (typeof this.data.pumpDelay === 'undefined') this.data.pumpDelay = false;
+        if (typeof this.data.valveDelay === 'undefined') this.data.valveDelay = false;
         if (typeof this.data.valveDelayTime === 'undefined') this.data.valveDelayTime = 30;
         // RKS: 12-04-21 If you are reading this in a few months delete the line below.
         if (this.data.valveDelayTime > 1000) this.data.valveDelayTime = this.data.valveDelayTime / 1000;
@@ -865,6 +866,8 @@ export class Options extends EqItem {
     public set manualHeat(val: boolean) { this.setDataVal('manualHeat', val); }
     public get pumpDelay(): boolean { return this.data.pumpDelay; }
     public set pumpDelay(val: boolean) { this.setDataVal('pumpDelay', val); }
+    public get valveDelay(): boolean { return this.data.valveDelay; }
+    public set valveDelay(val: boolean) { this.setDataVal('valveDelay', val); }
     public get valveDelayTime(): number { return this.data.valveDelayTime; }
     public set valveDelayTime(val: number) { this.setDataVal('valveDelayTime', val); }
     public get cooldownDelay(): boolean { return this.data.cooldownDelay; }
@@ -1276,6 +1279,8 @@ export class Schedule extends EqItem {
     public set endTimeType(val: number | any) { this.setDataVal('endTimeType', sys.board.valueMaps.scheduleTimeTypes.encode(val)); }
     public get display() { return this.data.display; }
     public set display(val: number | any) { this.setDataVal('display', sys.board.valueMaps.scheduleDisplayTypes.encode(val)); }
+    public get schedGroup(): number { return this.data.schedGroup || 0; }
+    public set schedGroup(val: number) { this.setDataVal('schedGroup', val); }
     private _saveStartDate() { this.startDate.setHours(0, 0, 0, 0); this.setDataVal('startDate', Timestamp.toISOLocal(this.startDate)); }
     public get flags(): number { return this.data.flags; }
     public set flags(val: number) { this.setDataVal('flags', val); }

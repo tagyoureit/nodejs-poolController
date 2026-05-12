@@ -28,6 +28,7 @@ import { versionCheck } from '../config/VersionCheck';
 import { DataLogger, DataLoggerEntry } from '../logger/DataLogger';
 import { delayMgr } from './Lockouts';
 import { time } from 'console';
+import { getCoordinatesForZip } from './zipCoords';
 
 export class State implements IState {
     statePath: string;
@@ -217,6 +218,7 @@ export class State implements IState {
             nextSunset: self.data.nextSunset || '',
             alias: sys.general.alias,
             freeze: utils.makeBool(self.data.freeze),
+            vacation: utils.makeBool(self.data.vacation),
             valveMode: self.data.valveMode || {},
         };
     }
@@ -313,6 +315,13 @@ export class State implements IState {
             this.hasChanged = true;
         }
     }
+    public get vacation(): boolean { return this.data.vacation === true; }
+    public set vacation(val: boolean) {
+        if (this.data.vacation !== val) {
+            this.data.vacation = val;
+            this.hasChanged = true;
+        }
+    }
     public get status() { return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1; }
     public set status(val) {
         if (typeof (val) === 'number') {
@@ -403,6 +412,13 @@ export class State implements IState {
                 const envLon = process.env.POOL_LONGITUDE ? parseFloat(process.env.POOL_LONGITUDE) : undefined;
                 if (typeof lon !== 'number' && typeof envLon === 'number' && !isNaN(envLon)) lon = envLon;
                 if (typeof lat !== 'number' && typeof envLat === 'number' && !isNaN(envLat)) lat = envLat;
+            }
+            if (typeof lon !== 'number' || typeof lat !== 'number') {
+                const zipCoords = getCoordinatesForZip(loc.zip);
+                if (zipCoords) {
+                    if (typeof lat !== 'number') lat = zipCoords.latitude;
+                    if (typeof lon !== 'number') lon = zipCoords.longitude;
+                }
             }
             self.heliotrope.longitude = lon;
             self.heliotrope.latitude = lat;
@@ -1206,25 +1222,29 @@ export class ScheduleTime extends ChildEqState {
         try {
             let sod = ts.clone().startOfDay();
             let ysod = ts.clone().addHours(-24).startOfDay();
-            let nsod = ts.clone().addHours(-24).startOfDay();
+            let nsod = ts.clone().addHours(24).startOfDay();
             let ytimes: { startTime: Date, endTime: Date } = { startTime: null, endTime: null };  // Yesterday
             let ttimes: { startTime: Date, endTime: Date } = { startTime: null, endTime: null };  // Today
             let ntimes: { startTime: Date, endTime: Date } = { startTime: null, endTime: null };  // Tomorrow
             let tt = sys.board.valueMaps.scheduleTimeTypes.transform(sched.startTimeType);
             // Add the range for today and yesterday.
             switch (tt.name) {
-                case 'sunrise':
+                case 'sunrise': {
                     let sr = state.heliotrope.calcAdjustedTimes(sod.toDate(), 0, sched.startTimeOffset);
+                    if (!sr.isValid) return times;
                     ytimes.startTime = sr.prevSunrise;
                     ttimes.startTime = sr.sunrise;
                     ntimes.startTime = sr.nextSunrise;
                     break;
-                case 'sunset':
+                }
+                case 'sunset': {
                     let ss = state.heliotrope.calcAdjustedTimes(sod.toDate(), 0, sched.startTimeOffset);
+                    if (!ss.isValid) return times;
                     ytimes.startTime = ss.prevSunset;
                     ttimes.startTime = ss.sunset;
                     ntimes.startTime = ss.nextSunset;
                     break;
+                }
                 default:
                     ytimes.startTime = ysod.clone().addMinutes(sched.startTime).toDate();
                     ttimes.startTime = sod.clone().addMinutes(sched.startTime).toDate();
@@ -1233,21 +1253,22 @@ export class ScheduleTime extends ChildEqState {
             }
             tt = sys.board.valueMaps.scheduleTimeTypes.transform(sched.endTimeType);
             switch (tt.name) {
-                case 'sunrise':
+                case 'sunrise': {
                     let sr = state.heliotrope.calcAdjustedTimes(sod.toDate(), 0, sched.endTimeOffset);
-                    // If the start time of the previous window is greater than the previous sunrise then we use the sunrise for today.
+                    if (!sr.isValid) return times;
                     ytimes.endTime = ytimes.startTime >= sr.prevSunrise ? sr.sunrise : sr.prevSunrise;
-                    // If ths start time of the current window is greater than the current sunrise then we use the sunrise for tomorrow.
                     ttimes.endTime = ttimes.startTime >= sr.sunrise ? sr.nextSunrise : sr.sunrise;
                     ntimes.endTime = ntimes.startTime >= sr.nextSunrise ? new Timestamp(sr.nextSunrise).addHours(24).toDate() : sr.nextSunrise;
                     break;
-                case 'sunset':
+                }
+                case 'sunset': {
                     let ss = state.heliotrope.calcAdjustedTimes(sod.toDate(), 0, sched.endTimeOffset);
-                    // If the start time of the previous window is greater than the previous sunset then we use the sunset for today.
+                    if (!ss.isValid) return times;
                     ytimes.endTime = ytimes.startTime >= ss.prevSunset ? ss.sunset : ss.prevSunset;
                     ttimes.endTime = ttimes.startTime >= ss.sunset ? ss.nextSunset : ss.nextSunset;
                     ntimes.endTime = ntimes.startTime >= ss.nextSunset ? new Timestamp(ss.nextSunset).addHours(24).toDate() : ss.nextSunset;
                     break;
+                }
                 default:
                     ytimes.endTime = ysod.clone().addMinutes(sched.endTime).toDate();
                     if (ytimes.endTime <= ytimes.startTime) ytimes.endTime = ysod.clone().addHours(24).addMinutes(sched.endTime).toDate();
@@ -1342,7 +1363,7 @@ export class ScheduleTime extends ChildEqState {
             // If this is a runonce schedule we need to check for the rundate
             let type = sys.board.valueMaps.scheduleTypes.transform(sched.scheduleType);
             let times = type.name === 'runonce' ? this.calcScheduleDate(new Timestamp(sched.startDate), sched) : this.calcScheduleDate(state.time.clone(), sched);
-            if (times.startTime && times.endTime.getTime() > currentTime.getTime()) {
+            if (times.startTime && times.endTime && times.endTime.getTime() > currentTime.getTime()) {
                 // Check to see if it should be on.
                 this.startTime = times.startTime;
                 this.endTime = times.endTime;
@@ -1420,6 +1441,13 @@ export class ScheduleState extends EqState {
     public set scheduleType(val: number) {
         if (this.scheduleType !== val) {
             this.data.scheduleType = sys.board.valueMaps.scheduleTypes.transform(val);
+            this.hasChanged = true;
+        }
+    }
+    public get schedGroup(): number { return this.data.schedGroup || 0; }
+    public set schedGroup(val: number) {
+        if (this.schedGroup !== val) {
+            this.data.schedGroup = val;
             this.hasChanged = true;
         }
     }
