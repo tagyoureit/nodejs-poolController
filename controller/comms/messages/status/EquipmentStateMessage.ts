@@ -866,9 +866,60 @@ export class EquipmentStateMessage {
     //   byte[38], byte[39] — TBD (possibly heaters 9–16, or chlorinator/IntelliChem families)
     // Alert detection window is device-dependent (pumps ~15–30s, heaters can be minutes);
     // we decode whatever 204 reports and do not poll/spoof.
+    // A204 alert visibility: maps each A204-decoded alert to the corresponding
+    // sys.alerts notification bitmask + bit. Used both by processAlertQueue (gating
+    // writes) and by Alerts.applyVisibilityToMessages (sweep on preference change).
+    public static resolveA204AlertVisibility(code: string): { category: string; bit: number } | undefined {
+        const parsed = code.split(':');
+        if (parsed.length < 3) return undefined;
+        const cat = parsed[0];
+        const idStr = parsed[1];
+        const sub = parsed[2];
+        if (sub !== 'comms') return undefined;
+        if (cat === 'pump') return { category: 'pump', bit: 6 };
+        if (cat === 'chlorinator') return { category: 'chlorinator', bit: 4 };
+        if (cat === 'intellichem') return { category: 'intellichem', bit: 13 };
+        if (cat === 'heater') {
+            const slot = parseInt(idStr, 10);
+            if (!isFinite(slot)) return undefined;
+            const heater = sys.heaters.getItemById(slot);
+            const t = heater && typeof heater.type !== 'undefined'
+                ? sys.board.valueMaps.heaterTypes.transform(heater.type)
+                : undefined;
+            const name = t && (t as any).name;
+            if (name === 'hybrid') return { category: 'hybrid', bit: 21 };
+            if (name === 'mastertemp' || name === 'maxetherm' || name === 'eti250' || name === 'gas') return { category: 'connectedGas', bit: 14 };
+            // ultratemp + heatpump (and unknown) fall under the UltraTemp notification family.
+            return { category: 'ultratemp', bit: 13 };
+        }
+        return undefined;
+    }
+    public static isA204AlertEnabled(category: string, bit: number): boolean {
+        // Filtering applies only to IntelliCenter v3 — sys.alerts is populated by IC v3
+        // piggyback decode of A168 cat=13 sel 12-18. On other controllers this would
+        // silently hide alerts whose preference defaults to 0 (e.g. IntelliChem comms on
+        // IntelliTouch/EasyTouch/Nixie).
+        if (!sys.equipment.isIntellicenterV3) return true;
+        const a = sys.alerts;
+        let mask = 0;
+        switch (category) {
+            case 'pump':         mask = a.pumpNotifications | 0; break;
+            case 'ultratemp':    mask = a.ultratempNotifications | 0; break;
+            case 'hybrid':       mask = a.hybridNotifications | 0; break;
+            case 'connectedGas': mask = a.connectedGasNotifications | 0; break;
+            case 'chlorinator':  mask = a.chlorinatorNotifications | 0; break;
+            case 'intellichem':  mask = a.intellichemNotifications | 0; break;
+            case 'circuit':      mask = a.circuitNotifications | 0; break;
+            default: return true; // unknown categories: don't filter
+        }
+        return (mask & (1 << bit)) !== 0;
+    }
     private static processAlertQueue(msg: Inbound) {
         if (msg.payload.length < 40) return;
-        const syncAlert = (code: string, shouldExist: boolean, severity: string, message: string) => {
+        const syncAlert = (code: string, shouldExistRaw: boolean, severity: string, message: string) => {
+            const vis = EquipmentStateMessage.resolveA204AlertVisibility(code);
+            const visible = vis ? EquipmentStateMessage.isA204AlertEnabled(vis.category, vis.bit) : true;
+            const shouldExist = shouldExistRaw && visible;
             const exists = state.equipment.messages.exists((m: any) => m.code === code);
             if (shouldExist && !exists) state.equipment.messages.setMessageByCode(code, severity, message);
             else if (!shouldExist && exists) state.equipment.messages.removeItemByCode(code);
@@ -918,6 +969,23 @@ export class EquipmentStateMessage {
         // Remaining bytes (33, 38, 39) + heaters 9–16 — not decoded yet. Intentionally NOT
         // emitted to state.equipment.messages to avoid false positives. See ISSUE-072 progress
         // notes for the remaining test plan (IntelliChem isolation, heater 9–16 probe).
+
+        // Freeze manual override bitmask (byte 47).
+        // bit 0 = Pool body manually overridden during freeze protection
+        // bit 1 = Spa body manually overridden during freeze protection
+        // Confirmed 2026-05-12 via live OCP captures: pressing a body button on ICP while
+        // that body is already ON from freeze cycling triggers "manual override in freeze"
+        // (heater activates, override timer starts). OCP sets the corresponding bit here.
+        const freezeOverrideByte = msg.extractPayloadByte(47, 0);
+        const poolBody = state.temps.bodies.getItemById(1);
+        const spaBody = state.temps.bodies.getItemById(2);
+        if (state.freeze) {
+            if (poolBody) poolBody.manualFreezeOverride = (freezeOverrideByte & 0x01) !== 0;
+            if (spaBody) spaBody.manualFreezeOverride = (freezeOverrideByte & 0x02) !== 0;
+        } else {
+            if (poolBody) poolBody.manualFreezeOverride = false;
+            if (spaBody) spaBody.manualFreezeOverride = false;
+        }
 
         // Active delay state (bytes 26-28) — runtime indicators of currently-running delays.
         const freezeDelay = msg.extractPayloadByte(26, 0);

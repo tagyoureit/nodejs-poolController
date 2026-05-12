@@ -26,6 +26,8 @@ IntelliCenter security rationalization, JXi/LXi heater support, virtual IntelliC
 16. Remote control configuration: virtualCircuits byteValueMap corrected for remote button context with missing entries added (All Lights On/Off, Pool Heat Enable). dashPanel iS10 body selection locked to Spa.
 17. Cover configuration fixes: circuit IDs corrected for 0-indexed wire protocol, body flags bit 3 polarity fixed (set=Spa not Pool), dashPanel cover config excludes Pool/Spa body circuits. Homepage Covers section added with valve-style widget.
 18. v3 circuit group toggle fix: API now sends on correct A184 channel (0x58A3 instead of 0x688F). ICP-initiated light group theme changes propagate sequencing state to dashPanel.
+19. Freeze protection manual override detection: A204 byte[47] decoded as per-body override bitmask (bit 0=Pool, bit 1=Spa). New `manualFreezeOverride` boolean on body state distinguishes normal freeze cycling from user-initiated override. Smart body toggle forces ON during freeze (prevents accidental OFF).
+20. dashPanel freeze protection UI: green indicator for freeze cycle, blue for manual override, subtitle text ("Freeze Cycle" / "Manual Override"), enhanced banner with per-body override detail.
 
 ### Bug Fixes
 10. IntelliCenter v3 circuit/light group eggTimer offset regression: outbound A168 cat=6 now sends 45-byte payload with eggTimer at bytes 40-41 (was incorrectly at 38-39). Inbound ExternalMessage.processGroupSettings also reads v3 offset. Added processEggTimer protection guard against OCP overwriting valid local values with 0.
@@ -43,6 +45,7 @@ IntelliCenter security rationalization, JXi/LXi heater support, virtual IntelliC
 22. Alert bitmask mixed endianness: 4-byte selectors (IntelliChem, Hybrid) use little-endian while 1-2 byte selectors use big-endian. Encode (`maskToBytes`), decode (`extractAlertMask`), and piggyback decode (`applyAlertNotificationFromExternal`) all branch on byte count.
 23. A168 cat=11 security role write: fixed phantom duplicate creation from incorrect byte[2] and trailing bytes.
 24. dashPanel Save Remote response wrapper not unwrapped — `dataBind` crash on `type.desc` fixed.
+25. dashPanel freeze state race condition: body socket event fires before A204 byte[47] decode completes. Controller `state/all` handler now updates body labels and indicators atomically from the authoritative snapshot data.
 
 ## 9.0.0
 Focused release on IntelliCenter v3.008 firmware compatibility, finishing the v3 work started in 8.4.1, plus the Regal Century pump Modbus fixes.

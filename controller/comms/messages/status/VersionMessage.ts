@@ -46,37 +46,25 @@ export class VersionMessage {
         const now = Date.now();
         const elapsed = now - this.lastConfigRefreshTime;
         if (elapsed < this.CONFIG_REFRESH_DEBOUNCE_MS) {
-            // Throttle-with-trailing: don't lose rapid toggle updates; schedule one refresh at end of window.
             const remainingMs = Math.max(0, this.CONFIG_REFRESH_DEBOUNCE_MS - elapsed);
             this.scheduleConfigRefresh(remainingMs, source, `debounced (last send ${elapsed}ms ago)`);
             return;
         }
-        (sys.board as any).needsConfigChanges = true;
-        // Invalidate cached options version so queueChanges() will request category 0.
-        // OCP doesn't increment options version when heat mode/setpoints change,
-        // so we force a refresh by clearing our cached version.
-        sys.configVersion.options = 0;
-        // v3.004+: OCP does NOT reliably increment systemState when features toggle (esp. rapid OFF/ON sequences).
-        // Force a systemState refresh so queueChanges() will request category 15 (systemState), option [0] => Action 222 [15,0].
-        sys.configVersion.systemState = 0;
-        // v3.004+: OCP does NOT increment pumps version when pump config changes via WCP (Action 168 type 4).
-        // Force a pumps refresh so queueChanges() will request category 4 (pumps).
-        sys.configVersion.pumps = 0;
-        // v3.x: personal-information updates (Action 168 type 12) are not always reflected by
-        // version deltas in the field; force a general refresh so category 12 is re-polled.
-        sys.configVersion.general = 0;
-        // v3.004+: OCP does NOT reliably increment equipment version when body capacity changes
-        // via WCP/ICP (Action 168 type 13, sub 4-7). Force an equipment refresh so queueChanges()
-        // will request category 13 (subs 0/1/2/3 re-broadcast authoritative Action 30 cat 13). See ISSUE-073.
-        sys.configVersion.equipment = 0;
-
-        // If a config queue run is already active, coalesce this refresh and retry after a short delay.
-        // This avoids extra 228/164 churn in the middle of an in-flight loading pass.
         if (typeof (sys.board as any).isConfigQueueProcessing === 'function' &&
             (sys.board as any).isConfigQueueProcessing()) {
-            this.scheduleConfigRefresh(this.CONFIG_REFRESH_DEBOUNCE_MS, source, 'config queue already processing');
+            if (typeof (sys.board as any).signalConfigRefreshNeeded === 'function') {
+                (sys.board as any).signalConfigRefreshNeeded();
+            }
+            logger.silly(`v3.004+ ${source}: Config queue active, signaled refresh on completion`);
             return;
         }
+
+        (sys.board as any).needsConfigChanges = true;
+        sys.configVersion.options = 0;
+        sys.configVersion.systemState = 0;
+        sys.configVersion.pumps = 0;
+        sys.configVersion.general = 0;
+        sys.configVersion.equipment = 0;
 
         this.lastConfigRefreshTime = now;
         logger.silly(`v3.004+ ${source}: Sending Action 228`);
@@ -85,7 +73,6 @@ export class VersionMessage {
             source: commandSource,
             dest: 16, action: 228, payload: [0], retries: 2,
             scope: 'v3RefreshTrigger',
-            // v3.004+: require 164 addressed to our active command source address.
             response: Response.create({ dest: commandSource, action: 164 })
         }).sendAsync().catch((err) => {
             logger.silly(`v3.004+ ${source}: Action 228 refresh failed: ${err.message}`);
@@ -134,7 +121,7 @@ export class VersionMessage {
             ackedAction === 168
                 ? `ACK(168) Trigger (device ${msg.dest})`
                 : `ACK(184) Trigger (device ${msg.dest})`;
-        this.scheduleConfigRefresh(5000, label, 'ACK debounce');
+        this.scheduleConfigRefresh(this.CONFIG_REFRESH_DEBOUNCE_MS, label, 'ACK debounce');
         msg.isProcessed = true;
     }
 

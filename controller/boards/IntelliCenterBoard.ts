@@ -396,8 +396,6 @@ export class IntelliCenterBoard extends SystemBoard {
     private async ensureRegisteredAsync(): Promise<void> {
         if (!sys.equipment.isIntellicenterV3) return;
 
-        // `poolState.json` persists the last known registration status. Clear that stale local view
-        // at the start of each bootstrap so this session must prove fresh Action 217 status=1.
         state.equipment.registration = 0;
 
         for (let attempt = 1; attempt <= IntelliCenterBoard.REGISTRATION_MAX_ATTEMPTS; attempt++) {
@@ -492,7 +490,7 @@ export class IntelliCenterBoard extends SystemBoard {
         // In mock mode we still want to "send" the packet so it is logged/emitted like a real write.
 
         this._announceDeviceLastSentMs = Date.now();
-        logger.info('Announcing device to IntelliCenter v3.004...');
+        logger.info('Announcing device to IntelliCenter v3...');
         // Action 251 payload structure (22 bytes total) verified from wireless remote cradle reset:
         // [0]:      Device address (33 for njsPC)
         // [1]:      Device type (1=ICP/Wired panel profile, 0=wireless profile)
@@ -553,6 +551,7 @@ export class IntelliCenterBoard extends SystemBoard {
             if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
                 // ISSUE-003: don't block startup config polling on registration completion.
                 // Start registration attempts in the background and send Action 228 immediately.
+                sys.configVersion.clear();
                 this.startRegistrationBootstrapAsync();
                 await this.requestVersionsAsync(16);
             } else {
@@ -567,6 +566,10 @@ export class IntelliCenterBoard extends SystemBoard {
     }
     public isConfigQueueProcessing(): boolean {
         return this._configQueue._processing;
+    }
+    public signalConfigRefreshNeeded(): void {
+        this._configQueue._newRequest = true;
+        this.needsConfigChanges = true;
     }
     public requestConfiguration(ver: ConfigVersion) {
         if (this.needsConfigChanges) {
@@ -838,6 +841,8 @@ export class IntelliCenterBoard extends SystemBoard {
         // OCP may not increment options version when Wireless makes changes while njsPC is offline,
         // so we force a refresh (same logic as triggerConfigRefresh in VersionMessage.ts).
         sys.configVersion.options = 0;
+        if (sys.valves.length === 0 && sys.equipment.maxValves > 0) sys.configVersion.valves = 0;
+        if (sys.schedules.length === 0) sys.configVersion.schedules = 0;
         // Defer to the next tick so that any state extracted from the same inbound packet
         // (e.g., firmware bytes from Action 204) is available before we decide v1 vs v3 behavior.
         setTimeout(() => this.checkConfiguration(), 0);
@@ -1522,7 +1527,8 @@ class IntelliCenterConfigQueue extends ConfigQueue {
                 });
             this.push(req);
         }
-        this.maybeQueueItems(curr.general, ver.general, ConfigCategories.general, [0, 1, 2, 3, 4, 5, 6, 7]);
+        const generalItems = sys.equipment.isIntellicenterV3 ? [0, 1] : [0, 1, 2, 3, 4, 5, 6, 7];
+        this.maybeQueueItems(curr.general, ver.general, ConfigCategories.general, generalItems);
         this.maybeQueueItems(curr.covers, ver.covers, ConfigCategories.covers, [0, 1]);
         if (this.compareVersions(curr.schedules, ver.schedules)) {
             // Alright we used to think we could rely on the schedule start time as the trigger that identifies an active schedule.  However, active
@@ -2962,6 +2968,10 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             if (sys.equipment.isIntellicenterV3 && this.isBodyCircuit(id)) {
                 const isPool = (id === 6);
                 const bodyName = isPool ? 'Pool' : 'Spa';
+                if (state.freeze) {
+                    logger.info(`v3.004+ freeze override: Sending ON for ${bodyName} (freeze active, original request=${val ? 'ON' : 'OFF'})`);
+                    val = true;
+                }
                 logger.debug(`v3.004+ setCircuitStateAsync: Using Wireless-style body control sequence for ${bodyName} (circuit ${id}) -> ${val ? 'ON' : 'OFF'}`);
                 await this.sendV3BodyControlSequenceAsync(isPool, val);
                 // Request updated config to confirm state change

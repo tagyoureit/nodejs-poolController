@@ -21,6 +21,7 @@ import { sys, ControllerType } from "../../../Equipment";
 import { logger } from "../../../../logger/Logger";
 import { webApp } from "../../../../web/Server";
 import { Timestamp, utils } from "../../../Constants"
+import { EquipmentStateMessage } from "./EquipmentStateMessage";
 export class IntelliChemStateMessage {
     public static process(msg: Inbound) {
         if (sys.controllerType === ControllerType.Unknown) return;
@@ -44,7 +45,12 @@ export class IntelliChemStateMessage {
                 if (schem.lastComm + (30 * 1000) < new Date().getTime()) {
                     // We have not talked to the chem controller in 30 seconds so we have lost communication.
                     schem.status = schem.alarms.comms = 1;
-                    state.equipment.messages.setMessageByCode(`intellichem:${controller.id}:comms`, 'error', `Communication error with ${controller.name || 'IntelliChem ' + controller.id}`);
+                    const ccode = `intellichem:${controller.id}:comms`;
+                    if (EquipmentStateMessage.isA204AlertEnabled('intellichem', 13)) {
+                        state.equipment.messages.setMessageByCode(ccode, 'error', `Communication error with ${controller.name || 'IntelliChem ' + controller.id}`);
+                    } else if (state.equipment.messages.exists((m: any) => m.code === ccode)) {
+                        state.equipment.messages.removeItemByCode(ccode);
+                    }
                 }
                 msg.isProcessed = true;
                 break;
@@ -263,7 +269,12 @@ export class IntelliChemStateMessage {
 
         const icName = chem.name || `IntelliChem ${chem.id}`;
         const syncMsg = (code: string, active: boolean, message: string) => {
-            if (active) state.equipment.messages.setMessageByCode(code, 'error', message);
+            // Honor sys.alerts.intellichemNotifications on IC v3 (resolveA204AlertVisibility
+            // returns undefined for non-comms intellichem codes, leaving them unfiltered).
+            const vis = EquipmentStateMessage.resolveA204AlertVisibility(code);
+            const visible = vis ? EquipmentStateMessage.isA204AlertEnabled(vis.category, vis.bit) : true;
+            const shouldShow = active && visible;
+            if (shouldShow) state.equipment.messages.setMessageByCode(code, 'error', message);
             else state.equipment.messages.removeItemByCode(code);
         };
         syncMsg(`intellichem:${chem.id}:comms`, schem.alarms.comms > 0, `Communication error with ${icName}`);

@@ -1445,12 +1445,7 @@ export class ScheduleState extends EqState {
         }
     }
     public get schedGroup(): number { return this.data.schedGroup || 0; }
-    public set schedGroup(val: number) {
-        if (this.schedGroup !== val) {
-            this.data.schedGroup = val;
-            this.hasChanged = true;
-        }
-    }
+    public set schedGroup(val: number) { this.setDataVal('schedGroup', val); }
     public get startTimeType(): number { return typeof (this.data.startTimeType) !== 'undefined' ? this.data.startTimeType.val : -1; }
     public set startTimeType(val: number) {
         if (this.startTimeType !== val) {
@@ -1507,8 +1502,10 @@ export class ScheduleState extends EqState {
         //if (typeof this.circuit !== 'undefined')
         sched.circuit = state.circuits.getInterfaceById(this.circuit).get(true);
         sched.clockMode = sys.board.valueMaps.clockModes.transform(sys.general.options.clockMode) || {};
-        //let times = this.calcScheduleTimes(sched);
-        //sched.times = { shouldBeOn: times.shouldBeOn, startTime: times.shouldBeOn ? Timestamp.toISOLocal(times.startTime) : '', endTime: times.shouldBeOn ? Timestamp.toISOLocal(times.endTime) : '' };
+        if (typeof sched.schedGroup === 'undefined') {
+            let cfgSched = sys.schedules.getItemById(this.id, false);
+            sched.schedGroup = cfgSched ? cfgSched.schedGroup : 0;
+        }
         return sched;
     }
     public emitEquipmentChange() {
@@ -1810,6 +1807,8 @@ export class BodyTempState extends EqState {
     // indicator with Pentair OCPs.  This is triggered in NixieBoard and managed by the delayMgr.
     public get heaterCooldownDelay(): boolean { return this.data.heaterCooldownDelay; }
     public set heaterCooldownDelay(val: boolean) { this.setDataVal('heaterCooldownDelay', val); }
+    public get manualFreezeOverride(): boolean { return this.data.manualFreezeOverride || false; }
+    public set manualFreezeOverride(val: boolean) { this.setDataVal('manualFreezeOverride', val); }
     public emitData(name: string, data: any) { webApp.emitToClients('body', this.data); }
     // RKS: This is a very interesting object because we have a varied object.  Type safety rules should not apply
     // here as the heater types are specific to the installed equipment.  The reason is because it has no meaning without the body and the calculation of it should

@@ -30,6 +30,7 @@ import { BoardFactory } from "./boards/BoardFactory";
 import { EquipmentStateMessage } from "./comms/messages/status/EquipmentStateMessage";
 import { conn } from './comms/Comms';
 import { versionCheck } from "../config/VersionCheck";
+import { getStateForZip } from "./zipCoords";
 import { NixieControlPanel } from "./nixie/Nixie";
 import { NixieBoard } from 'controller/boards/NixieBoard';
 import { MockSystemBoard } from "../anslq25/boards/MockSystemBoard";
@@ -934,10 +935,22 @@ export class Location extends EqItem {
     public set address(val: string) { this.setDataVal('address', val); }
     public get city(): string { return this.data.city; }
     public set city(val: string) { this.setDataVal('city', val); }
-    public get state(): string { return this.data.state; }
+    public get state(): string {
+        if (!this.data.state && this.data.zip) {
+            const st = getStateForZip(this.data.zip);
+            if (st) this.setDataVal('state', st);
+        }
+        return this.data.state;
+    }
     public set state(val: string) { this.setDataVal('state', val); }
     public get zip(): string { return this.data.zip; }
-    public set zip(val: string) { this.setDataVal('zip', val); }
+    public set zip(val: string) {
+        this.setDataVal('zip', val);
+        if (val && val.length >= 5) {
+            const st = getStateForZip(val);
+            if (st) this.setDataVal('state', st);
+        }
+    }
     public get country(): string { return this.data.country; }
     public set country(val: string) { this.setDataVal('country', val); }
     public get latitude(): number { return this.data.latitude; }
@@ -2240,19 +2253,43 @@ export class Alerts extends EqItem {
         if (typeof this.data.raw !== 'object' || this.data.raw === null) this.data.raw = {};
     }
     public get circuitNotifications(): number { return this.data.circuitNotifications; }
-    public set circuitNotifications(val: number) { this.setDataVal('circuitNotifications', val); }
+    public set circuitNotifications(val: number) { this.setDataVal('circuitNotifications', val); this.applyVisibilityToMessages(); }
     public get pumpNotifications(): number { return this.data.pumpNotifications; }
-    public set pumpNotifications(val: number) { this.setDataVal('pumpNotifications', val); }
+    public set pumpNotifications(val: number) { this.setDataVal('pumpNotifications', val); this.applyVisibilityToMessages(); }
     public get ultratempNotifications(): number { return this.data.ultratempNotifications; }
-    public set ultratempNotifications(val: number) { this.setDataVal('ultratempNotifications', val); }
+    public set ultratempNotifications(val: number) { this.setDataVal('ultratempNotifications', val); this.applyVisibilityToMessages(); }
     public get chlorinatorNotifications(): number { return this.data.chlorinatorNotifications; }
-    public set chlorinatorNotifications(val: number) { this.setDataVal('chlorinatorNotifications', val); }
+    public set chlorinatorNotifications(val: number) { this.setDataVal('chlorinatorNotifications', val); this.applyVisibilityToMessages(); }
     public get intellichemNotifications(): number { return this.data.intellichemNotifications; }
-    public set intellichemNotifications(val: number) { this.setDataVal('intellichemNotifications', val); }
+    public set intellichemNotifications(val: number) { this.setDataVal('intellichemNotifications', val); this.applyVisibilityToMessages(); }
     public get hybridNotifications(): number { return this.data.hybridNotifications; }
-    public set hybridNotifications(val: number) { this.setDataVal('hybridNotifications', val); }
+    public set hybridNotifications(val: number) { this.setDataVal('hybridNotifications', val); this.applyVisibilityToMessages(); }
     public get connectedGasNotifications(): number { return this.data.connectedGasNotifications; }
-    public set connectedGasNotifications(val: number) { this.setDataVal('connectedGasNotifications', val); }
+    public set connectedGasNotifications(val: number) { this.setDataVal('connectedGasNotifications', val); this.applyVisibilityToMessages(); }
+    // Sweep state.equipment.messages and remove A204-sourced alerts whose category/bit is
+    // now disabled in sys.alerts. Out-of-scope codes (Nixie/RS-485 IntelliChem, etc.) are
+    // left alone. Called from each notification setter so toggling the dashPanel pref
+    // immediately removes hidden alerts; newly-enabled alerts re-appear on the next A204.
+    public applyVisibilityToMessages() {
+        try {
+            // Filtering applies only to IC v3 (sys.alerts is populated by IC v3 piggyback decode).
+            if (!sys.equipment.isIntellicenterV3) return;
+            const messages = state.equipment.messages;
+            const all = messages.get(true) as any[];
+            if (!Array.isArray(all) || all.length === 0) return;
+            for (let i = 0; i < all.length; i++) {
+                const code = all[i] && all[i].code;
+                if (typeof code !== 'string') continue;
+                const vis = EquipmentStateMessage.resolveA204AlertVisibility(code);
+                if (!vis) continue;
+                if (!EquipmentStateMessage.isA204AlertEnabled(vis.category, vis.bit)) {
+                    messages.removeItemByCode(code);
+                }
+            }
+        } catch (err) {
+            // Defensive: never let visibility sweeping break a config write.
+        }
+    }
     public setRaw(selector: number, raw: number[]) {
         if (typeof this.data.raw !== 'object' || this.data.raw === null) this.data.raw = {};
         this.data.raw[`selector${selector}`] = Array.isArray(raw) ? [...raw] : [];

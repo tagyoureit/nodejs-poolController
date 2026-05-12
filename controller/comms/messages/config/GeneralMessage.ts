@@ -34,7 +34,14 @@ export class GeneralMessage {
                     // v3.008+ sends location-focused data for item 0.
                     const zip = GeneralMessage.getTrimmed(msg, 2, 6);
                     if (zip.length > 0) sys.general.location.zip = zip;
-                    // In captured v3.008 packets, bytes 13/14 map cleanly to longitude magnitude.
+                    const tz = msg.extractPayloadByte(10, 255);
+                    if (tz !== 255) sys.general.location.timeZone = tz;
+                    const latLo = msg.extractPayloadByte(11, 255);
+                    const latHi = msg.extractPayloadByte(12, 255);
+                    if (latLo !== 255 && latHi !== 255) {
+                        const lat = ((latHi * 256) + latLo) / 100;
+                        if (!isNaN(lat) && lat > 0 && lat <= 90) sys.general.location.latitude = lat;
+                    }
                     const lonLo = msg.extractPayloadByte(13, 255);
                     const lonHi = msg.extractPayloadByte(14, 255);
                     if (lonLo !== 255 && lonHi !== 255) {

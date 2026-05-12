@@ -299,6 +299,14 @@ This creates a feedback loop for continuous improvement.
 
 **Lesson:** Be ready to revise understanding as new evidence emerges
 
+### 14. Never Restart the Server — Prompt the User
+**Rule:** Never restart njsPC (or any running server) yourself. Always prompt the user to restart.
+- After making backend changes (e.g. State.ts, Board files, Message handlers), tell the user: "This requires a server restart to take effect. Please restart njsPC."
+- Wait for the user to confirm the restart before testing/verifying changes
+- This applies to `npm run start`, `npm run stop`, process kills, and any equivalent
+
+**Rationale:** The user manages the live server environment. Autonomous restarts can disrupt packet captures, lose transient state, or conflict with user's hardware testing workflow.
+
 ## Current Issues to Address
 
 ### Issue 1: Action 217 Handler Location ✅ RESOLVED
