@@ -2228,18 +2228,31 @@ export class Alerts extends EqItem {
     public initData() {
         if (typeof this.data.circuitNotifications === 'undefined') this.data.circuitNotifications = 0;
         if (typeof this.data.pumpNotifications === 'undefined') this.data.pumpNotifications = 0;
-        if (typeof this.data.heaterNotifications === 'undefined') this.data.heaterNotifications = 0;
+        if (typeof this.data.heaterNotifications !== 'undefined') {
+            if (typeof this.data.ultratempNotifications === 'undefined') this.data.ultratempNotifications = this.data.heaterNotifications;
+            delete this.data.heaterNotifications;
+        }
+        if (typeof this.data.ultratempNotifications === 'undefined') this.data.ultratempNotifications = 0;
         if (typeof this.data.chlorinatorNotifications === 'undefined') this.data.chlorinatorNotifications = 0;
+        if (typeof this.data.intellichemNotifications === 'undefined') this.data.intellichemNotifications = 0;
+        if (typeof this.data.hybridNotifications === 'undefined') this.data.hybridNotifications = 0;
+        if (typeof this.data.connectedGasNotifications === 'undefined') this.data.connectedGasNotifications = 0;
         if (typeof this.data.raw !== 'object' || this.data.raw === null) this.data.raw = {};
     }
     public get circuitNotifications(): number { return this.data.circuitNotifications; }
     public set circuitNotifications(val: number) { this.setDataVal('circuitNotifications', val); }
     public get pumpNotifications(): number { return this.data.pumpNotifications; }
     public set pumpNotifications(val: number) { this.setDataVal('pumpNotifications', val); }
-    public get heaterNotifications(): number { return this.data.heaterNotifications; }
-    public set heaterNotifications(val: number) { this.setDataVal('heaterNotifications', val); }
+    public get ultratempNotifications(): number { return this.data.ultratempNotifications; }
+    public set ultratempNotifications(val: number) { this.setDataVal('ultratempNotifications', val); }
     public get chlorinatorNotifications(): number { return this.data.chlorinatorNotifications; }
     public set chlorinatorNotifications(val: number) { this.setDataVal('chlorinatorNotifications', val); }
+    public get intellichemNotifications(): number { return this.data.intellichemNotifications; }
+    public set intellichemNotifications(val: number) { this.setDataVal('intellichemNotifications', val); }
+    public get hybridNotifications(): number { return this.data.hybridNotifications; }
+    public set hybridNotifications(val: number) { this.setDataVal('hybridNotifications', val); }
+    public get connectedGasNotifications(): number { return this.data.connectedGasNotifications; }
+    public set connectedGasNotifications(val: number) { this.setDataVal('connectedGasNotifications', val); }
     public setRaw(selector: number, raw: number[]) {
         if (typeof this.data.raw !== 'object' || this.data.raw === null) this.data.raw = {};
         this.data.raw[`selector${selector}`] = Array.isArray(raw) ? [...raw] : [];

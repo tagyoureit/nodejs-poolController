@@ -167,7 +167,10 @@ export class EquipmentMessage {
                     case 12:
                     case 13:
                     case 14:
-                    case 15: {
+                    case 15:
+                    case 16:
+                    case 17:
+                    case 18: {
                         const selector = msg.extractPayloadByte(1);
                         const raw = EquipmentMessage.extractAlertRaw(msg);
                         sys.alerts.setRaw(selector, raw);
@@ -179,10 +182,19 @@ export class EquipmentMessage {
                                 sys.alerts.pumpNotifications = EquipmentMessage.extractAlertMask(raw);
                                 break;
                             case 14:
-                                sys.alerts.heaterNotifications = EquipmentMessage.extractAlertMask(raw);
+                                sys.alerts.ultratempNotifications = EquipmentMessage.extractAlertMask(raw);
                                 break;
                             case 15:
                                 sys.alerts.chlorinatorNotifications = EquipmentMessage.extractAlertMask(raw);
+                                break;
+                            case 16:
+                                sys.alerts.intellichemNotifications = EquipmentMessage.extractAlertMask(raw);
+                                break;
+                            case 17:
+                                sys.alerts.hybridNotifications = EquipmentMessage.extractAlertMask(raw);
+                                break;
+                            case 18:
+                                sys.alerts.connectedGasNotifications = EquipmentMessage.extractAlertMask(raw);
                                 break;
                         }
                         msg.isProcessed = true;
@@ -219,8 +231,17 @@ export class EquipmentMessage {
     }
     private static extractAlertMask(raw: number[]): number {
         if (raw.length === 0) return 0;
-        if (raw.length === 1) return raw[0] & 0xFF;
-        return ((raw[raw.length - 2] & 0xFF) << 8) | (raw[raw.length - 1] & 0xFF);
+        let mask = 0;
+        if (raw.length <= 2) {
+            for (let i = 0; i < raw.length; i++) {
+                mask = (mask << 8) | (raw[i] & 0xFF);
+            }
+        } else {
+            for (let i = 0; i < raw.length; i++) {
+                mask |= (raw[i] & 0xFF) << (i * 8);
+            }
+        }
+        return mask >>> 0;
     }
     private static isPlaceholderBodyName(name: string): boolean {
         const normalized = (name || '').replace(/\u0000/g, '').trim().toUpperCase();

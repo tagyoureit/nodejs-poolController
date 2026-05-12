@@ -20,6 +20,7 @@ import { sys, Body, ICircuitGroup, LightGroup, CircuitGroup, Cover, SecurityRole
 import { state, ICircuitGroupState, LightGroupState, CircuitGroupState } from "../../../State";
 import { ControllerType, Timestamp, utils } from "../../../Constants";
 import { logger } from "../../../../logger/Logger";
+import { webApp } from "../../../../web/Server";
 import { CoverMessage } from "./CoverMessage";
 export class ExternalMessage {
     private static normalizePumpBodyCode(rawBody: number): number {
@@ -59,8 +60,6 @@ export class ExternalMessage {
                 const sub = msg.extractPayloadByte(1, 0);
                 const selector = msg.extractPayloadByte(2, -1);
                 if (sub === 0 && selector >= 4 && selector <= 7) {
-                    // Payload layout: [13, 0, selector, capHi, capLo]
-                    // selector 4->body1 (Pool), 5->body2 (Spa or Pool2), 6->body3, 7->body4.
                     const bodyId = selector - 3;
                     if (sys.equipment.maxBodies >= bodyId) {
                         const hi = msg.extractPayloadByte(3, 0);
@@ -71,6 +70,18 @@ export class ExternalMessage {
                             cbody.capacity = capacity;
                             logger.silly(`v3.004+ ICP body capacity: body${bodyId} -> ${capacity} gal`);
                         }
+                    }
+                }
+                if (sub === 0 && selector >= 12 && selector <= 18) {
+                    if (selector === 12) {
+                        if (msg.payload.length > 3) {
+                            const value = msg.extractPayloadByte(3, 0);
+                            sys.alerts.circuitNotifications = value;
+                            sys.alerts.setRaw(12, [value]);
+                            if (typeof webApp !== 'undefined' && webApp) webApp.emitToClients('alertConfig', sys.alerts.get(true));
+                        }
+                    } else {
+                        ExternalMessage.applyAlertNotificationFromExternal(msg, selector, 3);
                     }
                 }
             }
@@ -672,6 +683,7 @@ export class ExternalMessage {
                     const value = msg.extractPayloadByte(3, 0);
                     sys.alerts.circuitNotifications = value;
                     sys.alerts.setRaw(12, [value]);
+                    if (typeof webApp !== 'undefined' && webApp) webApp.emitToClients('alertConfig', sys.alerts.get(true));
                 }
                 msg.isProcessed = true;
                 break;
@@ -679,12 +691,24 @@ export class ExternalMessage {
                 ExternalMessage.applyAlertNotificationFromExternal(msg, 13, 3);
                 msg.isProcessed = true;
                 break;
-            case 14: // Heater notifications
+            case 14: // UltraTemp Heater notifications
                 ExternalMessage.applyAlertNotificationFromExternal(msg, 14, 3);
                 msg.isProcessed = true;
                 break;
             case 15: // Chlorinator notifications
                 ExternalMessage.applyAlertNotificationFromExternal(msg, 15, 3);
+                msg.isProcessed = true;
+                break;
+            case 16: // IntelliChem notifications
+                ExternalMessage.applyAlertNotificationFromExternal(msg, 16, 3);
+                msg.isProcessed = true;
+                break;
+            case 17: // Hybrid Heater notifications
+                ExternalMessage.applyAlertNotificationFromExternal(msg, 17, 3);
+                msg.isProcessed = true;
+                break;
+            case 18: // Connected Gas Heater notifications
+                ExternalMessage.applyAlertNotificationFromExternal(msg, 18, 3);
                 msg.isProcessed = true;
                 break;
         }
@@ -695,18 +719,38 @@ export class ExternalMessage {
         for (let i = startOffset; i < msg.payload.length; i++) raw.push(msg.extractPayloadByte(i, 0));
         sys.alerts.setRaw(selector, raw);
         if (raw.length === 0) return;
-        const mask = raw.length === 1 ? (raw[0] & 0xFF) : (((raw[raw.length - 2] & 0xFF) << 8) | (raw[raw.length - 1] & 0xFF));
+        let mask = 0;
+        if (raw.length <= 2) {
+            for (let i = 0; i < raw.length; i++) {
+                mask = (mask << 8) | (raw[i] & 0xFF);
+            }
+        } else {
+            for (let i = 0; i < raw.length; i++) {
+                mask |= (raw[i] & 0xFF) << (i * 8);
+            }
+        }
+        mask = mask >>> 0;
         switch (selector) {
             case 13:
                 sys.alerts.pumpNotifications = mask;
                 break;
             case 14:
-                sys.alerts.heaterNotifications = mask;
+                sys.alerts.ultratempNotifications = mask;
                 break;
             case 15:
                 sys.alerts.chlorinatorNotifications = mask;
                 break;
+            case 16:
+                sys.alerts.intellichemNotifications = mask;
+                break;
+            case 17:
+                sys.alerts.hybridNotifications = mask;
+                break;
+            case 18:
+                sys.alerts.connectedGasNotifications = mask;
+                break;
         }
+        if (typeof webApp !== 'undefined' && webApp) webApp.emitToClients('alertConfig', sys.alerts.get(true));
     }
     private static processSchedules(msg: Inbound) {
         let schedId = msg.extractPayloadByte(2) + 1;

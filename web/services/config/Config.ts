@@ -215,10 +215,14 @@ export class ConfigRoute {
             try { res.status(200).send(await sys.board.remotes.setRemoteAsync(req.body)); }
             catch (err) { next(err); }
         });
+        app.put('/config/alerts', async (req, res, next) => {
+            try { res.status(200).send(await (sys.board as any).alerts.setAlertNotificationsAsync(req.body)); }
+            catch (err) { next(err); }
+        });
         app.get('/config/options/alerts', (req, res) => {
             return res.status(200).send({
                 alerts: sys.alerts.get(true),
-                // Existing app-side alert-related options still live in general options.
+                definitions: typeof (sys.board as any).getAlertDefinitions === 'function' ? (sys.board as any).getAlertDefinitions() : {},
                 poolOptions: {
                     cooldownDelay: sys.general.options.cooldownDelay,
                     heaterStartDelay: sys.general.options.heaterStartDelay,

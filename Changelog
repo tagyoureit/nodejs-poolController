@@ -18,6 +18,15 @@ IntelliCenter security rationalization, JXi/LXi heater support, virtual IntelliC
 10. v3 light group Swim/Set/Sync commands: dashPanel triggers via v3 A184 protocol (channel 0x58A3, target 0x8AB1) instead of v1 rapid-toggle sequencing. Group and member circuits show disabled state until OCP confirms completion.
 11. Automatic lat/lon resolution from zip code: heliotrope sunrise/sunset calculations now fall back to a bundled US zip code coordinate table when latitude/longitude are not explicitly configured or provided via environment variables.
 
+### New Features (continued)
+12. Alert notification management: full PUT `/config/alerts` endpoint for all 7 alert categories (circuits, pumps, ultratemp, chlorinator, intellichem, hybrid, connected gas) with Select All / Select None support. dashPanel pnlAlerts config UI with per-category accordion, checkbox list, and real-time selected/total counts.
+13. ICP→dashPanel alert sync: alert notification changes made on ICP now propagate to dashPanel in real-time via A168 cat=13 piggyback handler in the v3 early-return guard (same pattern as ISSUE-073 body capacity).
+14. v3 delay configuration: freeze cycle time, valve delay, and cooldown delay now decoded from A30 cat=0 sub=0 and writable via A168. dashPanel Delays panel binds `valveDelay` for ICv3 (was `pumpDelay`). Cancel delay endpoint added (`PUT /state/cancelDelay`).
+15. v3 Timed Service Mode (Timeout) detection from A204 byte 9 bit 1.
+16. Remote control configuration: virtualCircuits byteValueMap corrected for remote button context with missing entries added (All Lights On/Off, Pool Heat Enable). dashPanel iS10 body selection locked to Spa.
+17. Cover configuration fixes: circuit IDs corrected for 0-indexed wire protocol, body flags bit 3 polarity fixed (set=Spa not Pool), dashPanel cover config excludes Pool/Spa body circuits. Homepage Covers section added with valve-style widget.
+18. v3 circuit group toggle fix: API now sends on correct A184 channel (0x58A3 instead of 0x688F). ICP-initiated light group theme changes propagate sequencing state to dashPanel.
+
 ### Bug Fixes
 10. IntelliCenter v3 circuit/light group eggTimer offset regression: outbound A168 cat=6 now sends 45-byte payload with eggTimer at bytes 40-41 (was incorrectly at 38-39). Inbound ExternalMessage.processGroupSettings also reads v3 offset. Added processEggTimer protection guard against OCP overwriting valid local values with 0.
 11. IntelliCenter V3 chlorinator: fixed payload format, improved superChlor handling, debounced spurious 255 values.
@@ -31,6 +40,9 @@ IntelliCenter security rationalization, JXi/LXi heater support, virtual IntelliC
 19. IntelliCenter v3 expansion panel decoding and plugin address management improvements.
 20. Schedule calculation crash when heliotrope invalid: `calcAdjustedTimes` now guards against undefined `dt` and missing lat/lon; `calcSchedule` null-checks `endTime` before calling `.getTime()`.
 21. Schedule `nsod` (tomorrow start-of-day) was calculated as yesterday due to copy-paste typo (`addHours(-24)` → `addHours(24)`).
+22. Alert bitmask mixed endianness: 4-byte selectors (IntelliChem, Hybrid) use little-endian while 1-2 byte selectors use big-endian. Encode (`maskToBytes`), decode (`extractAlertMask`), and piggyback decode (`applyAlertNotificationFromExternal`) all branch on byte count.
+23. A168 cat=11 security role write: fixed phantom duplicate creation from incorrect byte[2] and trailing bytes.
+24. dashPanel Save Remote response wrapper not unwrapped — `dataBind` crash on `type.desc` fixed.
 
 ## 9.0.0
 Focused release on IntelliCenter v3.008 firmware compatibility, finishing the v3 work started in 8.4.1, plus the Regal Century pump Modbus fixes.

@@ -305,6 +305,7 @@ export class IntelliCenterBoard extends SystemBoard {
     public valves: IntelliCenterValveCommands = new IntelliCenterValveCommands(this);
     public covers: IntelliCenterCoverCommands = new IntelliCenterCoverCommands(this);
     public remotes: IntelliCenterRemoteCommands = new IntelliCenterRemoteCommands(this);
+    public alerts: IntelliCenterAlertCommands = new IntelliCenterAlertCommands(this);
     public chemControllers: IntelliCenterChemControllerCommands = new IntelliCenterChemControllerCommands(this);
     public reloadConfig() {
         //sys.resetSystem();
@@ -629,6 +630,108 @@ export class IntelliCenterBoard extends SystemBoard {
         this.valueMaps.circuitFunctions.merge([
             [11, { name: 'floorcleaner', desc: 'Floor Cleaner 1', body: 2 }]
         ]);
+    }
+    public getAlertDefinitions(): { [key: string]: { bit: number; name: string; desc: string }[] } {
+        return {
+            circuits: [
+                { bit: 0, name: 'valveRotationDelay', desc: 'Valve Rotation Delay' },
+                { bit: 1, name: 'heaterCooldownDelay', desc: 'Heater Cooldown Delay' }
+            ],
+            pumps: [
+                { bit: 0, name: 'driveTemperature', desc: 'Drive Temperature' },
+                { bit: 1, name: 'primingAlarm', desc: 'Priming Alarm' },
+                { bit: 2, name: 'driveOverTemperature', desc: 'Drive Over Temperature' },
+                { bit: 3, name: 'powerOutage', desc: 'Power Outage' },
+                { bit: 4, name: 'overCurrent', desc: 'Over Current' },
+                { bit: 5, name: 'overVoltage', desc: 'Over Voltage' },
+                { bit: 6, name: 'communicationLost', desc: 'Communication Lost' },
+                { bit: 7, name: 'rateAndPower', desc: 'Pentair VS/VF/VSF Rate and Power' }
+            ],
+            ultratemp: [
+                { bit: 0, name: 'brownout', desc: 'Brownout' },
+                { bit: 1, name: 'highRefrigerantLevel', desc: 'High Refrigerant Level' },
+                { bit: 2, name: 'lowRefrigerantLevel', desc: 'Low Refrigerant Level' },
+                { bit: 3, name: 'fiveAlarmsInAnHour', desc: 'Five Alarms in an hour' },
+                { bit: 4, name: 'lowAmbientTemperature', desc: 'Low Ambient Temperature' },
+                { bit: 5, name: 'highWaterTemperature', desc: 'High Water Temperature' },
+                { bit: 6, name: 'lowWaterTemperature', desc: 'Low Water Temperature' },
+                { bit: 7, name: 'lowWaterFlow', desc: 'Low Water Flow' },
+                { bit: 8, name: 'poolSpaRemoteInputsBothEnabled', desc: 'Pool and Spa remote inputs are both enabled' },
+                { bit: 9, name: 'waterTempSensorOpen', desc: 'Water Temperature Sensor Open' },
+                { bit: 10, name: 'waterTempSensorShorted', desc: 'Water Temperature Sensor shorted' },
+                { bit: 11, name: 'defrostTempSensorOpen', desc: 'Defrost Temperature Sensor Open' },
+                { bit: 12, name: 'defrostTempSensorShorted', desc: 'Defrost Temperature Sensor shorted' },
+                { bit: 13, name: 'communicationLost', desc: 'Communication Lost' }
+            ],
+            chlorinator: [
+                { bit: 0, name: 'lowSaltWarning', desc: 'Low Salt Warning' },
+                { bit: 1, name: 'veryLowSaltWarning', desc: 'Very Low Salt Warning' },
+                { bit: 2, name: 'cleanAndInspectAlarm', desc: 'Clean and Inspect Alarm' },
+                { bit: 3, name: 'coldWaterCutoffAlarm', desc: 'Cold Water Cutoff Alarm' },
+                { bit: 4, name: 'communicationLost', desc: 'Communication Lost' },
+                { bit: 5, name: 'noFlow', desc: 'No Flow' }
+            ],
+            intellichem: [
+                { bit: 0, name: 'noFlow', desc: 'No Flow' },
+                { bit: 1, name: 'phHigh', desc: 'pH High' },
+                { bit: 2, name: 'phLow', desc: 'pH Low' },
+                { bit: 3, name: 'orpHigh', desc: 'ORP High' },
+                { bit: 4, name: 'orpLow', desc: 'ORP Low' },
+                { bit: 5, name: 'checkPhChemicalContainer', desc: 'Check pH Chemical Container' },
+                { bit: 6, name: 'checkOrpChemicalContainer', desc: 'Check ORP Chemical Container' },
+                { bit: 7, name: 'sanitizerLockedOut', desc: 'Sanitizer Locked Out' },
+                { bit: 8, name: 'phAtFeedLimit', desc: 'pH at Feed Limit' },
+                { bit: 9, name: 'orpAtFeedLimit', desc: 'ORP at Feed Limit' },
+                { bit: 10, name: 'invalidSettings', desc: 'Invalid Settings' },
+                { bit: 11, name: 'peripheralCommError', desc: 'Peripheral Comm Error' },
+                { bit: 12, name: 'autoCalibrationFailed', desc: 'Auto Calibration Failed' },
+                { bit: 13, name: 'communicationLost', desc: 'Communication Lost' },
+                { bit: 14, name: 'flowDelayOn', desc: 'Flow Delay ON' },
+                { bit: 15, name: 'phModeDoseMixMonitor', desc: 'pH Mode: Dose/Mix/Monitor' },
+                { bit: 16, name: 'orpModeDoseMixMonitor', desc: 'ORP Mode: Dose/Mix/Monitor' }
+            ],
+            hybrid: [
+                { bit: 0, name: 'airFlowSwitch', desc: 'Air Flow Switch' },
+                { bit: 1, name: 'icmFault', desc: 'ICM Fault' },
+                { bit: 2, name: 'automaticGasShutOff', desc: 'Automatic Gas Shut Off' },
+                { bit: 3, name: 'stackFlueHighTemp', desc: 'Stack Flue High Temp' },
+                { bit: 4, name: 'stackFlueOpenShort', desc: 'Stack Flue Open/Short' },
+                { bit: 5, name: 'stackFlueRunaway', desc: 'Stack Flue Runaway' },
+                { bit: 6, name: 'freezeWarning', desc: 'Freeze Warning' },
+                { bit: 7, name: 'condensateFilter', desc: 'Condensate Filter' },
+                { bit: 8, name: 'brownout', desc: 'Brownout' },
+                { bit: 9, name: 'highRefrigerantLevel', desc: 'High Refrigerant Level' },
+                { bit: 10, name: 'lowRefrigerantLevel', desc: 'Low Refrigerant Level' },
+                { bit: 11, name: 'fiveAlarmsInAnHour', desc: 'Five Alarms in an hour' },
+                { bit: 12, name: 'lowAmbientTemperature', desc: 'Low Ambient Temperature' },
+                { bit: 13, name: 'condensateFloatSwitch', desc: 'Condensate Float Switch' },
+                { bit: 14, name: 'thermalFuse', desc: 'Thermal Fuse' },
+                { bit: 15, name: 'highLimitSwitch', desc: 'High Limit Switch' },
+                { bit: 16, name: 'highWaterTemperature', desc: 'High Water Temperature' },
+                { bit: 17, name: 'lowWaterTemperature', desc: 'Low Water Temperature' },
+                { bit: 18, name: 'lowWaterFlow', desc: 'Low Water Flow' },
+                { bit: 19, name: 'waterTempSensorOpenShort', desc: 'Water Temperature Sensor Open/Short' },
+                { bit: 20, name: 'suctionTempSensorOpenShort', desc: 'Suction Temperature Sensor Open/Short' },
+                { bit: 21, name: 'communicationLost', desc: 'Communication Lost' }
+            ],
+            connectedGas: [
+                { bit: 0, name: 'waterPressureSwitch', desc: 'Water Pressure Switch' },
+                { bit: 1, name: 'highLimitSwitch', desc: 'High Limit Switch' },
+                { bit: 2, name: 'airFlowSwitch', desc: 'Air Flow Switch' },
+                { bit: 3, name: 'autoGasShutoffSwitch', desc: 'Auto Gas Shutoff Switch' },
+                { bit: 4, name: 'ignitionControlError', desc: 'Ignition Control Error' },
+                { bit: 5, name: 'stackFlueSensorErrorAlarm', desc: 'Stack Flue Sensor Error Alarm' },
+                { bit: 6, name: 'stackFlueSensorOpenAlarm', desc: 'Stack Flue Sensor Open Alarm' },
+                { bit: 7, name: 'stackFlueSensorShortAlarm', desc: 'Stack Flue Sensor Short Alarm' },
+                { bit: 8, name: 'waterSensorOpenAlarm', desc: 'Water Sensor Open Alarm' },
+                { bit: 9, name: 'waterSensorShortAlarm', desc: 'Water Sensor Short Alarm' },
+                { bit: 10, name: 'airFlowFaultAlarm', desc: 'Air Flow Fault Alarm' },
+                { bit: 11, name: 'flameNoCallForHeatAlarm', desc: 'Flame No Call For Heat Alarm' },
+                { bit: 12, name: 'ignitionLockoutAlarm', desc: 'Ignition Lockout Alarm' },
+                { bit: 13, name: 'weakFlameAlarm', desc: 'Weak Flame Alarm' },
+                { bit: 14, name: 'communicationLost', desc: 'Communication Lost' }
+            ]
+        };
     }
     public initExpansionModules(ocp0A: number, ocp0B: number, xcp1A: number, xcp1B: number, xcp2A: number, xcp2B: number, xcp3A: number, xcp3B: number) {
         state.equipment.controllerType = 'intellicenter';
@@ -1340,7 +1443,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         // retry/abort loop that resets `configVersion.equipment` to 0 and re-queues every
         // cycle. On v1.x rely on the Action 168 push path in ExternalMessage instead. #1172
         const equipmentItems = sys.equipment.isIntellicenterV3
-            ? [0, 1, 2, 3, 12, 13, 14, 15]
+            ? [0, 1, 2, 3, 12, 13, 14, 15, 16, 17, 18]
             : [0, 1, 2, 3];
         this.maybeQueueItems(curr.equipment, ver.equipment, ConfigCategories.equipment, equipmentItems);
         this.maybeQueueItems(curr.options, ver.options, ConfigCategories.options, [0, 1]);
@@ -1508,8 +1611,11 @@ class IntelliCenterSystemCommands extends SystemCommands {
             }
             if (typeof obj.options !== 'undefined') {
                 try {
-                    if (typeof obj.options.vacation !== 'undefined') await (this as any).setVacationAsync(obj.options.vacation);
-                    await sys.board.system.setOptionsAsync(obj.options)
+                    if (typeof obj.options.vacation !== 'undefined') {
+                        await (this as any).setVacationAsync(obj.options.vacation);
+                        return sys.general;
+                    }
+                    await sys.board.system.setOptionsAsync(obj.options);
                 }
                 catch (err) {
                     logger.error(`Caught reject from setOptionsAsync`);
@@ -1924,8 +2030,9 @@ class IntelliCenterSystemCommands extends SystemCommands {
             let payload = [0, 0, 64,
                 enabled ? 1 : 0,
                 useTimeframe ? 1 : 0,
-                startDate.getFullYear() - 2000, startDate.getMonth() + 1, startDate.getDate(),
-                endDate.getFullYear() - 2000, endDate.getMonth() + 1, endDate.getDate()
+                startDate.getUTCFullYear() - 2000, startDate.getUTCMonth() + 1, startDate.getUTCDate(),
+                endDate.getUTCFullYear() - 2000, endDate.getUTCMonth() + 1, endDate.getUTCDate(),
+                0, 30, 0, 0, 0, 100
             ];
             let out = Outbound.create({
                 action: 168,
@@ -5477,6 +5584,56 @@ class IntelliCenterCoverCommands extends CoverCommands {
         state.emitEquipmentChanges();
 
         return cover;
+    }
+}
+class IntelliCenterAlertCommands {
+    constructor(private board: IntelliCenterBoard) {}
+    private static readonly SELECTOR_BYTE_COUNTS: { [key: number]: number } = {
+        12: 1, 13: 2, 14: 2, 15: 1, 16: 4, 17: 4, 18: 2
+    };
+    private static readonly FIELD_TO_SELECTOR: { [key: string]: number } = {
+        circuits: 12, pumps: 13, ultratemp: 14, chlorinator: 15,
+        intellichem: 16, hybrid: 17, connectedGas: 18
+    };
+    private maskToBytes(mask: number, byteCount: number): number[] {
+        const bytes: number[] = [];
+        if (byteCount <= 2) {
+            for (let i = byteCount - 1; i >= 0; i--) {
+                bytes.push((mask >>> (i * 8)) & 0xFF);
+            }
+        } else {
+            for (let i = 0; i < byteCount; i++) {
+                bytes.push((mask >>> (i * 8)) & 0xFF);
+            }
+        }
+        return bytes;
+    }
+    public async setAlertNotificationsAsync(obj: any): Promise<any> {
+        for (const [field, selector] of Object.entries(IntelliCenterAlertCommands.FIELD_TO_SELECTOR)) {
+            if (typeof obj[field] === 'undefined') continue;
+            const mask = parseInt(obj[field], 10) >>> 0;
+            const byteCount = IntelliCenterAlertCommands.SELECTOR_BYTE_COUNTS[selector];
+            const dataBytes = this.maskToBytes(mask, byteCount);
+            const payload = [13, 0, selector, ...dataBytes];
+            const out = Outbound.create({
+                action: 168,
+                payload: payload,
+                response: IntelliCenterBoard.getAckResponse(168),
+                retries: 5
+            });
+            await out.sendAsync();
+            switch (selector) {
+                case 12: sys.alerts.circuitNotifications = mask; break;
+                case 13: sys.alerts.pumpNotifications = mask; break;
+                case 14: sys.alerts.ultratempNotifications = mask; break;
+                case 15: sys.alerts.chlorinatorNotifications = mask; break;
+                case 16: sys.alerts.intellichemNotifications = mask; break;
+                case 17: sys.alerts.hybridNotifications = mask; break;
+                case 18: sys.alerts.connectedGasNotifications = mask; break;
+            }
+            sys.alerts.setRaw(selector, dataBytes);
+        }
+        return sys.alerts.get(true);
     }
 }
 
