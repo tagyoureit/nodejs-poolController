@@ -1351,7 +1351,8 @@ export class ScheduleTime extends ChildEqState {
             let dtCalc = typeof this.calculatedDate !== 'undefined' && typeof this.calculatedDate.getTime === 'function' ? new Date(this.calculatedDate.getTime()).setHours(0, 0, 0, 0) : new Date(1970, 0, 1, 0, 0).getTime();
             let recalc = !this.calculated;
             if (!recalc && sod.getTime() !== dtCalc) recalc = true;
-            if (!recalc && (this.endTime && this.endTime.getTime() < new Date().getTime() && this.startTime && this.startTime.getTime() < dtCalc)) {
+            let schedType = sys.board.valueMaps.scheduleTypes.transform(sched.scheduleType);
+            if (!recalc && schedType.name !== 'runonce' && (this.endTime && this.endTime.getTime() < new Date().getTime() && this.startTime && this.startTime.getTime() < dtCalc)) {
                 recalc = true;
                 logger.info(`Recalculating expired schedule ${sched.id}`);
             }
@@ -1360,9 +1361,7 @@ export class ScheduleTime extends ChildEqState {
             this.calculatedDate = new Date(new Date().setHours(0, 0, 0, 0));
             if (sched.isActive === false || sched.disabled) return false;
             let tt = sys.board.valueMaps.scheduleTimeTypes.transform(sched.startTimeType);
-            // If this is a runonce schedule we need to check for the rundate
-            let type = sys.board.valueMaps.scheduleTypes.transform(sched.scheduleType);
-            let times = type.name === 'runonce' ? this.calcScheduleDate(new Timestamp(sched.startDate), sched) : this.calcScheduleDate(state.time.clone(), sched);
+            let times = schedType.name === 'runonce' ? this.calcScheduleDate(new Timestamp(sched.startDate), sched) : this.calcScheduleDate(state.time.clone(), sched);
             if (times.startTime && times.endTime && times.endTime.getTime() > currentTime.getTime()) {
                 // Check to see if it should be on.
                 this.startTime = times.startTime;
@@ -1373,7 +1372,7 @@ export class ScheduleTime extends ChildEqState {
             else {
                 // Chances are that the current dow is not valid.  Fast forward until we get a day that works.  That will
                 // be the next scheduled run date.
-                if (type.name !== 'runonce' && sched.scheduleDays > 0) {
+                if (schedType.name !== 'runonce' && sched.scheduleDays > 0) {
                     let schedDays = sys.board.valueMaps.scheduleDays.toArray();
                     let day = sod.clone().addHours(24);
                     let dow = day.getDay();
