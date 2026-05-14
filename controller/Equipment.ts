@@ -879,6 +879,10 @@ export class Options extends EqItem {
     public set freezeCycleTime(val: number) { this.setDataVal('freezeCycleTime', val); }
     public get freezeOverride(): number { return this.data.freezeOverride; }
     public set freezeOverride(val: number) { this.setDataVal('freezeOverride', val); }
+    public get solarAsHeatPump(): boolean { return this.data.solarAsHeatPump; }
+    public set solarAsHeatPump(val: boolean) { this.setDataVal('solarAsHeatPump', val); }
+    public get showBadgeColors(): boolean { return this.data.showBadgeColors; }
+    public set showBadgeColors(val: boolean) { this.setDataVal('showBadgeColors', val); }
     public get heaterStartDelay(): boolean { return this.data.heaterStartDelay; }
     public set heaterStartDelay(val: boolean) { this.setDataVal('heaterStartDelay', val); }
     public get heaterStartDelayTime(): number { return this.data.heaterStartDelayTime; }

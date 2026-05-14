@@ -62,7 +62,7 @@ export class OptionsMessage {
                             let manualPriorityByte = msg.extractPayloadByte(38, 255);
                             const isIntellicenterV3 = (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3);
                             if (isIntellicenterV3) {
-                                const v3ManualPriorityByte = msg.extractPayloadByte(28, 255);
+                                const v3ManualPriorityByte = msg.extractPayloadByte(35, 255);
                                 if (v3ManualPriorityByte === 0 || v3ManualPriorityByte === 1) manualPriorityByte = v3ManualPriorityByte;
                                 const freezeCycleTime = msg.extractPayloadByte(25, 255);
                                 if (freezeCycleTime !== 255 && freezeCycleTime >= 1 && freezeCycleTime <= 60) {
@@ -72,7 +72,7 @@ export class OptionsMessage {
                                 }
                             }
                             if (manualPriorityByte !== 255) sys.general.options.manualPriority = manualPriorityByte === 1;
-                            sys.general.options.manualHeat = msg.extractPayloadByte(39) === 1;
+                            sys.general.options.manualHeat = msg.extractPayloadByte(isIntellicenterV3 ? 36 : 39) === 1;
                             let fnTranslateByte = (byte):number => { return (byte & 0x007F) * (((byte & 0x0080) > 0) ? -1 : 1); }
                             sys.equipment.tempSensors.setCalibration('water1', fnTranslateByte(msg.extractPayloadByte(3)));
                             sys.equipment.tempSensors.setCalibration('solar1', fnTranslateByte(msg.extractPayloadByte(4)));
@@ -152,6 +152,8 @@ export class OptionsMessage {
                         sys.general.options.vacation.endDate = new Date(yy, mm - 1, dd);
                         sys.general.options.vacation.enabled = msg.extractPayloadByte(2) > 0;
                         sys.general.options.vacation.useTimeframe = msg.extractPayloadByte(3) > 0;
+                        sys.general.options.showBadgeColors = msg.extractPayloadByte(12) === 1;
+                        sys.general.options.solarAsHeatPump = msg.extractPayloadByte(14) === 1;
                         msg.isProcessed = true;
                         break;
                 }

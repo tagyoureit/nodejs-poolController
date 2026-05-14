@@ -1662,8 +1662,11 @@ export class Response extends OutboundCommon {
             // Keep this scoped to IntelliCenter to avoid unintended effects on other controllers.
             if (sys.equipment.isIntellicenterV3 && this.action > 0) {
                 if (this.action !== msgIn.action) return false;
-                // If a destination was specified on the Response, enforce it (critical for v3 unicast flows).
-                if (this.dest >= 0 && msgIn.dest !== this.dest) return false;
+                // ISSUE-121: Do NOT enforce strict dest match on v3 Action 30 config responses.
+                // After address convergence (e.g. 33→32), msgIn.dest may differ from the
+                // request-time pluginAddress. Payload prefix [category, item] is unique enough
+                // (only OCP sends Action 30 to njsPC). v1.x relied on broadcast (dest=15) and
+                // matched by (action, payload-prefix) without dest enforcement — restoring that.
                 // If no payload prefix is provided, action match is sufficient (e.g. v3 Action 30 with empty payload).
                 if (this.payload.length === 0) return true;
                 if (msgIn.payload.length < this.payload.length) return false;

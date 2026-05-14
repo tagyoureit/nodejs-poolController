@@ -26,9 +26,9 @@
 > **In the wild:** featured in the [TroubleFreePool IntelliCenter walk-through guide](https://www.troublefreepool.com/threads/pentair-intellicenter-pool-control-dashboard-instructional-guide.218514/) (thanks @MyAZPool). Actively maintained — questions welcome in [GitHub Discussions](https://github.com/tagyoureit/nodejs-poolController/discussions).
 
 ```diff
-+ Running IntelliCenter v3.008+? It's fully supported as of 9.0.
++ Running IntelliCenter v3.008+? Fully supported as of 9.0, with security,
++ heater, and chemistry improvements in 9.1.
 + If anything looks off, please open a discussion with a replay capture.
-+ See discussion #1171 for ongoing v3 updates.
 ```
 
 ## What is njsPC?
@@ -47,18 +47,38 @@ njsPC is a Node.js service that talks to your pool controller over RS-485 (or Sc
 |---|---|---|
 | **Controllers** | IntelliCenter, IntelliTouch, EasyTouch, SunTouch, Aqualink, IntelliCom, Nixie (standalone) | RS-485 (preferred) or ScreenLogic (network) |
 | **Pumps** | IntelliFlo VS / VSF / VF, IntelliFlo VS+SVRS, SuperFlo VS, Hayward Eco/TriStar VS, Hayward Relay VS, Whisperflo, single/two-speed, relay-controlled, Neptune Modbus, Regal (Century) Modbus | Regal added in 9.0 — [PR #1169](https://github.com/tagyoureit/nodejs-poolController/pull/1169) |
-| **Heaters** | Gas, solar, heat pump, hybrid (ETi / ETi250), MasterTemp, Max-E-Therm, UltraTemp / UltraTempDirect | |
-| **Chlorinators** | IntelliChlor, Aqua-Rite, OEM brands | Dual chlorinators supported via REM |
+| **Heaters** | Gas, solar, heat pump, hybrid (ETi / ETi250), MasterTemp, Max-E-Therm, UltraTemp / UltraTempDirect, Jandy JXi / LXi | JXi/LXi added in 9.1 — [discussion #1128](https://github.com/tagyoureit/nodejs-poolController/discussions/1128) |
+| **Chlorinators** | IntelliChlor, Aqua-Rite, OEM brands (physical and virtual) | Dual chlorinators supported via REM. Virtual chlorinator added in 9.1 |
 | **Lights** | IntelliBrite, MagicStream, Jandy WaterColors, Hayward ColorLogic, Pooltone (Florida Sunseeker), plus legacy SAM / SAL / Color Wheel / Photon Gen | |
-| **Chemistry** | IntelliChem (OCP-paired and standalone), Relay Equipment Manager (REM) | Atlas Scientific pH / ORP / EC probes, flow, pressure, temperature via REM |
+| **Chemistry** | IntelliChem (OCP-paired, standalone, and virtual), Relay Equipment Manager (REM) | Atlas Scientific pH / ORP / EC probes, flow, pressure, temperature via REM. Virtual IntelliChem added in 9.1 |
 | **Covers** | IntelliCenter cover configuration & control | Live-state feedback is limited on ICv3 |
 | **Filters** | Configuration, pressure monitoring, clean/dirty thresholds | |
 | **Valves** | Standard intake/return with diverted status | Intellivalve planned |
 | **Home Automation** | HomeKit/Siri (Homebridge), Home Assistant (via MQTT), Hubitat, SmartThings, MQTT, InfluxDB, ISY, Vera, Alexa | See [Home Automation Bindings](#home-automation-bindings) |
 
-## What's new in 9.0
+## What's new in 9.1
 
-9.0 focuses on IntelliCenter v3.008 firmware compatibility and finishes the v3 work started in 8.4.1.
+9.1 adds IntelliCenter security, Jandy JXi/LXi heater support, virtual chemistry equipment, and a batch of v3.008 refinements.
+
+1. **IntelliCenter security** — full PIN-based role management (up to 9 roles, 22-section granular permissions) with session timeout, server-side write protection, and dashPanel integration (guest mode, lock icon, per-widget gating).
+2. **Jandy JXi / LXi heater protocol** — RS-485 support with fault message handling, bitmask burner-on detection, and correct default addresses ([discussion #1128](https://github.com/tagyoureit/nodejs-poolController/discussions/1128)).
+3. **Virtual IntelliChem** — alarm sync and API routes for testing chemistry without hardware.
+4. **Virtual chlorinator** — full emulation of chlorinator protocol responses.
+5. **Alert notification management** — PUT `/config/alerts` endpoint for all 7 alert categories with dashPanel accordion UI and ICP→dashPanel real-time sync.
+6. **v3 light sequencing** — IntelliBrite gray-out state propagates to dashPanel during theme changes; light group Swim/Set/Sync uses v3 A184 protocol.
+7. **Freeze protection** — manual override detection (per-body bitmask), smart body toggle, and dashPanel freeze/override indicators.
+8. **v3 delay configuration** — freeze cycle time, valve delay, and cooldown delay decoded and writable; cancel delay endpoint added.
+9. **Remote control & cover configuration** — virtualCircuits byteValueMap corrected, cover circuit IDs fixed, homepage Covers section added.
+10. **Zip-to-coordinates fallback** — heliotrope sunrise/sunset calculations now resolve lat/lon from zip code when not explicitly configured.
+11. Configurable single mixing period for chemistry controllers — thanks to @johnny2678 ([PR #1181](https://github.com/tagyoureit/nodejs-poolController/pull/1181)).
+12. IntelliCenter/IntelliTouch i9+3 disambiguation fix ([#1179](https://github.com/tagyoureit/nodejs-poolController/issues/1179)), 3rd power center expansion fix ([#1171](https://github.com/tagyoureit/nodejs-poolController/issues/1171)), chlorinator ID fallback fix — thanks to @johnny2678 ([PR #1178](https://github.com/tagyoureit/nodejs-poolController/pull/1178)).
+
+See the full [Changelog](https://github.com/tagyoureit/nodejs-poolController/blob/master/Changelog) for all 37 items in 9.1.
+
+<details>
+<summary>What was new in 9.0</summary>
+
+9.0 focused on IntelliCenter v3.008 firmware compatibility and finished the v3 work started in 8.4.1.
 
 1. IntelliCenter v3.008 chlorinator support, including live-edit changes coming back from the panel.
 2. Faster state updates on v3 — circuit, feature, and body changes made at the panel now appear in dashPanel within seconds.
@@ -68,8 +88,9 @@ njsPC is a Node.js service that talks to your pool controller over RS-485 (or Sc
 6. Firmware change detection — njsPC reloads its configuration automatically when the OCP firmware version changes.
 7. Virtual equipment management with new REST endpoints.
 8. Regal (Century) Modbus pump added, with collision detection and NACK/fault handling on Go/Stop commands — thanks to @celestinjr ([PR #1169](https://github.com/tagyoureit/nodejs-poolController/pull/1169)).
+</details>
 
-For previous releases (8.4.x, 8.3, 8.1, 8.0, 7.x and earlier), see the [Changelog](https://github.com/tagyoureit/nodejs-poolController/blob/master/Changelog).
+For earlier releases (8.4.x, 8.3, 8.1, 8.0, 7.x and before), see the [Changelog](https://github.com/tagyoureit/nodejs-poolController/blob/master/Changelog).
 
 <a name="module_nodejs-poolController--install"></a>
 

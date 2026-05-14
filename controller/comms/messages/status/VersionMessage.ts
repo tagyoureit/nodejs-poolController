@@ -58,21 +58,17 @@ export class VersionMessage {
             logger.silly(`v3.004+ ${source}: Config queue active, signaled refresh on completion`);
             return;
         }
+        this.lastConfigRefreshTime = now;
 
         (sys.board as any).needsConfigChanges = true;
         sys.configVersion.options = 0;
         sys.configVersion.systemState = 0;
-        sys.configVersion.pumps = 0;
-        sys.configVersion.general = 0;
-        sys.configVersion.equipment = 0;
 
-        this.lastConfigRefreshTime = now;
         logger.silly(`v3.004+ ${source}: Sending Action 228`);
         const commandSource = sys.board.commandSourceAddress || Message.pluginAddress;
         Outbound.create({
             source: commandSource,
             dest: 16, action: 228, payload: [0], retries: 2,
-            scope: 'v3RefreshTrigger',
             response: Response.create({ dest: commandSource, action: 164 })
         }).sendAsync().catch((err) => {
             logger.silly(`v3.004+ ${source}: Action 228 refresh failed: ${err.message}`);

@@ -470,8 +470,15 @@ export class IntelliCenterBoard extends SystemBoard {
         const registrationStatus = msg.payload.length > 2 ? msg.extractPayloadByte(2) : -1;
 
         if (this.shouldConvergeToFirstIcpAddress(profile.address, profile.deviceType, deviceAddress, payloadDeviceType, registrationStatus)) {
-            logger.warn(`IntelliCenter v3 first ICP registration converged from device ${profile.address} to device ${deviceAddress}.`);
+            logger.warn(`IntelliCenter v3 first ICP registration converged from device ${profile.address} to device ${deviceAddress}. Queue processing: ${this._configQueue._processing}`);
             this.setRuntimeRegistrationAddress(deviceAddress, 'IntelliCenter first ICP registration');
+            if (this._configQueue._processing) {
+                logger.warn(`Address changed mid-config-load; resetting queue and restarting config with new address ${deviceAddress}`);
+                this._configQueue.abort();
+                state.status = 1;
+                state.emitControllerChange();
+                setTimeout(() => { this.checkConfiguration(); }, 500);
+            }
         }
 
         const expectedAddress = this.getRegistrationAddress();
@@ -551,7 +558,6 @@ export class IntelliCenterBoard extends SystemBoard {
             if (parseFloat(sys.equipment.controllerFirmware || "0") >= 3.0) {
                 // ISSUE-003: don't block startup config polling on registration completion.
                 // Start registration attempts in the background and send Action 228 immediately.
-                sys.configVersion.clear();
                 this.startRegistrationBootstrapAsync();
                 await this.requestVersionsAsync(16);
             } else {
@@ -1230,11 +1236,23 @@ class IntelliCenterConfigQueue extends ConfigQueue {
     private _watchdogTimer?: NodeJS.Timeout;
     private _lastProgressMs: number = 0;
     private _maxPercentEmitted: number = 0;
+    private _epoch: number = 0;
     public close() {
         this.stopWatchdog();
         this._processing = false;
         this._maxPercentEmitted = 0;
         super.close();
+    }
+    public abort(): void {
+        this._epoch++;
+        this.queue.length = 0;
+        this.curr = null;
+        this.totalItems = 0;
+        this._processing = false;
+        this._newRequest = false;
+        this._failed = false;
+        this._maxPercentEmitted = 0;
+        this.stopWatchdog();
     }
     private getDisplayPercent(): number {
         this._maxPercentEmitted = Math.max(this._maxPercentEmitted, this.percent);
@@ -1262,6 +1280,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         const elapsed = Date.now() - this._lastProgressMs;
         if (elapsed < IntelliCenterConfigQueue.WATCHDOG_TIMEOUT_MS) return;
         logger.warn(`Config queue watchdog timed out after ${elapsed}ms; forcing recovery (${this.remainingItems} items remaining)`);
+        this._epoch++;
         this.queue.length = 0;
         this.curr = null;
         this.totalItems = 0;
@@ -1274,8 +1293,9 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         state.emitControllerChange();
         setTimeout(() => { sys.board.checkConfiguration(); }, 250);
     }
-    public processNext(msg?: Outbound) {
+    public processNext(msg?: Outbound, epoch?: number) {
         if (this.closed) return;
+        if (typeof epoch === 'number' && epoch !== this._epoch) return;
         let self = this;
         if (typeof msg !== 'undefined' && msg !== null) {
             this.markProgress();
@@ -1332,22 +1352,16 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             // any other panel is awake at the same address it may actually collide with it
             // as both boards are processing at the same time and sending an outbound ack.
             const dest = sys.equipment.isIntellicenterV3 ? 16 : 15;
-            const source = sys.board.commandSourceAddress;
             let out = Outbound.create({
-                // v1: broadcast (15). v3: wireless/ICP unicasts to OCP (16).
-                source,
                 dest,
-                scope: sys.equipment.isIntellicenterV3 ? 'v3ConfigQueue' : undefined,
-                action: 222, payload: [this.curr.category, itm], retries: 5,
-                // v3.004+: some config requests can yield an Action 30 with an empty payload (length=0).
-                // Those packets still indicate "done" for the requested item, but cannot be matched by payload prefix.
+                action: 222, payload: [this.curr.category, itm], retries: 3,
                 response: sys.equipment.isIntellicenterV3
-                    ? Response.create({ dest: source, action: 30 })
+                    ? Response.create({ dest: -1, action: 30, payload: [this.curr.category, itm] })
                     : Response.create({ dest: -1, action: 30, payload: [this.curr.category, itm] })
             });
             logger.verbose(`Requesting config for: ${ConfigCategories[this.curr.category]} - Item: ${itm}`);
             this.markProgress();
-            // setTimeout(() => { conn.queueSendMessage(out) }, 50);
+            const runEpoch = this._epoch;
             out.sendAsync()
                 .then(() => {
                     //logger.debug(`msg ${out.toShortPacket()} sent successfully`);
@@ -1356,7 +1370,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
                     logger.error(`Error sending configuration request message on port ${out.portId}: ${err.message};`);
                 })
                 .finally(() => {
-                    setTimeout(() => { self.processNext(out); }, 10);
+                    setTimeout(() => { self.processNext(out, runEpoch); }, 10);
                 })
         } else {
             // Now that we are done check the configuration a final time.  If we have anything outstanding
@@ -1366,7 +1380,14 @@ class IntelliCenterConfigQueue extends ConfigQueue {
             this._processing = false;
             this._maxPercentEmitted = 0;
             this.stopWatchdog();
-            if (this._failed) setTimeout(() => { sys.checkConfiguration(); }, 100);
+            // ISSUE-121: Do NOT auto-retry on _failed for v3. Items that fail are typically
+            // unsupported by the v3 firmware (not transient errors), so re-running creates an
+            // endless re-queue cycle. The next legitimate version-change broadcast will pick
+            // up real changes via normal compareVersions flow. Reset _failed without retrying.
+            if (this._failed && !sys.equipment.isIntellicenterV3) {
+                setTimeout(() => { sys.checkConfiguration(); }, 100);
+            }
+            this._failed = false;
             logger.info(`Configuration Complete`);
             sys.board.heaters.updateHeaterServices();
             // Re-apply current body heat modes through the normal setter so state re-transforms
@@ -1448,7 +1469,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         // retry/abort loop that resets `configVersion.equipment` to 0 and re-queues every
         // cycle. On v1.x rely on the Action 168 push path in ExternalMessage instead. #1172
         const equipmentItems = sys.equipment.isIntellicenterV3
-            ? [0, 1, 2, 3, 12, 13, 14, 15, 16, 17, 18]
+            ? [0, 1, 2, 3]
             : [0, 1, 2, 3];
         this.maybeQueueItems(curr.equipment, ver.equipment, ConfigCategories.equipment, equipmentItems);
         this.maybeQueueItems(curr.options, ver.options, ConfigCategories.options, [0, 1]);
@@ -1481,7 +1502,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
                     if (maxPumpId > 0) req.fillRange(19, Math.min(Math.ceil(maxPumpId / 2) + 19, 26));
                 });
             req.fillRange(0, 3);
-            req.fillRange(5, 18);
+            req.fillRange(5, Math.min(Math.ceil(sys.equipment.maxPumps / 2) + 5, 18));
             this.push(req);
         }
         this.maybeQueueItems(curr.security, ver.security, ConfigCategories.security, [0, 1, 2, 3, 4, 5, 6, 7, 8]);
@@ -1527,6 +1548,13 @@ class IntelliCenterConfigQueue extends ConfigQueue {
                 });
             this.push(req);
         }
+        // ISSUE-121: IntelliCenter v3 OCP firmware only responds to general items 0 and 1.
+        // Requesting items 2-7 burns retries each (~30s total) and sets _failed=true,
+        // which triggers sys.checkConfiguration() after "Configuration Complete" → endless
+        // re-queue cycle. Same pattern as ISSUE-077 (equipment items 12-15). Gate to 0-1 on v3.
+        // RE-CONFIRMED 2026-05-13: Even with internet enabled, Web & Mobile Interface on,
+        // Pentair account created, and owner data populated on OCP, sub-items 2-7 still
+        // get no response. Owner/personal info is no longer broadcast on RS-485 in v3.
         const generalItems = sys.equipment.isIntellicenterV3 ? [0, 1] : [0, 1, 2, 3, 4, 5, 6, 7];
         this.maybeQueueItems(curr.general, ver.general, ConfigCategories.general, generalItems);
         this.maybeQueueItems(curr.covers, ver.covers, ConfigCategories.covers, [0, 1]);
@@ -1682,8 +1710,8 @@ class IntelliCenterSystemCommands extends SystemCommands {
         const freezeOverrideRaw = encodeFreezeOverride(parseInt((sys.general.options.freezeOverride || 30).toString(), 10) || 30);
         const pool = sys.bodies.getItemById(1, false);
         const spa = sys.bodies.getItemById(2, false);
-        const manualPriorityPayloadIndex = isIntellicenterV3 ? 29 : 39;
-        const manualHeatPayloadIndex = isIntellicenterV3 ? 31 : 40;
+        const manualPriorityPayloadIndex = isIntellicenterV3 ? 36 : 39;
+        const manualHeatPayloadIndex = isIntellicenterV3 ? 37 : 40;
         const pumpDelayPayloadIndex = isIntellicenterV3 ? 30 : 30;
         const cooldownDelayPayloadIndex = isIntellicenterV3 ? 28 : 31;
 
@@ -1714,10 +1742,11 @@ class IntelliCenterSystemCommands extends SystemCommands {
                     freezeCycleTime,
                     sys.general.options.valveDelay ? 1 : 0,
                     sys.general.options.cooldownDelay ? 1 : 0,
-                    sys.general.options.manualPriority ? 1 : 0,
+                    0, 0, 0, 0, 0, 0,
                     sys.general.options.pumpDelay ? 1 : 0,
+                    sys.general.options.manualPriority ? 1 : 0,
                     sys.general.options.manualHeat ? 1 : 0,
-                    0, 0, 0, 0, 0, 0, 0, 0
+                    0, 0, 0
                 ]
                 : [
                     sys.bodies.getItemById(1, false).setPoint || 100, // 21
@@ -2022,6 +2051,34 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 await out.sendAsync();
                 sys.general.options.manualHeat = obj.manualHeat ? true : false;
             }
+            if (typeof obj.solarAsHeatPump !== 'undefined' || typeof obj.showBadgeColors !== 'undefined') {
+                let opts = sys.general.options;
+                let solarHP = typeof obj.solarAsHeatPump !== 'undefined' ? (obj.solarAsHeatPump ? true : false) : opts.solarAsHeatPump;
+                let badgeColors = typeof obj.showBadgeColors !== 'undefined' ? (obj.showBadgeColors ? true : false) : opts.showBadgeColors;
+                let vac = opts.vacation;
+                let startDate = vac.startDate ? new Date(vac.startDate) : new Date();
+                let endDate = vac.endDate ? new Date(vac.endDate) : new Date();
+                let vacPayload = [0, 0, 64,
+                    vac.enabled ? 1 : 0,
+                    vac.useTimeframe ? 1 : 0,
+                    startDate.getUTCFullYear() - 2000, startDate.getUTCMonth() + 1, startDate.getUTCDate(),
+                    endDate.getUTCFullYear() - 2000, endDate.getUTCMonth() + 1, endDate.getUTCDate(),
+                    0, 30,
+                    badgeColors ? 1 : 0,
+                    0,
+                    solarHP ? 1 : 0,
+                    5
+                ];
+                let out = Outbound.create({
+                    action: 168,
+                    retries: 5,
+                    payload: vacPayload,
+                    response: IntelliCenterBoard.getAckResponse(168)
+                });
+                await out.sendAsync();
+                opts.solarAsHeatPump = solarHP;
+                opts.showBadgeColors = badgeColors;
+            }
             return Promise.resolve(sys.general.options);
         }
         catch (err) { return Promise.reject(err); }
@@ -2038,7 +2095,11 @@ class IntelliCenterSystemCommands extends SystemCommands {
                 useTimeframe ? 1 : 0,
                 startDate.getUTCFullYear() - 2000, startDate.getUTCMonth() + 1, startDate.getUTCDate(),
                 endDate.getUTCFullYear() - 2000, endDate.getUTCMonth() + 1, endDate.getUTCDate(),
-                0, 30, 0, 0, 0, 100
+                0, 30,
+                opts.showBadgeColors ? 1 : 0,
+                0,
+                opts.solarAsHeatPump ? 1 : 0,
+                5
             ];
             let out = Outbound.create({
                 action: 168,

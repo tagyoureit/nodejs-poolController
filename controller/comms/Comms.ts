@@ -1047,6 +1047,14 @@ export class RS485Port {
             var bytes = msg.toPacket();
             if (this.isOpen) {
                 this.isRTS = false;  // only set if port is open, otherwise it won't be set back to true
+                // ISSUE-121: Close the race window between _outBuffer.shift() (in processOutboundPackets)
+                // and completeWrite setting _waitingPacket. The mock port (and fast hardware) can deliver
+                // the inbound response BEFORE the async port.write callback fires, leaving the message
+                // untracked in clearResponses(). Set _waitingPacket here, before port.write, so any
+                // inbound matcher always finds it.
+                if (msg.requiresResponse && msg.remainingTries > 0) {
+                    this._waitingPacket = msg;
+                }
                 if (msg.remainingTries <= 0) {
                     // It will almost never fall into here.  The rare case where
                     // we have an RTS semaphore and a waiting response might make it go here.
@@ -1116,7 +1124,9 @@ export class RS485Port {
                             // make it onto the wire.
                             let error = new OutboundMessageError(msg, `Message aborted after ${msg.tries} attempt(s): ${err} `);
                             if (typeof msg.onComplete === 'function') msg.onComplete(error, undefined);
-                            self._waitingPacket = null;
+                            // ISSUE-121: Only clear _waitingPacket if it actually points to this msg.
+                            // A non-response write must not wipe an unrelated config request that's awaiting reply.
+                            if (self._waitingPacket === msg) self._waitingPacket = null;
                             self.counter.sndAborted++;
                         }
                     }
@@ -1125,8 +1135,11 @@ export class RS485Port {
                         // We have all the success we are going to get so if the call succeeded then
                         // don't set the waiting packet when we aren't actually waiting for a response.
                         if (!msg.requiresResponse) {
-                            // As far as we know the message made it to OCP.
-                            self._waitingPacket = null;
+                            // ISSUE-121: As far as we know the message made it to OCP.
+                            // Only clear _waitingPacket if it refers to THIS msg — pump answers and other
+                            // fire-and-forget writes must not clobber a different msg that is genuinely waiting
+                            // for a response (e.g. config Action 222 that we set as _waitingPacket pre-write).
+                            if (self._waitingPacket === msg) self._waitingPacket = null;
                             self.counter.sndSuccess++;
                             if (typeof msg.onComplete === 'function') msg.onComplete(err, undefined);
                         }
@@ -1163,7 +1176,10 @@ export class RS485Port {
         }
     }
     private clearResponses(msgIn: Inbound) {
-        if (this._outBuffer.length === 0 && typeof (this._waitingPacket) !== 'object' && this._waitingPacket) return;
+        // ISSUE-121: Original guard `_outBuffer.length === 0 && _waitingPacket` was buggy
+        // (always false unless waitingPacket existed AND buffer was empty).
+        // Correct early-exit: nothing to match against.
+        if (this._outBuffer.length === 0 && (typeof this._waitingPacket === 'undefined' || this._waitingPacket === null)) return;
         var callback;
         let msgOut = this._waitingPacket;
         if (typeof (this._waitingPacket) !== 'undefined' && this._waitingPacket) {
@@ -1193,8 +1209,10 @@ export class RS485Port {
             let resp = out.response;
             // RG - added check for msgOut because the *Touch chlor packet 153 adds an status packet 217
             // but if it is the only packet on the queue the outbound will have been cleared out already.
-            if (out.requiresResponse && typeof msgOut !== 'undefined' && msgOut !== null) {
-                if (resp instanceof Response && resp.isResponse(msgIn, out) && (typeof out.scope === 'undefined' || out.scope === msgOut.scope)) {
+            // ISSUE-121: scope check now uses out.scope only — do NOT require scope match against msgOut
+            // (which is _waitingPacket, often unrelated to the buffered out being matched).
+            if (out.requiresResponse) {
+                if (resp instanceof Response && resp.isResponse(msgIn, out)) {
                     resp.message = msgIn;
                     if (typeof (resp.callback) === 'function' && resp.callback) callback = resp.callback;
                     this._outBuffer.splice(i, 1);
