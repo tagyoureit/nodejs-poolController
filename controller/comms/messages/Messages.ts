@@ -263,7 +263,8 @@ export class Message {
     public get chkLo(): number { return this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink || this.protocol === Protocol.Jandy ? this.term[0] : this.term[1]; }
     public get checksum(): number {
         var sum = 0;
-        for (let i = 0; i < this.header.length; i++) sum += this.header[i];
+        let start = this.protocol === Protocol.Jandy ? 2 : 0;
+        for (let i = start; i < this.header.length; i++) sum += this.header[i];
         for (let i = 0; i < this.payload.length; i++) sum += this.payload[i];
         return sum;
     }
