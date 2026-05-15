@@ -21,6 +21,7 @@ import { SystemBoard, byteValueMap, byteValueMaps, ConfigQueue, ConfigRequest, C
 import { PoolSystem, Body, Schedule, Pump, ConfigVersion, sys, Heater, ICircuitGroup, LightGroupCircuit, LightGroup, ExpansionPanel, ExpansionModule, ExpansionModuleCollection, Valve, General, Options, Location, Owner, ICircuit, Feature, CircuitGroup, ChemController, TempSensorCollection, Chlorinator, Cover, Remote } from '../Equipment';
 import { Protocol, Outbound, Inbound, Message, Response } from '../comms/messages/Messages';
 import { conn } from '../comms/Comms';
+import { icws } from '../comms/IntelliCenterWS';
 import { logger } from '../../logger/Logger';
 import { state, ChlorinatorState, LightGroupState, VirtualCircuitState, ICircuitState, BodyTempState, CircuitGroupState, ICircuitGroupState, ChemControllerState } from '../State';
 import { utils, ControllerType } from '../../controller/Constants';
@@ -324,6 +325,7 @@ export class IntelliCenterBoard extends SystemBoard {
 
         this._announceDeviceInterval = setInterval(async () => {
             if (this._announceDeviceTickInFlight) return;
+            if (icws && icws.enabled && icws.isOpen) return;
             const now = Date.now();
             const minInterval = state.equipment.registration === 1
                 ? IntelliCenterBoard.REGISTERED_ANNOUNCE_INTERVAL_MS
@@ -356,6 +358,7 @@ export class IntelliCenterBoard extends SystemBoard {
         this._statePollTimer = setInterval(async () => {
             if (this._statePollInFlight) return;
             if (this._configQueue._processing) return;
+            if (icws && icws.enabled && icws.isOpen) return;
             this._statePollInFlight = true;
             try {
                 const source = this.getRegistrationAddress();

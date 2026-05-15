@@ -1,5 +1,22 @@
 # Changelog
 
+## Unreleased
+IntelliCenter v3 local WebSocket transport (foundation).
+
+### New Features
+1. New comms type `ocpws` for IntelliCenter v3 OCP local WebSocket on port 6680. Selectable from dashPanel alongside Local / Network / ScreenLogic / Mock. Mutually exclusive with all RS-485-style transports — opening WS closes RS-485 ports and vice versa, with a hard guard in `Comms.queueSendMessageAsync` that refuses to put any RS-485 frame on the wire while WS is the active transport.
+2. mDNS discovery for IntelliCenter OCP via new `IntelliCenterWSComms.searchAsync()` and REST endpoint `GET /config/options/ocpws/search`. Filters `_http._tcp.local` for `Pentair -i -n<alias>` services and returns `[{alias, host, port}]`.
+3. WebSocket client with JSON envelope (`{command, messageID, objectList}`), request/response correlator keyed by messageID, configurable timeout, auto-reconnect, and `RequestParamList` subscription manager that re-subscribes after reconnect.
+4. New REST endpoints: `/config/options/ocpws/search` (mDNS browse), `/config/options/ocpws/test` (one-shot probe), `/config/options/ocpws/stats` (live stats). Stats stream pushed on socket.io channel `icwsStats`.
+5. dashPanel: new "IntelliCenter Network" port type, host/port/discovery panel with Discover and Test buttons, stats subscription wired into the homepage badge.
+
+### Security
+6. The OCP local WebSocket has **no authentication** — any LAN device can read or write the full system, including PIN-based PERMIT roles in plaintext (see `.plan/209f-system-clock-security.md`). Operators must treat port 6680 as trusted-LAN-only and never expose it to the internet. Documented in README.
+
+### Notes
+- This release ships the transport foundation only: discovery, connect/disconnect lifecycle, mutual exclusion, request/subscribe primitives, and dashPanel surface. Translators that mirror Action 30 sub-handlers and rewiring of `IntelliCenterBoard` outbound writes (Action 168/184/222/228/251) are tracked separately and ship in a follow-on PR.
+- Out of scope: Regal/Neptune Modbus pumps remain on their existing direct-Modbus path (never on the IC bus).
+
 ## 9.1.0
 IntelliCenter security rationalization, JXi/LXi heater support, virtual IntelliChem, and various fixes.
 

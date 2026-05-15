@@ -100,7 +100,31 @@ For earlier releases (8.4.x, 8.3, 8.1, 8.0, 7.x and before), see the [Changelog]
 > njsPC needs a way to reach your pool bus:
 > - **RS-485 adapter** (recommended) — see the [adapter details wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/RS-485-Adapter-Details).
 > - **ScreenLogic** (network connection) — if you already have a Pentair ScreenLogic box on your network.
+> - **IntelliCenter v3 local WebSocket** (network connection, no adapter) — see [Local Network Comms (IntelliCenter v3)](#local-network-comms-intellicenter-v3) below.
 > - **Socat** — to bridge a remote serial device, see the [Socat wiki](https://github.com/tagyoureit/nodejs-poolController/wiki/Socat).
+
+### Local Network Comms (IntelliCenter v3)
+
+IntelliCenter v3.004+ exposes a JSON WebSocket API on **port 6680** of the OCP. njsPC can use this as an alternative to RS-485 — no adapter, no wiring. Configure it from the dashPanel comms page by selecting port type **IntelliCenter Network**, hitting **Discover** to mDNS-browse the LAN, and **Save**.
+
+Prerequisites
+- The OCP must have ethernet connected and **"Web and Mobile Interface" enabled** in OCP settings.
+- v3.004 firmware or newer.
+- Your njsPC host must reach the OCP on port 6680 over the LAN (no firewall in between, no routing across subnets unless you've explicitly allowed it).
+
+How it works
+- **Discovery** — mDNS browse for `Pentair -i -n<alias>` advertised under `_http._tcp.local`. The Discover button calls `GET /config/options/ocpws/search`.
+- **Bootstrap** — on connect, njsPC issues a `GetParamList objnam:"ALL"` to enumerate the panel and a `RequestParamList` to subscribe for live `NotifyList` push updates.
+- **Mutual exclusion with RS-485** — only one transport is ever live at once. When you switch to IntelliCenter Network, all RS-485 ports are closed; switching back closes the WebSocket. A defense-in-depth guard in `Comms.queueSendMessageAsync` rejects any RS-485 frame while WS is the active transport, and the WS client rejects sends while any RS-485 port is open. There is no scenario where both buses are written to in the same process.
+
+⚠️ **Security warning — local WS has no authentication.** Any device on your LAN can read **and write** the full IntelliCenter object model on port 6680, including the PIN-based PERMIT roles in plaintext. Treat port 6680 as **trusted-LAN-only**:
+- Do not port-forward 6680 to the internet.
+- Place the OCP on a network segment that only trusted devices can reach.
+- Anyone on the same LAN as the OCP can change schedules, toggle bodies, and read/modify PINs regardless of njsPC.
+
+Out of scope
+- Regal/Neptune Modbus pumps continue to talk over their existing direct-Modbus path; they were never on the IC bus.
+
 
 njsPC is the server. To actually use it you'll also want a [web client](#web-clients) (dashPanel) and/or a [home automation binding](#home-automation-bindings).
 

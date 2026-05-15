@@ -691,17 +691,17 @@ export class HttpServer extends ProtoServer {
             port.pushIn(Buffer.from(data));
         })
         sock.on('sendLogMessages', function (sendMessages: boolean) {
-            console.log(`sendLogMessages set to ${sendMessages}`);
+            logger.silly(`sendLogMessages set to ${sendMessages}`);
             if (!sendMessages) sock.leave('msgLogger');
             else sock.join('msgLogger');
         });
         sock.on('sendRS485PortStats', function (sendPortStats: boolean) {
-            console.log(`sendRS485PortStats set to ${sendPortStats}`);
+            logger.silly(`sendRS485PortStats set to ${sendPortStats}`);
             if (!sendPortStats) sock.leave('rs485PortStats');
             else sock.join('rs485PortStats');
         });
         sock.on('sendScreenlogicStats', function (sendScreenlogicStats: boolean) {
-            console.log(`sendScreenlogicStats set to ${sendScreenlogicStats}`);
+            logger.silly(`sendScreenlogicStats set to ${sendScreenlogicStats}`);
             if (!sendScreenlogicStats) sock.leave('screenlogicStats');
             else sock.join('screenlogicStats');
         });

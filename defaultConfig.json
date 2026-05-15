@@ -28,6 +28,13 @@
         "connectionType": "local",
         "systemName": "Pentair: 00-00-00",
         "password": 1234
+      },
+      "ocpws": {
+        "host": "",
+        "port": 6680,
+        "alias": "",
+        "reconnectMs": 5000,
+        "messageTimeoutMs": 10000
       }
     },
     "txDelays": {

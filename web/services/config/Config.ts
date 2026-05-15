@@ -31,6 +31,7 @@ import { conn } from "../../../controller/comms/Comms";
 import { webApp, BackupFile, RestoreFile } from "../../Server";
 import { release } from "os";
 import { ScreenLogicComms, sl } from "../../../controller/comms/ScreenLogic";
+import { IntelliCenterWSComms, icws } from "../../../controller/comms/IntelliCenterWS";
 import { screenlogic } from "node-screenlogic";
 
 export class ConfigRoute {
@@ -237,7 +238,7 @@ export class ConfigRoute {
         });
         app.get('/config/options/rs485', async (req, res, next) => {
             try {
-                let opts = { ports: [], local: [], screenlogic: {} }
+                let opts = { ports: [], local: [], screenlogic: {}, ocpws: {} }
                 let cfg = config.getSection('controller');
                 for (let section in cfg) {
                     if (section.startsWith('comms')) {
@@ -247,37 +248,44 @@ export class ConfigRoute {
                             cport.type = cport.netConnect ? 'netConnect' : cport.mock ? 'mock' : 'local'
                         }
                         if (typeof port !== 'undefined') cport.stats = port.stats;
-                        if (port.portId === 0 && port.type === 'screenlogic') {
+                        if (port && port.portId === 0 && port.type === 'screenlogic') {
                             cport.screenlogic.stats = sl.stats;
+                        }
+                        if ((port ? port.portId === 0 : (cport.portId || 0) === 0) && cport.type === 'ocpws') {
+                            cport.ocpws = extend(true, { host: '', port: 6680, alias: '' }, cport.ocpws || {}, { stats: icws.stats });
                         }
                         opts.ports.push(cport);
                     }
-                    // if (section.startsWith('screenlogic')){
-                    //     let screenlogic = cfg[section];
-                    //     screenlogic.types =  [{ val: 'local', name: 'Local', desc: 'Local Screenlogic' }, { val: 'remote', name: 'Remote', desc: 'Remote Screenlogic' }];
-                    //     screenlogic.stats = sl.stats;
-                    //     opts.screenlogic = screenlogic;
-                    // }
                 }
                 opts.local = await conn.getLocalPortsAsync() || [];
                 return res.status(200).send(opts);
             } catch (err) { next(err); }
         });
-        // app.get('/config/options/screenlogic', async (req, res, next) => {
-        //     try {
-        //         let cfg = config.getSection('controller.screenlogic');
-        //         let data = {
-        //             cfg,
-        //             types: [{ val: 'local', name: 'Local', desc: 'Local Screenlogic' }, { val: 'remote', name: 'Remote', desc: 'Remote Screenlogic' }]
-        //         }
-        //         return res.status(200).send(data);
-        //     } catch (err) { next(err); }
-        // });
         app.get('/config/options/screenlogic/search', async (req, res, next) => {
             try {
                 let localUnits = await ScreenLogicComms.searchAsync();
                 return res.status(200).send(localUnits);
             } catch (err) { next(err); }
+        });
+        app.get('/config/options/ocpws/search', async (req, res, next) => {
+            try {
+                const timeoutMs = parseInt(req.query?.timeoutMs as string, 10);
+                const found = await IntelliCenterWSComms.searchAsync(isNaN(timeoutMs) ? 4000 : timeoutMs);
+                return res.status(200).send(found);
+            } catch (err) { next(err); }
+        });
+        app.get('/config/options/ocpws/test', async (req, res, next) => {
+            try {
+                const host = (req.query?.host as string || '').trim();
+                const port = parseInt((req.query?.port as string) || '6680', 10) || 6680;
+                if (!host) return res.status(400).send({ ok: false, error: 'host required' });
+                const result = await IntelliCenterWSComms.testAsync(host, port);
+                return res.status(200).send(result);
+            } catch (err) { return res.status(200).send({ ok: false, error: err.message }); }
+        });
+        app.get('/config/options/ocpws/stats', async (req, res, next) => {
+            try { return res.status(200).send(icws.stats); }
+            catch (err) { next(err); }
         });
         app.get('/config/options/circuits', async (req, res, next) => {
             try {

@@ -29,6 +29,7 @@ import { InvalidEquipmentDataError, InvalidOperationError, OutboundMessageError 
 import { state } from "../State";
 import { Inbound, Message, Outbound, Response } from './messages/Messages';
 import { sl } from './ScreenLogic';
+import { icws } from './IntelliCenterWS';
 const extend = require("extend");
 export class Connection {
     constructor() { }
@@ -131,10 +132,30 @@ export class Connection {
                 if (password.length !== 4) return Promise.reject(new InvalidEquipmentDataError(`An invalid password was supplied for Screenlogic ${password}. (Length must be <= 4)}`, 'Screenlogic', data));
                 pdata.screenlogic = data.screenlogic;
             }
+            if (pdata.type === 'ocpws') {
+                let oc = (data && data.ocpws) || {};
+                let host = typeof oc.host === 'string' ? oc.host.trim() : '';
+                let port = typeof oc.port === 'number' ? oc.port : parseInt(oc.port, 10);
+                if (!host) return Promise.reject(new InvalidEquipmentDataError(`An OCP WebSocket host is required when type='ocpws'.`, 'IntelliCenterWS', data));
+                if (isNaN(port) || port <= 0 || port > 65535) port = 6680;
+                pdata.ocpws = {
+                    host,
+                    port,
+                    alias: typeof oc.alias === 'string' ? oc.alias : (pdata.ocpws && pdata.ocpws.alias) || '',
+                    reconnectMs: typeof oc.reconnectMs === 'number' ? oc.reconnectMs : (pdata.ocpws && pdata.ocpws.reconnectMs) || 5000,
+                    messageTimeoutMs: typeof oc.messageTimeoutMs === 'number' ? oc.messageTimeoutMs : (pdata.ocpws && pdata.ocpws.messageTimeoutMs) || 10000,
+                };
+            }
             let existing = this.findPortById(portId);
             if (typeof existing !== 'undefined')
                 if (existing.type === 'screenlogic' || sl.enabled) {
                     await sl.closeAsync();
+                }
+                else if (existing.type === 'ocpws' || icws.enabled) {
+                    await icws.closeAsync();
+                    if (await existing.closeAsync() === false) {
+                        existing.closing = false;
+                    }
                 }
                 else {
                     if (!await existing.closeAsync()) {
@@ -142,6 +163,21 @@ export class Connection {
                         return Promise.reject(new InvalidOperationError(`Unable to close the current RS485 port (Try to save the port again as it usually works the second time).`, 'setPortAsync'));
                     }
                 }
+            // Belt-and-braces: when switching INTO a non-RS485 transport, ensure
+            // every RS-485 port on this connection is closed so we never have
+            // both buses live at once.
+            if (pdata.type === 'screenlogic' || pdata.type === 'ocpws') {
+                for (let i = 0; i < this.rs485Ports.length; i++) {
+                    const p = this.rs485Ports[i];
+                    if (p && p.isOpen) {
+                        try { await p.closeAsync(); } catch (e) { logger.warn(`setPortAsync: failed closing RS485 port ${p.portId}: ${e.message}`); }
+                    }
+                }
+            }
+            // When switching back to an RS-485-style transport, ensure the WS is closed.
+            if (pdata.type !== 'ocpws' && icws.isOpen) {
+                try { await icws.closeAsync(); } catch (e) { logger.warn(`setPortAsync: failed closing icws: ${e.message}`); }
+            }
             config.setSection(section, pdata);
             let cfg = config.getSection(section, {
                 type: 'local',
@@ -167,6 +203,11 @@ export class Connection {
                 if (pdata.type === 'screenlogic') {
                     await sl.openAsync();
                 }
+                else if (pdata.type === 'ocpws') {
+                    if (!await icws.openAsync()) {
+                        return Promise.reject(new InvalidOperationError(`Unable to open IntelliCenter WebSocket connection to ${pdata.ocpws?.host}:${pdata.ocpws?.port}`, 'setPortAsync'));
+                    }
+                }
                 else {
                     existing.reconnects = 0;
                     //existing.emitPortStats();
@@ -181,6 +222,7 @@ export class Connection {
     }
     public async stopAsync() {
         try {
+            try { await icws.closeAsync(); } catch (e) { logger.warn(`stopAsync: icws close failed: ${e.message}`); }
             for (let i = this.rs485Ports.length - 1; i >= 0; i--) {
                 let port = this.rs485Ports[i];
                 await port.closeAsync();
@@ -194,6 +236,22 @@ export class Connection {
             // So now that we are now allowing multiple comm ports we need to initialize each one.  We are keeping the comms section from the config.json
             // simply because I have no idea what the Docker folks do with this.  So the default comms will be the one with an OCP or if there are no aux ports.
             let cfg = config.getSection('controller');
+            // First pass: detect if any port is configured for the IntelliCenter local WS transport.
+            // It is mutually exclusive with RS-485 — when WS is the active transport we do NOT
+            // open any serial/socat ports.
+            let wsPortConfig: any;
+            for (let section in cfg) {
+                if (section.startsWith('comms')) {
+                    let c = cfg[section];
+                    if (c && c.type === 'ocpws' && c.enabled) { wsPortConfig = c; break; }
+                }
+            }
+            if (typeof wsPortConfig !== 'undefined') {
+                logger.info(`Comms.initAsync: IntelliCenter WS transport selected (${wsPortConfig.ocpws?.host}:${wsPortConfig.ocpws?.port}); RS-485 ports will not be opened.`);
+                try { await icws.openAsync(); }
+                catch (e) { logger.error(`Comms.initAsync: icws open failed: ${e.message}`); }
+                return;
+            }
             for (let section in cfg) {
                 if (section.startsWith('comms')) {
                     let c = cfg[section];
@@ -379,6 +437,15 @@ export class Connection {
     public async queueSendMessageAsync(msg: Outbound): Promise<boolean> {
         return new Promise(async (resolve, reject) => {
 
+            // Hard mutual-exclusion guard: when IntelliCenter local WS is the
+            // active transport, no RS-485 frame may be written to the bus.
+            // This is defense-in-depth — setPortAsync/initAsync should already
+            // have prevented any RS-485 port from being opened.
+            if (icws && icws.enabled && icws.isOpen) {
+                const err = new OutboundMessageError(msg, `Refusing to send RS-485 packet while IntelliCenter WS transport is active.`);
+                logger.error(err.message);
+                return reject(err);
+            }
 
             let port = this.findPortById(msg.portId);
 
