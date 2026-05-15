@@ -223,7 +223,7 @@ class AquaLinkScheduleCommands extends ScheduleCommands {
 
 
         // If we have sunrise/sunset then adjust for the values; if heliotrope isn't set just ignore
-        if (state.heliotrope.isCalculated) {
+        if (state.heliotrope.isCalculated && state.heliotrope.sunrise && state.heliotrope.sunset) {
             const sunrise = state.heliotrope.sunrise.getHours() * 60 + state.heliotrope.sunrise.getMinutes();
             const sunset = state.heliotrope.sunset.getHours() * 60 + state.heliotrope.sunset.getMinutes();
             if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) startTime = sunrise;

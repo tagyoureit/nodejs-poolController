@@ -764,7 +764,7 @@ export class TouchScheduleCommands extends ScheduleCommands {
 
 
             // If we have sunrise/sunset then adjust for the values; if heliotrope isn't set just ignore
-            if (state.heliotrope.isCalculated) {
+            if (state.heliotrope.isCalculated && state.heliotrope.sunrise && state.heliotrope.sunset) {
                 const sunrise = state.heliotrope.sunrise.getHours() * 60 + state.heliotrope.sunrise.getMinutes();
                 const sunset = state.heliotrope.sunset.getHours() * 60 + state.heliotrope.sunset.getMinutes();
                 if (startTimeType === sys.board.valueMaps.scheduleTimeTypes.getValue('sunrise')) startTime = (sunrise + startTimeOffset);
@@ -963,7 +963,7 @@ export class TouchScheduleCommands extends ScheduleCommands {
         // This will check the schedule and if the existing sunrise/sunset times 
         // are not matching the desired time it will update the time on the OCP.
         // https://github.com/tagyoureit/nodejs-poolController/discussions/560#discussioncomment-3362149
-        if (!state.heliotrope.isCalculated) { return false; }
+        if (!state.heliotrope.isCalculated || !state.heliotrope.sunrise || !state.heliotrope.sunset) { return false; }
         const sunrise = state.heliotrope.sunrise.getHours() * 60 + state.heliotrope.sunrise.getMinutes();
         const sunset = state.heliotrope.sunset.getHours() * 60 + state.heliotrope.sunset.getMinutes();
 
