@@ -457,6 +457,8 @@ export class byteValueMaps {
         [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
         [6, { name: 'mastertemp', desc: 'MasterTemp', hasAddress: true }],
         [7, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
+        [8, { name: 'jxi', desc: 'Jandy JXi', hasAddress: true }],
+        [9, { name: 'lxi', desc: 'Jandy LXi', hasAddress: true }],
     ]);
     public heatModes: byteValueMap = new byteValueMap([
         [0, { name: 'off', desc: 'Off' }],
@@ -4422,6 +4424,8 @@ export class HeaterCommands extends BoardCommands {
                                         break;
                                     case 'maxetherm':
                                     case 'gas':
+                                    case 'jxi':
+                                    case 'lxi':
                                         // If we make it here, the other heater is not heating the body.
                                         if (mode === 'heater' || mode === 'solarpref' || mode === 'heatpumppref' || mode === 'ultratemppref') {
                                             // Heat past the setpoint for the heater but only if the heater is currently on.
@@ -4476,6 +4480,8 @@ export class HeaterCommands extends BoardCommands {
                                     break;
                                 case 'maxetherm':
                                 case 'gas':
+                                case 'jxi':
+                                case 'lxi':
                                     if (hstatus === 'heater') isHeating = isOn = true;
                                     break;
                                 case 'hybrid':

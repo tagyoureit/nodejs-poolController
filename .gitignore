@@ -46,3 +46,4 @@ web/bindings/custom/
 .DS_Store
 agent_briefs.md
 memories/
+.snowflake

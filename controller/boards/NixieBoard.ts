@@ -1839,6 +1839,7 @@ export class NixieHeaterCommands extends HeaterCommands {
         let gasHeaterInstalled = htypes.gas > 0;
         let ultratempInstalled = htypes.ultratemp > 0;
         let mastertempInstalled = htypes.mastertemp > 0;
+        let jxiInstalled = (htypes.jxi || 0) > 0 || (htypes.lxi || 0) > 0;
         let hybridInstalled = htypes.hybrid > 0;
         // The heat mode options are
         // 1 = Off
@@ -1890,7 +1891,7 @@ export class NixieHeaterCommands extends HeaterCommands {
             //    [21, { name: 'dual', desc: 'Dual Heat' }]
             //]);
         }
-        if (gasHeaterInstalled) sys.board.valueMaps.heatSources.merge([[2, { name: 'heater', desc: 'Heater' }]]);
+        if (gasHeaterInstalled || jxiInstalled) sys.board.valueMaps.heatSources.merge([[2, { name: 'heater', desc: 'Heater' }]]);
         if (mastertempInstalled) sys.board.valueMaps.heatSources.merge([[11, { name: 'mtheater', desc: 'MasterTemp' }]]);
         if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled)) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar Only', hasCoolSetpoint: htypes.hasCoolSetpoint }], [4, { name: 'solarpref', desc: 'Solar Preferred', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
         else if (solarInstalled) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
@@ -1901,7 +1902,7 @@ export class NixieHeaterCommands extends HeaterCommands {
         sys.board.valueMaps.heatSources.merge([[0, { name: 'nochange', desc: 'No Change' }]]);
 
 
-        if (gasHeaterInstalled) sys.board.valueMaps.heatModes.merge([[2, { name: 'heater', desc: 'Heater' }]]);
+        if (gasHeaterInstalled || jxiInstalled) sys.board.valueMaps.heatModes.merge([[2, { name: 'heater', desc: 'Heater' }]]);
         if (mastertempInstalled) sys.board.valueMaps.heatModes.merge([[11, { name: 'mtheater', desc: 'MasterTemp' }]]);
         if (solarInstalled && (gasHeaterInstalled || heatPumpInstalled || mastertempInstalled)) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar Only' }], [4, { name: 'solarpref', desc: 'Solar Preferred' }]]);
         else if (solarInstalled) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar' }]]);

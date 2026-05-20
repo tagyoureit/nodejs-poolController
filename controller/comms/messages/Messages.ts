@@ -65,7 +65,8 @@ export enum Protocol {
     Hayward = 'hayward',
     Unidentified = 'unidentified',
     RegalModbus = 'regalmodbus',
-    NeptuneModbus = 'neptunemodbus'
+    NeptuneModbus = 'neptunemodbus',
+    Jandy = 'jandy'
 }
 export class Message {
     constructor() { }
@@ -129,7 +130,7 @@ export class Message {
     public get sub(): number { return this.header.length > 1 ? this.header[1] : -1; }
     public get dest(): number {
         if (this.header.length > 2) {
-            if (this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink) {
+            if (this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink || this.protocol === Protocol.Jandy) {
                 return this.header.length > 2 ? (this.header[2] >= 80 ? this.header[2] : 0) : -1;
             }
             else if (this.protocol === Protocol.Hayward) {
@@ -156,7 +157,7 @@ export class Message {
             // have to assume it was sent from the 1st chlorinator (1)
             // until we learn otherwise.  
         }
-        else if (this.protocol === Protocol.AquaLink) {
+        else if (this.protocol === Protocol.AquaLink || this.protocol === Protocol.Jandy) {
             // Once we decode the devices we will be able to tell where it came from based upon the commands.
             return 0;
         }
@@ -180,7 +181,8 @@ export class Message {
     public get action(): number {
         // The action byte is actually the 4th byte in the header the destination address is the 5th byte.
         if (this.protocol === Protocol.Chlorinator ||
-            this.protocol === Protocol.AquaLink) return this.header.length > 3 ? this.header[3] : -1;
+            this.protocol === Protocol.AquaLink ||
+            this.protocol === Protocol.Jandy) return this.header.length > 3 ? this.header[3] : -1;
         else if (this.protocol === Protocol.Hayward) {
             //            src   act   dest             
             //0x10, 0x02, 0x00, 0x0C, 0x00, 0x00, 0x2D, 0x02, 0x36, 0x00, 0x83, 0x10, 0x03 -- Response from pump
@@ -202,7 +204,8 @@ export class Message {
         if (
             this.protocol === Protocol.Chlorinator ||
             this.protocol === Protocol.AquaLink ||
-            this.protocol === Protocol.Hayward
+            this.protocol === Protocol.Hayward ||
+            this.protocol === Protocol.Jandy
         ) {
             return this.payload.length;
         }
@@ -256,8 +259,8 @@ export class Message {
         }
         return this.header.length > 5 ? this.header[5] : -1;
     }
-    public get chkHi(): number { return this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink ? 0 : this.term.length > 0 ? this.term[0] : -1; }
-    public get chkLo(): number { return this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink ? this.term[0] : this.term[1]; }
+    public get chkHi(): number { return this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink || this.protocol === Protocol.Jandy ? 0 : this.term.length > 0 ? this.term[0] : -1; }
+    public get chkLo(): number { return this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink || this.protocol === Protocol.Jandy ? this.term[0] : this.term[1]; }
     public get checksum(): number {
         var sum = 0;
         for (let i = 0; i < this.header.length; i++) sum += this.header[i];
@@ -372,6 +375,7 @@ export class Inbound extends Message {
         switch (this.protocol) {
             case Protocol.Chlorinator:
             case Protocol.AquaLink:
+            case Protocol.Jandy:
                 return this.checksum % 256 === this.chkLo;
             case Protocol.RegalModbus: {
                 const data = this.header.concat(this.payload);
@@ -523,6 +527,20 @@ export class Inbound extends Message {
     }
     private testChlorTerm(bytes: number[], ndx: number): boolean { return ndx + 2 < bytes.length && bytes[ndx + 1] === 16 && bytes[ndx + 2] === 3; }
     private testAquaLinkTerm(bytes: number[], ndx: number): boolean { return ndx + 2 < bytes.length && bytes[ndx + 1] === 16 && bytes[ndx + 2] === 3; }
+    private testJandyHeaterHeader(bytes: number[], ndx: number): boolean {
+        if (bytes.length <= ndx + 3) return false;
+        if (sys.controllerType === 'aqualink') return false;
+        if (bytes[ndx] !== 16 || bytes[ndx + 1] !== 2) return false;
+        const dest = bytes[ndx + 2];
+        const cmd = bytes[ndx + 3];
+        if ((dest >= 104 && dest <= 107) || (dest >= 56 && dest <= 59)) return true;
+        if (dest === 0 && (cmd === 0x0D || cmd === 0x25)) {
+            return typeof sys.heaters.find(h =>
+                (h.address >= 104 && h.address <= 107) || (h.address >= 56 && h.address <= 59)
+            ) !== 'undefined';
+        }
+        return false;
+    }
     private testHaywardTerm(bytes: number[], ndx: number): boolean { return ndx + 3 < bytes.length && bytes[ndx + 2] === 16 && bytes[ndx + 3] === 3; }
     private pushBytes(target: number[], bytes: number[], ndx: number, length: number): number {
         let end = ndx + length;
@@ -609,6 +627,10 @@ export class Inbound extends Message {
                     this.protocol = Protocol.Hayward;
                     break;
                 }
+                if (this.testJandyHeaterHeader(bytes, ndx)) {
+                    this.protocol = Protocol.Jandy;
+                    break;
+                }
                 if (this.testNeptuneModbusHeader(bytes, ndx)) {
                     this.protocol = Protocol.NeptuneModbus;
                     logger.debug(`NeptuneModbus header detected. ${JSON.stringify(bytes)}`);
@@ -653,7 +675,7 @@ export class Inbound extends Message {
                 else if (this.source == 12 || this.dest == 12) this.protocol = Protocol.IntelliValve;
                 if (this.datalen > 75) {
                     //this.isValid = false;
-                    logger.debug(`Broadcast length ${this.datalen} exceeded 75 bytes for ${this.protocol} message. Message rewound ${this.header}`);
+                    logger.silly(`Broadcast length ${this.datalen} exceeded 75 bytes for ${this.protocol} message. Message rewound ${this.header}`);
                     this.padding.push(...this.preamble);
                     this.padding.push(...this.header.slice(0, 1));
                     this.preamble = [];
@@ -675,7 +697,7 @@ export class Inbound extends Message {
                 if (this.header.length < 4) {
                     // We actually don't have a complete header yet so just return.
                     // we will pick it up next go around.
-                    logger.debug(`We have an incoming chlorinator message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    logger.silly(`We have an incoming chlorinator message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
                     this.preamble = [];
                     this.header = [];
                     return ndxHeader;
@@ -686,7 +708,7 @@ export class Inbound extends Message {
                 if (this.header.length < 4) {
                     // We actually don't have a complete header yet so just return.
                     // we will pick it up next go around.
-                    logger.debug(`We have an incoming Hayward message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    logger.silly(`We have an incoming Hayward message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
                     this.preamble = [];
                     this.header = [];
                     return ndxHeader;
@@ -697,7 +719,15 @@ export class Inbound extends Message {
                 if (this.header.length < 5) {
                     // We actually don't have a complete header yet so just return.
                     // we will pick it up next go around.
-                    logger.debug(`We have an incoming AquaLink message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    logger.silly(`We have an incoming AquaLink message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    this.preamble = [];
+                    this.header = [];
+                    return ndxHeader;
+                }
+                break;
+            case Protocol.Jandy:
+                ndx = this.pushBytes(this.header, bytes, ndx, 4);
+                if (this.header.length < 4) {
                     this.preamble = [];
                     this.header = [];
                     return ndxHeader;
@@ -708,7 +738,7 @@ export class Inbound extends Message {
                 if (this.header.length < 3) {
                     // We actually don't have a complete header yet so just return.
                     // we will pick it up next go around.
-                    logger.debug(`We have an incoming RegalModbus message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    logger.silly(`We have an incoming RegalModbus message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
                     this.preamble = [];
                     this.header = [];
                     return ndxHeader;
@@ -717,7 +747,7 @@ export class Inbound extends Message {
             case Protocol.NeptuneModbus:
                 ndx = this.pushBytes(this.header, bytes, ndx, 2);
                 if (this.header.length < 2) {
-                    logger.debug(`We have an incoming NeptuneModbus message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
+                    logger.silly(`We have an incoming NeptuneModbus message but the serial port hasn't given a complete header. [${this.padding}][${this.preamble}][${this.header}]`);
                     this.preamble = [];
                     this.header = [];
                     return ndxHeader;
@@ -734,7 +764,7 @@ export class Inbound extends Message {
                     ndx = bytes.length - 5;
                     let arr = bytes.slice(0, ndx);
                     // Remove all but the last 4 bytes.  This will result in nothing anyway.
-                    logger.verbose(`[Port ${this.portId}] Tossed Inbound Bytes ${arr} due to an unrecoverable collision.`);
+                    logger.silly(`[Port ${this.portId}] Tossed Inbound Bytes ${arr} due to an unrecoverable collision.`);
                 }
                 this.padding = [];
                 break;
@@ -771,13 +801,14 @@ export class Inbound extends Message {
                 }
                 break;
             case Protocol.AquaLink:
-                // We need to deal with AquaLink packets where the terminator is actually split meaning only the first byte or
+            case Protocol.Jandy:
+                // We need to deal with AquaLink/Jandy packets where the terminator is actually split meaning only the first byte or
                 // two of the total payload is provided for the term.  We need at least 3 bytes to make this determination.
                 while (ndx + 3 <= bytes.length && !this.testAquaLinkTerm(bytes, ndx)) {
                     this.payload.push(bytes[ndx++]);
                     if (this.payload.length > 25) {
                         this.isValid = false; // We have a runaway packet.  Some collision occurred so lets preserve future packets.
-                        logger.debug(`AquaLink message marked as invalid after not finding 16,3 in payload after ${this.payload.length} bytes`);
+                        logger.silly(`AquaLink/Jandy message marked as invalid after not finding 16,3 in payload after ${this.payload.length} bytes`);
                         break;
                     }
                 }
@@ -875,6 +906,7 @@ export class Inbound extends Message {
                 }
                 break;
             case Protocol.AquaLink:
+            case Protocol.Jandy:
                 if (ndx + 3 <= bytes.length && this.testAquaLinkTerm(bytes, ndx)) {
                     this._complete = true;
                     ndx = this.pushBytes(this.term, bytes, ndx, 3);
@@ -1127,6 +1159,7 @@ export class Inbound extends Message {
                     this.processBroadcast();
                 break;
             case Protocol.Heater:
+            case Protocol.Jandy:
                 HeaterStateMessage.process(this);
                 break;
             case Protocol.Chlorinator:
@@ -1161,6 +1194,7 @@ class OutboundCommon extends Message {
     public set source(val: number) {
         switch (this.protocol) {
             case Protocol.Chlorinator:
+            case Protocol.Jandy:
                 break;
             case Protocol.Hayward:
                 this.header[3] = val;
@@ -1182,6 +1216,9 @@ class OutboundCommon extends Message {
             case Protocol.Chlorinator:
                 this.header[3] = val;
                 break;
+            case Protocol.Jandy:
+                this.header[3] = val;
+                break;
             case Protocol.Hayward:
                 this.header[2] = val;
                 break;
@@ -1198,7 +1235,7 @@ class OutboundCommon extends Message {
     }
     public get action() { return super.action; }
     public set datalen(val: number) { 
-        if (this.protocol !== Protocol.Chlorinator && this.protocol !== Protocol.Hayward && this.protocol !== Protocol.RegalModbus && this.protocol !== Protocol.NeptuneModbus) {
+        if (this.protocol !== Protocol.Chlorinator && this.protocol !== Protocol.Hayward && this.protocol !== Protocol.RegalModbus && this.protocol !== Protocol.NeptuneModbus && this.protocol !== Protocol.Jandy) {
             this.header[5] = val; 
         }
     }
@@ -1224,6 +1261,7 @@ class OutboundCommon extends Message {
                 break;
             case Protocol.AquaLink:
             case Protocol.Chlorinator:
+            case Protocol.Jandy:
                 this.term[0] = sum % 256;
                 break;
             case Protocol.RegalModbus:
@@ -1257,7 +1295,7 @@ export class Outbound extends OutboundCommon {
         this.header.length = 0;
         this.term.length = 0;
         this.payload.length = 0;
-        if (proto === Protocol.Chlorinator || proto === Protocol.AquaLink) {
+        if (proto === Protocol.Chlorinator || proto === Protocol.AquaLink || proto === Protocol.Jandy) {
             this.header.push.apply(this.header, [16, 2, 0, 0]);
             this.term.push.apply(this.term, [0, 16, 3]);
         }
