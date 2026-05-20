@@ -441,6 +441,7 @@ export class ConfigRoute {
                     phProbeTypes: sys.board.valueMaps.chemPhProbeTypes.toArray(),
                     flowSensorTypes: sys.board.valueMaps.flowSensorTypes.toArray(),
                     acidTypes: sys.board.valueMaps.acidTypes.toArray(),
+                    chlorineTypes: sys.board.valueMaps.chlorineTypes.toArray(),
                     remServers,
                     dosingStatus: sys.board.valueMaps.chemControllerDosingStatus.toArray(),
                     siCalcTypes: sys.board.valueMaps.siCalcTypes.toArray(),
