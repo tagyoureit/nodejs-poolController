@@ -769,6 +769,11 @@ export class byteValueMaps {
         [4, { name: 'a15.7', desc: '15.7% - 10 Baume', dosingFactor: 2.0 }],
         [5, { name: 'a14.5', desc: '14.5% - 9.8 Baume', dosingFactor: 2.16897 }],
     ]);
+    public chlorineTypes: byteValueMap = new byteValueMap([
+        [0, { name: 'sodium10', desc: '10% Sodium Hypochlorite', dosingFactor: 0.00974 }],
+        [1, { name: 'sodium12_5', desc: '12.5% Sodium Hypochlorite', dosingFactor: 0.00763 }],
+        [2, { name: 'sodium6', desc: '6% Sodium Hypochlorite (Household Bleach)', dosingFactor: 0.01672 }],
+    ]);
     public filterTypes: byteValueMap = new byteValueMap([
         [0, { name: 'sand', desc: 'Sand', hasBackwash: true }],
         [1, { name: 'cartridge', desc: 'Cartridge', hasBackwash: false }],
