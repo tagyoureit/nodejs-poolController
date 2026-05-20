@@ -129,14 +129,13 @@ export class PumpStateMessage {
         //             src   act   dest             
         //[0x10, 0x02, 0x00, 0x0C, 0x00][0x00, 0x62, 0x17, 0x81][0x01, 0x18, 0x10, 0x03]
         //[0x10, 0x02, 0x00, 0x0C, 0x00][0x00, 0x2D, 0x02, 0x36][0x00, 0x83, 0x10, 0x03] -- Response from pump
-        let ptype = sys.board.valueMaps.pumpTypes.transformByName('hwvs');
         let address = msg.source + 96;
         //console.log({ src: msg.source, dest: msg.dest, action: msg.action, address: address });
 
-        let pump = sys.pumps.find(elem => elem.address === address && elem.type === 6);
+        let pump = sys.pumps.find(elem => elem.address === address && (elem.type === 6 || elem.type === 8));
         if (typeof pump !== 'undefined') {
+            let ptype = sys.board.valueMaps.pumpTypes.transform(pump.type);
             let pstate = state.pumps.getItemById(pump.id, true);
-            // 3450 * .5
             pstate.rpm = Math.round(ptype.maxSpeed * (msg.extractPayloadByte(1) / 100));
             // This is really goofy as the watts are actually the hex string from the two bytes.
             pstate.watts = parseInt(msg.extractPayloadByte(2).toString(16) + msg.extractPayloadByte(3).toString(16), 10);

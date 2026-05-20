@@ -135,6 +135,7 @@ export class NixiePumpCollection extends NixieEquipmentCollection<NixiePump> {
             case 'vs':
                 return new NixiePumpVS(this.controlPanel, pump);
             case 'hwvs':
+            case 'hwsp':
                 return new NixiePumpHWVS(this.controlPanel, pump);
             case 'hwrly':
                 return new NixiePumpHWRLY(this.controlPanel, pump);
@@ -895,10 +896,6 @@ export class NixiePumpVSF extends NixiePumpRS485 {
     };
 };
 export class NixiePumpHWVS extends NixiePumpRS485 {
-    private _consecutiveCommFailures: number = 0;
-    private _lastSuccessfulComm: Date = new Date();
-    private _commFailureThreshold: number = 5; // Number of failures before exponential backoff
-    
     public setTargetSpeed(pState: PumpState) {
         let _newSpeed = 0;
         if (!pState.pumpOnDelay) {
@@ -935,35 +932,7 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
         }
         finally { this.suspendPolling = false; }
     };
-    protected async requestPumpStatusAsync() {
-        // Actively poll Hayward pump for current status to maintain sync
-        if (conn.isPortEnabled(this.pump.portId || 0)) {
-            let out = Outbound.create({
-                portId: this.pump.portId || 0,
-                protocol: Protocol.Hayward,
-                source: 1,
-                dest: this.pump.address - 96,
-                action: 12,
-                payload: [Math.min(Math.round((this._targetSpeed / sys.board.valueMaps.pumpTypes.get(this.pump.type).maxSpeed) * 100), 100)],
-                retries: 3,
-                timeout: 2500,
-                response: Response.create({ protocol: Protocol.Hayward, action: 12, source: this.pump.address - 96 })
-            });
-            try {
-                await out.sendAsync();
-                // Communication successful - reset failure counter
-                this._consecutiveCommFailures = 0;
-                this._lastSuccessfulComm = new Date();
-                let pstate = state.pumps.getItemById(this.pump.id);
-                pstate.status = 0; // OK status
-            }
-            catch (err) {
-                this._consecutiveCommFailures++;
-                logger.warn(`Hayward pump ${this.pump.name} status request failed (${this._consecutiveCommFailures} consecutive failures): ${err.message}`);
-                this.updateCommStatus();
-            }
-        }
-    };
+    protected async requestPumpStatusAsync() { return Promise.resolve(); };
     protected setPumpFeatureAsync(feature?: number) { return Promise.resolve(); }
     protected async setPumpToRemoteControlAsync(running: boolean = true) {
         try {
@@ -977,19 +946,16 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
                         dest: this.pump.address,
                         action: 1,
                         payload: [0], // when stopAsync is called, pass false to return control to pump panel
-                        retries: 3,
-                        timeout: 2500,
+                        // payload: spump.virtualControllerStatus === sys.board.valueMaps.virtualControllerStatus.getValue('running') ? [255] : [0],
+                        retries: 1,
                         response: Response.create({ protocol: Protocol.Hayward, action: 12, source: this.pump.address - 96 })
                     });
                     try {
                         await out.sendAsync();
-                        this._consecutiveCommFailures = 0;
-                        this._lastSuccessfulComm = new Date();
                     }
                     catch (err) {
-                        this._consecutiveCommFailures++;
-                        logger.error(`Error sending setPumpToRemoteControl for ${this.pump.name} (${this._consecutiveCommFailures} failures): ${err.message}`);
-                        this.updateCommStatus();
+                        logger.error(`Error sending setPumpToRemoteControl for ${this.pump.name}: ${err.message}`);
+
                     }
                 }
             }
@@ -1014,77 +980,29 @@ export class NixiePumpHWVS extends NixiePumpRS485 {
                 source: 1, // Use the broadcast address
                 dest: this.pump.address - 96,
                 action: 12,
-                payload: [Math.min(Math.round((this._targetSpeed / pt.maxSpeed) * 100), 100)],
-                retries: 3,
-                timeout: 2500,
+                payload: [Math.min(Math.round((this._targetSpeed / pt.maxSpeed) * 100), 99)], // when stopAsync is called, pass false to return control to pump panel
+                retries: 1,
                 response: Response.create({ protocol: Protocol.Hayward, action: 12, source: this.pump.address - 96 })
             });
             try {
                 await out.sendAsync();
-                // Communication successful - reset failure counter
-                this._consecutiveCommFailures = 0;
-                this._lastSuccessfulComm = new Date();
-                let pstate = state.pumps.getItemById(this.pump.id);
-                pstate.status = 0; // OK status
             }
             catch (err) {
-                this._consecutiveCommFailures++;
-                logger.error(`Hayward pump ${this.pump.name} speed command failed (${this._consecutiveCommFailures} consecutive failures): ${err.message}`);
-                // DO NOT clear state - keep showing last known values so user knows pump may still be running
-                this.updateCommStatus();
+                logger.error(`Error sending setPumpRPM for ${this.pump.name}: ${err.message}`);
+                let pstate = state.pumps.getItemById(this.pump.id);
+                pstate.command = 0;
+                pstate.rpm = 0;
+                pstate.watts = 0;
             }
         }
         else {
-            // Port is disabled - safe to clear state as pump is not accessible
             let pstate = state.pumps.getItemById(this.pump.id);
             pstate.command = 0;
             pstate.rpm = 0;
             pstate.watts = 0;
-            pstate.status = 16; // Communication error status
         }
 
     };
-    
-    public async pollEquipmentAsync() {
-        let self = this;
-        try {
-            if (typeof this._pollTimer !== 'undefined' || this._pollTimer) clearTimeout(this._pollTimer);
-            this._pollTimer = null;
-            if (this.suspendPolling || this.closing || this.pump.address > 112) {
-                if (this.suspendPolling) logger.info(`Pump ${this.id} Polling Suspended`);
-                if (this.closing) logger.info(`Pump ${this.id} is closing`);
-                return;
-            }
-            let pstate = state.pumps.getItemById(this.pump.id);
-            this.setTargetSpeed(pstate);
-            await this.setPumpStateAsync(pstate);
-            // Additionally poll for status to verify pump state
-            await this.requestPumpStatusAsync();
-        }
-        catch (err) { logger.error(`Nixie Error running Hayward pump sequence - ${err}`); }
-        finally { 
-            if (!self.closing) {
-                // Exponential backoff if communication is failing
-                let pollInterval = self.pollingInterval || 2000;
-                if (this._consecutiveCommFailures >= this._commFailureThreshold) {
-                    // Exponential backoff: 2s -> 4s -> 8s -> 16s (max 30s)
-                    pollInterval = Math.min(pollInterval * Math.pow(2, this._consecutiveCommFailures - this._commFailureThreshold), 30000);
-                    logger.info(`Hayward pump ${this.pump.name} polling backed off to ${pollInterval}ms due to failures`);
-                }
-                this._pollTimer = setTimeoutSync(async () => await self.pollEquipmentAsync(), pollInterval);
-            }
-        }
-    }
-    
-    private updateCommStatus() {
-        let pstate = state.pumps.getItemById(this.pump.id);
-        if (this._consecutiveCommFailures >= this._commFailureThreshold) {
-            pstate.status = 16; // Communication error
-            logger.warn(`Hayward pump ${this.pump.name} has ${this._consecutiveCommFailures} consecutive communication failures. Last successful: ${this._lastSuccessfulComm.toISOString()}`);
-        } else if (this._consecutiveCommFailures > 0) {
-            pstate.status = 1; // Warning - intermittent issues
-        }
-    }
 }
 
 export class NixiePumpRegalModbus extends NixiePump {

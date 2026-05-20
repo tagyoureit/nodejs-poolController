@@ -92,6 +92,7 @@ export class NixieBoard extends SystemBoard {
             [5, { name: 'vf', desc: 'Intelliflo VF', minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true, addresses: addrsPentairPump }],
             [6, { name: 'hwvs', desc: 'Hayward Eco/TriStar VS', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true, addresses: addrsPentairPump }],
             [7, { name: 'hwrly', desc: 'Hayward Relay VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, maxSpeeds: 8, relays: [{ id: 1, name: 'Step #1' }, { id: 2, name: 'Step #2'}, { id: 3, name: 'Step #3' }, { id: 4, name: 'Pump On' }], addresses: [] }],
+            [8, { name: 'hwsp', desc: 'Hayward SuperFlo VS', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true, addresses: addrsPentairPump }],
             [100, { name: 'sf', desc: 'SuperFlo VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1, maxSpeeds: 4, relays: [{ id: 1, name: 'Program #1' }, { id: 2, name: 'Program #2' }, { id: 3, name: 'Program #3' }, { id: 4, name: 'Program #4' }], addresses: [] }],
             [200, { name: 'regalmodbus', desc: 'Regal Modbus', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true, addresses: addrsRegalModbusPump}],
             [201, { name: 'neptunemodbus', desc: 'Neptune Modbus', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true, addresses: addrsNeptuneModbusPump }],
