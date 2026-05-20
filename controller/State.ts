@@ -3200,6 +3200,39 @@ export class ChemicalORPState extends ChemicalState {
         let cc = this.chemController;
         return cc.alarms.comms !== 0 || cc.alarms.orpProbeFault !== 0 || cc.alarms.orpPumpFault !== 0 || cc.alarms.bodyFault !== 0;
     }
+    public calcDemand(chem?: ChemController): number {
+        chem = typeof chem === 'undefined' ? sys.chemControllers.getItemById(this.chemController.id) : chem;
+        if (!chem.orp.orpFormula || this.level >= this.setpoint) return 0;
+
+        let totalGallons = 0;
+        if (chem.body === 32 && sys.equipment.shared) {
+            if (state.temps.bodies.getItemById(2).isOn === true) totalGallons = sys.bodies.getItemById(2).capacity;
+            else totalGallons = sys.bodies.getItemById(1).capacity + sys.bodies.getItemById(2).capacity;
+        }
+        else {
+            totalGallons = sys.bodies.getItemById(chem.body + 1).capacity;
+        }
+
+        // Use live pH reading; fall back to setpoint then a safe default
+        let pH = this.chemController.ph.level || chem.ph.setpoint || 7.4;
+
+        // Wojtowicz 1994 empirical formula: FC_ppm = 10^((ORP - 683 + 59.2*(pH-7.0)) / 48.9)
+        let fcCurrent = Math.pow(10, (this.level    - 683 + 59.2 * (pH - 7.0)) / 48.9);
+        let fcTarget  = Math.pow(10, (this.setpoint - 683 + 59.2 * (pH - 7.0)) / 48.9);
+        let deltaFC = fcTarget - fcCurrent;
+        if (deltaFC <= 0) return 0;
+
+        // Warn if CYA is outside the accurate range for this formula
+        if (typeof chem.cyanuricAcid !== 'undefined' && chem.cyanuricAcid > 0 &&
+            (chem.cyanuricAcid < 25 || chem.cyanuricAcid > 50)) {
+            logger.warn(`Chem ORP formula: CYA (${chem.cyanuricAcid} ppm) outside recommended 25-50 ppm range; dosing accuracy reduced.`);
+        }
+
+        let ct = sys.board.valueMaps.chlorineTypes.transform(chem.orp.chlorineType);
+        let dose = Math.round(deltaFC * totalGallons * 3.785411784 * ct.dosingFactor);
+        logger.verbose(`Chem ORP demand: level=${this.level}mV setpoint=${this.setpoint}mV pH=${pH} deltaFC=${deltaFC.toFixed(3)}ppm dose=${dose}mL`);
+        return dose;
+    }
     public getExtended() {
         let chem = super.getExtended();
         chem.probe = this.probe.getExtended();

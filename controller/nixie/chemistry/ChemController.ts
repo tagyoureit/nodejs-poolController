@@ -2066,6 +2066,8 @@ export class NixieChemicalORP extends NixieChemical {
                     if (typeof data.tolerance.low === 'number') this.orp.tolerance.low = data.tolerance.low;
                     if (typeof data.tolerance.high === 'number') this.orp.tolerance.high = data.tolerance.high;
                 }
+                if (typeof data.orpFormula !== 'undefined') this.orp.orpFormula = utils.makeBool(data.orpFormula);
+                if (typeof data.chlorineType !== 'undefined') this.orp.chlorineType = data.chlorineType;
             }
         }
         catch (err) { logger.error(`setORPAsync: ${err.message}`); return Promise.reject(err); }
@@ -2433,7 +2435,7 @@ export class NixieChemicalORP extends NixieChemical {
                     else if (this.orp.setpoint > sorp.level) {
                         let pump = this.pump.pump;
                         // Calculate how many mL are required to raise to our ORP level.
-                        let demand = Math.round(utils.convert.volume.convertUnits(0, 'oz', 'mL'));
+                        let demand = sorp.calcDemand(chem);
                         let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(demand / (pump.ratedFlow / 60));
                         let meth = sys.board.valueMaps.chemDosingMethods.getName(this.orp.dosingMethod);
                         // Now that we know our chlorine demand we need to adjust this dose based upon the limits provided in the setup.

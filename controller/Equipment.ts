@@ -2522,6 +2522,8 @@ export class ChemicalORP extends Chemical {
         if (typeof this.data.tolerance === 'undefined') this.data.tolerance = { low: 650, high: 800, enabled: true };
         if (typeof this.data.phLockout === 'undefined') this.data.phLockout = 7.8;
         if (typeof this.data.doserType === 'undefined') this.data.doserType = 0;
+        if (typeof this.data.chlorineType === 'undefined') this.data.chlorineType = 0;
+        if (typeof this.data.orpFormula === 'undefined') this.data.orpFormula = false;
         super.initData();
     }
     public get useChlorinator(): boolean { return utils.makeBool(this.data.useChlorinator); }
@@ -2541,12 +2543,18 @@ export class ChemicalORP extends Chemical {
     public set chlorDosingMethod(val: number | any) { this.setDataVal('chlorDosingMethod', sys.board.valueMaps.chemChlorDosingMethods.encode(val)); }
     public get doserType(): number | any { return this.data.doserType; }
     public set doserType(val: number | any) { this.setDataVal('doserType', sys.board.valueMaps.orpDoserTypes.encode(val)); }
+    public get chlorineType(): number | any { return this.data.chlorineType; }
+    public set chlorineType(val: number | any) { this.setDataVal('chlorineType', sys.board.valueMaps.chlorineTypes.encode(val)); }
+    public get orpFormula(): boolean { return utils.makeBool(this.data.orpFormula); }
+    public set orpFormula(val: boolean) { this.setDataVal('orpFormula', val); }
 
     public getExtended() {
         let chem = super.getExtended();
         chem.probe = this.probe.getExtended();
         chem.tank = this.tank.getExtended();
         chem.doserType = sys.board.valueMaps.orpDoserTypes.transform(this.doserType);
+        chem.chlorineType = sys.board.valueMaps.chlorineTypes.transform(this.chlorineType);
+        chem.orpFormula = this.orpFormula;
         return chem;
     }
 }
