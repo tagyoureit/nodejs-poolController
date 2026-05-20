@@ -32,6 +32,7 @@ import { webApp, BackupFile, RestoreFile } from "../../Server";
 import { release } from "os";
 import { ScreenLogicComms, sl } from "../../../controller/comms/ScreenLogic";
 import { screenlogic } from "node-screenlogic";
+import { pumpScheduler } from '../../../controller/services/PumpSchedulerService';
 
 export class ConfigRoute {
     private static securitySessions: Map<string, any> = new Map<string, any>();
@@ -1314,6 +1315,25 @@ export class ConfigRoute {
                 await sys.anslq25Board.deleteAnslq25Async(req.body);
                 return res.status(200).send(sys.anslq25.get(true));
             } catch (err) { next(err); }
+        });
+        // ── Pump Scheduler service routes ──────────────────────────────────────────
+        app.get('/config/services/pumpScheduler', (req, res) => {
+            return res.status(200).send(pumpScheduler.getScheduleSnapshot());
+        });
+        app.post('/config/services/pumpScheduler/generate', async (req, res, next) => {
+            try {
+                await pumpScheduler.generateScheduleAsync();
+                return res.status(200).send(pumpScheduler.getScheduleSnapshot());
+            } catch (err) { next(err); }
+        });
+        app.put('/config/services/pumpScheduler/config', async (req, res, next) => {
+            try {
+                await pumpScheduler.updateConfigAsync(req.body);
+                return res.status(200).send(pumpScheduler.getScheduleSnapshot());
+            } catch (err) { next(err); }
+        });
+        app.get('/config/services/pumpScheduler/circuits', (req, res) => {
+            return res.status(200).send(sys.board.circuits.getCircuitReferences(true, true, false, true));
         });
     }
 }

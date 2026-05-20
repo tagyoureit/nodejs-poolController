@@ -17,6 +17,7 @@ import { NixieFilterCollection } from './bodies/Filter';
 import { NixieChlorinatorCollection } from './chemistry/Chlorinator';
 import { NixiePump, NixiePumpCollection } from './pumps/Pump';
 import { NixieScheduleCollection } from './schedules/Schedule';
+import { pumpScheduler } from '../services/PumpSchedulerService';
 
 /************************************************************************
  * Nixie:  Nixie is a control panel that controls devices as a master. It
@@ -92,6 +93,7 @@ export class NixieControlPanel implements INixieControlPanel {
             await this.chemDosers.initAsync(equipment.chemDosers);
             await this.pumps.initAsync(equipment.pumps);
             await this.schedules.initAsync(equipment.schedules);
+            await pumpScheduler.initAsync();
             logger.info(`Nixie Controller Initialized`)
         }
         catch (err) { return Promise.reject(err); }
@@ -133,6 +135,7 @@ export class NixieControlPanel implements INixieControlPanel {
         await this.chlorinators.closeAsync();
         await this.heaters.closeAsync();
         await this.circuits.closeAsync();
+        await pumpScheduler.closeAsync();
         await this.pumps.closeAsync();
         await this.filters.closeAsync();
         await this.bodies.closeAsync();

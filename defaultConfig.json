@@ -75,7 +75,33 @@
         "enabled": true
       }
     },
-    "services": {},
+    "services": {
+      "pumpScheduler": {
+        "enabled": true,
+        "pumpId": 1,
+        "poolConfig": {
+          "poolVolumeGallons": 20000,
+          "maxSafeGPM": 50,
+          "maxPumpRPM": 3450,
+          "minPumpRPM": 600,
+          "targetTurnovers": 1.2,
+          "referenceRPM": 2850,
+          "referenceGPM": 45,
+          "highBlockStartHour": 6,
+          "highBlockDurationHours": 2,
+          "medBlockDurationHours": 4,
+          "lowBlockMinHours": 10,
+          "lowBlockMaxHours": 14,
+          "equipmentRequirements": {
+            "heaterMinGPM": 30,
+            "saltCellMinGPM": 25,
+            "skimmerMinGPM": 45
+          }
+        },
+        "featureIds": { "high": 14, "medium": 15, "low": 16 },
+        "scheduleIds": { "high": 10, "medium": 11, "low": 12 }
+      }
+    },
     "interfaces": {
       "smartThings": {
         "name": "SmartThings",
