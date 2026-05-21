@@ -28,11 +28,10 @@
 export interface SimplePoolConfig {
     poolVolumeGallons: number;  // Pool water volume in gallons (e.g. 20000)
     pipeDiameter: 1.5 | 2;     // Main plumbing size in inches
-    hasSaltCell: boolean;       // Has salt chlorinator — ensures low RPM keeps GPM ≥ 25
 }
 
 export interface ScheduleBlock {
-    phase: 'high' | 'low';
+    phase: 'high' | 'medium' | 'low';
     rpm: number;
     gpm: number;
     durationHours: number;
@@ -43,7 +42,7 @@ export interface ScheduleBlock {
 }
 
 export interface SchedulePlan {
-    blocks: [ScheduleBlock, ScheduleBlock];  // [high, low]
+    blocks: [ScheduleBlock, ScheduleBlock, ScheduleBlock];  // [high, medium, low]
     totalGallons: number;
     totalRunHours: number;
     turnovers: number;
@@ -77,80 +76,97 @@ export function minutesToTime(minutes: number): string {
 // ─── Pipe-size constants ───────────────────────────────────────────────────────
 
 interface PipeTier {
-    maxSafeGPM: number;
-    maxRPM: number;
-    refRPM: number;   // Empirical calibration point
-    refGPM: number;
-    refWatts: number; // Estimated draw at refRPM (Hayward Super Pump VS)
+    maxSafeGPM: number;         // Velocity-safe flow ceiling (≤ 5 ft/s rule)
+    refWatts: number;           // Estimated draw at pump max RPM (approximation)
 }
 
 const PIPE_TIERS: Record<string, PipeTier> = {
-    '1.5': { maxSafeGPM: 50, maxRPM: 2850, refRPM: 2850, refGPM: 45, refWatts: 900  },
-    '2':   { maxSafeGPM: 75, maxRPM: 3450, refRPM: 3000, refGPM: 65, refWatts: 1100 },
+    '1.5': { maxSafeGPM: 50, refWatts: 900  },
+    '2':   { maxSafeGPM: 75, refWatts: 1100 },
 };
 
 // ─── Scheduling policy (hardcoded — not user-configurable) ────────────────────
 
-const TARGET_TURNOVERS  = 1.2;   // Gallons/day = pool volume × 1.2
-const HIGH_START_HOUR   = 6;     // 6 AM — morning skim and filter prime
-const HIGH_DURATION_HRS = 2;     // High block is always 2 hours
-const SALT_CELL_MIN_GPM = 25;    // Salt cell flow-switch trip point
-const ALGO_MIN_RPM      = 1000;  // RPM floor (filter pressure / seal longevity)
-const LOW_MAX_RPM       = 1500;  // RPM ceiling for low block (energy efficiency)
-const MAX_LOW_HOURS     = 14;    // Maximum low-block runtime
+const TARGET_TURNOVERS    = 1.2;   // Gallons/day = pool volume × 1.2
+const HIGH_START_HOUR     = 6;     // 6 AM — morning skim and filter prime
+const HIGH_DURATION_HRS   = 2;     // High block is always 2 hours
+const MEDIUM_DURATION_HRS = 4;     // Chemistry window — keeps flow switch closed
+const MEDIUM_TARGET_GPM   = 30;    // Minimum GPM to close the salt-cell flow switch
+const ALGO_MIN_RPM        = 1000;  // RPM floor (filter pressure / seal longevity)
+const LOW_MAX_RPM         = 1500;  // RPM ceiling for low block (energy efficiency)
+const MAX_LOW_HOURS       = 14;    // Maximum low-block runtime
 
 // ─── Schedule builder ─────────────────────────────────────────────────────────
 
 /**
- * Compute the daily two-block pump schedule from a simplified pool config.
+ * Compute the daily three-block pump schedule.
  *
- *   HIGH block — 2 hrs at 90 % of max safe GPM, starting at 6 AM.
- *                Morning surface skim and filter prime.
+ * The reference curve is anchored dynamically to (pumpMaxRPM, maxSafeGPM) so
+ * the schedule scales correctly for any VS pump and pipe size combination.
  *
- *   LOW block  — fills the remaining turnover volume at the lowest practical
- *                RPM.  If hasSaltCell is true, the RPM floor is raised so GPM
- *                stays ≥ 25 and the flow switch remains closed.
- *                If the volume cannot be moved in MAX_LOW_HOURS, RPM is nudged
- *                up in 10-RPM steps until it fits (capped at LOW_MAX_RPM or
- *                the salt-cell floor, whichever is higher).
+ *   HIGH block   — 2 hrs at 90 % of the pipe's max safe GPM (= 90 % of max RPM).
+ *                  Morning surface skim and filter prime.
+ *
+ *   MEDIUM block — 4 hrs at exactly MEDIUM_TARGET_GPM (30 GPM).
+ *                  Keeps the salt-cell / chemistry flow switch closed.
+ *
+ *   LOW block    — fills the remaining turnover volume at the lowest practical
+ *                  RPM (≥ ALGO_MIN_RPM).  RPM is nudged up in 10-RPM steps if
+ *                  the volume cannot fit in MAX_LOW_HOURS (capped at LOW_MAX_RPM).
+ *
+ * @param cfg        User pool config (volume + pipe diameter).
+ * @param pumpMaxRPM Pump's hardware maximum RPM (from sys.pumps, default 3450).
  */
-export function calcScheduleBlocks(cfg: SimplePoolConfig): SchedulePlan {
+export function calcScheduleBlocks(cfg: SimplePoolConfig, pumpMaxRPM: number): SchedulePlan {
     const pipe = PIPE_TIERS[String(cfg.pipeDiameter)];
     if (!pipe) throw new Error(`Unknown pipe diameter: ${cfg.pipeDiameter}`);
 
-    const { maxSafeGPM, maxRPM, refRPM, refGPM, refWatts } = pipe;
+    const { maxSafeGPM, refWatts } = pipe;
+    // Dynamic reference curve: at pumpMaxRPM the pump delivers maxSafeGPM.
+    // All RPM ↔ GPM conversions use this calibration anchor.
+    const refRPM = pumpMaxRPM;
+    const refGPM = maxSafeGPM;
     const targetGallons = cfg.poolVolumeGallons * TARGET_TURNOVERS;
 
     // ── HIGH block ─────────────────────────────────────────────────────────────
+    // Run at 90 % of max safe GPM → 90 % of pump max RPM.
     const highRPM  = Math.min(
         Math.round(rpmForGPM(maxSafeGPM * 0.9, refRPM, refGPM) / 10) * 10,
-        maxRPM
+        pumpMaxRPM
     );
     const highGPM  = parseFloat(gpmForRPM(highRPM, refRPM, refGPM).toFixed(1));
     const highGals = Math.round(highGPM * HIGH_DURATION_HRS * 60);
     const highStart = HIGH_START_HOUR * 60;
     const highEnd   = highStart + HIGH_DURATION_HRS * 60;
 
+    // ── MEDIUM block (chemistry window) ────────────────────────────────────────
+    const mediumRPM = Math.max(
+        ALGO_MIN_RPM,
+        Math.min(
+            Math.round(rpmForGPM(MEDIUM_TARGET_GPM, refRPM, refGPM) / 10) * 10,
+            pumpMaxRPM
+        )
+    );
+    const mediumGPM  = parseFloat(gpmForRPM(mediumRPM, refRPM, refGPM).toFixed(1));
+    const mediumGals = Math.round(mediumGPM * MEDIUM_DURATION_HRS * 60);
+    const mediumStart = highEnd;
+    const mediumEnd   = mediumStart + MEDIUM_DURATION_HRS * 60;
+
     // ── LOW block ──────────────────────────────────────────────────────────────
-    const remaining = targetGallons - highGals;
+    const remaining = Math.max(0, targetGallons - highGals - mediumGals);
+    let lowRPM  = ALGO_MIN_RPM;
+    let lowGPM  = gpmForRPM(lowRPM, refRPM, refGPM);
+    let lowHours = remaining > 0 ? remaining / (lowGPM * 60) : 0;
 
-    // RPM floor: raise if salt cell needs GPM ≥ 25.
-    const saltFloorRPM = Math.ceil(rpmForGPM(SALT_CELL_MIN_GPM, refRPM, refGPM) / 10) * 10;
-    let lowRPM  = cfg.hasSaltCell ? Math.max(saltFloorRPM, ALGO_MIN_RPM) : ALGO_MIN_RPM;
-    const lowRPMCap = cfg.hasSaltCell ? Math.max(LOW_MAX_RPM, saltFloorRPM) : LOW_MAX_RPM;
-
-    let lowGPM   = gpmForRPM(lowRPM, refRPM, refGPM);
-    let lowHours = remaining / (lowGPM * 60);
-
-    // Nudge RPM up if volume cannot fit in MAX_LOW_HOURS.
-    while (lowHours > MAX_LOW_HOURS && lowRPM < lowRPMCap) {
+    // Nudge RPM up in 10-RPM steps until the volume fits within MAX_LOW_HOURS.
+    while (lowHours > MAX_LOW_HOURS && lowRPM < LOW_MAX_RPM) {
         lowRPM  += 10;
         lowGPM   = gpmForRPM(lowRPM, refRPM, refGPM);
         lowHours = remaining / (lowGPM * 60);
     }
 
     const lowDurationHours = parseFloat(Math.min(lowHours, MAX_LOW_HOURS).toFixed(2));
-    const lowStart = highEnd;
+    const lowStart = mediumEnd;
     const lowEnd   = lowStart + Math.round(lowDurationHours * 60);
 
     // ── Assemble ───────────────────────────────────────────────────────────────
@@ -165,6 +181,17 @@ export function calcScheduleBlocks(cfg: SimplePoolConfig): SchedulePlan {
         estimatedWatts: Math.round(affinityPower(refWatts, refRPM, highRPM)),
     };
 
+    const mediumBlock: ScheduleBlock = {
+        phase: 'medium',
+        rpm: mediumRPM,
+        gpm: mediumGPM,
+        durationHours: MEDIUM_DURATION_HRS,
+        startMinutes: mediumStart,
+        endMinutes: mediumEnd,
+        gallons: mediumGals,
+        estimatedWatts: Math.round(affinityPower(refWatts, refRPM, mediumRPM)),
+    };
+
     const lowBlock: ScheduleBlock = {
         phase: 'low',
         rpm: lowRPM,
@@ -176,11 +203,11 @@ export function calcScheduleBlocks(cfg: SimplePoolConfig): SchedulePlan {
         estimatedWatts: Math.round(affinityPower(refWatts, refRPM, lowRPM)),
     };
 
-    const totalGallons  = highBlock.gallons + lowBlock.gallons;
-    const totalRunHours = HIGH_DURATION_HRS + lowDurationHours;
+    const totalGallons  = highBlock.gallons + mediumBlock.gallons + lowBlock.gallons;
+    const totalRunHours = HIGH_DURATION_HRS + MEDIUM_DURATION_HRS + lowDurationHours;
 
     return {
-        blocks: [highBlock, lowBlock],
+        blocks: [highBlock, mediumBlock, lowBlock],
         totalGallons,
         totalRunHours: parseFloat(totalRunHours.toFixed(2)),
         turnovers: parseFloat((totalGallons / cfg.poolVolumeGallons).toFixed(3)),

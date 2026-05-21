@@ -38,8 +38,10 @@ import {
 const DEFAULT_POOL_CONFIG: SimplePoolConfig = {
     poolVolumeGallons: 20000,
     pipeDiameter: 1.5,
-    hasSaltCell: false,
 };
+
+// Default fallback when the pump's maxSpeed is unavailable (e.g. not yet configured).
+const DEFAULT_PUMP_MAX_RPM = 3450;
 
 // scheduleType 128 = "Repeats" (daily on selected days).
 // See SystemBoard.ts scheduleTypes value map.
@@ -52,16 +54,16 @@ const TIME_TYPE_MANUAL = 0;
 interface SchedulerConfig {
     enabled: boolean;
     pumpId: number;
-    featureIds: { high: number; low: number };
-    scheduleIds: { high: number; low: number };
+    featureIds: { high: number; medium: number; low: number };
+    scheduleIds: { high: number; medium: number; low: number };
     poolConfig: SimplePoolConfig;
 }
 
 const DEFAULT_SCHEDULER_CFG: SchedulerConfig = {
-    enabled: true,
+    enabled: false,
     pumpId: 1,
-    featureIds: { high: 14, low: 16 },
-    scheduleIds: { high: 10, low: 12 },
+    featureIds: { high: 14, medium: 15, low: 16 },
+    scheduleIds: { high: 10, medium: 11, low: 12 },
     poolConfig: DEFAULT_POOL_CONFIG,
 };
 
@@ -121,7 +123,12 @@ export class PumpSchedulerService {
     /** Recompute the schedule and push it to sys.schedules. */
     public async generateScheduleAsync(): Promise<SchedulePlan> {
         try {
-            const plan = calcScheduleBlocks(this._cfg.poolConfig);
+            const pump = sys.pumps.getItemById(this._cfg.pumpId);
+            const pumpMaxRPM = (pump && pump.isActive && pump.maxSpeed > 0)
+                ? pump.maxSpeed
+                : DEFAULT_PUMP_MAX_RPM;
+
+            const plan = calcScheduleBlocks(this._cfg.poolConfig, pumpMaxRPM);
             this._lastPlan = plan;
 
             this._logPlan(plan);
@@ -150,7 +157,9 @@ export class PumpSchedulerService {
             this._saveConfig();
 
             await this._ensureFeaturesExistAsync();
-            return await this.generateScheduleAsync();
+            const plan = await this.generateScheduleAsync();
+            if (this._cfg.enabled) await this._ensurePumpCircuitsAsync(plan);
+            return plan;
         } catch (err) {
             logger.error(`PumpSchedulerService updateConfigAsync: ${err.message}`);
             return Promise.reject(err);
@@ -201,8 +210,9 @@ export class PumpSchedulerService {
      */
     private async _ensureFeaturesExistAsync(): Promise<void> {
         const featureMap = [
-            { id: this._cfg.featureIds.high, name: 'PumpSched-High' },
-            { id: this._cfg.featureIds.low,  name: 'PumpSched-Low'  },
+            { id: this._cfg.featureIds.high,   name: 'PumpSched-High'   },
+            { id: this._cfg.featureIds.medium, name: 'PumpSched-Medium' },
+            { id: this._cfg.featureIds.low,    name: 'PumpSched-Low'    },
         ];
         for (const f of featureMap) {
             const existing = sys.features.find(feat => feat.id === f.id);
@@ -218,6 +228,50 @@ export class PumpSchedulerService {
     }
 
     /**
+     * When the scheduler is first enabled, automatically add the two managed
+     * Feature circuits to the pump's circuit list (if not already present).
+     * Does NOT update RPMs on existing entries — preserves user customisation.
+     */
+    private async _ensurePumpCircuitsAsync(plan: SchedulePlan): Promise<void> {
+        const pump = sys.pumps.getItemById(this._cfg.pumpId);
+        if (!pump.isActive) {
+            logger.warn(
+                `PumpSchedulerService: pump ${this._cfg.pumpId} not found — ` +
+                `add PumpSched-High and PumpSched-Low circuits manually.`
+            );
+            return;
+        }
+
+        const existingCircuits: any[] = pump.circuits.get();
+        const rpmUnits = sys.board.valueMaps.pumpUnits.getValue('rpm');
+
+        const toAdd = [
+            { circuit: this._cfg.featureIds.high,   speed: plan.blocks[0].rpm },
+            { circuit: this._cfg.featureIds.medium, speed: plan.blocks[1].rpm },
+            { circuit: this._cfg.featureIds.low,    speed: plan.blocks[2].rpm },
+        ].filter(d => !existingCircuits.find((pc: any) => pc.circuit === d.circuit));
+
+        if (toAdd.length === 0) return;
+
+        const merged = [
+            ...existingCircuits,
+            ...toAdd.map(d => ({ circuit: d.circuit, speed: d.speed, units: rpmUnits })),
+        ];
+
+        try {
+            await sys.board.pumps.setPumpAsync({ id: this._cfg.pumpId, circuits: merged });
+            for (const d of toAdd) {
+                logger.info(
+                    `PumpSchedulerService: added circuit ${d.circuit} @ ${d.speed} RPM ` +
+                    `to pump ${this._cfg.pumpId}`
+                );
+            }
+        } catch (err) {
+            logger.error(`PumpSchedulerService: failed to auto-configure pump circuits: ${err.message}`);
+        }
+    }
+
+    /**
      * Write (or update) the three managed schedule entries in sys.schedules.
      * Uses scheduleType 128 (Repeats) with all-days bitmask 0x7F.
      *
@@ -229,12 +283,13 @@ export class PumpSchedulerService {
      */
     private async _writeSchedulesAsync(plan: SchedulePlan): Promise<void> {
         const maxSched = sys.equipment.maxSchedules;
-        const ids = this._cfg.scheduleIds;
+        const ids   = this._cfg.scheduleIds;
         const feats = this._cfg.featureIds;
 
         const entries = [
-            { id: ids.high, featureId: feats.high, block: plan.blocks[0] },
-            { id: ids.low,  featureId: feats.low,  block: plan.blocks[1] },
+            { id: ids.high,   featureId: feats.high,   block: plan.blocks[0] },
+            { id: ids.medium, featureId: feats.medium, block: plan.blocks[1] },
+            { id: ids.low,    featureId: feats.low,    block: plan.blocks[2] },
         ];
 
         for (const entry of entries) {

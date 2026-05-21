@@ -77,15 +77,14 @@
     },
     "services": {
       "pumpScheduler": {
-        "enabled": true,
+        "enabled": false,
         "pumpId": 1,
         "poolConfig": {
           "poolVolumeGallons": 20000,
-          "pipeDiameter": 1.5,
-          "hasSaltCell": false
+          "pipeDiameter": 1.5
         },
-        "featureIds": { "high": 14, "low": 16 },
-        "scheduleIds": { "high": 10, "low": 12 }
+        "featureIds": { "high": 14, "medium": 15, "low": 16 },
+        "scheduleIds": { "high": 10, "medium": 11, "low": 12 }
       }
     },
     "interfaces": {
