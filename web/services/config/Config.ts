@@ -1336,7 +1336,7 @@ export class ConfigRoute {
         });
         app.get('/config/services/pumpScheduler/circuits', (req, res, next) => {
             try {
-                const pumps = sys.pumps.filter(p => p.isActive).map(p => ({ id: p.id, name: p.name }));
+                const pumps = (sys.pumps.get() as any[]).filter(p => p.isActive).map(p => ({ id: p.id, name: p.name }));
                 return res.status(200).send(pumps);
             }
             catch (err) { next(err); }
