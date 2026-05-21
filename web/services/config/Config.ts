@@ -1318,8 +1318,9 @@ export class ConfigRoute {
             } catch (err) { next(err); }
         });
         // ── Pump Scheduler service routes ──────────────────────────────────────────
-        app.get('/config/services/pumpScheduler', (req, res) => {
-            return res.status(200).send(pumpScheduler.getScheduleSnapshot());
+        app.get('/config/services/pumpScheduler', (req, res, next) => {
+            try { return res.status(200).send(pumpScheduler.getScheduleSnapshot()); }
+            catch (err) { next(err); }
         });
         app.post('/config/services/pumpScheduler/generate', async (req, res, next) => {
             try {
@@ -1333,8 +1334,9 @@ export class ConfigRoute {
                 return res.status(200).send(pumpScheduler.getScheduleSnapshot());
             } catch (err) { next(err); }
         });
-        app.get('/config/services/pumpScheduler/circuits', (req, res) => {
-            return res.status(200).send(sys.board.circuits.getCircuitReferences(true, true, false, true));
+        app.get('/config/services/pumpScheduler/circuits', (req, res, next) => {
+            try { return res.status(200).send(sys.board.circuits.getCircuitReferences(true, true, false, true)); }
+            catch (err) { next(err); }
         });
     }
 }
