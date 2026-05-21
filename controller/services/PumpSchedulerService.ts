@@ -332,7 +332,7 @@ export class PumpSchedulerService {
                     endTime,
                     startTimeType: TIME_TYPE_MANUAL,
                     endTimeType: TIME_TYPE_MANUAL,
-                    heatSource: 0,
+                    heatSource: sys.board.valueMaps.heatSources.getValue('off'),
                     isActive: true,
                 });
                 logger.verbose(
