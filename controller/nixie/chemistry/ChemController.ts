@@ -1795,9 +1795,9 @@ export class NixieChemicalPh extends NixieChemical {
             else if (sph.dailyLimitReached) {
                 await this.cancelDosing(sph, 'daily limit');
             }
-            else if (this.chemController.chem.singleMixPeriod && sph.chemController.orp.dosingStatus === 1) {
-                // Don't dose pH if ORP is mixing - enforce single mixing period (only when enabled)
-                await this.cancelDosing(sph, 'orp mixing');
+            else if (this.chemController.chem.singleMixPeriod && sph.chemController.orp.dosingStatus !== 2) {
+                // Don't dose pH if ORP is dosing or mixing - enforce single dose/mix period
+                await this.cancelDosing(sph, sph.chemController.orp.dosingStatus === 0 ? 'orp dosing' : 'orp mixing');
                 return;
             }
             else if (status === 'monitoring' || status === 'dosing') {
@@ -2297,9 +2297,9 @@ export class NixieChemicalORP extends NixieChemical {
                 await this.cancelDosing(sorp, 'ph pump dosing + dose priority');
                 return;
             }
-            else if (chem.singleMixPeriod && sorp.chemController.ph.dosingStatus === 1) {
-                // Don't dose ORP if pH is mixing - enforce single mixing period (only when enabled)
-                await this.cancelDosing(sorp, 'ph mixing');
+            else if (chem.singleMixPeriod && sorp.chemController.ph.dosingStatus !== 2) {
+                // Don't dose ORP if pH is dosing or mixing - enforce single dose/mix period
+                await this.cancelDosing(sorp, sorp.chemController.ph.dosingStatus === 0 ? 'ph dosing' : 'ph mixing');
                 return;
             }
             else if (status === 'monitoring' || status === 'dosing') {
