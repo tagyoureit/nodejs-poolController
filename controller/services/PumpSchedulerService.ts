@@ -158,7 +158,7 @@ export class PumpSchedulerService {
 
             await this._ensureFeaturesExistAsync();
             const plan = await this.generateScheduleAsync();
-            if (this._cfg.enabled) await this._ensurePumpCircuitsAsync(plan);
+            await this._ensurePumpCircuitsAsync(plan);
             return plan;
         } catch (err) {
             logger.error(`PumpSchedulerService updateConfigAsync: ${err.message}`);
