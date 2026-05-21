@@ -308,8 +308,7 @@ export class PumpSchedulerService {
         for (const b of plan.blocks) {
             logger.info(
                 `  [${b.phase.padEnd(6)}] ${minutesToTime(b.startMinutes)}–${minutesToTime(b.endMinutes)} ` +
-                `${b.rpm} RPM  ${b.gpm} GPM  ~${b.estimatedWatts} W  ${b.gallons.toLocaleString()} gal` +
-                (b.saltCellWarning ? '  ⚠ salt-cell flow low' : '')
+                `${b.rpm} RPM  ${b.gpm} GPM  ~${b.estimatedWatts} W  ${b.gallons.toLocaleString()} gal`
             );
         }
     }
