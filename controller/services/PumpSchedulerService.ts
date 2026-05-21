@@ -29,30 +29,16 @@ import { sys } from '../Equipment';
 import { state } from '../State';
 import { webApp } from '../../web/Server';
 import {
-    PoolConfig, SchedulePlan, ScheduleBlock,
+    SimplePoolConfig, SchedulePlan, ScheduleBlock,
     calcScheduleBlocks, minutesToTime,
 } from './HydraulicsCalc';
 
 // ─── Default configuration ────────────────────────────────────────────────────
 
-const DEFAULT_POOL_CONFIG: PoolConfig = {
+const DEFAULT_POOL_CONFIG: SimplePoolConfig = {
     poolVolumeGallons: 20000,
-    maxSafeGPM: 50,
-    maxPumpRPM: 3450,
-    minPumpRPM: 600,
-    targetTurnovers: 1.2,
-    referenceRPM: 2850,
-    referenceGPM: 45,
-    highBlockStartHour: 6,
-    highBlockDurationHours: 2,
-    medBlockDurationHours: 4,
-    lowBlockMinHours: 10,
-    lowBlockMaxHours: 14,
-    equipmentRequirements: {
-        heaterMinGPM: 30,
-        saltCellMinGPM: 25,
-        skimmerMinGPM: 45,
-    },
+    pipeDiameter: 1.5,
+    hasSaltCell: false,
 };
 
 // scheduleType 128 = "Repeats" (daily on selected days).
@@ -66,19 +52,16 @@ const TIME_TYPE_MANUAL = 0;
 interface SchedulerConfig {
     enabled: boolean;
     pumpId: number;
-    featureIds: { high: number; medium: number; low: number };
-    scheduleIds: { high: number; medium: number; low: number };
-    poolConfig: PoolConfig;
+    featureIds: { high: number; low: number };
+    scheduleIds: { high: number; low: number };
+    poolConfig: SimplePoolConfig;
 }
 
 const DEFAULT_SCHEDULER_CFG: SchedulerConfig = {
     enabled: true,
     pumpId: 1,
-    // Feature IDs 14-16 sit at the top of the default 7-16 feature range,
-    // leaving room for user-defined features below.
-    featureIds: { high: 14, medium: 15, low: 16 },
-    // Schedule IDs 10-12 sit at the top of the default 1-12 schedule range.
-    scheduleIds: { high: 10, medium: 11, low: 12 },
+    featureIds: { high: 14, low: 16 },
+    scheduleIds: { high: 10, low: 12 },
     poolConfig: DEFAULT_POOL_CONFIG,
 };
 
@@ -141,17 +124,6 @@ export class PumpSchedulerService {
             const plan = calcScheduleBlocks(this._cfg.poolConfig);
             this._lastPlan = plan;
 
-            // Warn if salt cell flow requirements won't be met.
-            for (const block of plan.blocks) {
-                if (block.saltCellWarning) {
-                    logger.warn(
-                        `PumpSchedulerService: ${block.phase} block GPM (${block.gpm}) is below ` +
-                        `saltCellMinGPM (${this._cfg.poolConfig.equipmentRequirements.saltCellMinGPM}). ` +
-                        `Salt chlorination may be reduced during this period.`
-                    );
-                }
-            }
-
             this._logPlan(plan);
             await this._writeSchedulesAsync(plan);
 
@@ -167,16 +139,8 @@ export class PumpSchedulerService {
     /** Merge new pool config values and regenerate. */
     public async updateConfigAsync(data: Partial<SchedulerConfig>): Promise<SchedulePlan> {
         try {
-            // Deep-merge poolConfig if provided.
             if (data.poolConfig) {
                 this._cfg.poolConfig = Object.assign({}, this._cfg.poolConfig, data.poolConfig);
-                if (data.poolConfig.equipmentRequirements) {
-                    this._cfg.poolConfig.equipmentRequirements = Object.assign(
-                        {},
-                        this._cfg.poolConfig.equipmentRequirements,
-                        data.poolConfig.equipmentRequirements
-                    );
-                }
             }
             if (typeof data.enabled !== 'undefined') this._cfg.enabled = data.enabled;
             if (typeof data.pumpId !== 'undefined') this._cfg.pumpId = data.pumpId;
@@ -215,13 +179,7 @@ export class PumpSchedulerService {
             pumpId: saved.pumpId ?? DEFAULT_SCHEDULER_CFG.pumpId,
             featureIds: Object.assign({}, DEFAULT_SCHEDULER_CFG.featureIds, saved.featureIds),
             scheduleIds: Object.assign({}, DEFAULT_SCHEDULER_CFG.scheduleIds, saved.scheduleIds),
-            poolConfig: Object.assign({}, DEFAULT_POOL_CONFIG, saved.poolConfig, {
-                equipmentRequirements: Object.assign(
-                    {},
-                    DEFAULT_POOL_CONFIG.equipmentRequirements,
-                    saved.poolConfig?.equipmentRequirements
-                ),
-            }),
+            poolConfig: Object.assign({}, DEFAULT_POOL_CONFIG, saved.poolConfig),
         };
     }
 
@@ -243,9 +201,8 @@ export class PumpSchedulerService {
      */
     private async _ensureFeaturesExistAsync(): Promise<void> {
         const featureMap = [
-            { id: this._cfg.featureIds.high,   name: 'PumpSched-High'   },
-            { id: this._cfg.featureIds.medium,  name: 'PumpSched-Medium' },
-            { id: this._cfg.featureIds.low,     name: 'PumpSched-Low'    },
+            { id: this._cfg.featureIds.high, name: 'PumpSched-High' },
+            { id: this._cfg.featureIds.low,  name: 'PumpSched-Low'  },
         ];
         for (const f of featureMap) {
             const existing = sys.features.find(feat => feat.id === f.id);
@@ -276,9 +233,8 @@ export class PumpSchedulerService {
         const feats = this._cfg.featureIds;
 
         const entries = [
-            { id: ids.high,   featureId: feats.high,   block: plan.blocks[0] },
-            { id: ids.medium, featureId: feats.medium, block: plan.blocks[1] },
-            { id: ids.low,    featureId: feats.low,    block: plan.blocks[2] },
+            { id: ids.high, featureId: feats.high, block: plan.blocks[0] },
+            { id: ids.low,  featureId: feats.low,  block: plan.blocks[1] },
         ];
 
         for (const entry of entries) {

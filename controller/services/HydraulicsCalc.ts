@@ -3,258 +3,186 @@
  * Pure hydraulic math helpers for pool pump scheduling.
  * No project-level imports — safe to use in unit tests and CLI scripts.
  *
- * Physics notes
- * ─────────────
+ * Physics
+ * ───────
  * Affinity Laws (centrifugal pumps):
- *   Flow scales linearly with RPM:    Q2 = Q1 × (RPM2 / RPM1)
- *   Head scales as the square:        H2 = H1 × (RPM2 / RPM1)²
- *   Power scales as the cube:         P2 = P1 × (RPM2 / RPM1)³
+ *   Flow scales linearly with RPM:  Q2 = Q1 × (RPM2 / RPM1)
+ *   Power scales as the cube:       P2 = P1 × (RPM2 / RPM1)³
  *
- * GPM ↔ RPM model used here:
- *   Rather than a full TDH (Total Dynamic Head) curve, we use a single
- *   empirical reference point (referenceRPM → referenceGPM measured at
- *   the user's system pressure) and scale linearly via the affinity law.
- *   This is accurate enough for residential plumbing where TDH changes
- *   only modestly across the VS operating range.
+ * GPM ↔ RPM model:
+ *   Anchored to a single empirical reference point per pipe size and scaled
+ *   linearly via the affinity law — accurate enough for residential plumbing.
  *
- * Pipe velocity / flow limit:
- *   1.5" Schedule-40 PVC: recommended max 5 ft/s → ≈50 GPM at that bore.
- *   Exceeding this causes hydraulic noise and risk of cavitation at the
- *   pump volute; the algorithm hard-caps GPM at poolConfig.maxSafeGPM.
+ * Pipe flow limits (velocity ≤ 5 ft/s rule of thumb):
+ *   1.5" Schedule-40 PVC: max safe ~50 GPM
+ *   2.0" Schedule-40 PVC: max safe ~75 GPM
  */
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Public types ──────────────────────────────────────────────────────────────
 
-export interface PoolConfig {
-    poolVolumeGallons: number;
-    maxSafeGPM: number;         // Pipe flow ceiling (1.5" → 50 GPM)
-    maxPumpRPM: number;         // Hayward Super Pump VS 700: 3450
-    minPumpRPM: number;         // Firmware minimum: 600 (algorithm floor: 1000)
-    targetTurnovers: number;    // Gallons to move = volume × this (default 1.2)
-    referenceRPM: number;       // Empirical calibration point RPM (default 2850)
-    referenceGPM: number;       // Actual GPM measured at referenceRPM (default 45)
-    highBlockStartHour: number; // Hour (0-23) the High block begins (default 6)
-    highBlockDurationHours: number; // Fixed High block duration in hours (default 2)
-    medBlockDurationHours: number;  // Minimum Medium block duration in hours (default 4)
-    lowBlockMinHours: number;   // Low block floor (default 10)
-    lowBlockMaxHours: number;   // Low block ceiling (default 14)
-    equipmentRequirements: {
-        heaterMinGPM: number;   // Minimum flow for heater ignition (default 30)
-        saltCellMinGPM: number; // Minimum flow for salt cell operation (default 25)
-        skimmerMinGPM: number;  // Minimum flow for surface skimming (default 45)
-    };
+/**
+ * The only three inputs the user needs to supply.
+ * All hydraulic parameters (RPM caps, reference curves, durations) are derived
+ * automatically inside calcScheduleBlocks.
+ */
+export interface SimplePoolConfig {
+    poolVolumeGallons: number;  // Pool water volume in gallons (e.g. 20000)
+    pipeDiameter: 1.5 | 2;     // Main plumbing size in inches
+    hasSaltCell: boolean;       // Has salt chlorinator — ensures low RPM keeps GPM ≥ 25
 }
 
 export interface ScheduleBlock {
-    phase: 'high' | 'medium' | 'low';
+    phase: 'high' | 'low';
     rpm: number;
     gpm: number;
     durationHours: number;
-    startMinutes: number; // Minutes from midnight (0–1439)
+    startMinutes: number;   // Minutes from midnight (0–1439)
     endMinutes: number;
     gallons: number;
     estimatedWatts: number;
-    /** True when this block's GPM is below saltCellMinGPM — caller should log a warning */
-    saltCellWarning: boolean;
 }
 
 export interface SchedulePlan {
-    blocks: [ScheduleBlock, ScheduleBlock, ScheduleBlock];
+    blocks: [ScheduleBlock, ScheduleBlock];  // [high, low]
     totalGallons: number;
     totalRunHours: number;
     turnovers: number;
 }
 
-// ─── Core math ────────────────────────────────────────────────────────────────
+// ─── Math utilities ────────────────────────────────────────────────────────────
 
-/**
- * Target volume to move per day.
- *   turnoverVolume = poolVolume × targetTurnovers
- */
-export function calcTurnoverVolume(poolVolumeGallons: number, targetTurnovers: number): number {
-    return poolVolumeGallons * targetTurnovers;
+/** Flow scales linearly with RPM (affinity law, first leg). */
+export function gpmForRPM(rpm: number, refRPM: number, refGPM: number): number {
+    return refGPM * (rpm / refRPM);
 }
 
-/**
- * Average GPM required across total run hours to hit target volume.
- *   averageGPM = turnoverVolume / (totalRunHours × 60)
- */
-export function calcTargetGPM(turnoverVolumeGallons: number, totalRunHours: number): number {
-    return turnoverVolumeGallons / (totalRunHours * 60);
+/** Inverse: GPM → RPM. */
+export function rpmForGPM(gpm: number, refRPM: number, refGPM: number): number {
+    return refRPM * (gpm / refGPM);
 }
 
-/**
- * Convert RPM → GPM using the linear affinity-law model anchored to a
- * known empirical reference point.
- *   gpm = referenceGPM × (rpm / referenceRPM)
- *
- * This is the Q-scaling leg of the Affinity Laws (flow ∝ RPM).
- */
-export function gpmForRPM(rpm: number, referenceRPM: number, referenceGPM: number): number {
-    return referenceGPM * (rpm / referenceRPM);
-}
-
-/**
- * Convert GPM → RPM (inverse of gpmForRPM).
- *   rpm = referenceRPM × (gpm / referenceGPM)
- */
-export function rpmForGPM(gpm: number, referenceRPM: number, referenceGPM: number): number {
-    return referenceRPM * (gpm / referenceGPM);
-}
-
-/**
- * Pump Affinity Law — power scaling.
- *   P2 = P1 × (RPM2 / RPM1)³
- *
- * Energy savings are dramatic: dropping from 3450 → 1000 RPM reduces power
- * consumption to just (1000/3450)³ ≈ 2.4 % of full-speed draw.
- *
- * @param p1Watts   Known power draw at rpm1
- * @param rpm1      Reference RPM corresponding to p1
- * @param rpm2      Target RPM to estimate power for
- */
+/** Power scales as the cube of the RPM ratio (affinity law, third leg). */
 export function affinityPower(p1Watts: number, rpm1: number, rpm2: number): number {
     return p1Watts * Math.pow(rpm2 / rpm1, 3);
 }
 
-// ─── Schedule block builder ────────────────────────────────────────────────────
+/** Convert minutes-from-midnight to "HH:MM" string. */
+export function minutesToTime(minutes: number): string {
+    const m = ((minutes % 1440) + 1440) % 1440;
+    const h = Math.floor(m / 60);
+    const mm = m % 60;
+    return `${h.toString().padStart(2, '0')}:${mm.toString().padStart(2, '0')}`;
+}
 
-const ALGO_MIN_RPM = 1000;   // Floor for Low block — keeps filter pressure adequate
-const LOW_TIER_MAX_RPM = 1500; // If Low block hours overflow 14h, nudge RPM up to here
+// ─── Pipe-size constants ───────────────────────────────────────────────────────
+
+interface PipeTier {
+    maxSafeGPM: number;
+    maxRPM: number;
+    refRPM: number;   // Empirical calibration point
+    refGPM: number;
+    refWatts: number; // Estimated draw at refRPM (Hayward Super Pump VS)
+}
+
+const PIPE_TIERS: Record<string, PipeTier> = {
+    '1.5': { maxSafeGPM: 50, maxRPM: 2850, refRPM: 2850, refGPM: 45, refWatts: 900  },
+    '2':   { maxSafeGPM: 75, maxRPM: 3450, refRPM: 3000, refGPM: 65, refWatts: 1100 },
+};
+
+// ─── Scheduling policy (hardcoded — not user-configurable) ────────────────────
+
+const TARGET_TURNOVERS  = 1.2;   // Gallons/day = pool volume × 1.2
+const HIGH_START_HOUR   = 6;     // 6 AM — morning skim and filter prime
+const HIGH_DURATION_HRS = 2;     // High block is always 2 hours
+const SALT_CELL_MIN_GPM = 25;    // Salt cell flow-switch trip point
+const ALGO_MIN_RPM      = 1000;  // RPM floor (filter pressure / seal longevity)
+const LOW_MAX_RPM       = 1500;  // RPM ceiling for low block (energy efficiency)
+const MAX_LOW_HOURS     = 14;    // Maximum low-block runtime
+
+// ─── Schedule builder ─────────────────────────────────────────────────────────
 
 /**
- * Compute the full 24-hour three-block schedule plan from a pool configuration.
+ * Compute the daily two-block pump schedule from a simplified pool config.
  *
- * Algorithm:
- *   1. High block  — fixed 2 hrs at the highest RPM that stays ≤ maxSafeGPM.
- *                    Sized for surface skimming and pre-filter priming.
- *   2. Medium block — fixed (medBlockDurationHours) hrs at the RPM required to
- *                    safely exceed heaterMinGPM.  Covers heating cycles and
- *                    salt-cell chlorination at adequate flow.
- *   3. Low block   — fills remaining turnover volume at the lowest practical RPM
- *                    (≥1000 RPM floor).  Duration is clamped to [lowMin, lowMax].
- *                    If the required hours exceed lowMax, RPM is nudged up until
- *                    the hours fit — maximising Affinity Law energy savings.
+ *   HIGH block — 2 hrs at 90 % of max safe GPM, starting at 6 AM.
+ *                Morning surface skim and filter prime.
  *
- * @param cfg  Pool configuration (see PoolConfig)
- * @param referenceWattsAtMaxRPM  Optional reference power draw at maxPumpRPM.
- *             Hayward Super Pump VS 700 nameplate: ~1100 W at max speed.
- *             Used only for estimatedWatts; does not affect RPM/GPM/time math.
+ *   LOW block  — fills the remaining turnover volume at the lowest practical
+ *                RPM.  If hasSaltCell is true, the RPM floor is raised so GPM
+ *                stays ≥ 25 and the flow switch remains closed.
+ *                If the volume cannot be moved in MAX_LOW_HOURS, RPM is nudged
+ *                up in 10-RPM steps until it fits (capped at LOW_MAX_RPM or
+ *                the salt-cell floor, whichever is higher).
  */
-export function calcScheduleBlocks(cfg: PoolConfig, referenceWattsAtMaxRPM = 1100): SchedulePlan {
-    const { poolVolumeGallons, targetTurnovers, maxSafeGPM, maxPumpRPM,
-            minPumpRPM, referenceRPM, referenceGPM,
-            highBlockStartHour, highBlockDurationHours, medBlockDurationHours,
-            lowBlockMinHours, lowBlockMaxHours, equipmentRequirements } = cfg;
+export function calcScheduleBlocks(cfg: SimplePoolConfig): SchedulePlan {
+    const pipe = PIPE_TIERS[String(cfg.pipeDiameter)];
+    if (!pipe) throw new Error(`Unknown pipe diameter: ${cfg.pipeDiameter}`);
 
-    // ── 1. Turnover target ─────────────────────────────────────────────────────
-    const turnoverVolume = calcTurnoverVolume(poolVolumeGallons, targetTurnovers);
+    const { maxSafeGPM, maxRPM, refRPM, refGPM, refWatts } = pipe;
+    const targetGallons = cfg.poolVolumeGallons * TARGET_TURNOVERS;
 
-    // ── 2. High block ──────────────────────────────────────────────────────────
-    // Target GPM = 90 % of the pipe ceiling so there is headroom.
-    // Convert to RPM and clamp to hardware limits.
-    // NOTE: the Hayward VS 700 has a known firmware speed plateau around 2967 RPM
-    // (≈86 % of 3450).  We stay well below at ≈82 % (2850 RPM) to avoid it.
-    const highTargetGPM = maxSafeGPM * 0.90;
-    const highRPMRaw = rpmForGPM(highTargetGPM, referenceRPM, referenceGPM);
-    const highRPM = Math.min(Math.round(highRPMRaw / 10) * 10, maxPumpRPM);
-    const highGPM = Math.min(gpmForRPM(highRPM, referenceRPM, referenceGPM), maxSafeGPM);
-    const highGallons = highGPM * highBlockDurationHours * 60;
-    const highStart = highBlockStartHour * 60;
-    const highEnd = highStart + highBlockDurationHours * 60;
-    const highWatts = affinityPower(referenceWattsAtMaxRPM, maxPumpRPM, highRPM);
-
-    // ── 3. Medium block ────────────────────────────────────────────────────────
-    // Target: at least heaterMinGPM + 5 GPM margin to guarantee heater ignition
-    // and salt-cell minimum in a single comfortable band.
-    const medTargetGPM = equipmentRequirements.heaterMinGPM + 5;
-    const medRPMRaw = rpmForGPM(medTargetGPM, referenceRPM, referenceGPM);
-    const medRPM = Math.max(
-        Math.min(Math.round(medRPMRaw / 10) * 10, maxPumpRPM),
-        minPumpRPM
+    // ── HIGH block ─────────────────────────────────────────────────────────────
+    const highRPM  = Math.min(
+        Math.round(rpmForGPM(maxSafeGPM * 0.9, refRPM, refGPM) / 10) * 10,
+        maxRPM
     );
-    const medGPM = gpmForRPM(medRPM, referenceRPM, referenceGPM);
-    const medGallons = medGPM * medBlockDurationHours * 60;
-    const medStart = highEnd;
-    const medEnd = medStart + medBlockDurationHours * 60;
-    const medWatts = affinityPower(referenceWattsAtMaxRPM, maxPumpRPM, medRPM);
+    const highGPM  = parseFloat(gpmForRPM(highRPM, refRPM, refGPM).toFixed(1));
+    const highGals = Math.round(highGPM * HIGH_DURATION_HRS * 60);
+    const highStart = HIGH_START_HOUR * 60;
+    const highEnd   = highStart + HIGH_DURATION_HRS * 60;
 
-    // ── 4. Low block — find the lowest RPM that fits the window ───────────────
-    const remainingGallons = turnoverVolume - highGallons - medGallons;
+    // ── LOW block ──────────────────────────────────────────────────────────────
+    const remaining = targetGallons - highGals;
 
-    // Start with the algorithm minimum RPM and work up if needed.
-    let lowRPM = Math.max(ALGO_MIN_RPM, minPumpRPM);
-    let lowGPM = gpmForRPM(lowRPM, referenceRPM, referenceGPM);
-    let lowHoursNeeded = remainingGallons / (lowGPM * 60);
+    // RPM floor: raise if salt cell needs GPM ≥ 25.
+    const saltFloorRPM = Math.ceil(rpmForGPM(SALT_CELL_MIN_GPM, refRPM, refGPM) / 10) * 10;
+    let lowRPM  = cfg.hasSaltCell ? Math.max(saltFloorRPM, ALGO_MIN_RPM) : ALGO_MIN_RPM;
+    const lowRPMCap = cfg.hasSaltCell ? Math.max(LOW_MAX_RPM, saltFloorRPM) : LOW_MAX_RPM;
 
-    // If we need more than lowBlockMaxHours, nudge RPM up in 10-RPM steps
-    // until the hours fit — but cap the nudge at LOW_TIER_MAX_RPM.
-    while (lowHoursNeeded > lowBlockMaxHours && lowRPM < LOW_TIER_MAX_RPM) {
-        lowRPM += 10;
-        lowGPM = gpmForRPM(lowRPM, referenceRPM, referenceGPM);
-        lowHoursNeeded = remainingGallons / (lowGPM * 60);
+    let lowGPM   = gpmForRPM(lowRPM, refRPM, refGPM);
+    let lowHours = remaining / (lowGPM * 60);
+
+    // Nudge RPM up if volume cannot fit in MAX_LOW_HOURS.
+    while (lowHours > MAX_LOW_HOURS && lowRPM < lowRPMCap) {
+        lowRPM  += 10;
+        lowGPM   = gpmForRPM(lowRPM, refRPM, refGPM);
+        lowHours = remaining / (lowGPM * 60);
     }
 
-    // Clamp duration to the configured window.
-    const lowDurationHours = Math.max(lowBlockMinHours, Math.min(lowHoursNeeded, lowBlockMaxHours));
-    const lowGallons = lowGPM * lowDurationHours * 60;
-    const lowStart = medEnd;
-    // endMinutes may cross midnight (> 1440) — callers must handle wrap-around.
-    const lowEnd = lowStart + Math.round(lowDurationHours * 60);
-    const lowWatts = affinityPower(referenceWattsAtMaxRPM, maxPumpRPM, lowRPM);
+    const lowDurationHours = parseFloat(Math.min(lowHours, MAX_LOW_HOURS).toFixed(2));
+    const lowStart = highEnd;
+    const lowEnd   = lowStart + Math.round(lowDurationHours * 60);
 
-    // ── 5. Assemble plan ───────────────────────────────────────────────────────
-    const high: ScheduleBlock = {
+    // ── Assemble ───────────────────────────────────────────────────────────────
+    const highBlock: ScheduleBlock = {
         phase: 'high',
         rpm: highRPM,
-        gpm: parseFloat(highGPM.toFixed(1)),
-        durationHours: highBlockDurationHours,
+        gpm: highGPM,
+        durationHours: HIGH_DURATION_HRS,
         startMinutes: highStart,
         endMinutes: highEnd,
-        gallons: Math.round(highGallons),
-        estimatedWatts: Math.round(highWatts),
-        saltCellWarning: highGPM < equipmentRequirements.saltCellMinGPM,
+        gallons: highGals,
+        estimatedWatts: Math.round(affinityPower(refWatts, refRPM, highRPM)),
     };
 
-    const medium: ScheduleBlock = {
-        phase: 'medium',
-        rpm: medRPM,
-        gpm: parseFloat(medGPM.toFixed(1)),
-        durationHours: medBlockDurationHours,
-        startMinutes: medStart,
-        endMinutes: medEnd,
-        gallons: Math.round(medGallons),
-        estimatedWatts: Math.round(medWatts),
-        saltCellWarning: medGPM < equipmentRequirements.saltCellMinGPM,
-    };
-
-    const low: ScheduleBlock = {
+    const lowBlock: ScheduleBlock = {
         phase: 'low',
         rpm: lowRPM,
         gpm: parseFloat(lowGPM.toFixed(1)),
-        durationHours: parseFloat(lowDurationHours.toFixed(2)),
+        durationHours: lowDurationHours,
         startMinutes: lowStart,
         endMinutes: lowEnd,
-        gallons: Math.round(lowGallons),
-        estimatedWatts: Math.round(lowWatts),
-        saltCellWarning: lowGPM < equipmentRequirements.saltCellMinGPM,
+        gallons: Math.round(lowGPM * lowDurationHours * 60),
+        estimatedWatts: Math.round(affinityPower(refWatts, refRPM, lowRPM)),
     };
 
-    const totalGallons = high.gallons + medium.gallons + low.gallons;
-    const totalRunHours = high.durationHours + medium.durationHours + low.durationHours;
+    const totalGallons  = highBlock.gallons + lowBlock.gallons;
+    const totalRunHours = HIGH_DURATION_HRS + lowDurationHours;
 
     return {
-        blocks: [high, medium, low],
+        blocks: [highBlock, lowBlock],
         totalGallons,
         totalRunHours: parseFloat(totalRunHours.toFixed(2)),
-        turnovers: parseFloat((totalGallons / poolVolumeGallons).toFixed(3)),
+        turnovers: parseFloat((totalGallons / cfg.poolVolumeGallons).toFixed(3)),
     };
-}
-
-/** Format minutes-from-midnight as "HH:MM" for display / logging. */
-export function minutesToTime(minutes: number): string {
-    const m = ((minutes % 1440) + 1440) % 1440; // normalise negative / overflow
-    const h = Math.floor(m / 60);
-    const min = m % 60;
-    return `${String(h).padStart(2, '0')}:${String(min).padStart(2, '0')}`;
 }
