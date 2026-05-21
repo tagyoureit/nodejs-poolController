@@ -1335,7 +1335,10 @@ export class ConfigRoute {
             } catch (err) { next(err); }
         });
         app.get('/config/services/pumpScheduler/circuits', (req, res, next) => {
-            try { return res.status(200).send(sys.board.circuits.getCircuitReferences(true, true, false, true)); }
+            try {
+                const pumps = sys.pumps.filter(p => p.isActive).map(p => ({ id: p.id, name: p.name }));
+                return res.status(200).send(pumps);
+            }
             catch (err) { next(err); }
         });
     }

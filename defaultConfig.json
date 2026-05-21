@@ -83,7 +83,7 @@
           "poolVolumeGallons": 20000,
           "pipeDiameter": 1.5
         },
-        "featureIds": { "high": 14, "medium": 15, "low": 16 },
+        "featureIds": { "high": 0, "medium": 0, "low": 0 },
         "scheduleIds": { "high": 10, "medium": 11, "low": 12 }
       }
     },

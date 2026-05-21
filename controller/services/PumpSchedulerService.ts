@@ -62,7 +62,7 @@ interface SchedulerConfig {
 const DEFAULT_SCHEDULER_CFG: SchedulerConfig = {
     enabled: false,
     pumpId: 1,
-    featureIds: { high: 14, medium: 15, low: 16 },
+    featureIds: { high: 0, medium: 0, low: 0 },
     scheduleIds: { high: 10, medium: 11, low: 12 },
     poolConfig: DEFAULT_POOL_CONFIG,
 };
@@ -209,22 +209,39 @@ export class PumpSchedulerService {
      * Features are created with showInFeatures: false so they don't clutter the UI.
      */
     private async _ensureFeaturesExistAsync(): Promise<void> {
-        const featureMap = [
-            { id: this._cfg.featureIds.high,   name: 'PumpSched-High'   },
-            { id: this._cfg.featureIds.medium, name: 'PumpSched-Medium' },
-            { id: this._cfg.featureIds.low,    name: 'PumpSched-Low'    },
+        const wanted: Array<{ key: 'high' | 'medium' | 'low'; name: string }> = [
+            { key: 'high',   name: 'PumpSched-High'   },
+            { key: 'medium', name: 'PumpSched-Medium' },
+            { key: 'low',    name: 'PumpSched-Low'    },
         ];
-        for (const f of featureMap) {
-            const existing = sys.features.find(feat => feat.id === f.id);
-            if (typeof existing === 'undefined' || !existing.isActive) {
-                try {
-                    await sys.board.features.setFeatureAsync({ id: f.id, name: f.name, showInFeatures: false });
-                    logger.info(`PumpSchedulerService: created feature ${f.id} (${f.name})`);
-                } catch (err) {
-                    logger.error(`PumpSchedulerService: could not create feature ${f.id}: ${err.message}`);
+        let dirty = false;
+        for (const w of wanted) {
+            // If we already have a tracked ID, verify it still exists.
+            const trackedId = this._cfg.featureIds[w.key];
+            if (trackedId > 0) {
+                const existing = sys.features.find(f => f.id === trackedId && f.isActive);
+                if (existing) continue;
+            }
+            // Search by name in case it was created with a different ID.
+            const byName = sys.features.find(f => f.name === w.name && f.isActive);
+            if (byName) {
+                if (this._cfg.featureIds[w.key] !== byName.id) {
+                    this._cfg.featureIds[w.key] = byName.id;
+                    dirty = true;
                 }
+                continue;
+            }
+            // Create it — no id supplied so the board auto-assigns from the valid range.
+            try {
+                const feat = await sys.board.features.setFeatureAsync({ name: w.name, showInFeatures: false });
+                logger.info(`PumpSchedulerService: created feature ${feat.id} (${w.name})`);
+                this._cfg.featureIds[w.key] = feat.id;
+                dirty = true;
+            } catch (err) {
+                logger.error(`PumpSchedulerService: could not create feature (${w.name}): ${err.message}`);
             }
         }
+        if (dirty) this._saveConfig();
     }
 
     /**
@@ -315,6 +332,7 @@ export class PumpSchedulerService {
                     endTime,
                     startTimeType: TIME_TYPE_MANUAL,
                     endTimeType: TIME_TYPE_MANUAL,
+                    heatSource: 0,
                     isActive: true,
                 });
                 logger.verbose(
