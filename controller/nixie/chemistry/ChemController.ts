@@ -2450,13 +2450,16 @@ export class NixieChemicalORP extends NixieChemical {
                         let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(demand / (pump.ratedFlow / 60));
                         let meth = sys.board.valueMaps.chemDosingMethods.getName(this.orp.dosingMethod);
                         // Now that we know our chlorine demand we need to adjust this dose based upon the limits provided in the setup.
+                        // When orpFormula is enabled, demand is the formula result and limits act as caps; otherwise limits are the dose.
                         switch (meth) {
                             case 'time':
-                                time = this.orp.maxDosingTime;
-                                demand = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
+                                if (demand <= 0 || time > this.orp.maxDosingTime) {
+                                    time = this.orp.maxDosingTime;
+                                    demand = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
+                                }
                                 break;
                             case 'volume':
-                                demand = this.orp.maxDosingVolume;
+                                if (demand <= 0 || demand > this.orp.maxDosingVolume) demand = this.orp.maxDosingVolume;
                                 time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(demand / (pump.ratedFlow / 60));
                                 break;
                             case 'volumeTime':
@@ -2475,8 +2478,7 @@ export class NixieChemicalORP extends NixieChemical {
                         }
                         logger.info(`Chem orp dose calculated ${demand}mL for ${utils.formatDuration(time)} Tank Level: ${sorp.tank.level} using ${meth}`);
 
-                        sorp.demand = sorp.calcDemand(chem);
-                        if (sorp.demand > 0) logger.info(`Chem orp dose calculated ${demand}mL for ${utils.formatDuration(time)} Tank Level: ${sorp.tank.level} using ${meth}`);
+                        sorp.demand = demand;
 
                         if (typeof sorp.currentDose === 'undefined') {
                             // We will include this with the dose demand because our limits may reduce it.
