@@ -38,7 +38,6 @@ export interface ScheduleBlock {
     startMinutes: number;   // Minutes from midnight (0–1439)
     endMinutes: number;
     gallons: number;
-    estimatedWatts: number;
 }
 
 export interface SchedulePlan {
@@ -77,12 +76,11 @@ export function minutesToTime(minutes: number): string {
 
 interface PipeTier {
     maxSafeGPM: number;         // Velocity-safe flow ceiling (≤ 5 ft/s rule)
-    refWatts: number;           // Estimated draw at pump max RPM (approximation)
 }
 
 const PIPE_TIERS: Record<string, PipeTier> = {
-    '1.5': { maxSafeGPM: 50, refWatts: 1350 },   // calibrated: 291W observed at 2070 RPM → ~1350W at 3450 RPM
-    '2':   { maxSafeGPM: 75, refWatts: 1650 },
+    '1.5': { maxSafeGPM: 50 },
+    '2':   { maxSafeGPM: 75 },
 };
 
 // ─── Scheduling policy (hardcoded — not user-configurable) ────────────────────
@@ -121,7 +119,7 @@ export function calcScheduleBlocks(cfg: SimplePoolConfig, pumpMaxRPM: number): S
     const pipe = PIPE_TIERS[String(cfg.pipeDiameter)];
     if (!pipe) throw new Error(`Unknown pipe diameter: ${cfg.pipeDiameter}`);
 
-    const { maxSafeGPM, refWatts } = pipe;
+    const { maxSafeGPM } = pipe;
     // Dynamic reference curve: at pumpMaxRPM the pump delivers maxSafeGPM.
     // All RPM ↔ GPM conversions use this calibration anchor.
     const refRPM = pumpMaxRPM;
@@ -178,7 +176,6 @@ export function calcScheduleBlocks(cfg: SimplePoolConfig, pumpMaxRPM: number): S
         startMinutes: highStart,
         endMinutes: highEnd,
         gallons: highGals,
-        estimatedWatts: Math.round(affinityPower(refWatts, refRPM, highRPM)),
     };
 
     const mediumBlock: ScheduleBlock = {
@@ -189,7 +186,6 @@ export function calcScheduleBlocks(cfg: SimplePoolConfig, pumpMaxRPM: number): S
         startMinutes: mediumStart,
         endMinutes: mediumEnd,
         gallons: mediumGals,
-        estimatedWatts: Math.round(affinityPower(refWatts, refRPM, mediumRPM)),
     };
 
     const lowBlock: ScheduleBlock = {
@@ -200,7 +196,6 @@ export function calcScheduleBlocks(cfg: SimplePoolConfig, pumpMaxRPM: number): S
         startMinutes: lowStart,
         endMinutes: lowEnd,
         gallons: Math.round(lowGPM * lowDurationHours * 60),
-        estimatedWatts: Math.round(affinityPower(refWatts, refRPM, lowRPM)),
     };
 
     const totalGallons  = highBlock.gallons + mediumBlock.gallons + lowBlock.gallons;
