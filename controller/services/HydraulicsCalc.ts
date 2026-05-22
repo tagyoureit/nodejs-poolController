@@ -81,8 +81,8 @@ interface PipeTier {
 }
 
 const PIPE_TIERS: Record<string, PipeTier> = {
-    '1.5': { maxSafeGPM: 50, refWatts: 900  },
-    '2':   { maxSafeGPM: 75, refWatts: 1100 },
+    '1.5': { maxSafeGPM: 50, refWatts: 1350 },   // calibrated: 291W observed at 2070 RPM → ~1350W at 3450 RPM
+    '2':   { maxSafeGPM: 75, refWatts: 1650 },
 };
 
 // ─── Scheduling policy (hardcoded — not user-configurable) ────────────────────
