@@ -3729,6 +3729,16 @@ export class ScheduleCommands extends BoardCommands {
                     ssched.isOn = schedIsOn;
                     sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(ssched.circuit), scirc, scirc.isOn, true);
                 }
+                else if (schedIsOn && scirc.isOn
+                    && typeof scirc.endTime !== 'undefined'
+                    && typeof ssched.scheduleTime.endTime !== 'undefined'
+                    && ssched.scheduleTime.endTime.getTime() > scirc.endTime.toDate().getTime()) {
+                    // The schedule's window has advanced past the cached circuit endTime
+                    // (e.g. a continuous 24-hour schedule rolling over midnight).  Without
+                    // this refresh, checkCircuitEggTimerExpirationAsync would compare
+                    // `now` against the stale endTime and force-turn-off the circuit.
+                    sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(ssched.circuit), scirc, scirc.isOn, true);
+                }
                 ssched.emitEquipmentChange();
             }
         } catch (err) { logger.error(`Error synchronizing schedule states`); }
