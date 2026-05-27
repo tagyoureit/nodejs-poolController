@@ -1810,6 +1810,12 @@ export class NixieChemicalPh extends NixieChemical {
                     await this.cancelDosing(sph, 'freeze');
                 else if (!sph.chemController.flowDetected)
                     await this.cancelDosing(sph, 'no flow');
+                else if (sph.dosingStatus === 0 && typeof sph.currentDose !== 'undefined') {
+                    // Mid-dose: do not re-evaluate demand (probe can bounce at setpoint boundary).
+                    // Let pump.dose() run to completion via volumeRemaining/timeRemaining.
+                    if (sph.tank.level > 0) await this.pump.dose(sph);
+                    else await this.cancelDosing(sph, 'empty tank');
+                }
                 else if (demand <= 0)
                     await this.cancelDosing(sph, 'setpoint reached');
                 else if (demand > 0) {
