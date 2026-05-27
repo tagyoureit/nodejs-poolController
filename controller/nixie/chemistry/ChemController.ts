@@ -1142,6 +1142,78 @@ class NixieChemical extends NixieChildEquipment implements INixieChemical {
             }
         } catch (err) { logger.error(`cancelDosing: ${err.message}`); return Promise.reject(err); }
     }
+    // Caps a raw demand value by the configured dosing method limits (time, volume, or volumeTime).
+    protected applyDosingLimits(method: string, demand: number, ratedFlow: number, maxVolume: number, maxTime: number): { dose: number, time: number } {
+        let dose = demand;
+        let time = typeof ratedFlow === 'undefined' || ratedFlow <= 0 ? 0 : Math.round(dose / (ratedFlow / 60));
+        switch (method) {
+            case 'time':
+                if (time > maxTime) {
+                    time = maxTime;
+                    dose = typeof ratedFlow === 'undefined' ? 0 : Math.round(time * (ratedFlow / 60));
+                }
+                break;
+            case 'volume':
+                if (dose > maxVolume) {
+                    dose = maxVolume;
+                    time = typeof ratedFlow === 'undefined' || ratedFlow <= 0 ? 0 : Math.round(dose / (ratedFlow / 60));
+                }
+                break;
+            case 'volumeTime':
+            default:
+                if (dose > maxVolume) {
+                    dose = maxVolume;
+                    time = typeof ratedFlow === 'undefined' || ratedFlow <= 0 ? 0 : Math.round(dose / (ratedFlow / 60));
+                }
+                if (time > maxTime) {
+                    time = maxTime;
+                    dose = typeof ratedFlow === 'undefined' ? 0 : Math.round(time * (ratedFlow / 60));
+                }
+                break;
+        }
+        return { dose, time };
+    }
+    // Subclasses implement this to calculate the capped dose for a new auto dose cycle.
+    // Returns null when demand is at or below setpoint (nothing to dose).
+    protected calcDoseForDemand(schem: ChemicalState): { dose: number, time: number } | null { return null; }
+    // Shared auto-dosing kernel called from checkDosing after all non-safety guards have passed.
+    // Handles: safety guards (body/freeze/flow), mid-dose continuation, new dose start.
+    protected async doAutoDosing(schem: ChemicalState): Promise<void> {
+        // Safety guards — cancel even if a dose is currently running.
+        if (!schem.chemController.isBodyOn) { await this.cancelDosing(schem, 'body off'); return; }
+        if (schem.freezeProtect) { await this.cancelDosing(schem, 'freeze'); return; }
+        if (!schem.chemController.flowDetected) { await this.cancelDosing(schem, 'no flow'); return; }
+        // Mid-dose: do not re-evaluate demand (probe can bounce at setpoint boundary).
+        // Let pump.dose() run to completion via volumeRemaining/timeRemaining.
+        if (schem.dosingStatus === 0 && typeof schem.currentDose !== 'undefined') {
+            if (schem.tank.level > 0) await this.pump.dose(schem);
+            else await this.cancelDosing(schem, 'empty tank');
+            return;
+        }
+        // No active dose: calculate demand and either start a new dose or cancel.
+        let result = this.calcDoseForDemand(schem);
+        if (result === null) { await this.cancelDosing(schem, 'setpoint reached'); return; }
+        let { dose, time } = result;
+        if (typeof schem.currentDose === 'undefined' && schem.tank.level > 0) {
+            if (schem.dosingStatus === 0) {
+                // Resume a dose interrupted by njspc restart.
+                logger.info(`Continuing a previous ${schem.chemType} dose ${schem.doseVolume}mL`);
+                schem.startDose(new Timestamp().addSeconds(-schem.doseTime).toDate(), 'auto', schem.doseVolume + schem.dosingVolumeRemaining, schem.doseVolume, (schem.doseTime + schem.dosingTimeRemaining) * 1000, schem.doseTime * 1000);
+            }
+            else {
+                logger.info(`Starting a new ${schem.chemType} dose ${dose}mL`);
+                schem.startDose(new Date(), 'auto', dose, 0, time, 0);
+            }
+        }
+        if (schem.tank.level > 0) {
+            logger.verbose(`Chem ${schem.chemType} dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
+            await this.pump.dose(schem);
+        }
+        else {
+            logger.warn(`Chem ${schem.chemType} NOT dosed because tank level is ${schem.tank.level}.`);
+            await this.cancelDosing(schem, 'empty tank');
+        }
+    }
 }
 export class NixieChemTank extends NixieChildEquipment {
     public tank: ChemicalTank;
@@ -1721,24 +1793,28 @@ export class NixieChemicalPh extends NixieChemical {
         }
         catch (err) { logger.error(`chemController setPhAysnc.: ${err.message}`); return Promise.reject(err); }
     }
+    protected calcDoseForDemand(schem: ChemicalState): { dose: number, time: number } | null {
+        let sph = schem as ChemicalPhState;
+        let demand = sph.calcDemand(this.chemController.chem);
+        if (demand <= 0) return null;
+        let pump = this.pump.pump;
+        // Cap by the remaining daily budget first, then apply dosing method limits.
+        let dose = Math.max(0, Math.min(this.chemical.maxDailyVolume - sph.dailyVolumeDosed, demand));
+        let meth = sys.board.valueMaps.chemDosingMethods.getName(this.ph.dosingMethod);
+        logger.info(`Chem acid demand calculated ${demand}mL for ${utils.formatDuration(typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(dose / (pump.ratedFlow / 60)))} Tank Level: ${sph.tank.level}`);
+        let result = this.applyDosingLimits(meth, dose, pump.ratedFlow, this.ph.maxDosingVolume, this.ph.maxDosingTime);
+        logger.verbose(`Chem acid dosing maximums applied ${result.dose}mL for ${utils.formatDuration(result.time)}`);
+        return result;
+    }
     public async checkDosing(chem: ChemController, sph: ChemicalPhState) {
         try {
             let status = sys.board.valueMaps.chemControllerDosingStatus.getName(sph.dosingStatus);
             logger.debug(`Begin check ${sph.chemType} dosing status = ${status}`);
-            let demand = sph.calcDemand(chem);
-            sph.demand = Math.max(demand, 0);
-            if (!chem.ph.enabled) {
-                await this.cancelDosing(sph, 'disabled');
-                return;
-            }
-            if (sph.suspendDosing) {
-                // Kill off the dosing and make sure the pump isn't running.  Let's force the issue here.
-                await this.cancelDosing(sph, 'suspended');
-                return;
-            }
+            sph.demand = Math.max(0, sph.calcDemand(chem));
+            if (!chem.ph.enabled) { await this.cancelDosing(sph, 'disabled'); return; }
+            if (sph.suspendDosing) { await this.cancelDosing(sph, 'suspended'); return; }
             if (status === 'monitoring') {
-                // Alright our mixing and dosing have either been cancelled or we fininsed a mixing cycle.  Either way
-                // let the system clean these up.
+                // Alright our mixing and dosing have either been cancelled or we finished a mixing cycle.
                 if (typeof sph.currentDose !== 'undefined') logger.error('Somehow we made it to monitoring and still have a current dose');
                 sph.currentDose = undefined;
                 sph.manualDosing = false;
@@ -1747,9 +1823,7 @@ export class NixieChemicalPh extends NixieChemical {
                 if (typeof this.currentMix !== 'undefined') {
                     if (ncp.chemControllers.length > 1) {
                         let arrIds = [];
-                        for (let i = 0; i < ncp.chemControllers.length; i++) {
-                            arrIds.push(ncp[i].id);
-                        }
+                        for (let i = 0; i < ncp.chemControllers.length; i++) { arrIds.push(ncp[i].id); }
                         logger.info(`More than one NixieChemController object was found ${JSON.stringify(arrIds)}`);
                     }
                     logger.debug(`We are now monitoring and have a mixing object`);
@@ -1760,15 +1834,6 @@ export class NixieChemicalPh extends NixieChemical {
             if (status === 'mixing') {
                 await this.cancelDosing(sph, 'mixing');
                 if (typeof this.currentMix === 'undefined') {
-                    // First lets check to see how many chem controllers we have.
-                    // RKS: Keep this case around in case there is another Moby Dick and Nixie has an orphan out there.
-                    //if (ncp.chemControllers.length > 1) {
-                    //    let arrIds = [];
-                    //    for (let i = 0; i < ncp.chemControllers.length; i++) {
-                    //        arrIds.push(ncp[i].id);
-                    //    }
-                    //    logger.info(`More than one NixieChemController object was found ${JSON.stringify(arrIds)}`);
-                    //}
                     logger.info(`Current ${sph.chemType} mix object not defined initializing mix`);
                     await this.mixChemicals(sph);
                 }
@@ -1776,8 +1841,7 @@ export class NixieChemicalPh extends NixieChemical {
             else if (sph.manualDosing) {
                 // We are manually dosing.  We are not going to dynamically change the dose.
                 if (typeof sph.currentDose === 'undefined') {
-                    // This will only happen when njspc is killed in the middle of a dose.  Unlike IntelliChem we will pick that back up.
-                    // Unfortunately we will lose the original start date but who cares as the volumes should remain the same.
+                    // This will only happen when njspc is killed in the middle of a dose.
                     let volume = sph.volumeDosed + sph.dosingVolumeRemaining;
                     let time = sph.timeDosed + sph.dosingTimeRemaining;
                     sph.startDose(new Timestamp().addSeconds(-sph.doseTime).toDate(), 'manual', volume, sph.dosingVolumeRemaining, time * 1000, sph.doseTime * 1000);
@@ -1792,93 +1856,15 @@ export class NixieChemicalPh extends NixieChemical {
                     else await this.cancelDosing(sph, 'empty tank');
                 }
             }
-            else if (sph.dailyLimitReached) {
+            else if (sph.dailyLimitReached)
                 await this.cancelDosing(sph, 'daily limit');
-            }
             else if (this.chemController.chem.singleMixPeriod && sph.chemController.orp.dosingStatus !== 2) {
-                // Don't dose pH if ORP is dosing or mixing - enforce single dose/mix period
+                // Don't dose pH if ORP is dosing or mixing - enforce single dose/mix period.
                 await this.cancelDosing(sph, sph.chemController.orp.dosingStatus === 0 ? 'orp dosing' : 'orp mixing');
                 return;
             }
-            else if (status === 'monitoring' || status === 'dosing') {
-                // Figure out what mode we are in and what mode we should be in.
-                //sph.level = 7.61;
-                // Check the setpoint and the current level to see if we need to dose.
-                if (!sph.chemController.isBodyOn)
-                    await this.cancelDosing(sph, 'body off');
-                else if (sph.freezeProtect)
-                    await this.cancelDosing(sph, 'freeze');
-                else if (!sph.chemController.flowDetected)
-                    await this.cancelDosing(sph, 'no flow');
-                else if (sph.dosingStatus === 0 && typeof sph.currentDose !== 'undefined') {
-                    // Mid-dose: do not re-evaluate demand (probe can bounce at setpoint boundary).
-                    // Let pump.dose() run to completion via volumeRemaining/timeRemaining.
-                    if (sph.tank.level > 0) await this.pump.dose(sph);
-                    else await this.cancelDosing(sph, 'empty tank');
-                }
-                else if (demand <= 0)
-                    await this.cancelDosing(sph, 'setpoint reached');
-                else if (demand > 0) {
-                    let pump = this.pump.pump;
-                    let dose = Math.max(0, Math.min(this.chemical.maxDailyVolume - sph.dailyVolumeDosed, demand));
-                    let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(dose / (pump.ratedFlow / 60));
-                    let meth = sys.board.valueMaps.chemDosingMethods.getName(this.ph.dosingMethod);
-                    logger.info(`Chem acid demand calculated ${demand}mL for ${utils.formatDuration(time)} Tank Level: ${sph.tank.level}`);
-                    // Now that we know our acid demand we need to adjust this dose based upon the limits provided in the setup.
-                    switch (meth) {
-                        case 'time':
-                            if (time > this.ph.maxDosingTime) {
-                                time = this.ph.maxDosingTime;
-                                dose = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
-                            }
-                            break;
-                        case 'volume':
-                            if (dose > this.ph.maxDosingVolume) {
-                                dose = this.ph.maxDosingVolume;
-                                time = time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(dose / (pump.ratedFlow / 60));
-                            }
-                            break;
-                        case 'volumeTime':
-                        default:
-                            // This is maybe a bit dumb as the volume and time should equal out for the rated flow.  In other words
-                            // you will never get to the volume limit if the rated flow can't keep up to the time.
-                            if (dose > this.ph.maxDosingVolume) {
-                                dose = this.ph.maxDosingVolume;
-                                time = time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(dose / (pump.ratedFlow / 60));
-                            }
-                            if (time > this.ph.maxDosingTime) {
-                                time = this.ph.maxDosingTime;
-                                dose = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
-                            }
-                            break;
-                    }
-                    logger.verbose(`Chem acid dosing maximums applied ${dose}mL for ${utils.formatDuration(time)}`);
-                    if (typeof sph.currentDose === 'undefined' && sph.tank.level > 0) {
-                        // We will include this with the dose demand because our limits may reduce it.
-                        //dosage.demand = demand;
-                        if (sph.dosingStatus === 0) { // 0 is dosing.
-                            // We need to finish off a dose that was interrupted by regular programming.  This occurs
-                            // when for instance njspc is interrupted and restarted in the middle of a dose. If we were
-                            // mixing before we will never get here.
-                            logger.info(`Continuing a previous new acid dose ${sph.doseVolume}mL`);
-                            sph.startDose(new Timestamp().addSeconds(-sph.doseTime).toDate(), 'auto', sph.doseVolume + sph.dosingVolumeRemaining, sph.doseVolume, (sph.doseTime + sph.dosingTimeRemaining) * 1000, sph.doseTime * 1000);
-                        }
-                        else {
-                            logger.info(`Starting a new acid dose ${dose}mL`);
-                            sph.startDose(new Date(), 'auto', dose, 0, time, 0);
-                        }
-                    }
-                    // Now let's determine what we need to do with our pump to satisfy our acid demand.
-                    if (sph.tank.level > 0) {
-                        logger.verbose(`Chem acid dose activate pump ${this.pump.pump.ratedFlow}mL/min`);
-                        await this.pump.dose(sph);
-                    }
-                    else {
-                        logger.warn(`Chem acid NOT dosed because tank level is level ${sph.tank.level}.`);
-                        await this.cancelDosing(sph, 'empty tank');
-                    }
-                }
-            }
+            else if (status === 'monitoring' || status === 'dosing')
+                await this.doAutoDosing(sph);
         }
         catch (err) { logger.error(`Error checking for dosing: ${err.message}`); return Promise.reject(err); }
         finally {
@@ -2309,208 +2295,188 @@ export class NixieChemicalORP extends NixieChemical {
                 return;
             }
             else if (status === 'monitoring' || status === 'dosing') {
-                // let _doseCalculatedSec = 0;
                 if (!sorp.lockout) {
-
-                    // 1. Get the total gallons of water that the chem controller is in control of.
-                    let totalGallons = 0;
-                    let body1 = sys.bodies.getItemById(1);
-                    let body2 = sys.bodies.getItemById(2);
-                    if (chem.body === 0 || chem.body === 32) totalGallons += body1.capacity;
-                    if (chem.body === 1 || chem.body === 32) totalGallons += body2.capacity;
-                    if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
-                    if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
-
-                    if (chem.orp.useChlorinator) {
-                        /*
-            Alright, here's the current thinking.
-            1. If the orp setpoint is > 50mV below the current orp, the chlor will
-            be run at 100%.
-            2. At the other end, if the demand is  < -20mV above the setpoint, chlor
-            will be run at 0%.
-            3. This assumes a sliding scale where we will have an equilibrium point when
-            setpoint = current orp and hopefully this will be somewhere near (50-20 / 100) = ~30% of time the chlor is on
-             
-            Thoughts from @rstrouste
-            Volume -- Check
-            Delivery Rate -- IC40, IC60, IC20 and IC30 all have different production rates in pounds/day.  The pounds are Sodium Hypochlorite which translates into Hypochlorous acid (HOCl) + Hypochlorite (OCI-).  The former is stronger and the amount of this that is produced is based upon, temperature, pH, and CYA with pH within range being irrelevant (hence the reason for pH lockout).
-             
-             
-            Additional future factors to consider-
-            * If temp is below 65(?), the chlor won't be producing any chlorine.  Throw a warning/error?
-            * If salt level is too low/high it will cause issues.  Warning/error?
-            * Adjust chlor output if it is under/oversized for the total gallons
-            */
-                        // if we are still mixing, return
-                        if (typeof sorp.mixTimeRemaining !== 'undefined' && sorp.mixTimeRemaining > 0) {
-                            await this.cancelDosing(sorp, 'still mixing');
-                            return;
-                        }
-                        // Old fashion method; let the setpoints on chlor be the master
-                        // if (chem.orp.chlorDosingMethod === 0) return;
-                        // if there is a current pending dose, finish it out
-                        if (typeof sorp.currentDose === 'undefined') {
-                            if (sorp.dosingStatus === 0) { // 0 is dosing
-                                // We need to finish off a dose that was interrupted by regular programming.  This occurs
-                                // when for instance njspc is interrupted and restarted in the middle of a dose. If we were
-                                // mixing before we will never get here.
-                                if (typeof sorp.currentDose === 'undefined')
-                                    sorp.startDose(new Timestamp().addSeconds(-sorp.doseTime).toDate(), 'auto', sorp.doseVolume + sorp.dosingVolumeRemaining, sorp.doseVolume, (sorp.doseTime + sorp.dosingTimeRemaining) * 1000, sorp.doseTime * 1000);
-                                await this.chlor.dose(sorp);
-                                return;
-                            }
-                        }
-                        let chlor = this.chlor.chlor; // Still haven't seen any systems with 2+ chlors.  
-                        // 2024.12.25 RSG - Oh really?  See https://github.com/tagyoureit/nodejs-poolController/discussions/896
-                        let schlor = state.chlorinators.getItemById(chlor.id);
-                        // If someone or something is superchloring the pool, let it be
-                        if (schlor.superChlor) return;
-                        // Let's have some fun trying to figure out a dynamic approach to chlor management
-                        let body = sys.board.bodies.getBodyState(this.chemController.chem.body);
-                        let adj = 1;
-                        if (typeof body !== 'undefined' && totalGallons > 0 && sys.bodies.length > 1) {
-                            // Intellichem scales down dosing based on the spa being on
-                            // vs the pool.  May be interesting to experiment with.
-                            let type = sys.board.valueMaps.bodyTypes.getName(body.type);
-                            switch (type) {
-                                case "pool":
-                                case "pool/spa":
-                                    // normal dosing
-                                    break;
-                                default:
-                                    // case "spa":
-                                    // adjust dosing down to the amount of the smaller body
-                                    adj -= Math.abs((body1.capacity - body2.capacity) / Math.max(body1.capacity, body2.capacity));
-                                    break;
-                            }
-                        }
-                        let model = sys.board.valueMaps.chlorinatorModel.findItem(chlor.model);
-                        if (typeof model === 'undefined' || model === 0) return Promise.reject(new EquipmentNotFoundError(`Please specify a chlorinator model to allow Nixie to calculate chlorine demand`, `chlorinator`));
-                        // if we want to adjust for over/under sized chlorinator we can do so here
-                        // if (typeof model !== 'undefined' && model.capacity > 0) {
-                        //     adj *= totalGallons / model.capacity;
-                        // }
-
-                        // unlike ph/orp tank dosing, we are using 15 min intervals so if there is an existing dose then continue
-                        if (typeof sorp.currentDose !== 'undefined' && sorp.currentDose.volumeRemaining > 0) {
-                            await this.chlor.dose(sorp);
-                            return;
-                        }
-
-                        // We could store these data points in a separate file like the dosing logs.
-                        let percentOfTime = 0;
-                        if (sorp.demand > 50) {
-                            logger.info(`Chlor demand  ${sorp.demand} > 50;  % of time set to 100%.`);
-                            percentOfTime = 1;
-                        }
-                        else if (sorp.demand < -20) {
-                            await this.cancelDosing(sorp, 'demand < -20');
-                        }
-                        else {
-                            // y=mx+b; m = 100/70; b = 100-(50*100/70) = 28.57
-                            // let's start with a straight line
-                            let b = 100 - (50 * 100 / 70);
-                            percentOfTime = ((100 / 70) * sorp.demand * adj + b) / 100;
-                            logger.info(`Chlor trend line is ${sorp.demandHistory.slope}.`);
-                            if (sorp.demandHistory.slope > 5 && sorp.demand < 0) {
-                                // need less chlorine, but we're getting there too fast
-                                // slope is high; turn down dose
-                                percentOfTime *= .5;
-                            }
-                            else if (sorp.demandHistory.slope < 5 && sorp.demand > 0) {
-                                // need more chlorine, but we aren't getting there fast enough
-                                // slope is too low, turn up dose
-                                percentOfTime *= 1.1;
-                            }
-                            else if (sorp.demandHistory.slope > 0 && sorp.demand > 0) {
-                                // chlorine is increasing, but we need less of it
-                                percentOfTime *= .5;
-                            }
-                            else if (sorp.demandHistory.slope < 0 && sorp.demand > 0) {
-                                // chlorine is decreasing, but we need more
-                                percentOfTime *= 1.1;
-                            }
-                            percentOfTime = Math.min(1, Math.max(0, percentOfTime));
-                            logger.info(`Chlor dosing % of time is ${Math.round(percentOfTime * 10000) / 100}%`)
-                        }
-
-                        // convert the % of time back to an amount of chlorine over 15 minutes; 
-                        let time = this.chlor.chlorInterval * 60 * percentOfTime;
-                        let dose = model.chlorinePerSec * time;
-                        
-                        if (dose > 0) {
-                            logger.info(`Chem chlor calculated dosing at ${Math.round(percentOfTime * 10000) / 100}% and will dose ${Math.round(dose * 1000000) / 1000000}Lbs of chlorine over the next ${utils.formatDuration(time)}.`)
-                            sorp.startDose(new Date(), 'auto', dose, 0, time, 0);
-                            await this.chlor.dose(sorp);
-                            return;
-                        }
-
-                        // if none of the other conditions are true, mix
-                        // await this.mixChemicals(sorp, this.chlor.chlorInterval * 60);
-
-                    }
-                    else if (this.orp.setpoint > sorp.level) {
-                        let pump = this.pump.pump;
-                        // Calculate how many mL are required to raise to our ORP level.
-                        let demand = sorp.calcDemand(chem);
-                        let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(demand / (pump.ratedFlow / 60));
-                        let meth = sys.board.valueMaps.chemDosingMethods.getName(this.orp.dosingMethod);
-                        // Now that we know our chlorine demand we need to adjust this dose based upon the limits provided in the setup.
-                        // When orpFormula is enabled, demand is the formula result and limits act as caps; otherwise limits are the dose.
-                        switch (meth) {
-                            case 'time':
-                                if (demand <= 0 || time > this.orp.maxDosingTime) {
-                                    time = this.orp.maxDosingTime;
-                                    demand = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
-                                }
-                                break;
-                            case 'volume':
-                                if (demand <= 0 || demand > this.orp.maxDosingVolume) demand = this.orp.maxDosingVolume;
-                                time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(demand / (pump.ratedFlow / 60));
-                                break;
-                            case 'volumeTime':
-                            default:
-                                // This is maybe a bit dumb as the volume and time should equal out for the rated flow.  In other words
-                                // you will never get to the volume limit if the rated flow can't keep up to the time.
-                                if (demand > this.orp.maxDosingVolume) {
-                                    demand = this.orp.maxDosingVolume;
-                                    time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(demand / (pump.ratedFlow / 60));
-                                }
-                                if (time > this.orp.maxDosingTime) {
-                                    time = this.orp.maxDosingTime;
-                                    demand = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
-                                }
-                                break;
-                        }
-                        logger.info(`Chem orp dose calculated ${demand}mL for ${utils.formatDuration(time)} Tank Level: ${sorp.tank.level} using ${meth}`);
-
-                        sorp.demand = demand;
-
-                        if (typeof sorp.currentDose === 'undefined') {
-                            // We will include this with the dose demand because our limits may reduce it.
-                            //dosage.demand = demand;
-                            if (sorp.dosingStatus === 0) { // 0 is dosing.
-                                // We need to finish off a dose that was interrupted by regular programming.  This occurs
-                                // when for instance njspc is interrupted and restarted in the middle of a dose. If we were
-                                // mixing before we will never get here.
-                                if (typeof sorp.currentDose === 'undefined')
-                                    sorp.startDose(new Timestamp().addSeconds(-sorp.doseTime).toDate(), 'auto', sorp.doseVolume + sorp.dosingVolumeRemaining, sorp.doseVolume, (sorp.doseTime + sorp.dosingTimeRemaining) * 1000, sorp.doseTime * 1000);
-                            }
-                            else
-                                sorp.startDose(new Date(), 'auto', demand, 0, time, 0);
-                        }
-                        // Now let's determine what we need to do with our pump to satisfy our acid demand.
-                        if (sorp.tank.level > 0) {
-                            await this.pump.dose(sorp);
-                        }
-                        else await this.cancelDosing(sorp, 'empty tank');
-                    }
+                    if (chem.orp.useChlorinator)
+                        await this.checkChlorDosing(chem, sorp);
+                    else if (this.orp.setpoint > sorp.level)
+                        await this.doAutoDosing(sorp);
                 }
                 else
                     await this.cancelDosing(sorp, 'unknown cancel');
             }
         }
         catch (err) { logger.error(`checkDosing ORP: ${err.message}`); return Promise.reject(err); }
+    }
+    // Extracted chlorinator dosing path — trend-line math, 15-min intervals, chlor.dose().
+    private async checkChlorDosing(chem: ChemController, sorp: ChemicalORPState): Promise<void> {
+        let totalGallons = 0;
+        let body1 = sys.bodies.getItemById(1);
+        let body2 = sys.bodies.getItemById(2);
+        if (chem.body === 0 || chem.body === 32) totalGallons += body1.capacity;
+        if (chem.body === 1 || chem.body === 32) totalGallons += body2.capacity;
+        if (chem.body === 2) totalGallons += sys.bodies.getItemById(3).capacity;
+        if (chem.body === 3) totalGallons += sys.bodies.getItemById(4).capacity;
+        /*
+Alright, here's the current thinking.
+1. If the orp setpoint is > 50mV below the current orp, the chlor will
+be run at 100%.
+2. At the other end, if the demand is  < -20mV above the setpoint, chlor
+will be run at 0%.
+3. This assumes a sliding scale where we will have an equilibrium point when
+setpoint = current orp and hopefully this will be somewhere near (50-20 / 100) = ~30% of time the chlor is on
+ 
+Thoughts from @rstrouste
+Volume -- Check
+Delivery Rate -- IC40, IC60, IC20 and IC30 all have different production rates in pounds/day.  The pounds are Sodium Hypochlorite which translates into Hypochlorous acid (HOCl) + Hypochlorite (OCI-).  The former is stronger and the amount of this that is produced is based upon, temperature, pH, and CYA with pH within range being irrelevant (hence the reason for pH lockout).
+ 
+ 
+Additional future factors to consider-
+* If temp is below 65(?), the chlor won't be producing any chlorine.  Throw a warning/error?
+* If salt level is too low/high it will cause issues.  Warning/error?
+* Adjust chlor output if it is under/oversized for the total gallons
+*/
+        // if we are still mixing, return
+        if (typeof sorp.mixTimeRemaining !== 'undefined' && sorp.mixTimeRemaining > 0) {
+            await this.cancelDosing(sorp, 'still mixing');
+            return;
+        }
+        // Old fashion method; let the setpoints on chlor be the master
+        // if (chem.orp.chlorDosingMethod === 0) return;
+        // if there is a current pending dose, finish it out
+        if (typeof sorp.currentDose === 'undefined') {
+            if (sorp.dosingStatus === 0) { // 0 is dosing
+                // We need to finish off a dose that was interrupted by regular programming.  This occurs
+                // when for instance njspc is interrupted and restarted in the middle of a dose. If we were
+                // mixing before we will never get here.
+                if (typeof sorp.currentDose === 'undefined')
+                    sorp.startDose(new Timestamp().addSeconds(-sorp.doseTime).toDate(), 'auto', sorp.doseVolume + sorp.dosingVolumeRemaining, sorp.doseVolume, (sorp.doseTime + sorp.dosingTimeRemaining) * 1000, sorp.doseTime * 1000);
+                await this.chlor.dose(sorp);
+                return;
+            }
+        }
+        let chlor = this.chlor.chlor; // Still haven't seen any systems with 2+ chlors.  
+        // 2024.12.25 RSG - Oh really?  See https://github.com/tagyoureit/nodejs-poolController/discussions/896
+        let schlor = state.chlorinators.getItemById(chlor.id);
+        // If someone or something is superchloring the pool, let it be
+        if (schlor.superChlor) return;
+        // Let's have some fun trying to figure out a dynamic approach to chlor management
+        let body = sys.board.bodies.getBodyState(this.chemController.chem.body);
+        let adj = 1;
+        if (typeof body !== 'undefined' && totalGallons > 0 && sys.bodies.length > 1) {
+            // Intellichem scales down dosing based on the spa being on
+            // vs the pool.  May be interesting to experiment with.
+            let type = sys.board.valueMaps.bodyTypes.getName(body.type);
+            switch (type) {
+                case "pool":
+                case "pool/spa":
+                    // normal dosing
+                    break;
+                default:
+                    // case "spa":
+                    // adjust dosing down to the amount of the smaller body
+                    adj -= Math.abs((body1.capacity - body2.capacity) / Math.max(body1.capacity, body2.capacity));
+                    break;
+            }
+        }
+        let model = sys.board.valueMaps.chlorinatorModel.findItem(chlor.model);
+        if (typeof model === 'undefined' || model === 0) return Promise.reject(new EquipmentNotFoundError(`Please specify a chlorinator model to allow Nixie to calculate chlorine demand`, `chlorinator`));
+        // if we want to adjust for over/under sized chlorinator we can do so here
+        // if (typeof model !== 'undefined' && model.capacity > 0) {
+        //     adj *= totalGallons / model.capacity;
+        // }
+
+        // unlike ph/orp tank dosing, we are using 15 min intervals so if there is an existing dose then continue
+        if (typeof sorp.currentDose !== 'undefined' && sorp.currentDose.volumeRemaining > 0) {
+            await this.chlor.dose(sorp);
+            return;
+        }
+
+        // We could store these data points in a separate file like the dosing logs.
+        let percentOfTime = 0;
+        if (sorp.demand > 50) {
+            logger.info(`Chlor demand  ${sorp.demand} > 50;  % of time set to 100%.`);
+            percentOfTime = 1;
+        }
+        else if (sorp.demand < -20) {
+            await this.cancelDosing(sorp, 'demand < -20');
+        }
+        else {
+            // y=mx+b; m = 100/70; b = 100-(50*100/70) = 28.57
+            // let's start with a straight line
+            let b = 100 - (50 * 100 / 70);
+            percentOfTime = ((100 / 70) * sorp.demand * adj + b) / 100;
+            logger.info(`Chlor trend line is ${sorp.demandHistory.slope}.`);
+            if (sorp.demandHistory.slope > 5 && sorp.demand < 0) {
+                // need less chlorine, but we're getting there too fast
+                // slope is high; turn down dose
+                percentOfTime *= .5;
+            }
+            else if (sorp.demandHistory.slope < 5 && sorp.demand > 0) {
+                // need more chlorine, but we aren't getting there fast enough
+                // slope is too low, turn up dose
+                percentOfTime *= 1.1;
+            }
+            else if (sorp.demandHistory.slope > 0 && sorp.demand > 0) {
+                // chlorine is increasing, but we need less of it
+                percentOfTime *= .5;
+            }
+            else if (sorp.demandHistory.slope < 0 && sorp.demand > 0) {
+                // chlorine is decreasing, but we need more
+                percentOfTime *= 1.1;
+            }
+            percentOfTime = Math.min(1, Math.max(0, percentOfTime));
+            logger.info(`Chlor dosing % of time is ${Math.round(percentOfTime * 10000) / 100}%`)
+        }
+
+        // convert the % of time back to an amount of chlorine over 15 minutes; 
+        let time = this.chlor.chlorInterval * 60 * percentOfTime;
+        let dose = model.chlorinePerSec * time;
+        
+        if (dose > 0) {
+            logger.info(`Chem chlor calculated dosing at ${Math.round(percentOfTime * 10000) / 100}% and will dose ${Math.round(dose * 1000000) / 1000000}Lbs of chlorine over the next ${utils.formatDuration(time)}.`)
+            sorp.startDose(new Date(), 'auto', dose, 0, time, 0);
+            await this.chlor.dose(sorp);
+            return;
+        }
+
+        // if none of the other conditions are true, mix
+        // await this.mixChemicals(sorp, this.chlor.chlorInterval * 60);
+    }
+    protected calcDoseForDemand(schem: ChemicalState): { dose: number, time: number } | null {
+        let sorp = schem as ChemicalORPState;
+        if (this.orp.setpoint <= sorp.level) return null;
+        let pump = this.pump.pump;
+        let demand = sorp.calcDemand(this.chemController.chem);
+        let time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(demand / (pump.ratedFlow / 60));
+        let meth = sys.board.valueMaps.chemDosingMethods.getName(this.orp.dosingMethod);
+        // Preserve original ORP limit logic including the demand<=0 fallback for time/volume methods.
+        switch (meth) {
+            case 'time':
+                if (demand <= 0 || time > this.orp.maxDosingTime) {
+                    time = this.orp.maxDosingTime;
+                    demand = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
+                }
+                break;
+            case 'volume':
+                if (demand <= 0 || demand > this.orp.maxDosingVolume) demand = this.orp.maxDosingVolume;
+                time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(demand / (pump.ratedFlow / 60));
+                break;
+            case 'volumeTime':
+            default:
+                if (demand > this.orp.maxDosingVolume) {
+                    demand = this.orp.maxDosingVolume;
+                    time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(demand / (pump.ratedFlow / 60));
+                }
+                if (time > this.orp.maxDosingTime) {
+                    time = this.orp.maxDosingTime;
+                    demand = typeof pump.ratedFlow === 'undefined' ? 0 : Math.round(time * (this.pump.pump.ratedFlow / 60));
+                }
+                break;
+        }
+        logger.info(`Chem orp dose calculated ${demand}mL for ${utils.formatDuration(time)} Tank Level: ${sorp.tank.level} using ${meth}`);
+        sorp.demand = demand;
+        if (demand <= 0 && time <= 0) return null;
+        return { dose: demand, time };
     }
     public async deleteChlorAsync(chlor: NixieChlorinator) {
         logger.info(`Removing chlor ${chlor.id} from Chem Controller ${this.getParent().id}`);
