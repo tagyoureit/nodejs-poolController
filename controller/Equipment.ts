@@ -2437,6 +2437,7 @@ export interface IChemical {
     startDelay: number;
     maxDosingTime?: number;
     maxDosingVolume?: number;
+    minDosingVolume?: number;
 }
 export class Chemical extends ChildEqItem implements IChemical {
     public dataName = 'chemicalConfig';
@@ -2461,6 +2462,8 @@ export class Chemical extends ChildEqItem implements IChemical {
     public set maxDosingTime(val: number) { this.setDataVal('maxDosingTime', val); }
     public get maxDosingVolume(): number { return this.data.maxDosingVolume; }
     public set maxDosingVolume(val: number) { this.setDataVal('maxDosingVolume', val); }
+    public get minDosingVolume(): number { return this.data.minDosingVolume || 0; }
+    public set minDosingVolume(val: number) { this.setDataVal('minDosingVolume', val); }
     public get maxDailyVolume(): number { return this.data.maxDailyVolume; }
     public set maxDailyVolume(val: number) { this.setDataVal('maxDailyVolume', val); }
 

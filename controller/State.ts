@@ -3214,8 +3214,12 @@ export class ChemicalORPState extends ChemicalState {
             totalGallons = sys.bodies.getItemById(chem.body + 1).capacity;
         }
 
-        // Use live pH reading; fall back to setpoint then a safe default
-        let pH = this.chemController.ph.level || chem.ph.setpoint || 7.4;
+        // Use live pH reading; fall back to setpoint then a safe default.
+        // Clamp to the pH setpoint as a floor: if pH is below setpoint the pool is already
+        // acidic and we still want to dose chlorine at the normal rate so the alkaline NaOCl
+        // helps bring pH back up. Using actual low pH would artificially suppress demand.
+        let rawPh = this.chemController.ph.level || chem.ph.setpoint || 7.4;
+        let pH = Math.max(rawPh, chem.ph.setpoint || 7.4);
 
         // Wojtowicz 1994 empirical formula: FC_ppm = 10^((ORP - 683 + 59.2*(pH-7.0)) / 48.9)
         let fcCurrent = Math.pow(10, (this.level    - 683 + 59.2 * (pH - 7.0)) / 48.9);

@@ -970,6 +970,7 @@ class NixieChemical extends NixieChildEquipment implements INixieChemical {
                 }
                 chemical.maxDosingTime = typeof data.maxDosingTime !== 'undefined' ? parseInt(data.maxDosingTime, 10) : chemical.maxDosingTime;
                 chemical.maxDosingVolume = typeof data.maxDosingVolume !== 'undefined' ? parseInt(data.maxDosingVolume, 10) : chemical.maxDosingVolume;
+                chemical.minDosingVolume = typeof data.minDosingVolume !== 'undefined' ? parseInt(data.minDosingVolume, 10) : chemical.minDosingVolume;
                 chemical.startDelay = typeof data.startDelay !== 'undefined' ? parseFloat(data.startDelay) : chemical.startDelay;
                 chemical.maxDailyVolume = typeof data.maxDailyVolume !== 'undefined' ? typeof data.maxDailyVolume === 'number' ? data.maxDailyVolume : parseInt(data.maxDailyVolume, 10) : chemical.maxDailyVolume;
             }
@@ -2476,6 +2477,14 @@ Additional future factors to consider-
         logger.info(`Chem orp dose calculated ${demand}mL for ${utils.formatDuration(time)} Tank Level: ${sorp.tank.level} using ${meth}`);
         sorp.demand = demand;
         if (demand <= 0 && time <= 0) return null;
+        // If the formula demand is positive but smaller than the configured minimum, overdose to
+        // the minimum so that tiny probe-noise-driven doses still have a meaningful effect.
+        let minVol = this.orp.minDosingVolume || 0;
+        if (minVol > 0 && demand > 0 && demand < minVol) {
+            demand = minVol;
+            time = typeof pump.ratedFlow === 'undefined' || pump.ratedFlow <= 0 ? 0 : Math.round(demand / (pump.ratedFlow / 60));
+            logger.info(`Chem orp demand below minDosingVolume (${minVol}mL); bumping dose to ${demand}mL for ${utils.formatDuration(time)}`);
+        }
         return { dose: demand, time };
     }
     public async deleteChlorAsync(chlor: NixieChlorinator) {
