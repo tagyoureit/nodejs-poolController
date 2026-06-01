@@ -2285,6 +2285,9 @@ export class NixieChemicalORP extends NixieChemical {
             else if (sorp.dailyLimitReached && !chem.orp.useChlorinator) {
                 await this.cancelDosing(sorp, 'daily limit');
             }
+            else if (!chem.orp.useChlorinator && sorp.chemController.ph.level >= chem.orp.phLockout) {
+                await this.cancelDosing(sorp, 'ph lockout');
+            }
             // if the ph pump is dosing and dosePriority is enabled, do not dose
             else if (sorp.chemController.ph.pump.isDosing && chem.ph.dosePriority) {
                 await this.cancelDosing(sorp, 'ph pump dosing + dose priority');
