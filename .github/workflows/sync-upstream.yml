@@ -1,0 +1,128 @@
+name: Sync from upstream + auto-regen intarweb-dev
+
+# HEAD-tracked Model B fork:
+#   - origin/master   = upstream tagyoureit/master, byte-identical (we keep no patches here)
+#   - origin/intarweb-dev = master + cherry-picked open PRs we've filed back upstream
+#
+# Daily-ish sync: rebase master onto upstream/master, regen intarweb-dev as
+# (master + each open PR's head branch fetched + cherry-picked in number order).
+# A tree-level diff against the existing intarweb-dev triggers a build + :latest
+# promotion only when the actual content changed (cherry-pick rewrites
+# committer timestamps, so SHA-level diff over-fires).
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch:
+
+permissions:
+  actions: write          # workflow_dispatch trigger (publish step) 403s without this
+  contents: write
+  pull-requests: read
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout fork
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.SYNC_WORKFLOW_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: ⚙️  Configure git identity
+        run: |
+          git config user.email "actions@github.com"
+          git config user.name "intarweb sync bot"
+
+      - name: 🔗 Add upstream remote
+        run: git remote add upstream https://github.com/tagyoureit/nodejs-poolController.git
+
+      - name: 🔄 Fetch upstream + all fork branches
+        run: |
+          git fetch upstream master --tags
+          git fetch origin --prune
+
+      - name: 🔁 Rebase master onto upstream/master
+        run: |
+          git checkout master
+          git rebase upstream/master
+          git push --force-with-lease origin master
+
+      - name: 🔍 Discover open PRs from intarweb to upstream
+        id: prs
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api --paginate "repos/tagyoureit/nodejs-poolController/pulls?state=open&per_page=100" \
+            --jq '.[] | select(.head.repo.owner.login == "${{ github.repository_owner }}") | "\(.number) \(.head.ref) \(.title)"' \
+            | sort -n -u > /tmp/prs.txt
+          if [ ! -s /tmp/prs.txt ]; then
+            echo "  No open PRs from ${{ github.repository_owner }} to upstream — intarweb-dev will == master"
+          else
+            echo "  Open PRs to cherry-pick onto intarweb-dev:"
+            sed 's/^/    /' /tmp/prs.txt
+          fi
+
+      - name: 🌿 Regenerate intarweb-dev = master + open-PR cherry-picks
+        id: regen
+        run: |
+          git checkout -B intarweb-dev master
+          while read num branch title; do
+            [ -z "$num" ] && continue
+            echo "::group::PR #$num — $branch ($title)"
+            git fetch origin "$branch" || { echo "  ✗ failed to fetch origin/$branch"; exit 1; }
+            # Range "intarweb-dev..origin/$branch" = commits on branch not yet on intarweb-dev.
+            # As we apply more PRs, intarweb-dev grows; later branches only contribute their NEW commits.
+            # If a PR was merged upstream, its commits are now on master (and thus intarweb-dev), so this is empty.
+            COMMITS=$(git log --reverse --format=%H "intarweb-dev..origin/$branch")
+            if [ -z "$COMMITS" ]; then
+              echo "  - no unique commits — already on intarweb-dev (likely merged upstream); skipping"
+            else
+              for c in $COMMITS; do
+                if ! git cherry-pick "$c"; then
+                  echo "::error::CONFLICT cherry-picking $c from PR #$num. intarweb-dev unchanged. Manual resolve required."
+                  git cherry-pick --abort || true
+                  exit 1
+                fi
+              done
+              echo "  ✓ applied $(echo "$COMMITS" | wc -w) commits from PR #$num"
+            fi
+            echo "::endgroup::"
+          done < /tmp/prs.txt
+
+          # Did intarweb-dev's TREE actually change vs the existing remote?
+          # Compare trees (content), not SHAs (which differ each run because
+          # cherry-pick rewrites committer timestamps).
+          if git rev-parse origin/intarweb-dev^{tree} >/dev/null 2>&1; then
+            OLD_TREE=$(git rev-parse origin/intarweb-dev^{tree})
+            NEW_TREE=$(git rev-parse intarweb-dev^{tree})
+            if [ "$OLD_TREE" = "$NEW_TREE" ]; then
+              echo "  - intarweb-dev tree unchanged; skipping push + publish trigger"
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "  - intarweb-dev tree changed; will push + trigger publish"
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "  - intarweb-dev did not exist on origin; will push + trigger publish"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 📤 Force-push intarweb-dev
+        if: steps.regen.outputs.changed == 'true'
+        run: git push --force-with-lease origin intarweb-dev
+
+      - name: 🚀 Trigger publish on intarweb-dev
+        if: steps.regen.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run "Build from source → GHCR" --repo ${{ github.repository }} --ref intarweb-dev
+
+      - name: ✅ Show final state
+        run: |
+          echo "  master HEAD:        $(git log master --oneline -1)"
+          echo "  intarweb-dev HEAD:  $(git log intarweb-dev --oneline -1)"
+          echo "  intarweb-dev commits ahead of upstream/master:"
+          git log --oneline upstream/master..intarweb-dev | sed 's/^/    /' || true

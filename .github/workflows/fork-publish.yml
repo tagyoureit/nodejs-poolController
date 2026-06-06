@@ -1,18 +1,21 @@
 name: Fork-publish (mirror upstream → GHCR)
 
-# Mirror-only fork: byte-identical imagetools copy of upstream's GHCR images
-# into ghcr.io/intarweb/njspc so home infra can pin a known-good pre-regression
-# digest while the IntelliCenter-parser issue gets investigated upstream.
+# Tag-mirror leg of a HEAD-tracked Model B fork: byte-identical imagetools copy
+# of upstream's GHCR images for explicit version pins. Distinct from the
+# build-from-source.yml workflow that produces :latest from intarweb-dev (master
+# + carried open PRs) — this workflow only handles version-tagged mirrors that
+# operators may want to pin against directly.
 #
-# WHY: upstream's :latest (re-published 2026-05-15 with release tag 9.1.0) appears
-# to have an IntelliCenter parser regression that rejects every RS-485 frame as
-# "unprocessed" — equipment discovery stalls, circuits/schedules stay empty,
-# pumps don't fire. Surfaced in our fleet 2026-06-04 when the container restarted
-# and picked up the May-15 image.
+# Promoted to HEAD-tracked 2026-06-06 to carry two patches:
+#   1. EquipmentStateMessage IntelliCenter-v3 detection re-narrow (fb67a2d0 regression)
+#   2. IntelliChem standalone-listen mode allowed on EasyTouch + IntelliCenter
+# Both filed upstream as PRs; once merged the patches drop and this fork can
+# return to mirror-only.
 #
-# Strategy: pin known-good pre-regression anchors (9.0.0 and the trailing 8.4.x line).
-# NOT mirroring :latest or :master or 9.1.x — those are the regression suspects.
-# See FORK_INFO.md for the investigation notes + suspected commit range.
+# DO NOT add :latest, :master, or 9.1.x to TAGS here — :latest is owned by the
+# build-from-source workflow and reflects intarweb-dev's content, not upstream
+# master directly. 9.1.x had the EasyTouch regression and shouldn't be exposed
+# to operators as a one-line pin.
 
 on:
   schedule:

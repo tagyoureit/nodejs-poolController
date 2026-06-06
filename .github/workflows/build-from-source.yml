@@ -1,0 +1,109 @@
+name: Build from source → GHCR
+
+# Build the Dockerfile from this repo and push to ghcr.io/intarweb/njspc.
+# Triggered:
+#   - on push to master         → publishes :sha-XXXXXXX (canary, not :latest)
+#   - on push to intarweb-dev   → publishes :sha-XXXXXXX AND promotes :latest
+#                                   (intarweb-dev is master + carried PRs we've filed
+#                                    upstream — this is what the fleet consumes)
+#   - workflow_dispatch         → manual; uses the ref it was dispatched on
+
+on:
+  push:
+    branches: [master, intarweb-dev]
+    paths:
+      - 'Dockerfile'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'controller/**'
+      - 'web/**'
+      - 'logger/**'
+      - 'config/**'
+      - 'app.ts'
+      - 'defaultConfig.json'
+      - '.github/workflows/build-from-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/njspc
+  PLATFORMS: linux/amd64,linux/arm64,linux/arm/v7
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      sha-tag: ${{ steps.sha.outputs.short }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🏷️ Compute short SHA
+        id: sha
+        run: echo "short=${GITHUB_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: 🚀 Build & push :sha-${{ steps.sha.outputs.short }}
+        uses: docker/build-push-action@v6
+        id: build
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: ${{ env.PLATFORMS }}
+          push: true
+          provenance: mode=max
+          sbom: true
+          tags: ${{ env.IMAGE }}:sha-${{ steps.sha.outputs.short }}
+          annotations: |
+            index:org.opencontainers.image.source=https://github.com/${{ github.repository_owner }}/nodejs-poolController
+            index:org.opencontainers.image.revision=${{ github.sha }}
+            index:org.opencontainers.image.description=njspc — from-source build of upstream master + intarweb open PRs (EasyTouch IntelliCenter-v3 misclassification fix + IntelliChem standalone-listen)
+
+      - name: 🔬 Smoke test (linux/amd64 only)
+        run: |
+          set -e
+          # The image's prod stage runs `node dist/app.js`. Without a serial port
+          # bound, the app errors during equipment-comm bring-up — but it should
+          # at least print its bind banner before that. We confirm the image
+          # entrypoint executes and the Node runtime is functional.
+          docker pull --platform linux/amd64 "${IMAGE}:sha-${SHA_SHORT}"
+          out=$(timeout 10 docker run --rm --platform linux/amd64 \
+            -e POOL_NET_CONNECT=false \
+            "${IMAGE}:sha-${SHA_SHORT}" 2>&1 || true)
+          echo "$out" | head -50 | sed 's/^/    /'
+          # Look for the app's startup banner OR a known-early log line.
+          # njspc prints various startup messages; "Server is now listening" or
+          # any "info:" level line indicates the Node entrypoint ran.
+          if echo "$out" | grep -qE "(Server is now listening|info:|Express server|nodejs-poolController|njsPC|loading|loaded)" ; then
+            echo "  ✓ smoke passed (entrypoint executed)"
+          else
+            echo "  ✗ smoke FAILED — no startup output detected"
+            exit 1
+          fi
+        env:
+          IMAGE: ${{ env.IMAGE }}
+          SHA_SHORT: ${{ steps.sha.outputs.short }}
+
+      - name: 🏷️ Promote :latest (smoke passed, intarweb-dev branch only)
+        if: github.ref == 'refs/heads/intarweb-dev'
+        run: |
+          docker buildx imagetools create \
+            --tag "${IMAGE}:latest" \
+            "${IMAGE}:sha-${SHA_SHORT}"
+        env:
+          IMAGE: ${{ env.IMAGE }}
+          SHA_SHORT: ${{ steps.sha.outputs.short }}
