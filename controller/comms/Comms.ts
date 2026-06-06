@@ -1241,6 +1241,15 @@ export class RS485Port {
     protected processInboundPackets() {
         this.counter.bytesReceived += this._inBuffer.length;
         this._inBytes.push.apply(this._inBytes, this._inBuffer.splice(0, this._inBuffer.length));
+        // Guard against a runaway parse buffer (e.g. noisy RS485 with no valid frames).
+        // At 19200 baud, ~500 bytes is ~200ms of data — more than enough to hold several complete frames.
+        // If the buffer exceeds this threshold the parse loop will never drain it synchronously and will
+        // starve Node's event loop, causing HTTP timeouts.
+        if (this._inBytes.length > 1024) {
+            logger.warn(`RS485 inbound buffer overflow (${this._inBytes.length} bytes); truncating to prevent event loop stall`);
+            this._inBytes = this._inBytes.slice(this._inBytes.length - 512);
+            this._msg = null;
+        }
         if (this._inBytes.length >= 1) { // Wait until we have something to process.
             let ndx: number = 0;
             let msg: Inbound = this._msg;
