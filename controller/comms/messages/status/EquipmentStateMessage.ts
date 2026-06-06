@@ -104,11 +104,12 @@ export class EquipmentStateMessage {
         // (same convention IntelliTouch used for the `[1, N]` family above).  Observed so far:
         //   [3, 2] = v3.004+ i8PS / i10PS personality card only
         //   [3, 3] = v3.008 i10D personality card + i10X expansion panels (Discussion #1171 / ISSUE-081)
-        // No IntelliTouch variant has ever reported model1=3, so `model1 === 3` is a safe
-        // single-check marker for IntelliCenter v3 regardless of which panel variant byte 28 carries.
+        // EasyTouch ALSO reports model1=3 for some panel variants (with model2 != 2), so
+        // the v3 detection must be narrowed back to `model2 === 2 && model1 === 3` to keep
+        // EasyTouch frames flowing to the EasyTouch parser. (See PR re: fb67a2d0 regression.)
         if ((model2 === 0 && (model1 === 23 || model1 >= 40)) ||
             (model2 === 2 && model1 == 0 && msg.header[1] === 1) ||
-            (model1 === 3 && msg.header[1] === 1)) {
+            (model2 === 2 && model1 === 3 && msg.header[1] === 1)) {
             state.equipment.controllerType = 'intellicenter';
             sys.board.modulesAcquired = false;
             sys.controllerType = ControllerType.IntelliCenter;
