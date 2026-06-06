@@ -1,0 +1,58 @@
+name: Fork-publish (mirror upstream → GHCR)
+
+# Mirror-only fork: byte-identical imagetools copy of upstream's GHCR images
+# into ghcr.io/intarweb/njspc so home infra can pin a known-good pre-regression
+# digest while the IntelliCenter-parser issue gets investigated upstream.
+#
+# WHY: upstream's :latest (re-published 2026-05-15 with release tag 9.1.0) appears
+# to have an IntelliCenter parser regression that rejects every RS-485 frame as
+# "unprocessed" — equipment discovery stalls, circuits/schedules stay empty,
+# pumps don't fire. Surfaced in our fleet 2026-06-04 when the container restarted
+# and picked up the May-15 image.
+#
+# Strategy: pin known-good pre-regression anchors (9.0.0 and the trailing 8.4.x line).
+# NOT mirroring :latest or :master or 9.1.x — those are the regression suspects.
+# See FORK_INFO.md for the investigation notes + suspected commit range.
+
+on:
+  schedule:
+    - cron: '1 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  UPSTREAM_IMAGE: ghcr.io/tagyoureit/njspc
+  TARGET_IMAGE_NAME: njspc
+  # Pre-regression anchors only. Add a new X.Y.Z here when upstream cuts a
+  # release that fixes #IntelliCenter-parser AND we've validated it.
+  TAGS: "9.0.0 9.0 8.4.1 8.4 8"
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🔑 Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: 🪞 Mirror tags to GHCR
+        run: |
+          set -uo pipefail
+          TARGET="ghcr.io/${{ github.repository_owner }}/${TARGET_IMAGE_NAME}"
+          fail=0
+          for tag in ${TAGS}; do
+            echo "::group::Mirror ${UPSTREAM_IMAGE}:$tag → $TARGET:$tag"
+            if docker buildx imagetools inspect "${UPSTREAM_IMAGE}:$tag" >/dev/null 2>&1; then
+              if docker buildx imagetools create --tag "$TARGET:$tag" "${UPSTREAM_IMAGE}:$tag"; then
+                echo "  ✓ mirrored $tag"
+              else echo "::error::failed to mirror $tag"; fail=1; fi
+            else echo "  - upstream tag $tag does not exist, skipping"; fi
+            echo "::endgroup::"
+          done
+          exit $fail
