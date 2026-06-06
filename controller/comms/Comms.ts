@@ -1233,10 +1233,11 @@ export class RS485Port {
         this._inBytes.unshift(...msg.payload);
         this._inBytes.unshift(...msg.header.slice(1)); // Trim off the first byte from the header.  This means it won't find 16,2 or start with a 165. The
         // algorithm looks for the header bytes to determine the protocol so the rewind shouldn't include the 16 in 16,2 otherwise it will just keep rewinding.
-        this._msg = msg = new Inbound();
-        ndx = msg.readPacket(this._inBytes);
-        if (msg.isComplete) { ndx = this.processCompletedMessage(msg, ndx); }
-        return ndx;
+        this._msg = null; // Let the outer do-while loop in processInboundPackets create a fresh Inbound and retry.
+        // Do NOT call processCompletedMessage recursively here — that caused unbounded recursion when
+        // the buffer contained many back-to-back failed frames (e.g. RS485 echo traffic), burning the
+        // event loop and starving HTTP requests.
+        return 0; // Signal outer loop to retry from the beginning of the rebuilt _inBytes.
     }
     protected processInboundPackets() {
         this.counter.bytesReceived += this._inBuffer.length;
