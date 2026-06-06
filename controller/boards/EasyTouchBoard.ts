@@ -3062,9 +3062,13 @@ class TouchChemControllerCommands extends ChemControllerCommands {
             let cyanuricAcid = typeof data.cyanuricAcid !== 'undefined' ? parseInt(data.cyanuricAcid, 10) : chem.cyanuricAcid;
             let alkalinity = typeof data.alkalinity !== 'undefined' ? parseInt(data.alkalinity, 10) : chem.alkalinity;
             let borates = typeof data.borates !== 'undefined' ? parseInt(data.borates, 10) : chem.borates || 0;
-            let intellichemStandalone = sys.controllerType === ControllerType.Nixie
-                ? (typeof data.intellichemStandalone !== 'undefined' ? utils.makeBool(data.intellichemStandalone) : chem.intellichemStandalone)
-                : false;
+            // intellichemStandalone allows njspc to passively listen to IntelliChem state
+            // messages (action 18 from address 144-158) directly off the bus, instead of
+            // relying on the OCP to mediate IntelliChem state through 147 messages.
+            // This is useful when the OCP doesn't know about its IntelliChem at the
+            // panel-config level (e.g. after EasyTouch firmware updates that wipe
+            // peripheral configs) but the IntelliChem still broadcasts on the RS-485 bus.
+            let intellichemStandalone = typeof data.intellichemStandalone !== 'undefined' ? utils.makeBool(data.intellichemStandalone) : chem.intellichemStandalone;
             let body = sys.board.bodies.mapBodyAssociation(typeof data.body === 'undefined' ? chem.body : data.body);
             if (typeof body === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Invalid body assignment`, 'chemController', data.body || chem.body));
             // Do a final validation pass so we dont send this off in a mess.

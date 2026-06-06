@@ -5088,10 +5088,18 @@ export class ChemControllerCommands extends BoardCommands {
                 if (t.hasAddress) chem.address = address;
             }
             chem.isActive = true;
-            // IntelliChem standalone polling is only valid when Nixie is the controller.
-            if (t.name === 'intellichem' && sys.controllerType !== ControllerType.Nixie) data.intellichemStandalone = false;
-            // So here is the thing.  If you have an OCP then the IntelliChem must be controlled by that.
-            // the messages on the bus will talk back to the OCP so if you do not do this mayhem will ensue.
+            // IntelliChem standalone polling is now allowed on any board: when set true,
+            // njspc passively listens to action-18 messages from the chem controller's
+            // bus address (144-158) and parses them directly. This makes IntelliChem
+            // accessible even when the OCP doesn't know about it at the panel-config
+            // level (a real failure mode after EasyTouch firmware updates that wipe
+            // peripheral configs but leave the IntelliChem broadcasting on the bus).
+            // Default behavior (intellichemStandalone=false) is unchanged: OCP-mediated
+            // routing via 147 messages.
+            // So here is the thing.  If you have an OCP then the IntelliChem will normally
+            // be controlled by that — the messages on the bus will talk back to the OCP
+            // so if you do not do this mayhem will ensue. The standalone flag is the
+            // opt-in escape hatch for when the OCP-mediated path is broken.
             if (t.name === 'intellichem') {
                 logger.info(`${chem.name} - ${chem.id} routing IntelliChem to OCP`);
                 await sys.board.chemControllers.setIntelliChemAsync(data);

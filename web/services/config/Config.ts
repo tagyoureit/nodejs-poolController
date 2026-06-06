@@ -510,7 +510,10 @@ export class ConfigRoute {
                     // waterFlow: sys.board.valueMaps.chemControllerWaterFlow.toArray(), // remove
                     controllers: sys.chemControllers.get(),
                     maxChemControllers: sys.equipment.maxChemControllers,
-                    intellichemStandaloneSupported: sys.controllerType === ControllerType.Nixie,
+                    // intellichemStandalone is now supported on any board: it tells njspc
+                    // to passively listen to IntelliChem broadcasts (action 18) directly
+                    // off the bus instead of expecting OCP-mediated routing.
+                    intellichemStandaloneSupported: true,
                     doserTypes: sys.board.valueMaps.chemDoserTypes.toArray(),
                     chlorinators: sys.chlorinators.get(),
                 };
