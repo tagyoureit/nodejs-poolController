@@ -291,7 +291,7 @@ export class ConfigRoute {
             try {
                 let opts = {
                     maxCircuits: sys.equipment.maxCircuits,
-                    equipmentIds: sys.equipment.equipmentIds.circuits,
+                    equipmentIds: (sys.equipment.equipmentIds || sys.board.equipmentIds).circuits,
                     invalidIds: sys.board.equipmentIds.invalidIds.get(),
                     equipmentNames: sys.board.circuits.getCircuitNames(),
                     functions: sys.board.circuits.getCircuitFunctions(),
@@ -328,7 +328,7 @@ export class ConfigRoute {
             let opts = {
                 maxFeatures: sys.equipment.maxFeatures,
                 invalidIds: sys.board.equipmentIds.invalidIds.get(),
-                equipmentIds: sys.equipment.equipmentIds.features,
+                equipmentIds: (sys.equipment.equipmentIds || sys.board.equipmentIds).features,
                 equipmentNames: sys.board.circuits.getCircuitNames(),
                 functions: sys.board.features.getFeatureFunctions(),
                 features: sys.features.get()
@@ -1247,6 +1247,37 @@ export class ConfigRoute {
         app.put('/app/logger/clearMessages', (req, res) => {
             logger.clearMessages();
             return res.status(200).send('OK');
+        });
+        app.get('/app/diagnostics/valueMaps', (req, res) => {
+            let maps: any = {};
+            let vm = sys.board.valueMaps;
+            for (let key of Object.getOwnPropertyNames(Object.getPrototypeOf(vm)).concat(Object.getOwnPropertyNames(vm))) {
+                try {
+                    let prop = vm[key];
+                    if (prop && typeof prop.toArray === 'function') {
+                        maps[key] = prop.toArray();
+                    }
+                } catch (_err) { }
+            }
+            return res.status(200).send(maps);
+        });
+        app.get('/app/diagnostics/snapshot', (req, res) => {
+            let maps: any = {};
+            let vm = sys.board.valueMaps;
+            for (let key of Object.getOwnPropertyNames(Object.getPrototypeOf(vm)).concat(Object.getOwnPropertyNames(vm))) {
+                try {
+                    let prop = vm[key];
+                    if (prop && typeof prop.toArray === 'function') {
+                        maps[key] = prop.toArray();
+                    }
+                } catch (_err) { }
+            }
+            return res.status(200).send({
+                capturedAt: new Date().toISOString(),
+                config: sys.getSection('all'),
+                state: state.getState('all'),
+                valueMaps: maps,
+            });
         });
         app.get('/app/messages/broadcast/actions', (req, res) => {
             return res.status(200).send(sys.board.valueMaps.msgBroadcastActions.toArray());

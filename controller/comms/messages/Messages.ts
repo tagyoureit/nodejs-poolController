@@ -931,6 +931,15 @@ export class Inbound extends Message {
         return ndx < this.payload.length ? this.payload[ndx] : def;
     }
     private processBroadcast(): void {
+        if (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3) {
+            const board = sys.board as any;
+            if (board.isConfigQueueProcessing && board.isConfigQueueProcessing()) {
+                const regAddr = board.getRegistrationAddress ? board.getRegistrationAddress() : -1;
+                if (this.dest === regAddr && this.action !== 30) {
+                    logger.info(`[CONFIG-DIAG] Inbound during config queue: dest=${this.dest} src=${this.source} action=${this.action} payload=${JSON.stringify(this.payload.slice(0, 6))}`);
+                }
+            }
+        }
         if (this.action !== 2 && !state.isInitialized) {
             // RKS: This is a placeholder for now so that messages aren't processed until we
             // are certain who is on the other end of the wire. Once the system config is normalized

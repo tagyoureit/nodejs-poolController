@@ -16,6 +16,7 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 import { IntelliCenterBoard } from './IntelliCenterBoard';
+import { IntelliCenterV1Board } from './IntelliCenterV1Board';
 import { IntelliTouchBoard } from './IntelliTouchBoard';
 import { IntelliComBoard } from './IntelliComBoard';
 import { EasyTouchBoard } from './EasyTouchBoard';
@@ -25,6 +26,8 @@ import { PoolSystem } from '../Equipment';
 import { NixieBoard } from './NixieBoard';
 import { AquaLinkBoard } from './AquaLinkBoard';
 import { SunTouchBoard } from "./SunTouchBoard";
+import { IntelliCenterWSBoard } from './IntelliCenterWSBoard';
+import { config } from '../../config/Config';
 
 
 export class BoardFactory {
@@ -32,8 +35,11 @@ export class BoardFactory {
     // the pool system as this can cause a leak.  The PoolSystem object already has a reference to this.
     public static fromControllerType(ct: ControllerType, system: PoolSystem) {
         switch (ct) {
-            case ControllerType.IntelliCenter:
+            case ControllerType.IntelliCenter: {
+                let ccfg = config.getSection('controller.comms', {});
+                if (ccfg.type === 'ocpws') return new IntelliCenterWSBoard(system);
                 return new IntelliCenterBoard(system);
+            }
             case ControllerType.IntelliTouch:
                 return new IntelliTouchBoard(system);
             case ControllerType.IntelliCom:

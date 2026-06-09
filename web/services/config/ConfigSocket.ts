@@ -70,7 +70,7 @@ export class ConfigSocket {
         app.get('/config/options/circuits', (req, res) => {
             let opts = {
                 maxCircuits: sys.equipment.maxCircuits,
-                equipmentIds: sys.equipment.equipmentIds.circuits,
+                equipmentIds: (sys.equipment.equipmentIds || sys.board.equipmentIds).circuits,
                 invalidIds: sys.board.equipmentIds.invalidIds.get(),
                 equipmentNames: sys.board.circuits.getCircuitNames(),
                 functions: sys.board.circuits.getCircuitFunctions(),
@@ -103,7 +103,7 @@ export class ConfigSocket {
             let opts = {
                 maxFeatures: sys.equipment.maxFeatures,
                 invalidIds: sys.board.equipmentIds.invalidIds.get(),
-                equipmentIds: sys.equipment.equipmentIds.features,
+                equipmentIds: (sys.equipment.equipmentIds || sys.board.equipmentIds).features,
                 equipmentNames: sys.board.circuits.getCircuitNames(),
                 functions: sys.board.valueMaps.featureFunctions.toArray(),
                 features: sys.features.get()

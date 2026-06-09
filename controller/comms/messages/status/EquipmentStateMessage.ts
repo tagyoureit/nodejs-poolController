@@ -163,6 +163,7 @@ export class EquipmentStateMessage {
                     sys.equipment.controllerFirmware = (msg.extractPayloadByte(42) + (msg.extractPayloadByte(43) / 1000)).toString();
                     (sys.board as IntelliCenterBoard).applyV3ValueMapOverrides();
                 }
+                sys.refineBoardForFirmware();
                 // Master = 13-14
                 // EXP1 = 15-16
                 // EXP2 = 17-18
@@ -661,8 +662,8 @@ export class EquipmentStateMessage {
                     }
                 }
                 if (msg.dest === registrationAddress) {
-                    // OCP is pinging us specifically - respond with Action 180
-                    logger.silly(`Received heartbeat request (Action 179) from OCP, responding with Action 180`);
+                    const configProcessing = sys.controllerType === ControllerType.IntelliCenter ? (sys.board as IntelliCenterBoard).isConfigQueueProcessing() : false;
+                    logger.info(`Received heartbeat request (Action 179) from OCP dest=${msg.dest}, responding with Action 180${configProcessing ? ' [CONFIG QUEUE ACTIVE]' : ''}`);
                     const response: Outbound = Outbound.create({
                         source: registrationAddress,
                         dest: 16,  // Respond to OCP (16)

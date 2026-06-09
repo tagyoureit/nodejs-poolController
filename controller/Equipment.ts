@@ -26,6 +26,7 @@ import { Timestamp, ControllerType, utils } from "./Constants";
 export { ControllerType };
 import { webApp } from "../web/Server";
 import { SystemBoard, EquipmentIdRange } from "./boards/SystemBoard";
+import { config } from "../config/Config";
 import { BoardFactory } from "./boards/BoardFactory";
 import { EquipmentStateMessage } from "./comms/messages/status/EquipmentStateMessage";
 import { conn } from './comms/Comms';
@@ -151,8 +152,14 @@ export class PoolSystem implements IPoolSystem {
         this.data.appVersion = state.appVersion.installed = this.appVersion = JSON.parse(fs.readFileSync(path.posix.join(process.cwd(), '/package.json'), 'utf8')).version;
         versionCheck.compare(); // if we installed a new version, reset the flag so we don't show an outdated message for up to 2 days 
         logger.info(`Starting Pool System ${this.controllerType}`);
-        if (this.controllerType === 'unknown' || typeof this.controllerType === 'undefined') {
-            // Delay for 7.5 seconds to give any OCPs a chance to start emitting messages.
+        let ccfg = config.getSection('controller.comms', {});
+        if (ccfg.type === 'ocpws' && ccfg.enabled !== false) {
+            if (this.controllerType !== ControllerType.IntelliCenter) {
+                logger.info(`WS transport configured — setting controllerType to IntelliCenter`);
+                this.controllerType = ControllerType.IntelliCenter;
+            }
+        }
+        else if (this.controllerType === 'unknown' || typeof this.controllerType === 'undefined') {
             logger.info(`Listening for any installed OCPs`);
             if (this._startOCPTimer) clearTimeout(this._startOCPTimer);
             this._startOCPTimer = null;
@@ -307,6 +314,20 @@ export class PoolSystem implements IPoolSystem {
                 this._startOCPTimer = null;
                 this._startOCPTimer = setTimeout(() => { self.initNixieController(); }, 7500);
             }
+        }
+    }
+    public refineBoardForFirmware() {
+        if (this.controllerType !== ControllerType.IntelliCenter) return;
+        const needsV1 = !this.equipment.isIntellicenterV3;
+        const { IntelliCenterV1Board } = require('./boards/IntelliCenterV1Board');
+        const isV1 = this.board instanceof IntelliCenterV1Board;
+        if (needsV1 && !isV1) {
+            logger.info(`Firmware ${this.equipment.controllerFirmware} < 3.0 — swapping to IntelliCenterV1Board`);
+            this.board = new IntelliCenterV1Board(this);
+        } else if (!needsV1 && isV1) {
+            const { IntelliCenterBoard } = require('./boards/IntelliCenterBoard');
+            logger.info(`Firmware ${this.equipment.controllerFirmware} >= 3.0 — swapping to IntelliCenterBoard`);
+            this.board = new IntelliCenterBoard(this);
         }
     }
     public resetData() {
@@ -522,6 +543,8 @@ class EqItem implements IEqItemCreator<EqItem>, IEqItem {
             sys._hasChanged = true;
         }
     }
+    public get objnam(): string { return this.data.objnam; }
+    public set objnam(val: string) { this.setDataVal('objnam', val); }
     public get master(): number | any { return this.data.master || 0; }
     public set master(val: number | any) { this.setDataVal('master', sys.board.valueMaps.equipmentMaster.encode(val)); }
     ctor(data, name?: string): EqItem { return new EqItem(data, name); }
@@ -851,6 +874,9 @@ export class Options extends EqItem {
         if (typeof this.data.cleanerSolarDelayTime === 'undefined') this.data.cleanerSolarDelayTime = 300; // 5min
         if (typeof this.data.freezeCycleTime === 'undefined') this.data.freezeCycleTime = 15;
         if (typeof this.data.freezeOverride === 'undefined') this.data.freezeOverride = 30;
+        if (typeof this.data.manualPriority === 'undefined') this.data.manualPriority = false;
+        if (typeof this.data.cooldownDelay === 'undefined') this.data.cooldownDelay = false;
+        if (typeof this.data.manualHeat === 'undefined') this.data.manualHeat = false;
     }
     public get clockMode(): number | any { return this.data.clockMode; }
     public set clockMode(val: number | any) { this.setDataVal('clockMode', sys.board.valueMaps.clockModes.encode(val)); }
@@ -2010,15 +2036,7 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
         // then it filters the list by the types associated with the circuits.  It does this because
         // there can be combined ColorLogic and IntelliBrite lights.  The themes array has
         // the circuit function.
-        let arrThemes = [];
-        for (let i = 0; i < this.circuits.length; i++) {
-            let circ = this.circuits.getItemByIndex(i);
-            let c = sys.circuits.getInterfaceById(circ.circuit);
-            let cf = sys.board.valueMaps.circuitFunctions.transform(c.type);
-            if (cf.isLight && typeof cf.theme !== 'undefined') {
-                if (!arrThemes.includes(cf.theme)) arrThemes.push(cf.theme);
-            }
-        }
+        let arrThemes = this._collectMemberThemes();
         // Alright now we need to get a listing of the themes.
         let t = sys.board.valueMaps.lightThemes.toArray();
         let ret = [];
@@ -2037,15 +2055,7 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
         // then it filters the list by the types associated with the circuits.  It does this because
         // there can be combined ColorLogic and IntelliBrite lights.  The themes array has
         // the circuit function.
-        let arrThemes = [];
-        for (let i = 0; i < this.circuits.length; i++) {
-            let circ = this.circuits.getItemByIndex(i);
-            let c = sys.circuits.getInterfaceById(circ.circuit);
-            let cf = sys.board.valueMaps.circuitFunctions.transform(c.type);
-            if (cf.isLight && typeof cf.theme !== 'undefined') {
-                if (!arrThemes.includes(cf.theme)) arrThemes.push(cf.theme);
-            }
-        }
+        let arrThemes = this._collectMemberThemes();
         // Alright now we need to get a listing of the themes.
         let t = sys.board.valueMaps.lightGroupCommands.toArray();
         let ret = [];
@@ -2057,6 +2067,42 @@ export class LightGroup extends EqItem implements ICircuitGroup, ICircuit {
             }
         }
         return ret;
+    }
+    // Walk the group's member circuits and collect the theme families
+    // (e.g. 'intellibrite', 'magicstream') the group can drive. On IntelliCenter
+    // v3 the WS transport may have stored a member with no `circuit` reference
+    // (e.g. CIRCGRP arrived before the parent CIRCUIT/SUBTYP=LITSHO marked the
+    // group active). In that case fall back to the group's own lightingTheme
+    // type list so the dashPanel "Light Shows" / "Colors" tabs still populate.
+    private _collectMemberThemes(): string[] {
+        let arrThemes: string[] = [];
+        for (let i = 0; i < this.circuits.length; i++) {
+            let circ = this.circuits.getItemByIndex(i);
+            if (typeof circ.circuit !== 'number' || circ.circuit <= 0) continue;
+            let c = sys.circuits.getInterfaceById(circ.circuit);
+            if (typeof c === 'undefined' || typeof c.type === 'undefined') continue;
+            let cf = sys.board.valueMaps.circuitFunctions.transform(c.type);
+            if (cf.isLight && typeof cf.theme !== 'undefined') {
+                if (!arrThemes.includes(cf.theme)) arrThemes.push(cf.theme);
+            }
+        }
+        if (arrThemes.length === 0 && sys.equipment.isIntellicenterV3) {
+            // Fallback 1: derive from the group's currently selected lightingTheme
+            // (its `types` metadata exposes the family — e.g. ['intellibrite', 'magicstream']).
+            let theme = sys.board.valueMaps.lightThemes.transform(this.lightingTheme || 0);
+            if (theme && Array.isArray(theme.types) && theme.types.length > 0) {
+                for (const t of theme.types) {
+                    if (!arrThemes.includes(t)) arrThemes.push(t);
+                }
+            }
+        }
+        if (arrThemes.length === 0 && sys.equipment.isIntellicenterV3) {
+            // Fallback 2: every v3 light group we have observed in the wild is an
+            // intellibrite-family group; default to that so the UI is usable
+            // until OCP re-broadcasts a complete CIRCGRP membership list.
+            arrThemes.push('intellibrite');
+        }
+        return arrThemes;
     }
 
     public getExtended() {

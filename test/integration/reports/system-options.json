@@ -1,0 +1,248 @@
+{
+  "timestamp": "2026-05-21T03:49:08.967Z",
+  "transportsTested": [
+    "rs485",
+    "ocpws"
+  ],
+  "summary": {
+    "total": 10,
+    "pass": 10,
+    "fail": 0,
+    "skip": 0
+  },
+  "tests": [
+    {
+      "id": "T-90",
+      "name": "Set freeze delay",
+      "category": "system-options",
+      "rs485": {
+        "apiState": {},
+        "ocpState": {
+          "FREEZEDLY": "30"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {},
+        "ocpState": {
+          "FREEZEDLY": "30"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-91",
+      "name": "Set valve delay ON",
+      "category": "system-options",
+      "rs485": {
+        "apiState": {},
+        "ocpState": {
+          "VALVE": "OFF"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {},
+        "ocpState": {
+          "VALVE": "OFF"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-92",
+      "name": "Set cooldown delay ON",
+      "category": "system-options",
+      "rs485": {
+        "apiState": {},
+        "ocpState": {
+          "HEATING": "OFF"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {},
+        "ocpState": {
+          "HEATING": "OFF"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-93",
+      "name": "Set manual priority",
+      "category": "system-options",
+      "rs485": {
+        "apiState": {
+          "val": 2,
+          "name": "loading",
+          "desc": "Loading",
+          "percent": 70
+        },
+        "ocpState": {
+          "MANUAL": "0"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {
+          "val": 1,
+          "name": "ready",
+          "desc": "Ready",
+          "percent": 100
+        },
+        "ocpState": {
+          "MANUAL": "0"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-94",
+      "name": "Set date/time",
+      "category": "system-options",
+      "rs485": {
+        "apiState": {},
+        "ocpState": {
+          "MIN": "20,45,00",
+          "DAY": "05,21,26"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {
+          "time": "2026-05-20T20:46:00.116-0700"
+        },
+        "ocpState": {
+          "MIN": "20,46,00",
+          "DAY": "05,21,26"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-95",
+      "name": "Set units (metric)",
+      "category": "system-options",
+      "rs485": {
+        "apiState": {},
+        "ocpState": {
+          "MODE": "ENGLISH"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {},
+        "ocpState": {
+          "MODE": "ENGLISH"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-96",
+      "name": "Set vacation",
+      "category": "system-options",
+      "rs485": {
+        "apiState": {},
+        "ocpState": {
+          "VACFLO": "OFF",
+          "VACTIM": "ON",
+          "START": " 5,26,26",
+          "STOP": " 5,29,26"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {},
+        "ocpState": {
+          "VACFLO": "OFF",
+          "VACTIM": "ON",
+          "START": " 5,26,26",
+          "STOP": " 5,29,26"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-97",
+      "name": "Set location",
+      "category": "system-options",
+      "rs485": {
+        "apiState": {},
+        "ocpState": {
+          "LOCY": "37.17",
+          "LOCX": "-121.97"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {},
+        "ocpState": {
+          "LOCY": "37.17",
+          "LOCX": "-121.97"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-98",
+      "name": "Set owner name",
+      "category": "system-options",
+      "rs485": {
+        "apiState": {},
+        "ocpState": {
+          "NAME": "Russ"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {},
+        "ocpState": {
+          "NAME": "Russ"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-99",
+      "name": "Set 24h clock",
+      "category": "system-options",
+      "rs485": {
+        "apiState": {},
+        "ocpState": {
+          "CLK24A": "AMPM"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {},
+        "ocpState": {
+          "CLK24A": "AMPM"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    }
+  ],
+  "notAvailable": []
+}
