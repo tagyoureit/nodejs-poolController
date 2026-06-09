@@ -1309,7 +1309,7 @@ export class ScheduleTime extends ChildEqState {
                 let sd = schedDays.find(elem => elem.dow === ytimes.startTime.getDay());
                 if (typeof sd !== 'undefined' && (sched.scheduleDays & sd.bitval) !== 0) {
                     times.startTime = ytimes.startTime;
-                    times.endTime = ytimes.startTime;
+                    times.endTime = ytimes.endTime;
                     return times;
                 }
             }
