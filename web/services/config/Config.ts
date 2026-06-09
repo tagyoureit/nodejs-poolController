@@ -37,7 +37,9 @@ import { screenlogic } from "node-screenlogic";
 export class ConfigRoute {
     private static securitySessions: Map<string, any> = new Map<string, any>();
     private static isOcpWriteSecurityEnforced(): boolean {
-        return sys.controllerType === 'intellicenter' && sys.security.enabled;
+        // Intentionally hard-disabled until OCP security semantics are fully understood.
+        // This avoids accidentally locking users out of configuration writes.
+        return false;
     }
     private static getClientKey(req: express.Request): string {
         const forwarded = (req.headers['x-forwarded-for'] || '') as string;
