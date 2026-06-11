@@ -4438,11 +4438,21 @@ class IntelliCenterBodyCommands extends BodyCommands {
             if (typeof obj.capacity !== 'undefined') {
                 let cap = parseInt(obj.capacity, 10);
                 if (cap !== body.capacity) {
+                    // v3.004+ encodes capacity as 16-bit big-endian (×1000 gal) with linear selector (body.id + 3).
+                    // v1.x uses a single byte with scrambled selector (byte + 4).
+                    // Confirmed from ICP capture: spa (body 2) sends selector=5, not 6.
+                    let capInThousands = Math.floor(cap / 1000);
+                    let payload: number[];
+                    if (sys.equipment.isIntellicenterV3) {
+                        payload = [13, 0, body.id + 3, (capInThousands >> 8) & 0xFF, capInThousands & 0xFF];
+                    } else {
+                        payload = [13, 0, byte + 4, capInThousands];
+                    }
                     let out = Outbound.create({
                         action: 168,
                         retries: 2,
                         response: IntelliCenterBoard.getAckResponse(168),
-                        payload: [13, 0, byte + 4, Math.floor(cap / 1000)]
+                        payload: payload
                     });
                     await out.sendAsync();
                     body.capacity = cap;
