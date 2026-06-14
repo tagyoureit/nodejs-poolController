@@ -1386,7 +1386,7 @@ export class Circuit extends EqItem implements ICircuit {
     public set connectionId(val: string) { this.setDataVal('connectionId', val); }
     public get deviceBinding(): string { return this.data.deviceBinding; }
     public set deviceBinding(val: string) { this.setDataVal('deviceBinding', val); }
-    public get hasHeatSource() { return typeof sys.board.valueMaps.circuitFunctions.get(this.type || 0).hasHeatSource !== 'undefined' ? sys.board.valueMaps.circuitFunctions.get(this.type || 0).hasHeatSource : false };
+    public get hasHeatSource() { let cf = sys.board.valueMaps.circuitFunctions.get(this.type || 0); return cf ? (typeof cf.hasHeatSource !== 'undefined' ? cf.hasHeatSource : false) : false; };
     public getLightThemes() {
         // Lets do this universally driven by the metadata.
         let cf = sys.board.valueMaps.circuitFunctions.transform(this.type);
