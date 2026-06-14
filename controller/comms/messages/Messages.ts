@@ -1072,6 +1072,9 @@ export class Inbound extends Message {
                     case 41:
                         CircuitGroupMessage.process(this);
                         break;
+                    case 171:
+                        EquipmentStateMessage.process(this);    // Dimmer level broadcast
+                        break;
                     case 197:
                         EquipmentStateMessage.process(this);    // Date/Time request
                         break;

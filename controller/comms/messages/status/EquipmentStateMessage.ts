@@ -765,6 +765,10 @@ export class EquipmentStateMessage {
                 msg.isProcessed = true;
                 break;
             }
+            case 171: {
+                EquipmentStateMessage.processDimmerLevel(msg);
+                break;
+            }
             case 197: {
                 // request for date/time on *Touch.  Use this as an indicator
                 // that SL has requested config and update lastUpdated date/time
@@ -1001,6 +1005,19 @@ export class EquipmentStateMessage {
         else if (valveDelay > 0) state.delay = 36;
         else if (freezeDelay > 0) state.delay = 38;
         else state.delay = 0;
+    }
+    private static processDimmerLevel(msg: Inbound) {
+        let circuitId = msg.extractPayloadByte(0);
+        let encoded = msg.extractPayloadByte(1);
+        let level = encoded > 0 ? (encoded * 10) + 30 : 0;
+        let circuit = sys.circuits.getItemById(circuitId);
+        let cstate = state.circuits.getItemById(circuitId);
+        if (circuit.isActive !== false) {
+            circuit.level = level;
+            cstate.level = level;
+            state.emitEquipmentChanges();
+        }
+        msg.isProcessed = true;
     }
     private static processCircuitState(msg: Inbound) {
         // The way this works is that there is one byte per 8 circuits for a total of 5 bytes or 40 circuits.  The
