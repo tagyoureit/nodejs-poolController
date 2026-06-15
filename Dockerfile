@@ -45,6 +45,7 @@ RUN mkdir -p /app/logs /app/data /app/backups /app/web/bindings/custom \
 COPY --chown=node:node --from=build /app/package*.json ./
 COPY --chown=node:node --from=build /app/node_modules ./node_modules
 COPY --chown=node:node --from=build /app/dist ./dist
+COPY --chown=node:node --from=build /app/web/bindings ./web/bindings
 COPY --chown=node:node --from=build /app/defaultConfig.json ./defaultConfig.json
 COPY --chown=node:node --from=build /app/config.json ./config.json
 COPY --chown=node:node --from=build /app/README.md ./README.md
