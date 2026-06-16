@@ -1619,12 +1619,16 @@ export class TouchCircuitCommands extends CircuitCommands {
         return await this.setCircuitStateAsync(id, !cstate.isOn);
     }
     public async setDimmerLevelAsync(id: number, level: number): Promise<ICircuitState> {
-        let circ = state.circuits.getItemById(id);
+        let circuit = sys.circuits.getItemById(id);
         let cstate = state.circuits.getItemById(id);
         // Valid dimmer levels are 30-100 in steps of 10, or 0 to turn off.
         if (level > 0) level = Math.min(100, Math.max(30, Math.round(level / 10) * 10));
         if (sl.enabled) {
+            // ScreenLogic has no dimmer-level API; only on/off is sent.
             await sl.circuits.setCircuitStateAsync(id, level > 0);
+            cstate.isOn = level > 0;
+            state.emitEquipmentChanges();
+            return cstate as ICircuitState;
         } else if (level === 0) {
             return await this.setCircuitStateAsync(id, false);
         } else {
@@ -1638,10 +1642,11 @@ export class TouchCircuitCommands extends CircuitCommands {
             });
             await out.sendAsync();
         }
-        circ.level = level;
-        circ.isOn = level > 0;
+        circuit.level = level;
+        cstate.level = level;
+        cstate.isOn = level > 0;
         state.emitEquipmentChanges();
-        return circ as ICircuitState;
+        return cstate as ICircuitState;
     }
 
     public async setLightGroupAsync(obj: any, send: boolean = true): Promise<LightGroup> {
