@@ -149,6 +149,12 @@ export class byteValueMaps {
             }
             return { val: byte, name: 'unknown' + byte, desc: 'Unknown status ' + byte };
         };
+        this.pumpErrors.transform = function (byte) {
+            if (byte === 0) return extend(true, {}, this.get(0), { val: byte });
+            let v = this.get(byte);
+            if (typeof v !== 'undefined') return extend(true, {}, v, { val: byte });
+            return { val: byte, name: 'error' + byte, desc: 'Unspecified Pump Error ' + byte };
+        };
         this.scheduleTypes.transform = function (byte) {
             return (byte & 128) > 0 ? extend(true, { val: 128 }, this.get(128)) : extend(true, { val: 0 }, this.get(0));
         };
@@ -504,6 +510,10 @@ export class byteValueMaps {
         [14, { name: 'error14', desc: 'Unspecified Error 14' }],
         [15, { name: 'error15', desc: 'Unspecified Error 15' }],
         [16, { name: 'commfailure', desc: 'Communication failure' }]
+    ]);
+    public pumpErrors: byteValueMap = new byteValueMap([
+        [0, { name: 'ok', desc: 'Ok' }],
+        [2, { name: 'filter', desc: 'Filter Error' }]
     ]);
     public pumpUnits: byteValueMap = new byteValueMap([
         [0, { name: 'rpm', desc: 'RPM' }],

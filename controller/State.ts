@@ -1062,6 +1062,13 @@ export class PumpState extends EqState {
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get ppc(): number { return this.data.ppc; } // I think this is actually the filter % for vf and vsf.  Pump Pressure determines how much backpressure.
     public set ppc(val: number) { this.setDataVal('ppc', val); }
+    public get pumpError(): number { return typeof (this.data.pumpError) !== 'undefined' ? this.data.pumpError.val : 0; }
+    public set pumpError(val: number) {
+        if (this.pumpError !== val) {
+            this.data.pumpError = sys.board.valueMaps.pumpErrors.transform(val);
+            this.hasChanged = true;
+        }
+    }
     public get status(): number { return typeof (this.data.status) !== 'undefined' ? this.data.status.val : -1; }
     public set status(val: number) {
         // quick fix for #172

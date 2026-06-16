@@ -108,6 +108,20 @@ export class PumpStateMessage {
                 pump.rpm = (typeof ptype !== 'undefined' && (ptype.maxSpeed > 0 || ptype.name === 'vf')) ? (msg.extractPayloadByte(5) * 256) + msg.extractPayloadByte(6) : 0;
                 pump.flow = (typeof ptype !== 'undefined' && ptype.maxFlow > 0) ? msg.extractPayloadByte(7) : 0;
                 pump.ppc = msg.extractPayloadByte(8);
+                // Byte 10: Pump error code (0x00=OK, 0x02=Filter Error).
+                // See discussion #1197 for protocol documentation.
+                let pumpError = msg.extractPayloadByte(10);
+                pump.pumpError = pumpError;
+                if (pumpError !== 0) {
+                    let errDesc = sys.board.valueMaps.pumpErrors.transform(pumpError);
+                    state.equipment.messages.setMessageByCode(
+                        `pump:${pumpId}:error`,
+                        'warning',
+                        `${pumpCfg.name}: ${errDesc.desc}`
+                    );
+                } else {
+                    state.equipment.messages.removeItemByCode(`pump:${pumpId}:error`);
+                }
                 pump.status = (msg.extractPayloadByte(11) * 256) + msg.extractPayloadByte(12); // 16-bits of error codes.
                 pump.name = pumpCfg.name;
                 // Byte 14 ticks up every minute while byte 13 ticks up every 59 minutes.
