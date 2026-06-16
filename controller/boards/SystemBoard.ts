@@ -241,6 +241,7 @@ export class byteValueMaps {
         [2, { name: 'pool', desc: 'Pool', hasHeatSource: true, body: 1 }],
         [5, { name: 'mastercleaner', desc: 'Master Cleaner', body: 1 }],
         [7, { name: 'light', desc: 'Light', isLight: true }],
+        [8, { name: 'dimmer', desc: 'Dimmer', isLight: true }],
         [9, { name: 'samlight', desc: 'SAM Light', isLight: true }],
         [10, { name: 'sallight', desc: 'SAL Light', isLight: true }],
         [11, { name: 'photongen', desc: 'Photon Gen', isLight: true }],
