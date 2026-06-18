@@ -190,6 +190,7 @@ export class IntelliCenterWSComms extends EventEmitter {
                 };
                 ws.on('open', () => {
                     this.isOpen = true;
+                    sys.refineBoardForCommType();
                     logger.info(`IntelliCenterWS: connected to ${url} (alias="${this.alias}")`);
                     this.emit('open');
                     this.emitStats();
@@ -252,6 +253,7 @@ export class IntelliCenterWSComms extends EventEmitter {
                 this.isOpen = false;
                 this._client = undefined;
                 this.failAllPending(new Error('connection closed by client'));
+                sys.refineBoardForCommType();
                 this.emitStats();
                 resolve(true);
             };

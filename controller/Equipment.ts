@@ -330,6 +330,19 @@ export class PoolSystem implements IPoolSystem {
             this.board = new IntelliCenterBoard(this);
         }
     }
+    public refineBoardForCommType() {
+        if (this.controllerType !== ControllerType.IntelliCenter) return;
+        const { IntelliCenterWSBoard } = require('./boards/IntelliCenterWSBoard');
+        const isWS = this.board instanceof IntelliCenterWSBoard;
+        const ccfg = config.getSection('controller.comms', {});
+        if (ccfg.type === 'ocpws' && !isWS) {
+            logger.info(`IntelliCenter transport switched to ocpws — swapping to IntelliCenterWSBoard`);
+            this.board = BoardFactory.fromControllerType(this.controllerType, this);
+        } else if (ccfg.type !== 'ocpws' && isWS) {
+            logger.info(`IntelliCenter transport switched from ocpws to ${ccfg.type} — swapping to IntelliCenterBoard`);
+            this.board = BoardFactory.fromControllerType(this.controllerType, this);
+        }
+    }
     public resetData() {
         if (sys.controllerType !== ControllerType.Nixie) {
             // Do not clear this out if it is a virtual controller this causes problems.
