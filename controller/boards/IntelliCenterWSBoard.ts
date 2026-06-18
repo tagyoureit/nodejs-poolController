@@ -63,6 +63,16 @@ export class IntelliCenterWSBoard extends IntelliCenterBoard {
         } catch (err) { logger.error(`Error in WS processStatusAsync: ${err.message}`); }
     }
     public initExpansionModules(ocp0A: number, ocp0B: number, xcp1A: number, xcp1B: number, xcp2A: number, xcp2B: number, xcp3A: number, xcp3B: number): void { }
+    public reloadConfig() {
+        // In WS mode, reload = re-snapshot all config from OCP over the WebSocket.
+        // Do NOT use the RS-485 parent path (sys.configVersion.clear, needsConfigChanges,
+        // modulesAcquired) — those flags only drive the RS-485 config queue and are
+        // meaningless here (initExpansionModules is a no-op in this class).
+        state.status = 0;
+        icws.loadInitialConfigAsync().catch(err =>
+            logger.error(`IntelliCenterWSBoard.reloadConfig: snapshot failed: ${err?.message || err}`)
+        );
+    }
 }
 
 class IntelliCenterWSSystemCommands extends IntelliCenterSystemCommands {
