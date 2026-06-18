@@ -949,8 +949,8 @@ class IntelliCenterWSScheduleCommands extends IntelliCenterScheduleCommands {
                 if (dayVal & 64) dayStr += 'A';
                 params.DAY = dayStr || 'MTWRFAU';
             }
-            if (typeof data.schedType !== 'undefined')
-                params.SINGLE = parseInt(data.schedType, 10) === 128 ? 'ON' : 'OFF';
+            if (typeof data.scheduleType !== 'undefined')
+                params.SINGLE = parseInt(data.scheduleType, 10) === 128 ? 'ON' : 'OFF';
             if (typeof data.startDate !== 'undefined') {
                 let dt = new Date(data.startDate);
                 if (!isNaN(dt.getTime())) {
@@ -982,10 +982,10 @@ class IntelliCenterWSScheduleCommands extends IntelliCenterScheduleCommands {
                 if (!params.VACFLO) params.VACFLO = 'OFF';
                 if (!params.CIRCUIT) return Promise.reject(new InvalidEquipmentDataError('Schedule requires a circuit', 'Schedule', -1));
                 let resp = await icws.createObject('SCHED', params);
-                if (resp?.objnam) id = parseInt(resp.objnam.replace(/\D/g, ''), 10);
+                if (resp?.objnam) id = parseInt(resp.objnam.replace(/\D/g, ''), 10) + 1;
                 else id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, 100));
             } else {
-                await icws.setParamList('SCH' + String(id).padStart(2, '0'), params);
+                await icws.setParamList('SCH' + String(id - 1).padStart(2, '0'), params);
             }
             let sched = sys.schedules.getItemById(id, isNew);
             let ssched = state.schedules.getItemById(id, isNew);
@@ -993,7 +993,7 @@ class IntelliCenterWSScheduleCommands extends IntelliCenterScheduleCommands {
             if (typeof data.startTime !== 'undefined') sched.startTime = parseInt(data.startTime, 10);
             if (typeof data.endTime !== 'undefined') sched.endTime = parseInt(data.endTime, 10);
             if (typeof data.scheduleDays !== 'undefined') sched.scheduleDays = parseInt(data.scheduleDays, 10);
-            if (typeof data.schedType !== 'undefined') sched.scheduleType = parseInt(data.schedType, 10);
+            if (typeof data.scheduleType !== 'undefined') sched.scheduleType = parseInt(data.scheduleType, 10);
             if (typeof data.isActive !== 'undefined') ssched.isOn = sched.isActive = utils.makeBool(data.isActive);
             if (typeof data.startTimeType !== 'undefined') sched.startTimeType = parseInt(data.startTimeType, 10);
             if (typeof data.endTimeType !== 'undefined') sched.endTimeType = parseInt(data.endTimeType, 10);
@@ -1009,7 +1009,7 @@ class IntelliCenterWSScheduleCommands extends IntelliCenterScheduleCommands {
         if (isNaN(id) || id < 0) return Promise.reject(new InvalidEquipmentIdError(`Invalid schedule id: ${data.id}`, data.id, 'Schedule'));
         let sched = sys.schedules.getItemById(id);
         try {
-            const objnam = 'SCH' + String(id).padStart(2, '0');
+            const objnam = 'SCH' + String(id - 1).padStart(2, '0');
             await icws.destroyObject(objnam);
             sys.schedules.removeItemById(id);
             state.schedules.removeItemById(id);
