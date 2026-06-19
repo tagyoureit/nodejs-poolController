@@ -219,6 +219,7 @@ function decodeCircuit(objnam: string, params: ParamMap): void {
         const act = parseIntSafe(params['ACT']);
         if (act < 65535) scirc.action = act;
     }
+    circ.master = 0; // OCP owns any circuit it reports over WS; clears stale master=1 from prior Nixie sessions
     circ.isActive = true;
     scirc.isActive = true;
 }
