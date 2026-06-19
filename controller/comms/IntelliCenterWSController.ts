@@ -1014,7 +1014,19 @@ function decodeModule(objnam: string, params: ParamMap): void {
     }
     if (typeof params['SUBTYP'] !== 'undefined') {
         const subtyp = params['SUBTYP'].toUpperCase();
-        sys.equipment.model = `IntelliCenter ${subtyp.startsWith('I') ? subtyp.slice(0, 1).toLowerCase() + subtyp.slice(1) : subtyp}`;
+        const boardName = subtyp.startsWith('I') ? subtyp.slice(0, 1).toLowerCase() + subtyp.slice(1) : subtyp;
+        sys.equipment.model = `IntelliCenter ${boardName}`;
+        // Sync modules[0] so the Settings→System panel table matches the top-bar model name
+        const mt = sys.board.valueMaps.expansionBoards.transformByName(boardName);
+        const mod = sys.equipment.modules.getItemById(0, true);
+        mod.name = mt.name || boardName;
+        mod.desc = mt.desc || `${boardName} Personality Card`;
+        mod.type = typeof mt.val !== 'undefined' ? mt.val : 0;
+        if (mt.part) mod.part = mt.part;
+        // Clear stale RS-485 expansion slots; WS transport does not discover slots 1-3
+        sys.equipment.modules.removeItemById(1);
+        sys.equipment.modules.removeItemById(2);
+        sys.equipment.modules.removeItemById(3);
     }
 }
 
