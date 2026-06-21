@@ -85,12 +85,20 @@
               "availability_template: \"{{'online' if value_json.name == 'ready' else 'offline'}}\",",
               "schema: 'template',",
               "command_topic: `${ctx.vars.mqttTopic}/state/circuits/setState`,",
-              "state_topic: `${ctx.vars.mqttTopic}/state/circuits/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}`,",
+              "state_topic: `${ctx.vars.mqttTopic}/state/circuits/${data.id}/${data.name.replace(/\\s+/g, '').toLowerCase()}/state`,",
               "device: device_id,",
-              "command_on_template: `{\"id\": ${data.id}, \"isOn\": true}`,",
+              "effect_list: sys.circuits.getInterfaceById(data.id).getLightThemes().map(t => t.name),",
+              "command_on_template: `{\"id\": ${data.id}, \"isOn\": true{%if effect is defined%}, \"lightingTheme\": \"{{effect}}\"{%endif%}}`,",
               "command_off_template: `{\"id\": ${data.id}, \"isOn\": false}`,",
-              "state_template: '{{value_json.isOn}}'});"
+              "state_template: '{{value_json.isOn}}',",
+              "effect_template: '{{value_json.lightingTheme.name}}'});"
             ],
+            "filter": "@bind=data.showInFeatures; === true && @bind=data.type.isLight; === true"
+          },
+          {
+            "topic": "@bind=vars.mqttTopic;/state/circuits/@bind=data.id;/@bind=data.name;/state",
+            "useRootTopic": false,
+            "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.isOn?'\"on\"':'\"off\"';,\"lightingTheme\":@bind=data.lightingTheme;}",
             "filter": "@bind=data.showInFeatures; === true && @bind=data.type.isLight; === true"
           }
       ]
