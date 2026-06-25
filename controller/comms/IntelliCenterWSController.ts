@@ -90,6 +90,37 @@ function parseFloatSafe(val: string, fallback: number = 0): number {
     return isNaN(n) ? fallback : n;
 }
 
+// Resolve a light theme value from OCP tokens. OCP individual-circuit NOTIFY
+// includes both USE (token like SSET / MAGNTAR / CARIB) and LIMIT (numeric
+// theme code 0..13). LIMIT is the authoritative source when present.
+// USE-only NOTIFY (e.g. light groups whose LIMIT is the placeholder string
+// "LIMIT") falls back to a token lookup against valueMaps.lightThemes wsToken,
+// then name, then a numeric-string parse (handles OCP returning "USE":"12"
+// for HOLD or "USE":"13" for RECALL).
+function lightThemeFromParams(params: ParamMap): number | undefined {
+    if (typeof params['LIMIT'] !== 'undefined') {
+        const n = parseInt(params['LIMIT'], 10);
+        if (!isNaN(n) && n >= 0 && n <= 13) return n;
+    }
+    if (typeof params['USE'] !== 'undefined') {
+        return lightThemeFromToken(params['USE']);
+    }
+    return undefined;
+}
+
+function lightThemeFromToken(token: string): number | undefined {
+    if (!token || token === 'USE' || token === 'NONE') return undefined;
+    const t = token.toUpperCase();
+    const arr = sys.board.valueMaps.lightThemes.toArray() as any[];
+    for (const entry of arr) {
+        if (entry.wsToken && String(entry.wsToken).toUpperCase() === t) return entry.val;
+        if (entry.name && String(entry.name).toUpperCase() === t) return entry.val;
+    }
+    const n = parseInt(t, 10);
+    if (!isNaN(n) && n >= 0 && n <= 13) return n;
+    return undefined;
+}
+
 function objnamToId(objnam: string): number {
     const m = objnam.match(/\d+$/);
     return m ? parseInt(m[0], 10) : 0;
@@ -210,10 +241,12 @@ function decodeCircuit(objnam: string, params: ParamMap): void {
     if (typeof params['FEATR'] !== 'undefined') { circ.showInFeatures = parseBool(params['FEATR']); scirc.showInFeatures = parseBool(params['FEATR']); }
     if (typeof params['TIME'] !== 'undefined') circ.eggTimer = parseIntSafe(params['TIME']);
     if (typeof params['DNTSTP'] !== 'undefined') circ.dontStop = parseBool(params['DNTSTP']);
-    if (typeof params['USE'] !== 'undefined') {
-        const theme = sys.board.valueMaps.lightThemes.encode(params['USE']);
-        circ.lightingTheme = theme;
-        scirc.lightingTheme = theme;
+    if (typeof params['LIMIT'] !== 'undefined' || typeof params['USE'] !== 'undefined') {
+        const resolved = lightThemeFromParams(params);
+        if (typeof resolved !== 'undefined') {
+            circ.lightingTheme = resolved;
+            scirc.lightingTheme = resolved;
+        }
     }
     if (typeof params['ACT'] !== 'undefined') {
         const act = parseIntSafe(params['ACT']);
@@ -288,10 +321,17 @@ function decodeGroupFromCircuit(objnam: string, params: ParamMap, rawId: number,
         sgrp.isActive = true;
         if (typeof params['SNAME'] !== 'undefined') { grp.name = params['SNAME']; sgrp.name = params['SNAME']; }
         if (typeof params['STATUS'] !== 'undefined') sgrp.isOn = parseBool(params['STATUS']);
-        if (typeof params['ACT'] !== 'undefined') {
-            const theme = sys.board.valueMaps.lightThemes.encode(params['ACT']);
-            grp.lightingTheme = theme;
-            sgrp.lightingTheme = theme;
+        if (typeof params['ACT'] !== 'undefined' || typeof params['USE'] !== 'undefined' || typeof params['LIMIT'] !== 'undefined') {
+            // For groups, prefer USE/LIMIT first (the authoritative theme on the
+            // group object). ACT echoes the last-written command and frequently
+            // arrives as the no-action sentinel 65535 on inbound NOTIFY — do not
+            // let that overwrite the actual theme.
+            const resolved = lightThemeFromParams(params)
+                ?? (typeof params['ACT'] !== 'undefined' ? lightThemeFromToken(params['ACT']) : undefined);
+            if (typeof resolved !== 'undefined') {
+                grp.lightingTheme = resolved;
+                sgrp.lightingTheme = resolved;
+            }
         }
         if (typeof params['TIME'] !== 'undefined') grp.eggTimer = parseIntSafe(params['TIME']);
     } else {

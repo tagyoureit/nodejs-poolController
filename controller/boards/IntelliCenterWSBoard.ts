@@ -25,6 +25,25 @@ import { setTimeout as setTimeoutSync } from 'timers';
 import { logger } from '../../logger/Logger';
 import { InvalidEquipmentIdError, InvalidEquipmentDataError, InvalidOperationError, EquipmentNotFoundError } from '../Errors';
 
+// Resolve the OCP wsToken for a given theme/command value. Used by per-light
+// and per-group theme writes. lightThemes covers 0..11 (colors); lightGroupCommands
+// covers 12 (HOLD) and 13 (RECALL) which `setColorHold`/`setColorRecall` route
+// through `setLightThemeAsync(id, 12|13)`. wsToken values are verified against
+// ws13_light_colors*.json captures (every val 0..11 paired with numeric LIMIT
+// on an individual circuit). Falls back to name.toUpperCase() with a warn log
+// only if a new theme is added without its OCP token.
+function resolveLightThemeWsToken(theme: number): string {
+    const themeEntry: any = sys.board.valueMaps.lightThemes.transform(theme);
+    if (themeEntry && themeEntry.wsToken) return themeEntry.wsToken;
+    const cmdEntry: any = (sys.board.valueMaps as any).lightGroupCommands?.transform
+        ? (sys.board.valueMaps as any).lightGroupCommands.transform(theme)
+        : undefined;
+    if (cmdEntry && cmdEntry.val === theme && cmdEntry.wsToken) return cmdEntry.wsToken;
+    const fallback = themeEntry && themeEntry.name ? String(themeEntry.name).toUpperCase() : String(theme);
+    logger.warn(`IntelliCenterWS: theme value ${theme} has no wsToken; sending fallback ACT=${fallback}. Add wsToken to lightThemes / lightGroupCommands in IntelliCenterBoard.ts.`);
+    return fallback;
+}
+
 export class IntelliCenterWSBoard extends IntelliCenterBoard {
     constructor(system: PoolSystem) {
         super(system);
@@ -640,8 +659,8 @@ class IntelliCenterWSCircuitCommands extends IntelliCenterCircuitCommands {
         let sgroup = state.lightGroups.getItemById(id);
         try {
             const idx = id - sys.board.equipmentIds.circuitGroups.start + 1;
-            const themeName = sys.board.valueMaps.lightThemes.transform(theme);
-            let actValue = themeName.name ? themeName.name.toUpperCase() : String(theme);
+            const actValue = resolveLightThemeWsToken(theme);
+            logger.debug(`IntelliCenterWS: setLightGroupThemeAsync sending SetParamList objnam=GRP${String(idx).padStart(2, '0')} ACT=${actValue} STATUS=ON`);
             await icws.setParamList('GRP' + String(idx).padStart(2, '0'), { ACT: actValue, STATUS: 'ON' });
             group.lightingTheme = theme;
             sgroup.lightingTheme = theme;
@@ -670,11 +689,12 @@ class IntelliCenterWSCircuitCommands extends IntelliCenterCircuitCommands {
         let cstate = state.circuits.getItemById(id);
         try {
             const objnam = sys.circuits.getItemById(id).objnam || ('C' + String(id).padStart(4, '0'));
-            const themeName = sys.board.valueMaps.lightThemes.transform(theme);
-            let actValue = themeName.name ? themeName.name.toUpperCase() : String(theme);
-            logger.debug(`IntelliCenterWS: setLightThemeAsync sending SetParamList objnam=${objnam} ACT=${actValue}`);
-            // TODO: verify per-circuit theme WS key — may require writing via parent LITSHO group ACT
-            await icws.setParamList(objnam, { ACT: actValue });
+            const actValue = resolveLightThemeWsToken(theme);
+            // OCP wireless writes `{ ACT, STATUS:'ON' }` together (verified in
+            // ws13_light_colors.json). Bundle STATUS:'ON' here too so the OCP
+            // theme write is applied even when the light was off.
+            logger.debug(`IntelliCenterWS: setLightThemeAsync sending SetParamList objnam=${objnam} ACT=${actValue} STATUS=ON`);
+            await icws.setParamList(objnam, { ACT: actValue, STATUS: 'ON' });
             sys.circuits.getItemById(id).lightingTheme = theme;
             cstate.lightingTheme = theme;
             if (!cstate.isOn) await this.setCircuitStateAsync(id, true);

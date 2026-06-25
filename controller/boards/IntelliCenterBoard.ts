@@ -197,27 +197,34 @@ export class IntelliCenterBoard extends SystemBoard {
             [1, { name: 'sunrise', desc: 'Sunrise' }],
             [2, { name: 'sunset', desc: 'Sunset' }]
         ]);
+        // wsToken values verified against `ws13_light_colors*.json` captures —
+        // every val 0..11 paired with a numeric LIMIT on an individual light
+        // circuit (USE/LIMIT round-trip after a SetParamList ACT=<token> write).
+        // OCP v3 WebSocket uses these tokens; sending name.toUpperCase() is a
+        // no-op (OCP responds 200 OK but doesn't change the light).
         this.valueMaps.lightThemes = new byteValueMap([
-            [0, { name: 'white', desc: 'White', sequence: 11, types: ['intellibrite', 'magicstream'] }],
-            [1, { name: 'green', desc: 'Green', sequence: 9, types: ['intellibrite', 'magicstream'] }],
-            [2, { name: 'blue', desc: 'Blue', sequence: 8, types: ['intellibrite', 'magicstream'] }],
-            [3, { name: 'magenta', desc: 'Magenta', sequence: 12, types: ['intellibrite', 'magicstream'] }],
-            [4, { name: 'red', desc: 'Red', sequence: 10, types: ['intellibrite', 'magicstream'] }],
-            [5, { name: 'sam', desc: 'SAm Mode', sequence: 1, types: ['intellibrite', 'magicstream'] }],
-            [6, { name: 'party', desc: 'Party', sequence: 2, types: ['intellibrite', 'magicstream'] }],
-            [7, { name: 'romance', desc: 'Romance', sequence: 3, types: ['intellibrite', 'magicstream'] }],
-            [8, { name: 'caribbean', desc: 'Caribbean', sequence: 4, types: ['intellibrite', 'magicstream'] }],
-            [9, { name: 'american', desc: 'American', sequence: 5, types: ['intellibrite', 'magicstream'] }],
-            [10, { name: 'sunset', desc: 'Sunset', sequence: 6, types: ['intellibrite', 'magicstream'] }],
-            [11, { name: 'royal', desc: 'Royal', sequence: 7, types: ['intellibrite', 'magicstream'] }],
+            [0, { name: 'white', desc: 'White', sequence: 11, types: ['intellibrite', 'magicstream'], wsToken: 'WHITER' }],
+            [1, { name: 'green', desc: 'Green', sequence: 9, types: ['intellibrite', 'magicstream'], wsToken: 'GREENR' }],
+            [2, { name: 'blue', desc: 'Blue', sequence: 8, types: ['intellibrite', 'magicstream'], wsToken: 'BLUER' }],
+            [3, { name: 'magenta', desc: 'Magenta', sequence: 12, types: ['intellibrite', 'magicstream'], wsToken: 'MAGNTAR' }],
+            [4, { name: 'red', desc: 'Red', sequence: 10, types: ['intellibrite', 'magicstream'], wsToken: 'REDR' }],
+            [5, { name: 'sam', desc: 'SAm Mode', sequence: 1, types: ['intellibrite', 'magicstream'], wsToken: 'SAMMOD' }],
+            [6, { name: 'party', desc: 'Party', sequence: 2, types: ['intellibrite', 'magicstream'], wsToken: 'PARTY' }],
+            [7, { name: 'romance', desc: 'Romance', sequence: 3, types: ['intellibrite', 'magicstream'], wsToken: 'ROMAN' }],
+            [8, { name: 'caribbean', desc: 'Caribbean', sequence: 4, types: ['intellibrite', 'magicstream'], wsToken: 'CARIB' }],
+            [9, { name: 'american', desc: 'American', sequence: 5, types: ['intellibrite', 'magicstream'], wsToken: 'AMERCA' }],
+            [10, { name: 'sunset', desc: 'Sunset', sequence: 6, types: ['intellibrite', 'magicstream'], wsToken: 'SSET' }],
+            [11, { name: 'royal', desc: 'Royal', sequence: 7, types: ['intellibrite', 'magicstream'], wsToken: 'ROYAL' }],
             [255, { name: 'none', desc: 'None' }]
         ]);
+        // wsToken for SYNC/SET/SWIM verified via runLightGroupCommandAsync (existing code already writes those strings).
+        // HOLD/RECALL verified against ws13_light_colors.json: C0007 SetParamList ACT=HOLD pkt663 (LIMIT=12), ACT=RECALL pkt1501 (LIMIT=13).
         this.valueMaps.lightGroupCommands = new byteValueMap([
-            [1, { name: 'colorsync', desc: 'Sync', types: ['intellibrite'], command: 'colorSync', message: 'Synchronizing' }],
-            [2, { name: 'colorset', desc: 'Set', types: ['intellibrite'], command: 'colorSet', message: 'Sequencing Set Operation' }],
-            [3, { name: 'colorswim', desc: 'Swim', types: ['intellibrite'], command: 'colorSwim', message: 'Sequencing Swim Operation' }],
-            [12, { name: 'colorhold', desc: 'Hold', types: ['intellibrite', 'magicstream'], command: 'colorHold', message: 'Saving Current Colors', sequence: 13 }],
-            [13, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite', 'magicstream'], command: 'colorRecall', message: 'Recalling Saved Colors', sequence: 14 }]
+            [1, { name: 'colorsync', desc: 'Sync', types: ['intellibrite'], command: 'colorSync', message: 'Synchronizing', wsToken: 'SYNC' }],
+            [2, { name: 'colorset', desc: 'Set', types: ['intellibrite'], command: 'colorSet', message: 'Sequencing Set Operation', wsToken: 'SET' }],
+            [3, { name: 'colorswim', desc: 'Swim', types: ['intellibrite'], command: 'colorSwim', message: 'Sequencing Swim Operation', wsToken: 'SWIM' }],
+            [12, { name: 'colorhold', desc: 'Hold', types: ['intellibrite', 'magicstream'], command: 'colorHold', message: 'Saving Current Colors', sequence: 13, wsToken: 'HOLD' }],
+            [13, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite', 'magicstream'], command: 'colorRecall', message: 'Recalling Saved Colors', sequence: 14, wsToken: 'RECALL' }]
         ]);
 
         this.valueMaps.lightCommands = new byteValueMap([
