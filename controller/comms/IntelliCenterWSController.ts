@@ -472,7 +472,7 @@ function decodeSchedule(objnam: string, params: ParamMap): void {
         ssched.isOn = parseBool(params['STATUS']);
     }
     if (typeof params['SINGLE'] !== 'undefined') {
-        const st = parseBool(params['SINGLE']) ? 128 : 0;
+        const st = parseBool(params['SINGLE']) ? 0 : 128;
         sched.scheduleType = st; ssched.scheduleType = st;
     }
     if (typeof params['HEATER'] !== 'undefined') {

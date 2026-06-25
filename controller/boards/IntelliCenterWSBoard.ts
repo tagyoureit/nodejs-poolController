@@ -950,7 +950,7 @@ class IntelliCenterWSScheduleCommands extends IntelliCenterScheduleCommands {
                 params.DAY = dayStr || 'MTWRFAU';
             }
             if (typeof data.scheduleType !== 'undefined')
-                params.SINGLE = parseInt(data.scheduleType, 10) === 128 ? 'ON' : 'OFF';
+                params.SINGLE = parseInt(data.scheduleType, 10) === 128 ? 'OFF' : 'ON';
             if (typeof data.startDate !== 'undefined') {
                 let dt = new Date(data.startDate);
                 if (!isNaN(dt.getTime())) {
