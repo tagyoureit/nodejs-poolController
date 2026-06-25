@@ -242,9 +242,29 @@ export class PoolSystem implements IPoolSystem {
 
     public async resetSystemAsync(): Promise<void> {
         logger.info(`Resetting System to initial defaults`);
+        const ccfg = config.getSection('controller.comms', {});
+        const isWS = ccfg.type === 'ocpws' && ccfg.enabled !== false;
+
+        if (isWS) {
+            // ocpws transport: there is no inbound Action 2 to restore controllerType
+            // after setting it to Unknown, so the 7.5s initNixieController timer would
+            // permanently flip the system to Nixie. Instead: reset data while keeping
+            // controllerType=IntelliCenter and the board intact, then re-snapshot from OCP.
+            logger.info(`ocpws transport — performing WS-specific reset (no controllerType flip).`);
+            state.equipment.messages.clearAll();
+            this.resetData();
+            state.resetData();
+            this.data.controllerType = ControllerType.IntelliCenter;
+            state.equipment.controllerType = ControllerType.IntelliCenter;
+            state.status = 0;
+            sys.board.reloadConfig();
+            return;
+        }
+
+        // RS-485 path: set controllerType to Unknown and let the next Action 2
+        // from the OCP restore the actual controller type.
         await this.board.closeAsync();
         logger.info(`Closed ${this.controllerType} board`);
-        // Use the controllerType setter so we also clear sys/state and rebuild boards appropriately.
         this.controllerType = ControllerType.Unknown;
     }
     public resetSystem() {
