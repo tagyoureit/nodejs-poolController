@@ -189,7 +189,9 @@ export class HeaterStateMessage {
             (h.type === jxiType || h.type === lxiType) && h.isActive !== false
         );
         if (typeof heater === 'undefined') { msg.isProcessed = true; return; }
-        let tempByte = msg.extractPayloadByte(5);
+        // Temperature is at payload byte 6 (after DLE-unstuffing).
+        // Response format: [GVhours_hi, GVhours_lo, cycles_hi, cycles_lo, unk, unk, temp+20]
+        let tempByte = msg.extractPayloadByte(6);
         if (typeof tempByte !== 'undefined' && tempByte > 20) {
             let tempF = tempByte - 20;
             logger.info(`JXi heater ${heater.name}: water temp ${tempF}°F`);

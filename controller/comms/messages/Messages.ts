@@ -263,8 +263,7 @@ export class Message {
     public get chkLo(): number { return this.protocol === Protocol.Chlorinator || this.protocol === Protocol.AquaLink || this.protocol === Protocol.Jandy ? this.term[0] : this.term[1]; }
     public get checksum(): number {
         var sum = 0;
-        let start = this.protocol === Protocol.Jandy ? 2 : 0;
-        for (let i = start; i < this.header.length; i++) sum += this.header[i];
+        for (let i = 0; i < this.header.length; i++) sum += this.header[i];
         for (let i = 0; i < this.payload.length; i++) sum += this.payload[i];
         return sum;
     }
@@ -274,16 +273,50 @@ export class Message {
         const pkt = [];
         pkt.push(...this.padding);
         pkt.push(...this.preamble);
-        pkt.push(...this.header);
-        pkt.push(...this.payload);
-        pkt.push(...this.term);
+        if (this.protocol === Protocol.Jandy) {
+            // Jandy DLE byte-stuffing: insert 0x00 after any 0x10 in payload/checksum
+            // to distinguish data from the DLE framing character. Header (DLE STX DEST CMD)
+            // and terminator DLE ETX are NOT stuffed.
+            pkt.push(...this.header);
+            for (let i = 0; i < this.payload.length; i++) {
+                pkt.push(this.payload[i]);
+                if (this.payload[i] === 0x10) pkt.push(0x00);
+            }
+            // term = [checksum, DLE, ETX] — stuff the checksum byte if it's 0x10
+            if (this.term.length >= 3) {
+                pkt.push(this.term[0]);
+                if (this.term[0] === 0x10) pkt.push(0x00);
+                pkt.push(this.term[1], this.term[2]); // DLE ETX (not stuffed)
+            } else {
+                pkt.push(...this.term);
+            }
+        } else {
+            pkt.push(...this.header);
+            pkt.push(...this.payload);
+            pkt.push(...this.term);
+        }
         return pkt;
     }
     public toShortPacket(): number[] {
         const pkt = [];
-        pkt.push(...this.header);
-        pkt.push(...this.payload);
-        pkt.push(...this.term);
+        if (this.protocol === Protocol.Jandy) {
+            pkt.push(...this.header);
+            for (let i = 0; i < this.payload.length; i++) {
+                pkt.push(this.payload[i]);
+                if (this.payload[i] === 0x10) pkt.push(0x00);
+            }
+            if (this.term.length >= 3) {
+                pkt.push(this.term[0]);
+                if (this.term[0] === 0x10) pkt.push(0x00);
+                pkt.push(this.term[1], this.term[2]);
+            } else {
+                pkt.push(...this.term);
+            }
+        } else {
+            pkt.push(...this.header);
+            pkt.push(...this.payload);
+            pkt.push(...this.term);
+        }
         return pkt;
     }
     public toLog(): string {
@@ -1136,6 +1169,19 @@ export class Inbound extends Message {
                     return vEquip.process(this);
                 }
             }
+        }
+        // Jandy DLE byte-unstuffing: remove null (0x00) bytes that follow DLE (0x10)
+        // in the payload. The heater inserts these to distinguish data value 0x10 from
+        // the DLE control character used in framing (DLE STX / DLE ETX).
+        if (this.protocol === Protocol.Jandy && this.payload.length > 0) {
+            let unstuffed = [];
+            for (let i = 0; i < this.payload.length; i++) {
+                unstuffed.push(this.payload[i]);
+                if (this.payload[i] === 0x10 && i + 1 < this.payload.length && this.payload[i + 1] === 0x00) {
+                    i++; // skip the stuff byte
+                }
+            }
+            this.payload = unstuffed;
         }
         switch (this.protocol) {
             case Protocol.Broadcast:
