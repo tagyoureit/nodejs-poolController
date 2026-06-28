@@ -92,15 +92,21 @@ function parseFloatSafe(val: string, fallback: number = 0): number {
 
 // Resolve a light theme value from OCP tokens. OCP individual-circuit NOTIFY
 // includes both USE (token like SSET / MAGNTAR / CARIB) and LIMIT (numeric
-// theme code 0..13). LIMIT is the authoritative source when present.
+// theme code 0..11). LIMIT is the authoritative source when present.
 // USE-only NOTIFY (e.g. light groups whose LIMIT is the placeholder string
 // "LIMIT") falls back to a token lookup against valueMaps.lightThemes wsToken,
-// then name, then a numeric-string parse (handles OCP returning "USE":"12"
-// for HOLD or "USE":"13" for RECALL).
+// then name, then a numeric-string parse.
+//
+// IMPORTANT: only values 0..11 are themes. Values 12 (HOLD) and 13 (RECALL)
+// are *command echoes* that OCP transiently broadcasts on USE/LIMIT after a
+// Hold/Recall write — the underlying light theme has not actually changed.
+// Returning `undefined` for those preserves whatever `lightingTheme` was
+// already set, so dashPanel keeps showing the prior color instead of
+// falling back to white via the valueMap default.
 function lightThemeFromParams(params: ParamMap): number | undefined {
     if (typeof params['LIMIT'] !== 'undefined') {
         const n = parseInt(params['LIMIT'], 10);
-        if (!isNaN(n) && n >= 0 && n <= 13) return n;
+        if (!isNaN(n) && n >= 0 && n <= 11) return n;
     }
     if (typeof params['USE'] !== 'undefined') {
         return lightThemeFromToken(params['USE']);
@@ -111,13 +117,16 @@ function lightThemeFromParams(params: ParamMap): number | undefined {
 function lightThemeFromToken(token: string): number | undefined {
     if (!token || token === 'USE' || token === 'NONE') return undefined;
     const t = token.toUpperCase();
+    // Reject HOLD/RECALL tokens and their numeric 12/13 echoes — see comment
+    // on lightThemeFromParams. These are commands, not themes.
+    if (t === 'HOLD' || t === 'RECALL' || t === '12' || t === '13') return undefined;
     const arr = sys.board.valueMaps.lightThemes.toArray() as any[];
     for (const entry of arr) {
         if (entry.wsToken && String(entry.wsToken).toUpperCase() === t) return entry.val;
         if (entry.name && String(entry.name).toUpperCase() === t) return entry.val;
     }
     const n = parseInt(t, 10);
-    if (!isNaN(n) && n >= 0 && n <= 13) return n;
+    if (!isNaN(n) && n >= 0 && n <= 11) return n;
     return undefined;
 }
 
@@ -168,13 +177,13 @@ function parseDayMask(val: string): number {
     if (!val) return 0;
     let mask = 0;
     const upper = val.toUpperCase();
-    if (upper.includes('M')) mask |= 0x01;
-    if (upper.includes('T') && !upper.includes('TH') || (upper.indexOf('T') !== upper.lastIndexOf('T'))) mask |= 0x02;
-    if (upper.includes('W')) mask |= 0x04;
-    if (upper.includes('R')) mask |= 0x08;
-    if (upper.includes('F')) mask |= 0x10;
-    if (upper.includes('A')) mask |= 0x20;
-    if (upper.includes('U')) mask |= 0x40;
+    if (upper.includes('U')) mask |= 0x01;
+    if (upper.includes('M')) mask |= 0x02;
+    if (upper.includes('T') && !upper.includes('TH') || (upper.indexOf('T') !== upper.lastIndexOf('T'))) mask |= 0x04;
+    if (upper.includes('W')) mask |= 0x08;
+    if (upper.includes('R')) mask |= 0x10;
+    if (upper.includes('F')) mask |= 0x20;
+    if (upper.includes('A')) mask |= 0x40;
     if (mask === 0) {
         const n = parseIntSafe(val);
         if (n > 0) return n;
