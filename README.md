@@ -1,7 +1,7 @@
 # nodejs-poolController (njsPC)
 
 [![License: AGPL v3](https://img.shields.io/github/license/tagyoureit/nodejs-poolController)](https://www.gnu.org/licenses/agpl-3.0)
-[![Node](https://img.shields.io/badge/node-%E2%89%A520-brightgreen)](https://nodejs.org/)
+[![Node](https://img.shields.io/badge/node-%E2%89%A522-brightgreen)](https://nodejs.org/)
 [![GitHub release](https://img.shields.io/github/v/release/tagyoureit/nodejs-poolController)](https://github.com/tagyoureit/nodejs-poolController/releases)
 [![GitHub stars](https://img.shields.io/github/stars/tagyoureit/nodejs-poolController?style=social)](https://github.com/tagyoureit/nodejs-poolController/stargazers)
 [![Last commit](https://img.shields.io/github/last-commit/tagyoureit/nodejs-poolController)](https://github.com/tagyoureit/nodejs-poolController/commits/master)
@@ -11,7 +11,7 @@
 
 - 🌊 **Works with your gear** — IntelliCenter (through firmware v3.008), IntelliTouch, EasyTouch, SunTouch, Aqualink, IntelliCom, or no controller at all (Nixie mode).
 - 🏠 **Plugs into your smart home** — HomeKit/Siri (via Homebridge), Home Assistant (via MQTT), Hubitat, SmartThings, MQTT, InfluxDB, Alexa.
-- 🔌 **No cloud required** — runs on a Raspberry Pi, NAS, or any Node.js 20+ host. Pairs with [dashPanel](https://github.com/rstrouse/nodejs-poolController-dashPanel) for a web dashboard and [REM](https://github.com/rstrouse/relayEquipmentManager) for direct GPIO/i2c/SPI hardware I/O.
+- 🔌 **No cloud required** — runs on a Raspberry Pi, NAS, or any Node.js 22+ host. Pairs with [dashPanel](https://github.com/rstrouse/nodejs-poolController-dashPanel) for a web dashboard and [REM](https://github.com/rstrouse/relayEquipmentManager) for direct GPIO/i2c/SPI hardware I/O.
 
 <p align="center">
   <img src="https://tagyoureit.github.io/nodejs-poolController/images/v6/clients/dashPanel.png?raw=true" alt="dashPanel UI showing a live njsPC dashboard with bodies, circuits, pumps, and chemistry" width="720">
@@ -26,8 +26,8 @@
 > **In the wild:** featured in the [TroubleFreePool IntelliCenter walk-through guide](https://www.troublefreepool.com/threads/pentair-intellicenter-pool-control-dashboard-instructional-guide.218514/) (thanks @MyAZPool). Actively maintained — questions welcome in [GitHub Discussions](https://github.com/tagyoureit/nodejs-poolController/discussions).
 
 ```diff
-+ Running IntelliCenter v3.008+? Fully supported as of 9.0, with security,
-+ heater, and chemistry improvements in 9.1.
++ NEW in 10.0: IntelliCenter WebSocket protocol — control your pool over
++ the local network with no RS-485 adapter. Just plug in Ethernet.
 + If anything looks off, please open a discussion with a replay capture.
 ```
 
@@ -45,7 +45,7 @@ njsPC is a Node.js service that talks to your pool controller over RS-485 (or Sc
 
 | Category | Supported | Notes |
 |---|---|---|
-| **Controllers** | IntelliCenter, IntelliTouch, EasyTouch, SunTouch, Aqualink, IntelliCom, Nixie (standalone) | RS-485 (preferred) or ScreenLogic (network) |
+| **Controllers** | IntelliCenter, IntelliTouch, EasyTouch, SunTouch, Aqualink, IntelliCom, Nixie (standalone) | RS-485, ScreenLogic (network), or **IntelliCenter local WebSocket** (new in 10.0 — no adapter needed) |
 | **Pumps** | IntelliFlo VS / VSF / VF, IntelliFlo VS+SVRS, SuperFlo VS, Hayward Eco/TriStar VS, Hayward Relay VS, Whisperflo, single/two-speed, relay-controlled, Neptune Modbus, Regal (Century) Modbus | Regal added in 9.0 — [PR #1169](https://github.com/tagyoureit/nodejs-poolController/pull/1169) |
 | **Heaters** | Gas, solar, heat pump, hybrid (ETi / ETi250), MasterTemp, Max-E-Therm, UltraTemp / UltraTempDirect, Jandy JXi / LXi | JXi/LXi added in 9.1 — [discussion #1128](https://github.com/tagyoureit/nodejs-poolController/discussions/1128) |
 | **Chlorinators** | IntelliChlor, Aqua-Rite, OEM brands (physical and virtual) | Dual chlorinators supported via REM. Virtual chlorinator added in 9.1 |
@@ -56,7 +56,26 @@ njsPC is a Node.js service that talks to your pool controller over RS-485 (or Sc
 | **Valves** | Standard intake/return with diverted status | Intellivalve planned |
 | **Home Automation** | HomeKit/Siri (Homebridge), Home Assistant (via MQTT), Hubitat, SmartThings, MQTT, InfluxDB, ISY, Vera, Alexa | See [Home Automation Bindings](#home-automation-bindings) |
 
-## What's new in 9.1
+## What's new in 10.0
+
+**IntelliCenter WebSocket Protocol — Communicate Without RS-485 Hardware.**
+
+For the first time, njsPC can talk to IntelliCenter v3.004+ controllers over the local network using Pentair's native JSON WebSocket protocol on port 6680. No RS-485 adapter, no serial wiring — just Ethernet. This is a complete alternative communication path with full bidirectional config, live state push, and equipment control.
+
+1. **Full WebSocket transport** — new comms type `ocpws` with mDNS auto-discovery, JSON request/response protocol, and live `NotifyList` push subscriptions. Selectable from dashPanel alongside all existing transport types.
+2. **No hardware required** — IntelliCenter v3.004+ owners can control their pool with just an Ethernet cable to the OCP. Select "IntelliCenter Network" in dashPanel, hit Discover, and connect.
+3. **Complete config loading over WS** — all equipment configuration (circuits, bodies, pumps, heaters, schedules, chemistry, valves, covers, remotes, security) loaded via `GetParamList` queries over WebSocket.
+4. **Bidirectional control** — circuit toggle, body heat mode/setpoint, schedule changes, and light commands sent as `SetParamList` writes. Real-time state changes received via subscriptions.
+5. **Architecture refactoring** — IntelliCenter board split into dedicated `IntelliCenterV1Board` (RS-485 v1.x), `IntelliCenterWSBoard` (WebSocket mode), and shared base. Board swaps dynamically at runtime when you change transport type.
+6. **Pump error code parsing** — pump errors now decoded into human-readable descriptions with state tracking (#1197).
+7. **EasyTouch Dimmer support** — Dimmer circuit type (type 8) with RS-485 level control via action 134 (#1203).
+8. **14 bug fixes** — Jandy DLE byte-stuffing, schedule endTime midnight rollover, EasyTouch v3 detection regression, Docker container bindings, and more.
+9. **Integration test infrastructure** — full vitest suite with OCP WebSocket mock, golden snapshot fixtures, and development utility scripts.
+
+See the full [Changelog](https://github.com/tagyoureit/nodejs-poolController/blob/master/Changelog) for all 33 items in 10.0.
+
+<details>
+<summary>What was new in 9.1</summary>
 
 9.1 adds IntelliCenter security, Jandy JXi/LXi heater support, virtual chemistry equipment, and a batch of v3.008 refinements.
 
@@ -72,8 +91,7 @@ njsPC is a Node.js service that talks to your pool controller over RS-485 (or Sc
 10. **Zip-to-coordinates fallback** — heliotrope sunrise/sunset calculations now resolve lat/lon from zip code when not explicitly configured.
 11. Configurable single mixing period for chemistry controllers — thanks to @johnny2678 ([PR #1181](https://github.com/tagyoureit/nodejs-poolController/pull/1181)).
 12. IntelliCenter/IntelliTouch i9+3 disambiguation fix ([#1179](https://github.com/tagyoureit/nodejs-poolController/issues/1179)), 3rd power center expansion fix ([#1171](https://github.com/tagyoureit/nodejs-poolController/issues/1171)), chlorinator ID fallback fix — thanks to @johnny2678 ([PR #1178](https://github.com/tagyoureit/nodejs-poolController/pull/1178)).
-
-See the full [Changelog](https://github.com/tagyoureit/nodejs-poolController/blob/master/Changelog) for all 37 items in 9.1.
+</details>
 
 <details>
 <summary>What was new in 9.0</summary>

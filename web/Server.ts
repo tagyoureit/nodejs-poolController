@@ -718,8 +718,8 @@ export class HttpServer extends ProtoServer {
                 this.server = http.createServer(this.app);
                 if (cfg.httpsRedirect) {
                     var cfgHttps = config.getSection('web').server.https;
-                    this.app.get('*', (res: express.Response, req: express.Request) => {
-                        let host = res.get('host');
+                    this.app.get('/*', (req: express.Request, res: express.Response) => {
+                        let host = req.get('host');
                         // Only append a port if there is one declared.  This will be the case for urls that have have an implicit port.
                         host = host.replace(/:\d+$/, typeof cfgHttps.port !== 'undefined' ? ':' + cfgHttps.port : '');
                         return res.redirect('https://' + host + req.url);

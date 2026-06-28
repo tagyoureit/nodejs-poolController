@@ -1,21 +1,59 @@
 # Changelog
 
-## Unreleased
-IntelliCenter v3 local WebSocket transport (foundation).
+## 10.0.0
+**IntelliCenter WebSocket Protocol — Communicate Without RS-485 Hardware**
+
+This is a landmark release. For the first time, njsPC can communicate with IntelliCenter v3.004+ controllers over the **local network** using Pentair's native JSON WebSocket protocol on port 6680 — no RS-485 adapter, no wiring, no serial bus. Just Ethernet.
+
+The IntelliCenter WS transport is a complete alternative communication path: full bidirectional config reads, live state subscriptions via `NotifyList` push, and circuit/body/schedule control — all over a single TCP connection. Combined with a major board architecture refactoring (dedicated V1, V3, and WS board implementations), this release makes njsPC a truly modular platform for IntelliCenter systems.
+
+### IntelliCenter WebSocket Protocol (Major)
+1. **Full WebSocket transport** — new comms type `ocpws` for IntelliCenter v3 OCP local WebSocket on port 6680. Selectable from dashPanel alongside Local / Network / ScreenLogic / Mock. Mutually exclusive with all RS-485-style transports — opening WS closes RS-485 ports and vice versa, with a hard guard in `Comms.queueSendMessageAsync` that refuses to put any RS-485 frame on the wire while WS is the active transport.
+2. **mDNS auto-discovery** — browse for IntelliCenter OCP devices on the LAN via `GET /config/options/ocpws/search`. Filters `_http._tcp.local` for `Pentair -i -n<alias>` services and returns `[{alias, host, port}]`.
+3. **JSON request/response protocol** — WebSocket client with JSON envelope (`{command, messageID, objectList}`), request/response correlator keyed by messageID, configurable timeout, auto-reconnect, and `RequestParamList` subscription manager that re-subscribes after reconnect.
+4. **Full configuration loading over WS** — `IntelliCenterWSController` translates OCP `GetParamList` responses into njsPC config/state (circuits, bodies, pumps, heaters, schedules, chemistry, valves, covers, remotes, security, general options).
+5. **Live state push** — `NotifyList` subscriptions deliver real-time state changes (circuit on/off, temperatures, pump RPM/watts, heater status) without polling.
+6. **Bidirectional control** — circuit toggle, body heat mode/setpoint, schedule changes, and light commands are sent as `SetParamList` writes over WS.
+7. **REST endpoints** — `/config/options/ocpws/search` (mDNS browse), `/config/options/ocpws/test` (one-shot probe), `/config/options/ocpws/stats` (live connection stats). Stats stream pushed on socket.io channel `icwsStats`.
+8. **dashPanel integration** — new "IntelliCenter Network" port type, host/port/discovery panel with Discover and Test buttons, live stats badge.
+9. **wsToken mapping for light themes** — correct token-to-theme mapping for IntelliCenter light commands over WS, plus fix for OCP theme writes (#1191).
+
+### Architecture Refactoring (Major)
+10. **Dedicated board implementations** — `IntelliCenterBoard.ts` refactored into three focused implementations:
+    - `IntelliCenterV1Board.ts` — RS-485 v1.x protocol (the existing behavior, extracted)
+    - `IntelliCenterWSBoard.ts` — WebSocket-mode board with `reloadConfig` method
+    - `IntelliCenterBoard.ts` — shared base with v3 RS-485 protocol support
+11. **Dynamic board swap** — `Equipment.ts` now swaps the active IntelliCenter board at runtime when the communication type changes between RS-485 and WS (#1090).
+12. **Board factory** — `BoardFactory.ts` updated to instantiate the correct board variant based on connection type and firmware version.
 
 ### New Features
-1. New comms type `ocpws` for IntelliCenter v3 OCP local WebSocket on port 6680. Selectable from dashPanel alongside Local / Network / ScreenLogic / Mock. Mutually exclusive with all RS-485-style transports — opening WS closes RS-485 ports and vice versa, with a hard guard in `Comms.queueSendMessageAsync` that refuses to put any RS-485 frame on the wire while WS is the active transport.
-2. mDNS discovery for IntelliCenter OCP via new `IntelliCenterWSComms.searchAsync()` and REST endpoint `GET /config/options/ocpws/search`. Filters `_http._tcp.local` for `Pentair -i -n<alias>` services and returns `[{alias, host, port}]`.
-3. WebSocket client with JSON envelope (`{command, messageID, objectList}`), request/response correlator keyed by messageID, configurable timeout, auto-reconnect, and `RequestParamList` subscription manager that re-subscribes after reconnect.
-4. New REST endpoints: `/config/options/ocpws/search` (mDNS browse), `/config/options/ocpws/test` (one-shot probe), `/config/options/ocpws/stats` (live stats). Stats stream pushed on socket.io channel `icwsStats`.
-5. dashPanel: new "IntelliCenter Network" port type, host/port/discovery panel with Discover and Test buttons, stats subscription wired into the homepage badge.
+13. **Pump error code parsing** — pump error codes are now decoded into human-readable state descriptions with tracking (#1197).
+14. **EasyTouch Dimmer circuit type** — type 8 (Dimmer) added to circuitFunctions with RS-485 level control support via action 134. Level clamped to valid 30-100% range in 10% steps (#1203).
+
+### Bug Fixes
+15. **Jandy DLE byte-stuffing** — correct implementation of DLE (0x10) escape sequences for Jandy/Zodiac RS-485 protocol, plus temp payload offset fix (#1128).
+16. **Pump remote control reset** — removed spurious remote control reset on pump operation end (#1211).
+17. **Equipment controllerType preservation** — `controllerType` no longer lost on equipment reset when using ocpws transport (#1191).
+18. **Schedule SINGLE type logic** — inverted boolean for `SINGLE` schedule type corrected (#1199).
+19. **WS circuit master reset** — OCP-owned circuits correctly have master reset to 0 on WS initialization (#1199).
+20. **Module sync on WS init** — module[0] synced and stale expansion slots cleared during WebSocket initialization (#1199).
+21. **Schedule field naming** — `schedType` renamed to `scheduleType` for consistency; schedule ID offset corrected (#1090).
+22. **IntelliCenter v3 16-bit body capacity** — v3.004+ encodes body volume as big-endian 16-bit; decoder updated (#1090).
+23. **EasyTouch v3 detection regression** — gated IntelliCenter v3 detection on model2 in {2,3} so EasyTouch (model2 13/14) no longer misrouted into IntelliCenter parser (#1195).
+24. **Schedule endTime refresh** — `cstate.endTime` now refreshes when an active schedule's window advances past midnight, preventing spurious circuit shutoff (#1193).
+25. **Schedule yesterday-branch endTime** — fixed assignment of `startTime` where `endTime` was intended in the yesterday-branch of `calcScheduleDate` (#1191).
+26. **Docker bindings** — web/bindings files added to Dockerfile for correct connection bindings in container deployments (#1202).
+27. **Heliotrope duplicate warnings** — suppressed repeated sunrise/sunset calculation warnings and guarded against missing values (#1184).
+28. **Jandy checksum index** — checksum calculation now starts at correct byte index for Jandy protocol (#1128).
 
 ### Security
-6. The OCP local WebSocket has **no authentication** — any LAN device can read or write the full system, including PIN-based PERMIT roles in plaintext (see `.plan/209f-system-clock-security.md`). Operators must treat port 6680 as trusted-LAN-only and never expose it to the internet. Documented in README.
+29. The OCP local WebSocket has **no authentication** — any LAN device can read or write the full system, including PIN-based PERMIT roles in plaintext. Operators must treat port 6680 as trusted-LAN-only and never expose it to the internet.
 
-### Notes
-- This release ships the transport foundation only: discovery, connect/disconnect lifecycle, mutual exclusion, request/subscribe primitives, and dashPanel surface. Translators that mirror Action 30 sub-handlers and rewiring of `IntelliCenterBoard` outbound writes (Action 168/184/222/228/251) are tracked separately and ship in a follow-on PR.
-- Out of scope: Regal/Neptune Modbus pumps remain on their existing direct-Modbus path (never on the IC bus).
+### Build & Testing
+30. **Integration test infrastructure** — full vitest-based integration test suite with OCP WebSocket mock client, njsPC lifecycle helpers, transport toggle utilities, and structured test reporters.
+31. **Golden snapshot testing** — v1-init and v3-init fixture snapshots for regression testing of configuration parsing.
+32. **Utility scripts** — `capture-snapshot.ts`, `command-replay.ts`, `diff-rs485-vs-ws.ts`, `diff-snapshots.ts` for development and debugging.
+33. **Dependencies** — added `ws` and `@types/ws` for native WebSocket support.
 
 ## 9.1.0
 IntelliCenter security rationalization, JXi/LXi heater support, virtual IntelliChem, and various fixes.

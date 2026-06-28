@@ -1,5 +1,5 @@
 ### Build stage
-FROM node:20-alpine AS build
+FROM node:22-alpine AS build
 LABEL maintainer="nodejs-poolController"
 LABEL org.opencontainers.image.title="nodejs-poolController"
 LABEL org.opencontainers.image.description="Bridge Pentair / compatible pool automation equipment to modern interfaces (REST, WebSockets, MQTT, Influx, Rules)."
@@ -28,7 +28,7 @@ RUN npm run build
 RUN npm prune --production
 
 ### Runtime stage
-FROM node:20-alpine AS prod
+FROM node:22-alpine AS prod
 LABEL org.opencontainers.image.title="nodejs-poolController"
 LABEL org.opencontainers.image.description="Bridge Pentair / compatible pool automation equipment to modern interfaces (REST, WebSockets, MQTT, Influx, Rules)."
 LABEL org.opencontainers.image.licenses="AGPL-3.0-only"

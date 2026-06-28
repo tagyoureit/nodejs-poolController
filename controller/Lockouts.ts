@@ -466,7 +466,7 @@ export class DelayManager extends Array<EquipmentDelay> {
     }
     public cancelHeaterCooldownDelays() { this.cancelDelaysByType('heaterCooldownDelay'); }
     public setCleanerStartDelay(cs: ICircuitState, bodyId: number, delay?: number) {
-        let cds = this.filter(x => x.type === ('cleanerStartDelay' || 'cleanerSolarDelay'));
+        let cds = this.filter(x => x.type === 'cleanerStartDelay' || x.type === 'cleanerSolarDelay');
         let startDelay: CleanerStartDelay;
         for (let i = 0; i < cds.length; i++) {
             let delay = cds[i] as unknown as ICleanerDelay;

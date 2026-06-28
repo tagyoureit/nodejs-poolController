@@ -632,6 +632,10 @@ export class NixieSystemCommands extends SystemCommands {
                 this._modeTimer = null;
                 state.mode = 0;
                 webApp.emitToClients('panelMode', { mode: mode, remaining: 0 });
+                if (utils.makeBool(data.resumeSchedules)) {
+                    await sys.board.schedules.syncScheduleStates();
+                    await sys.board.circuits.syncCircuitRelayStates();
+                }
                 break;
         }
     }
@@ -649,6 +653,9 @@ export class NixieSystemCommands extends SystemCommands {
         else {
             webApp.emitToClients('panelMode', { mode: sys.board.valueMaps.panelModes.transform(0), remaining: 0 });
             state.mode = 0;
+            // Resume schedules immediately when timeout expires naturally.
+            sys.board.schedules.syncScheduleStates();
+            sys.board.circuits.syncCircuitRelayStates();
         }
     }
     public async initServiceMode(mode, timeout?: number) {

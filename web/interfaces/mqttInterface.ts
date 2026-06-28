@@ -87,7 +87,7 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
             if (typeof this.client !== 'undefined') {
                 await this.unsubscribe();
                 await new Promise<boolean>((resolve, reject) => {
-                    this.client.end(true, { reasonCode: 0, reasonString: `Shutting down MQTT Client` }, () => {
+                    this.client.end(true, { reasonCode: 0 }, () => {
                         resolve(true);
                         logger.info(`Successfully shut down MQTT Client`);
                     });
