@@ -1955,6 +1955,8 @@ export class HeaterState extends EqState {
     public set startupDelay(val: boolean) { this.setDataVal('startupDelay', val); }
     public get shutdownDelay(): boolean { return this.data.shutdownDelay; }
     public set shutdownDelay(val: boolean) { this.setDataVal('shutdownDelay', val); }
+    public get isActive(): boolean { return this.data.isActive; }
+    public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get bodyId(): number { return this.data.bodyId || 0 }
     public set bodyId(val: number) { this.setDataVal('bodyId', val); }
 

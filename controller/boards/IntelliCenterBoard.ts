@@ -197,27 +197,34 @@ export class IntelliCenterBoard extends SystemBoard {
             [1, { name: 'sunrise', desc: 'Sunrise' }],
             [2, { name: 'sunset', desc: 'Sunset' }]
         ]);
+        // wsToken values verified against `ws13_light_colors*.json` captures —
+        // every val 0..11 paired with a numeric LIMIT on an individual light
+        // circuit (USE/LIMIT round-trip after a SetParamList ACT=<token> write).
+        // OCP v3 WebSocket uses these tokens; sending name.toUpperCase() is a
+        // no-op (OCP responds 200 OK but doesn't change the light).
         this.valueMaps.lightThemes = new byteValueMap([
-            [0, { name: 'white', desc: 'White', sequence: 11, types: ['intellibrite', 'magicstream'] }],
-            [1, { name: 'green', desc: 'Green', sequence: 9, types: ['intellibrite', 'magicstream'] }],
-            [2, { name: 'blue', desc: 'Blue', sequence: 8, types: ['intellibrite', 'magicstream'] }],
-            [3, { name: 'magenta', desc: 'Magenta', sequence: 12, types: ['intellibrite', 'magicstream'] }],
-            [4, { name: 'red', desc: 'Red', sequence: 10, types: ['intellibrite', 'magicstream'] }],
-            [5, { name: 'sam', desc: 'SAm Mode', sequence: 1, types: ['intellibrite', 'magicstream'] }],
-            [6, { name: 'party', desc: 'Party', sequence: 2, types: ['intellibrite', 'magicstream'] }],
-            [7, { name: 'romance', desc: 'Romance', sequence: 3, types: ['intellibrite', 'magicstream'] }],
-            [8, { name: 'caribbean', desc: 'Caribbean', sequence: 4, types: ['intellibrite', 'magicstream'] }],
-            [9, { name: 'american', desc: 'American', sequence: 5, types: ['intellibrite', 'magicstream'] }],
-            [10, { name: 'sunset', desc: 'Sunset', sequence: 6, types: ['intellibrite', 'magicstream'] }],
-            [11, { name: 'royal', desc: 'Royal', sequence: 7, types: ['intellibrite', 'magicstream'] }],
+            [0, { name: 'white', desc: 'White', sequence: 11, types: ['intellibrite', 'magicstream'], wsToken: 'WHITER' }],
+            [1, { name: 'green', desc: 'Green', sequence: 9, types: ['intellibrite', 'magicstream'], wsToken: 'GREENR' }],
+            [2, { name: 'blue', desc: 'Blue', sequence: 8, types: ['intellibrite', 'magicstream'], wsToken: 'BLUER' }],
+            [3, { name: 'magenta', desc: 'Magenta', sequence: 12, types: ['intellibrite', 'magicstream'], wsToken: 'MAGNTAR' }],
+            [4, { name: 'red', desc: 'Red', sequence: 10, types: ['intellibrite', 'magicstream'], wsToken: 'REDR' }],
+            [5, { name: 'sam', desc: 'SAm Mode', sequence: 1, types: ['intellibrite', 'magicstream'], wsToken: 'SAMMOD' }],
+            [6, { name: 'party', desc: 'Party', sequence: 2, types: ['intellibrite', 'magicstream'], wsToken: 'PARTY' }],
+            [7, { name: 'romance', desc: 'Romance', sequence: 3, types: ['intellibrite', 'magicstream'], wsToken: 'ROMAN' }],
+            [8, { name: 'caribbean', desc: 'Caribbean', sequence: 4, types: ['intellibrite', 'magicstream'], wsToken: 'CARIB' }],
+            [9, { name: 'american', desc: 'American', sequence: 5, types: ['intellibrite', 'magicstream'], wsToken: 'AMERCA' }],
+            [10, { name: 'sunset', desc: 'Sunset', sequence: 6, types: ['intellibrite', 'magicstream'], wsToken: 'SSET' }],
+            [11, { name: 'royal', desc: 'Royal', sequence: 7, types: ['intellibrite', 'magicstream'], wsToken: 'ROYAL' }],
             [255, { name: 'none', desc: 'None' }]
         ]);
+        // wsToken for SYNC/SET/SWIM verified via runLightGroupCommandAsync (existing code already writes those strings).
+        // HOLD/RECALL verified against ws13_light_colors.json: C0007 SetParamList ACT=HOLD pkt663 (LIMIT=12), ACT=RECALL pkt1501 (LIMIT=13).
         this.valueMaps.lightGroupCommands = new byteValueMap([
-            [1, { name: 'colorsync', desc: 'Sync', types: ['intellibrite'], command: 'colorSync', message: 'Synchronizing' }],
-            [2, { name: 'colorset', desc: 'Set', types: ['intellibrite'], command: 'colorSet', message: 'Sequencing Set Operation' }],
-            [3, { name: 'colorswim', desc: 'Swim', types: ['intellibrite'], command: 'colorSwim', message: 'Sequencing Swim Operation' }],
-            [12, { name: 'colorhold', desc: 'Hold', types: ['intellibrite', 'magicstream'], command: 'colorHold', message: 'Saving Current Colors', sequence: 13 }],
-            [13, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite', 'magicstream'], command: 'colorRecall', message: 'Recalling Saved Colors', sequence: 14 }]
+            [1, { name: 'colorsync', desc: 'Sync', types: ['intellibrite'], command: 'colorSync', message: 'Synchronizing', wsToken: 'SYNC' }],
+            [2, { name: 'colorset', desc: 'Set', types: ['intellibrite'], command: 'colorSet', message: 'Sequencing Set Operation', wsToken: 'SET' }],
+            [3, { name: 'colorswim', desc: 'Swim', types: ['intellibrite'], command: 'colorSwim', message: 'Sequencing Swim Operation', wsToken: 'SWIM' }],
+            [12, { name: 'colorhold', desc: 'Hold', types: ['intellibrite', 'magicstream'], command: 'colorHold', message: 'Saving Current Colors', sequence: 13, wsToken: 'HOLD' }],
+            [13, { name: 'colorrecall', desc: 'Recall', types: ['intellibrite', 'magicstream'], command: 'colorRecall', message: 'Recalling Saved Colors', sequence: 14, wsToken: 'RECALL' }]
         ]);
 
         this.valueMaps.lightCommands = new byteValueMap([
@@ -316,11 +323,7 @@ export class IntelliCenterBoard extends SystemBoard {
         console.log('RESETTING THE CONFIGURATION');
         this.modulesAcquired = false;
     }
-    private startAnnounceDeviceInterval(): void {
-        // v3-only: Wireless re-announces aggressively during bootstrap, then settles once registered.
-        // Mirror that behavior by retrying every 5s until Action 217 shows status=1, then fall back
-        // to a long keepalive interval to avoid unnecessary bus noise once we're established.
-        if (!sys.equipment.isIntellicenterV3) return;
+    protected startAnnounceDeviceInterval(): void {
         if (this._announceDeviceInterval) return;
 
         this._announceDeviceInterval = setInterval(async () => {
@@ -349,11 +352,7 @@ export class IntelliCenterBoard extends SystemBoard {
         this._announceDeviceTickInFlight = false;
         this._announceDeviceLastSentMs = 0;
     }
-    private startStatePoll(): void {
-        // v3.004+: Action 2 and Action 204 don't carry reliable feature/schedule state,
-        // so we poll the OCP for Action 30 [15,...] (circuit+feature+group+schedule state)
-        // at a rate matching v1.x's Action 204 frequency (~4s).
-        if (!sys.equipment.isIntellicenterV3) return;
+    protected startStatePoll(): void {
         if (this._statePollTimer) return;
         this._statePollTimer = setInterval(async () => {
             if (this._statePollInFlight) return;
@@ -396,8 +395,7 @@ export class IntelliCenterBoard extends SystemBoard {
         }
         return state.equipment.registration === 1;
     }
-    private async ensureRegisteredAsync(): Promise<void> {
-        if (!sys.equipment.isIntellicenterV3) return;
+    protected async ensureRegisteredAsync(): Promise<void> {
 
         state.equipment.registration = 0;
 
@@ -420,8 +418,7 @@ export class IntelliCenterBoard extends SystemBoard {
 
         throw new Error(`IntelliCenter v3 registration never reached Action 217 status=1 (last status=${state.equipment.registration})`);
     }
-    private startRegistrationBootstrapAsync(): void {
-        if (!sys.equipment.isIntellicenterV3) return;
+    protected startRegistrationBootstrapAsync(): void {
         if (this._registrationBootstrapStarted) return;
         this._registrationBootstrapStarted = true;
         this.ensureRegisteredAsync().catch((err) => {
@@ -606,25 +603,20 @@ export class IntelliCenterBoard extends SystemBoard {
         }
     }
 
-    private async requestVersionsAsync(dest: number): Promise<void> {
+    protected async requestVersionsAsync(dest: number): Promise<void> {
         const registrationAddress = this.getRegistrationAddress();
         const verReq = Outbound.create({
             source: registrationAddress,
             dest,
             action: 228,
-            scope: sys.equipment.isIntellicenterV3 ? 'v3VersionSync' : undefined,
+            scope: 'v3VersionSync',
             payload: [0],
             retries: 3,
             // v3.004+: require the version response (164) to be addressed to us (not to Wireless).
-            response: sys.equipment.isIntellicenterV3
-                ? Response.create({ dest: registrationAddress, action: 164 })
-                : Response.create({ action: 164 })
+            response: Response.create({ dest: registrationAddress, action: 164 })
         });
         await verReq.sendAsync();
-        if (sys.equipment.isIntellicenterV3) {
-            // For v3, wireless/ICP ACKs 164 back to OCP (always unicast to 16).
-            await Outbound.create({ source: registrationAddress, dest: 16, action: 1, payload: [164], retries: 0 }).sendAsync();
-        }
+        await Outbound.create({ source: registrationAddress, dest: 16, action: 1, payload: [164], retries: 0 }).sendAsync();
     }
     public async stopAsync() {
         this.stopAnnounceDeviceInterval();
@@ -637,7 +629,6 @@ export class IntelliCenterBoard extends SystemBoard {
     private _v3ValueMapsApplied = false;
     public applyV3ValueMapOverrides(): void {
         if (this._v3ValueMapsApplied) return;
-        if (!sys.equipment.isIntellicenterV3) return;
         this._v3ValueMapsApplied = true;
         this.valueMaps.circuitFunctions.merge([
             [11, { name: 'floorcleaner', desc: 'Floor Cleaner 1', body: 2 }]
@@ -872,7 +863,7 @@ export class IntelliCenterBoard extends SystemBoard {
         // that master slot0 must be a personality card (1-7), while expansion boards like valve-exp (8) cannot be in slot0.
         const hi = (ocpA & 0xF0) >> 4;
         const lo = (ocpA & 0x0F);
-        let useV3Order = sys.equipment.isIntellicenterV3;
+        let useV3Order = true;
         if (!useV3Order) {
             // If HIGH nibble looks like a personality card and LOW nibble is either empty (0) or non-personality (>7),
             // treat this as v3 encoding even if the firmware gate isn't established yet.
@@ -975,128 +966,9 @@ export class IntelliCenterBoard extends SystemBoard {
         }
     }
     public processExpansionModules(panel: ExpansionPanel, ocpA: number, ocpB: number, inv?) {
-        // Map the expansion panels to their specific types through the valuemaps.  Sadly this means that
-        // we need to determine if anything needs to be removed or added before actually doing it.
-        let modules: ExpansionModuleCollection = panel.modules;
+        let modules = panel.modules;
         if (typeof inv === 'undefined') inv = { bodies: 0, circuits: 0, valves: 0, shared: false, covers: 0, chlorinators: 0, chemControllers: 0 };
-        // v3.008 uses a different expansion-panel encoding than v1/v2.  Observed on Matthew's
-        // i10D + 2x i10X capture (Discussion #1171 / ISSUE-081):
-        //   byte15 = 0x02 (EXP1 populated with i10X)
-        //   byte17 = 0x00 (EXP2 empty)
-        //   byte19 = 0x02 (EXP3 populated with i10X)
-        // The byte is NOT nibble-packed like the master byte — the LOW byte carries a single
-        // expansion-panel wire id where 0x02 = i10X (valueMap id 6, named 'i10x').  ocpB is
-        // currently unused on observed v3 captures (always 0x00).  Route v3 through a dedicated
-        // decoder so we don't inherit the v1 nibble/slot shape that doesn't fit the wire data.
-        if (sys.equipment.isIntellicenterV3) {
-            this.processExpansionModulesV3(panel, ocpA, ocpB, inv);
-            return;
-        }
-        // v1/v2: expansion panel slot encoding matches the master panel (slot0 is HIGH nibble on v3 masters,
-        // but v1 had slot0 in the LOW nibble).  Keep the original auto-detect so any captured v1 expansion
-        // traffic continues to decode exactly as before.
-        const hi = (ocpA & 0xF0) >> 4;
-        const lo = (ocpA & 0x0F);
-        let useV3Order = false;
-        // If HIGH nibble looks like a valid expansion card (3-7) and LOW nibble is either empty (0) or non-personality (>7),
-        // treat this as v3 encoding even if the firmware gate isn't established yet.
-        if (hi >= 3 && hi <= 7 && (lo === 0 || lo > 7)) useV3Order = true;
-        let slot0 = useV3Order ? hi : lo;
-        let slot1 = useV3Order ? lo : hi;
-        let slot2 = (ocpB & 0xF0) >> 4;
-        let slot3 = ocpB & 0xF;
-        // Slot 0 always has to have a personality card but on an expansion module it cannot be 0.  At this point we only know that an i10x = 6 for slot 0.
-        if (slot0 <= 2) {
-            modules.removeItemById(0);
-            panel.isActive = false;
-        }
-        else {
-            let mod = modules.getItemById(0, true);
-            let mt = slot0 === 6 ? this.valueMaps.expansionBoards.transform(slot0) : this.valueMaps.expansionBoards.transform(255);
-            panel.isActive = true;
-            mod.name = mt.name;
-            mod.desc = mt.desc;
-            mod.type = slot0;
-            mod.part = mt.part;
-            mod.get().bodies = mt.bodies;
-            mod.get().circuits = mt.circuits;
-            mod.get().valves = mt.valves;
-            mod.get().covers = mt.covers;
-            mod.get().chlorinators = mt.chlorinators;
-            mod.get().chemControllers = mt.chemControllers;
-            if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
-            if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
-            if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
-            if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
-            if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
-            if (typeof mt.single !== 'undefined') inv.single = mt.single;
-            if (typeof mt.shared !== 'undefined') inv.shared = mt.shared;
-            if (typeof mt.dual !== 'undefined') inv.dual = mt.dual;
-            if (typeof mt.chemControllers !== 'undefined') inv.chemControllers += mt.chemControllers;
-        }
-        if (slot1 === 0 || slot0 <= 2) modules.removeItemById(1);
-        else {
-            let mod = modules.getItemById(1, true);
-            let mt = this.valueMaps.expansionBoards.transform(slot1);
-            mod.name = mt.name;
-            mod.desc = mt.desc;
-            mod.type = slot1;
-            mod.part = mt.part;
-            mod.get().bodies = mt.bodies;
-            mod.get().circuits = mt.circuits;
-            mod.get().valves = mt.valves;
-            mod.get().covers = mt.covers;
-            mod.get().chlorinators = mt.chlorinators;
-            mod.get().chemControllers = mt.chemControllers;
-            if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
-            if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
-            if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
-            if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
-            if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
-            if (typeof mt.chemControllers !== 'undefined') inv.chemControllers += mt.chemControllers;
-        }
-        if (slot2 === 0 || slot0 <= 2) modules.removeItemById(2);
-        else {
-            let mod = modules.getItemById(2, true);
-            let mt = this.valueMaps.expansionBoards.transform(slot2);
-            mod.name = mt.name;
-            mod.desc = mt.desc;
-            mod.type = slot2;
-            mod.part = mt.part;
-            mod.get().bodies = mt.bodies;
-            mod.get().circuits = mt.circuits;
-            mod.get().valves = mt.valves;
-            mod.get().covers = mt.covers;
-            mod.get().chlorinators = mt.chlorinators;
-            mod.get().chemControllers = mt.chemControllers;
-            if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
-            if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
-            if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
-            if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
-            if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
-            if (typeof mt.chemControllers !== 'undefined') inv.chemControllers += mt.chemControllers;
-        }
-        if (slot3 === 0 || slot0 <= 2) modules.removeItemById(3);
-        else {
-            let mod = modules.getItemById(3, true);
-            let mt = this.valueMaps.expansionBoards.transform(slot3);
-            mod.name = mt.name;
-            mod.desc = mt.desc;
-            mod.type = slot3;
-            mod.part = mt.part;
-            mod.get().bodies = mt.bodies;
-            mod.get().circuits = mt.circuits;
-            mod.get().valves = mt.valves;
-            mod.get().covers = mt.covers;
-            mod.get().chlorinators = mt.chlorinators;
-            mod.get().chemControllers = mt.chemControllers;
-            if (typeof mt.bodies !== 'undefined') inv.bodies += mt.bodies;
-            if (typeof mt.circuits !== 'undefined') inv.circuits += mt.circuits;
-            if (typeof mt.valves !== 'undefined') inv.valves += mt.valves;
-            if (typeof mt.covers !== 'undefined') inv.covers += mt.covers;
-            if (typeof mt.chlorinators !== 'undefined') inv.chlorinators += mt.chlorinators;
-            if (typeof mt.chemControllers !== 'undefined') inv.chemControllers += mt.chemControllers;
-        }
+        this.processExpansionModulesV3(panel, ocpA, ocpB, inv);
     }
     // v3.008+ expansion-panel decode.  The wire layout on v3 is not nibble-packed: each expansion byte
     // (bytes 15/17/19 of Action 204) carries a single expansion-panel id.  Observed values so far:
@@ -1216,7 +1088,7 @@ export class IntelliCenterBoard extends SystemBoard {
         return sys.security.get(true);
     }
     public get commandSourceAddress(): number { return this.getRegistrationAddress(); }
-    public get commandDestAddress(): number { return sys.equipment.isIntellicenterV3 ? 16 : 15; }
+    public get commandDestAddress(): number { return 16; }
     public static getAckResponse(action: number, source?: number, dest?: number): Response { return Response.create({ source: source, dest: dest || sys.board.commandSourceAddress, action: 1, payload: [action] }); }
 }
 class IntelliCenterConfigRequest extends ConfigRequest {
@@ -1302,6 +1174,9 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         let self = this;
         if (typeof msg !== 'undefined' && msg !== null) {
             this.markProgress();
+            if (msg.failed) {
+                logger.warn(`Config request FAILED: category=${msg.payload[0]} subpacket=${msg.payload[1]} retries=${msg.tries}/${msg.retries}`);
+            }
             if (!msg.failed) {
                 // Remove all references to future items. We got it so we don't need it again.
                 this.removeItem(msg.payload[0], msg.payload[1]);
@@ -1625,7 +1500,7 @@ class IntelliCenterConfigQueue extends ConfigQueue {
         if (this.compareVersions(curr, ver)) this.push(new IntelliCenterConfigRequest(cat, ver, opts));
     }
 }
-class IntelliCenterSystemCommands extends SystemCommands {
+export class IntelliCenterSystemCommands extends SystemCommands {
     public async setDateTimeAsync(obj: any): Promise<any> {
         if (obj.clockSource === 'internet' || obj.clockSource === 'server' || obj.clockSource === 'manual') sys.general.options.clockSource = obj.clockSource;
         Promise.resolve({
@@ -1688,403 +1563,372 @@ class IntelliCenterSystemCommands extends SystemCommands {
 
     }
     public async cancelDelay(): Promise<any> {
-        if (sys.equipment.isIntellicenterV3) {
-            let out = Outbound.create({
-                action: 168,
-                retries: 3,
-                payload: [19, 0, 0],
-                response: IntelliCenterBoard.getAckResponse(168)
-            });
-            await out.sendAsync();
-        }
+        let out = Outbound.create({
+            action: 168,
+            retries: 3,
+            payload: [19, 0, 0],
+            response: IntelliCenterBoard.getAckResponse(168)
+        });
+        await out.sendAsync();
         state.delay = sys.board.valueMaps.delay.getValue('nodelay');
         return state.data.delay;
     }
     public async setOptionsAsync(obj?: any): Promise<Options> {
-        let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : Math.abs(num) || 0; }
-        const isIntellicenterV3 = (sys.controllerType === ControllerType.IntelliCenter && sys.equipment.isIntellicenterV3);
-        const encodeFreezeOverride = (minutes: number): number => {
-            if (isNaN(minutes)) return 0;
-            // v3.008 appears to encode Frz Override as compact steps: 30 + (raw * 60).
-            if (minutes <= 30) return 0;
-            return Math.max(0, Math.min(3, Math.round((minutes - 30) / 60)));
-        };
+        try {
+            let payload = this.buildOptionsPayload(obj);
+            await this.setTempSensorCalibrationAsync(obj, payload);
+            await this.setClockOptionsAsync(obj, payload);
+            await this.setUnitsOptionsAsync(obj, payload);
+            await this.setDelayOptionsAsync(obj, payload);
+            await this.setPumpDelayAsync(obj, payload);
+            await this.setCooldownDelayAsync(obj, payload);
+            await this.setManualPriorityAsync(obj, payload);
+            await this.setManualHeatAsync(obj, payload);
+            await this.setDisplayOptionsAsync(obj);
+            return Promise.resolve(sys.general.options);
+        }
+        catch (err) { return Promise.reject(err); }
+    }
+    protected static fnToByte(num) { return num < 0 ? Math.abs(num) | 0x80 : Math.abs(num) || 0; }
+    protected buildOptionsPayload(obj?: any): number[] {
+        const fnToByte = IntelliCenterSystemCommands.fnToByte;
         const freezeCycleTime = parseInt((sys.general.options.freezeCycleTime || 15).toString(), 10) || 15;
-        const freezeOverrideRaw = encodeFreezeOverride(parseInt((sys.general.options.freezeOverride || 30).toString(), 10) || 30);
         const pool = sys.bodies.getItemById(1, false);
         const spa = sys.bodies.getItemById(2, false);
-        const manualPriorityPayloadIndex = isIntellicenterV3 ? 36 : 39;
-        const manualHeatPayloadIndex = isIntellicenterV3 ? 37 : 40;
-        const pumpDelayPayloadIndex = isIntellicenterV3 ? 30 : 30;
-        const cooldownDelayPayloadIndex = isIntellicenterV3 ? 28 : 31;
-
-        let payload = [0, 0, 0,
+        return [0, 0, 0,
             fnToByte(sys.equipment.tempSensors.getCalibration('water2')),
             fnToByte(sys.equipment.tempSensors.getCalibration('water1')),
             fnToByte(sys.equipment.tempSensors.getCalibration('solar1')),
             fnToByte(sys.equipment.tempSensors.getCalibration('air')),
-            fnToByte(0), // This might actually be a secondary air sensor but it is not ever set on a shared body.
-            fnToByte(sys.equipment.tempSensors.getCalibration('solar2')), // 8
-            // The following contains the bytes for water3&4 and solar3&4.  The reason for 5 bytes may be that
-            // the software jumps over a fake airTemp byte in the sensor arrays.
+            fnToByte(0),
+            fnToByte(sys.equipment.tempSensors.getCalibration('solar2')),
             fnToByte(sys.equipment.tempSensors.getCalibration('solar3')),
             fnToByte(sys.equipment.tempSensors.getCalibration('solar4')),
             fnToByte(sys.equipment.tempSensors.getCalibration('water3')),
             fnToByte(sys.equipment.tempSensors.getCalibration('water4')), 0,
-            0x10 | (sys.general.options.clockMode === 24 ? 0x40 : 0x00) | (sys.general.options.adjustDST ? 0x80 : 0x00) | (sys.general.options.clockSource === 'internet' ? 0x20 : 0x00), // 14
+            0x10 | (sys.general.options.clockMode === 24 ? 0x40 : 0x00) | (sys.general.options.adjustDST ? 0x80 : 0x00) | (sys.general.options.clockSource === 'internet' ? 0x20 : 0x00),
             0, 0,
-            sys.general.options.clockSource === 'internet' ? 1 : 0, // 17
+            sys.general.options.clockSource === 'internet' ? 1 : 0,
             3, 0, 0,
-            // For v3.008+, Action 168 full options blocks place pool/spa setpoints at [20..23]
-            // and modes at [24..25]. Keep legacy layout for pre-v3 controllers.
-            ...(isIntellicenterV3
-                ? [
-                    pool.setPoint || 100, pool.coolSetpoint || (pool.setPoint || 100),
-                    spa.setPoint || 100, spa.coolSetpoint || (spa.setPoint || 100),
-                    pool.heatMode || 0, spa.heatMode || 0,
-                    freezeCycleTime,
-                    sys.general.options.valveDelay ? 1 : 0,
-                    sys.general.options.cooldownDelay ? 1 : 0,
-                    0, 0, 0, 0, 0, 0,
-                    sys.general.options.pumpDelay ? 1 : 0,
-                    sys.general.options.manualPriority ? 1 : 0,
-                    sys.general.options.manualHeat ? 1 : 0,
-                    0, 0, 0
-                ]
-                : [
-                    sys.bodies.getItemById(1, false).setPoint || 100, // 21
-                    sys.bodies.getItemById(3, false).setPoint || 100,
-                    sys.bodies.getItemById(2, false).setPoint || 100,
-                    sys.bodies.getItemById(4, false).setPoint || 100,
-                    sys.bodies.getItemById(1, false).heatMode || 0,
-                    sys.bodies.getItemById(2, false).heatMode || 0,
-                    sys.bodies.getItemById(3, false).heatMode || 0,
-                    sys.bodies.getItemById(4, false).heatMode || 0,
-                    15,
-                    sys.general.options.pumpDelay ? 1 : 0,  // 30
-                    sys.general.options.cooldownDelay ? 1 : 0,
-                    0, 0, 100, 0, 0, 0, 0,
-                    sys.general.options.manualPriority ? 1 : 0, // 39
-                    sys.general.options.manualHeat ? 1 : 0
-                ])];
-        let arr = [];
-        try {
-            if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.equipment.tempSensors.getCalibration('water1')) {
-                payload[2] = 1;
-                payload[4] = fnToByte(parseInt(obj.waterTempAdj1, 10)) || 0;
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    payload: payload,
-                    response: IntelliCenterBoard.getAckResponse(168)
-                });
-                await out.sendAsync();
-                sys.equipment.tempSensors.setCalibration('water1', parseInt(obj.waterTempAdj1, 10));
-            }
-            if (typeof obj.waterTempAdj2 != 'undefined' && obj.waterTempAdj2 !== sys.equipment.tempSensors.getCalibration('water2')) {
-                payload[2] = 4;
-                payload[7] = fnToByte(parseInt(obj.waterTempAdj2, 10)) || 0;
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    payload: payload,
-                    response: IntelliCenterBoard.getAckResponse(168)
-                });
-                await out.sendAsync();
-                sys.equipment.tempSensors.setCalibration('water2', parseInt(obj.waterTempAdj2, 10));
-            }
-            if (typeof obj.waterTempAdj3 != 'undefined' && obj.waterTempAdj3 !== sys.equipment.tempSensors.getCalibration('water3')) {
-                payload[2] = 6;
-                payload[9] = fnToByte(parseInt(obj.waterTempAdj3, 10)) || 0;
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    payload: payload,
-                    response: IntelliCenterBoard.getAckResponse(168)
-                });
-                await out.sendAsync();
-                sys.equipment.tempSensors.setCalibration('water3', parseInt(obj.waterTempAdj3, 10));
-            }
-            if (typeof obj.waterTempAdj4 != 'undefined' && obj.waterTempAdj4 !== sys.equipment.tempSensors.getCalibration('water4')) {
-                payload[2] = 8;
-                payload[11] = fnToByte(parseInt(obj.waterTempAdj4, 10)) || 0;
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    payload: payload
-                });
-                await out.sendAsync();
-                sys.equipment.tempSensors.setCalibration('water4', parseInt(obj.waterTempAdj3, 10));
-            }
-
-            if (typeof obj.solarTempAdj1 != 'undefined' && obj.solarTempAdj1 !== sys.equipment.tempSensors.getCalibration('solar1')) {
-                payload[2] = 2;
-                payload[5] = fnToByte(parseInt(obj.solarTempAdj1, 10)) || 0;
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    payload: payload,
-                    response: IntelliCenterBoard.getAckResponse(168)
-                });
-                await out.sendAsync();
-                sys.equipment.tempSensors.setCalibration('solar1', parseInt(obj.solarTempAdj1, 10));
-            }
-            if (typeof obj.solarTempAdj2 != 'undefined' && obj.solarTempAdj2 !== sys.equipment.tempSensors.getCalibration('solar2')) {
-                payload[2] = 5;
-                payload[8] = fnToByte(parseInt(obj.solarTempAdj2, 10)) || 0;
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    payload: payload,
-                    response: IntelliCenterBoard.getAckResponse(168)
-                });
-                await out.sendAsync();
-                sys.equipment.tempSensors.setCalibration('solar2', parseInt(obj.solarTempAdj2, 10));
-            }
-            if (typeof obj.solarTempAdj3 != 'undefined' && obj.solarTempAdj3 !== sys.equipment.tempSensors.getCalibration('solar3')) {
-                payload[2] = 7;
-                payload[10] = fnToByte(parseInt(obj.solarTempAdj3, 10)) || 0;
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    payload: payload,
-                    response: IntelliCenterBoard.getAckResponse(168)
-                });
-                await out.sendAsync();
-                sys.equipment.tempSensors.setCalibration('solar3', parseInt(obj.solarTempAdj3, 10));
-            }
-            if (typeof obj.solarTempAdj4 != 'undefined' && obj.solarTempAdj4 !== sys.equipment.tempSensors.getCalibration('solar4')) {
-                payload[2] = 8;
-                payload[12] = fnToByte(parseInt(obj.solarTempAdj4, 10)) || 0;
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    payload: payload,
-                    response: IntelliCenterBoard.getAckResponse(168)
-                });
-                await out.sendAsync();
-                sys.equipment.tempSensors.setCalibration('solar3', parseInt(obj.solarTempAdj3, 10));
-            }
-            if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.equipment.tempSensors.getCalibration('air')) {
-                payload[2] = 3;
-                payload[6] = fnToByte(parseInt(obj.airTempAdj, 10)) || 0;
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    payload: payload
-                });
-                await out.sendAsync();
-                sys.equipment.tempSensors.setCalibration('air', parseInt(obj.airTempAdj, 10));
-            }
-            if ((typeof obj.clockMode !== 'undefined' && obj.clockMode !== sys.general.options.clockMode) ||
-                (typeof obj.adjustDST !== 'undefined' && obj.adjustDST !== sys.general.options.adjustDST)) {
-                const effectiveClockSource = (typeof obj.clockSource === 'string') ? obj.clockSource : sys.general.options.clockSource;
-                let byte = 0x10 | (effectiveClockSource === 'internet' ? 0x20 : 0x00);
-                if (typeof obj.clockMode === 'undefined') byte |= sys.general.options.clockMode === 24 ? 0x40 : 0x00;
-                else byte |= obj.clockMode === 24 ? 0x40 : 0x00;
-                if (typeof obj.adjustDST === 'undefined') byte |= sys.general.options.adjustDST ? 0x80 : 0x00;
-                else byte |= obj.adjustDST ? 0x80 : 0x00;
-                payload[2] = isIntellicenterV3 ? 0 : 11;
-                payload[14] = byte;
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    payload: payload
-                });
-                await out.sendAsync();
-                if (typeof obj.clockMode !== 'undefined') sys.general.options.clockMode = obj.clockMode === 24 ? 24 : 12;
-                if (typeof obj.adjustDST !== 'undefined') sys.general.options.adjustDST = obj.adjustDST ? true : false;
-            }
-
-            if (typeof obj.clockSource != 'undefined' && obj.clockSource !== sys.general.options.clockSource) {
-                payload[2] = isIntellicenterV3 ? 0 : 11;
-                payload[17] = obj.clockSource === 'internet' ? 0x01 : 0x00;
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    payload: payload,
-                    response: IntelliCenterBoard.getAckResponse(168)
-                });
-                await out.sendAsync();
-                if (obj.clockSource === 'internet' || obj.clockSource === 'server' || obj.clockSource === 'manual')
-                    sys.general.options.clockSource = obj.clockSource;
-                sys.board.system.setTZ();
-            }
-            if (typeof obj.units !== 'undefined') {
-                const requestedUnits = sys.board.valueMaps.tempUnits.encode(obj.units);
-                if (!isNaN(requestedUnits) && requestedUnits !== sys.general.options.units) {
-                    // OCP encodes units as 0=English/Fahrenheit, 1=Metric/Celsius.
-                    const unitsByte = requestedUnits === sys.board.valueMaps.tempUnits.getValue('C') ? 1 : 0;
-                    if (isIntellicenterV3) {
-                        // v3.008 full-options frame: OCP only accepts units changes via the wireless-remote
-                        // A168 type=0 template (setpoints at [20..23], modes at [24..25], 15 at [26], units at [32]).
-                        // The sensor-calibration payload above has a different byte layout and the OCP ignores it
-                        // for units changes. Build a fresh frame here and send it to OCP (dest=16).
-                        // Setpoints are converted to target units so byte[32] is internally consistent.
-                        const fromUnitName = sys.board.valueMaps.tempUnits.getName(sys.general.options.units) || 'F';
-                        const toUnitName = unitsByte === 1 ? 'C' : 'F';
-                        const convertSetpoint = (val: number): number => {
-                            if (typeof val !== 'number' || isNaN(val)) return 0;
-                            if (fromUnitName === toUnitName) return val;
-                            return Math.round(utils.convert.temperature.convertUnits(val, fromUnitName, toUnitName));
-                        };
-                        const poolHeat = convertSetpoint(pool.setPoint || (unitsByte === 1 ? 26 : 78));
-                        const poolCool = convertSetpoint(pool.coolSetpoint || (pool.setPoint || (unitsByte === 1 ? 35 : 95)));
-                        const spaHeat = convertSetpoint(spa.setPoint || (unitsByte === 1 ? 35 : 95));
-                        const spaCool = convertSetpoint(spa.coolSetpoint || (spa.setPoint || (unitsByte === 1 ? 35 : 95)));
-                        const dt = new Date();
-                        const yy = dt.getFullYear() - 2000;
-                        const mm = dt.getMonth() + 1;
-                        const dd = dt.getDate();
-                        const hh = dt.getHours();
-                        const min = dt.getMinutes();
-                        const v3UnitsPayload = [
-                            0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0,
-                            160, yy, mm, dd, hh, min,
-                            poolHeat, poolCool, spaHeat, spaCool,
-                            pool.heatMode || 0, spa.heatMode || 0,
-                            15,
-                            0, 0, 0, 0, 0,
-                            unitsByte,
-                            0, 0, 0, 0, 0, 0, 0, 0
-                        ];
-                        let out = Outbound.create({
-                            dest: 16,
-                            action: 168,
-                            retries: 5,
-                            payload: v3UnitsPayload,
-                            response: IntelliCenterBoard.getAckResponse(168)
-                        });
-                        await out.sendAsync();
-                        // Apply converted setpoints locally so state matches the frame we sent to OCP.
-                        const sbody1 = state.temps.bodies.getItemById(1);
-                        pool.setPoint = sbody1.setPoint = poolHeat;
-                        pool.coolSetpoint = sbody1.coolSetpoint = poolCool;
-                        if (sys.bodies.length > 1) {
-                            const sbody2 = state.temps.bodies.getItemById(2);
-                            spa.setPoint = sbody2.setPoint = spaHeat;
-                            spa.coolSetpoint = sbody2.coolSetpoint = spaCool;
-                        }
-                    } else {
-                        payload[2] = 29;
-                        payload[31] = unitsByte;
-                        let out = Outbound.create({
-                            action: 168,
-                            retries: 5,
-                            payload: payload,
-                            response: IntelliCenterBoard.getAckResponse(168)
-                        });
-                        await out.sendAsync();
-                    }
-                    sys.general.options.units = requestedUnits;
-                    state.temps.units = requestedUnits;
-                    const bodyUnits = requestedUnits === sys.board.valueMaps.tempUnits.getValue('C') ? 2 : 1;
-                    for (let i = 0; i < sys.bodies.length; i++) sys.bodies.getItemByIndex(i).capacityUnits = bodyUnits;
-                    state.emitEquipmentChanges();
-                }
-            }
-            if (isIntellicenterV3) {
-                let delayRequested = typeof obj.freezeCycleTime !== 'undefined' || typeof obj.valveDelay !== 'undefined' || typeof obj.cooldownDelay !== 'undefined';
-                if (delayRequested) {
-                    const requestedFreezeCycleTime = typeof obj.freezeCycleTime !== 'undefined'
-                        ? parseInt(obj.freezeCycleTime, 10) : sys.general.options.freezeCycleTime;
-                    payload[26] = Math.max(1, Math.min(60, requestedFreezeCycleTime || 15));
-                    payload[27] = (typeof obj.valveDelay !== 'undefined' ? obj.valveDelay : sys.general.options.valveDelay) ? 0x01 : 0x00;
-                    payload[28] = (typeof obj.cooldownDelay !== 'undefined' ? obj.cooldownDelay : sys.general.options.cooldownDelay) ? 0x01 : 0x00;
-                    let out = Outbound.create({
-                        action: 168,
-                        retries: 5,
-                        payload: payload,
-                        response: IntelliCenterBoard.getAckResponse(168)
-                    });
-                    await out.sendAsync();
-                    sys.general.options.freezeCycleTime = payload[26];
-                    sys.general.options.valveDelay = payload[27] === 1;
-                    sys.general.options.cooldownDelay = payload[28] === 1;
-                }
-            }
-            if (typeof obj.pumpDelay !== 'undefined' && obj.pumpDelay !== sys.general.options.pumpDelay) {
-                payload[2] = isIntellicenterV3 ? 0 : 27;
-                payload[pumpDelayPayloadIndex] = obj.pumpDelay ? 0x01 : 0x00;
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    response: IntelliCenterBoard.getAckResponse(168),
-                    payload: payload
-                });
-                await out.sendAsync();
-                sys.general.options.pumpDelay = obj.pumpDelay ? true : false;
-            }
-            if (typeof obj.cooldownDelay !== 'undefined' && obj.cooldownDelay !== sys.general.options.cooldownDelay) {
-                payload[2] = isIntellicenterV3 ? 0 : 28;
-                payload[cooldownDelayPayloadIndex] = obj.cooldownDelay ? 0x01 : 0x00;
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    payload: payload,
-                    response: IntelliCenterBoard.getAckResponse(168)
-                });
-                await out.sendAsync();
-                sys.general.options.cooldownDelay = obj.cooldownDelay ? true : false;
-            }
-            if (typeof obj.manualPriority !== 'undefined' && obj.manualPriority !== sys.general.options.manualPriority) {
-                payload[2] = isIntellicenterV3 ? 0 : 36;
-                payload[manualPriorityPayloadIndex] = obj.manualPriority ? 0x01 : 0x00;
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    payload: payload,
-                    response: IntelliCenterBoard.getAckResponse(168)
-                });
-                await out.sendAsync();
-                sys.general.options.manualPriority = obj.manualPriority ? true : false;
-            }
-            if (typeof obj.manualHeat !== 'undefined' && obj.manualHeat !== sys.general.options.manualHeat) {
-                payload[2] = isIntellicenterV3 ? 0 : 37;
-                payload[manualHeatPayloadIndex] = obj.manualHeat ? 0x01 : 0x00;
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    payload: payload,
-                    response: IntelliCenterBoard.getAckResponse(168)
-                });
-                await out.sendAsync();
-                sys.general.options.manualHeat = obj.manualHeat ? true : false;
-            }
-            if (typeof obj.solarAsHeatPump !== 'undefined' || typeof obj.showBadgeColors !== 'undefined') {
-                let opts = sys.general.options;
-                let solarHP = typeof obj.solarAsHeatPump !== 'undefined' ? (obj.solarAsHeatPump ? true : false) : opts.solarAsHeatPump;
-                let badgeColors = typeof obj.showBadgeColors !== 'undefined' ? (obj.showBadgeColors ? true : false) : opts.showBadgeColors;
-                let vac = opts.vacation;
-                let startDate = vac.startDate ? new Date(vac.startDate) : new Date();
-                let endDate = vac.endDate ? new Date(vac.endDate) : new Date();
-                let vacPayload = [0, 0, 64,
-                    vac.enabled ? 1 : 0,
-                    vac.useTimeframe ? 1 : 0,
-                    startDate.getUTCFullYear() - 2000, startDate.getUTCMonth() + 1, startDate.getUTCDate(),
-                    endDate.getUTCFullYear() - 2000, endDate.getUTCMonth() + 1, endDate.getUTCDate(),
-                    0, 30,
-                    badgeColors ? 1 : 0,
-                    0,
-                    solarHP ? 1 : 0,
-                    5
-                ];
-                let out = Outbound.create({
-                    action: 168,
-                    retries: 5,
-                    payload: vacPayload,
-                    response: IntelliCenterBoard.getAckResponse(168)
-                });
-                await out.sendAsync();
-                opts.solarAsHeatPump = solarHP;
-                opts.showBadgeColors = badgeColors;
-            }
-            return Promise.resolve(sys.general.options);
+            pool.setPoint || 100, pool.coolSetpoint || (pool.setPoint || 100),
+            spa.setPoint || 100, spa.coolSetpoint || (spa.setPoint || 100),
+            pool.heatMode || 0, spa.heatMode || 0,
+            freezeCycleTime,
+            sys.general.options.valveDelay ? 1 : 0,
+            sys.general.options.cooldownDelay ? 1 : 0,
+            0, 0, 0, 0, 0, 0,
+            sys.general.options.pumpDelay ? 1 : 0,
+            sys.general.options.manualPriority ? 1 : 0,
+            sys.general.options.manualHeat ? 1 : 0,
+            0, 0, 0
+        ];
+    }
+    protected async setTempSensorCalibrationAsync(obj: any, payload: number[]): Promise<void> {
+        const fnToByte = IntelliCenterSystemCommands.fnToByte;
+        if (typeof obj.waterTempAdj1 != 'undefined' && obj.waterTempAdj1 !== sys.equipment.tempSensors.getCalibration('water1')) {
+            payload[2] = 1;
+            payload[4] = fnToByte(parseInt(obj.waterTempAdj1, 10)) || 0;
+            let out = Outbound.create({
+                action: 168,
+                retries: 5,
+                payload: payload,
+                response: IntelliCenterBoard.getAckResponse(168)
+            });
+            await out.sendAsync();
+            sys.equipment.tempSensors.setCalibration('water1', parseInt(obj.waterTempAdj1, 10));
         }
-        catch (err) { return Promise.reject(err); }
+        if (typeof obj.waterTempAdj2 != 'undefined' && obj.waterTempAdj2 !== sys.equipment.tempSensors.getCalibration('water2')) {
+            payload[2] = 4;
+            payload[7] = fnToByte(parseInt(obj.waterTempAdj2, 10)) || 0;
+            let out = Outbound.create({
+                action: 168,
+                retries: 5,
+                payload: payload,
+                response: IntelliCenterBoard.getAckResponse(168)
+            });
+            await out.sendAsync();
+            sys.equipment.tempSensors.setCalibration('water2', parseInt(obj.waterTempAdj2, 10));
+        }
+        if (typeof obj.waterTempAdj3 != 'undefined' && obj.waterTempAdj3 !== sys.equipment.tempSensors.getCalibration('water3')) {
+            payload[2] = 6;
+            payload[9] = fnToByte(parseInt(obj.waterTempAdj3, 10)) || 0;
+            let out = Outbound.create({
+                action: 168,
+                retries: 5,
+                payload: payload,
+                response: IntelliCenterBoard.getAckResponse(168)
+            });
+            await out.sendAsync();
+            sys.equipment.tempSensors.setCalibration('water3', parseInt(obj.waterTempAdj3, 10));
+        }
+        if (typeof obj.waterTempAdj4 != 'undefined' && obj.waterTempAdj4 !== sys.equipment.tempSensors.getCalibration('water4')) {
+            payload[2] = 8;
+            payload[11] = fnToByte(parseInt(obj.waterTempAdj4, 10)) || 0;
+            let out = Outbound.create({
+                action: 168,
+                retries: 5,
+                response: IntelliCenterBoard.getAckResponse(168),
+                payload: payload
+            });
+            await out.sendAsync();
+            sys.equipment.tempSensors.setCalibration('water4', parseInt(obj.waterTempAdj3, 10));
+        }
+        if (typeof obj.solarTempAdj1 != 'undefined' && obj.solarTempAdj1 !== sys.equipment.tempSensors.getCalibration('solar1')) {
+            payload[2] = 2;
+            payload[5] = fnToByte(parseInt(obj.solarTempAdj1, 10)) || 0;
+            let out = Outbound.create({
+                action: 168,
+                retries: 5,
+                payload: payload,
+                response: IntelliCenterBoard.getAckResponse(168)
+            });
+            await out.sendAsync();
+            sys.equipment.tempSensors.setCalibration('solar1', parseInt(obj.solarTempAdj1, 10));
+        }
+        if (typeof obj.solarTempAdj2 != 'undefined' && obj.solarTempAdj2 !== sys.equipment.tempSensors.getCalibration('solar2')) {
+            payload[2] = 5;
+            payload[8] = fnToByte(parseInt(obj.solarTempAdj2, 10)) || 0;
+            let out = Outbound.create({
+                action: 168,
+                retries: 5,
+                payload: payload,
+                response: IntelliCenterBoard.getAckResponse(168)
+            });
+            await out.sendAsync();
+            sys.equipment.tempSensors.setCalibration('solar2', parseInt(obj.solarTempAdj2, 10));
+        }
+        if (typeof obj.solarTempAdj3 != 'undefined' && obj.solarTempAdj3 !== sys.equipment.tempSensors.getCalibration('solar3')) {
+            payload[2] = 7;
+            payload[10] = fnToByte(parseInt(obj.solarTempAdj3, 10)) || 0;
+            let out = Outbound.create({
+                action: 168,
+                retries: 5,
+                payload: payload,
+                response: IntelliCenterBoard.getAckResponse(168)
+            });
+            await out.sendAsync();
+            sys.equipment.tempSensors.setCalibration('solar3', parseInt(obj.solarTempAdj3, 10));
+        }
+        if (typeof obj.solarTempAdj4 != 'undefined' && obj.solarTempAdj4 !== sys.equipment.tempSensors.getCalibration('solar4')) {
+            payload[2] = 8;
+            payload[12] = fnToByte(parseInt(obj.solarTempAdj4, 10)) || 0;
+            let out = Outbound.create({
+                action: 168,
+                retries: 5,
+                payload: payload,
+                response: IntelliCenterBoard.getAckResponse(168)
+            });
+            await out.sendAsync();
+            sys.equipment.tempSensors.setCalibration('solar3', parseInt(obj.solarTempAdj3, 10));
+        }
+        if (typeof obj.airTempAdj != 'undefined' && obj.airTempAdj !== sys.equipment.tempSensors.getCalibration('air')) {
+            payload[2] = 3;
+            payload[6] = fnToByte(parseInt(obj.airTempAdj, 10)) || 0;
+            let out = Outbound.create({
+                action: 168,
+                retries: 5,
+                response: IntelliCenterBoard.getAckResponse(168),
+                payload: payload
+            });
+            await out.sendAsync();
+            sys.equipment.tempSensors.setCalibration('air', parseInt(obj.airTempAdj, 10));
+        }
+    }
+    protected async setClockOptionsAsync(obj: any, payload: number[]): Promise<void> {
+        if ((typeof obj.clockMode !== 'undefined' && obj.clockMode !== sys.general.options.clockMode) ||
+            (typeof obj.adjustDST !== 'undefined' && obj.adjustDST !== sys.general.options.adjustDST)) {
+            const effectiveClockSource = (typeof obj.clockSource === 'string') ? obj.clockSource : sys.general.options.clockSource;
+            let byte = 0x10 | (effectiveClockSource === 'internet' ? 0x20 : 0x00);
+            if (typeof obj.clockMode === 'undefined') byte |= sys.general.options.clockMode === 24 ? 0x40 : 0x00;
+            else byte |= obj.clockMode === 24 ? 0x40 : 0x00;
+            if (typeof obj.adjustDST === 'undefined') byte |= sys.general.options.adjustDST ? 0x80 : 0x00;
+            else byte |= obj.adjustDST ? 0x80 : 0x00;
+            payload[2] = 0;
+            payload[14] = byte;
+            let out = Outbound.create({
+                action: 168,
+                retries: 5,
+                response: IntelliCenterBoard.getAckResponse(168),
+                payload: payload
+            });
+            await out.sendAsync();
+            if (typeof obj.clockMode !== 'undefined') sys.general.options.clockMode = obj.clockMode === 24 ? 24 : 12;
+            if (typeof obj.adjustDST !== 'undefined') sys.general.options.adjustDST = obj.adjustDST ? true : false;
+        }
+        if (typeof obj.clockSource != 'undefined' && obj.clockSource !== sys.general.options.clockSource) {
+            payload[2] = 0;
+            payload[17] = obj.clockSource === 'internet' ? 0x01 : 0x00;
+            let out = Outbound.create({
+                action: 168,
+                retries: 5,
+                payload: payload,
+                response: IntelliCenterBoard.getAckResponse(168)
+            });
+            await out.sendAsync();
+            if (obj.clockSource === 'internet' || obj.clockSource === 'server' || obj.clockSource === 'manual')
+                sys.general.options.clockSource = obj.clockSource;
+            sys.board.system.setTZ();
+        }
+    }
+    protected async setUnitsOptionsAsync(obj: any, payload: number[]): Promise<void> {
+        if (typeof obj.units === 'undefined') return;
+        const requestedUnits = sys.board.valueMaps.tempUnits.encode(obj.units);
+        if (isNaN(requestedUnits) || requestedUnits === sys.general.options.units) return;
+        const unitsByte = requestedUnits === sys.board.valueMaps.tempUnits.getValue('C') ? 1 : 0;
+        const pool = sys.bodies.getItemById(1, false);
+        const spa = sys.bodies.getItemById(2, false);
+        const fromUnitName = sys.board.valueMaps.tempUnits.getName(sys.general.options.units) || 'F';
+        const toUnitName = unitsByte === 1 ? 'C' : 'F';
+        const convertSetpoint = (val: number): number => {
+            if (typeof val !== 'number' || isNaN(val)) return 0;
+            if (fromUnitName === toUnitName) return val;
+            return Math.round(utils.convert.temperature.convertUnits(val, fromUnitName, toUnitName));
+        };
+        const poolHeat = convertSetpoint(pool.setPoint || (unitsByte === 1 ? 26 : 78));
+        const poolCool = convertSetpoint(pool.coolSetpoint || (pool.setPoint || (unitsByte === 1 ? 35 : 95)));
+        const spaHeat = convertSetpoint(spa.setPoint || (unitsByte === 1 ? 35 : 95));
+        const spaCool = convertSetpoint(spa.coolSetpoint || (spa.setPoint || (unitsByte === 1 ? 35 : 95)));
+        const dt = new Date();
+        const yy = dt.getFullYear() - 2000;
+        const mm = dt.getMonth() + 1;
+        const dd = dt.getDate();
+        const hh = dt.getHours();
+        const min = dt.getMinutes();
+        const v3UnitsPayload = [
+            0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0,
+            160, yy, mm, dd, hh, min,
+            poolHeat, poolCool, spaHeat, spaCool,
+            pool.heatMode || 0, spa.heatMode || 0,
+            15,
+            0, 0, 0, 0, 0,
+            unitsByte,
+            0, 0, 0, 0, 0, 0, 0, 0
+        ];
+        let out = Outbound.create({
+            dest: 16,
+            action: 168,
+            retries: 5,
+            payload: v3UnitsPayload,
+            response: IntelliCenterBoard.getAckResponse(168)
+        });
+        await out.sendAsync();
+        const sbody1 = state.temps.bodies.getItemById(1);
+        pool.setPoint = sbody1.setPoint = poolHeat;
+        pool.coolSetpoint = sbody1.coolSetpoint = poolCool;
+        if (sys.bodies.length > 1) {
+            const sbody2 = state.temps.bodies.getItemById(2);
+            spa.setPoint = sbody2.setPoint = spaHeat;
+            spa.coolSetpoint = sbody2.coolSetpoint = spaCool;
+        }
+        sys.general.options.units = requestedUnits;
+        state.temps.units = requestedUnits;
+        const bodyUnits = requestedUnits === sys.board.valueMaps.tempUnits.getValue('C') ? 2 : 1;
+        for (let i = 0; i < sys.bodies.length; i++) sys.bodies.getItemByIndex(i).capacityUnits = bodyUnits;
+        state.emitEquipmentChanges();
+    }
+    protected async setDelayOptionsAsync(obj: any, payload: number[]): Promise<void> {
+        let delayRequested = typeof obj.freezeCycleTime !== 'undefined' || typeof obj.valveDelay !== 'undefined' || typeof obj.cooldownDelay !== 'undefined';
+        if (!delayRequested) return;
+        const requestedFreezeCycleTime = typeof obj.freezeCycleTime !== 'undefined'
+            ? parseInt(obj.freezeCycleTime, 10) : sys.general.options.freezeCycleTime;
+        payload[26] = Math.max(1, Math.min(60, requestedFreezeCycleTime || 15));
+        payload[27] = (typeof obj.valveDelay !== 'undefined' ? obj.valveDelay : sys.general.options.valveDelay) ? 0x01 : 0x00;
+        payload[28] = (typeof obj.cooldownDelay !== 'undefined' ? obj.cooldownDelay : sys.general.options.cooldownDelay) ? 0x01 : 0x00;
+        let out = Outbound.create({
+            action: 168,
+            retries: 5,
+            payload: payload,
+            response: IntelliCenterBoard.getAckResponse(168)
+        });
+        await out.sendAsync();
+        sys.general.options.freezeCycleTime = payload[26];
+        sys.general.options.valveDelay = payload[27] === 1;
+        sys.general.options.cooldownDelay = payload[28] === 1;
+    }
+    protected async setPumpDelayAsync(obj: any, payload: number[]): Promise<void> {
+        if (typeof obj.pumpDelay === 'undefined' || obj.pumpDelay === sys.general.options.pumpDelay) return;
+        payload[2] = 0;
+        const pumpDelayPayloadIndex = 30;
+        payload[pumpDelayPayloadIndex] = obj.pumpDelay ? 0x01 : 0x00;
+        let out = Outbound.create({
+            action: 168,
+            retries: 5,
+            response: IntelliCenterBoard.getAckResponse(168),
+            payload: payload
+        });
+        await out.sendAsync();
+        sys.general.options.pumpDelay = obj.pumpDelay ? true : false;
+    }
+    protected async setCooldownDelayAsync(obj: any, payload: number[]): Promise<void> {
+        if (typeof obj.cooldownDelay === 'undefined' || obj.cooldownDelay === sys.general.options.cooldownDelay) return;
+        payload[2] = 0;
+        const cooldownDelayPayloadIndex = 28;
+        payload[cooldownDelayPayloadIndex] = obj.cooldownDelay ? 0x01 : 0x00;
+        let out = Outbound.create({
+            action: 168,
+            retries: 5,
+            payload: payload,
+            response: IntelliCenterBoard.getAckResponse(168)
+        });
+        await out.sendAsync();
+        sys.general.options.cooldownDelay = obj.cooldownDelay ? true : false;
+    }
+    protected async setManualPriorityAsync(obj: any, payload: number[]): Promise<void> {
+        if (typeof obj.manualPriority === 'undefined' || obj.manualPriority === sys.general.options.manualPriority) return;
+        payload[2] = 0;
+        const manualPriorityPayloadIndex = 36;
+        payload[manualPriorityPayloadIndex] = obj.manualPriority ? 0x01 : 0x00;
+        let out = Outbound.create({
+            action: 168,
+            retries: 5,
+            payload: payload,
+            response: IntelliCenterBoard.getAckResponse(168)
+        });
+        await out.sendAsync();
+        sys.general.options.manualPriority = obj.manualPriority ? true : false;
+    }
+    protected async setManualHeatAsync(obj: any, payload: number[]): Promise<void> {
+        if (typeof obj.manualHeat === 'undefined' || obj.manualHeat === sys.general.options.manualHeat) return;
+        payload[2] = 0;
+        const manualHeatPayloadIndex = 37;
+        payload[manualHeatPayloadIndex] = obj.manualHeat ? 0x01 : 0x00;
+        let out = Outbound.create({
+            action: 168,
+            retries: 5,
+            payload: payload,
+            response: IntelliCenterBoard.getAckResponse(168)
+        });
+        await out.sendAsync();
+        sys.general.options.manualHeat = obj.manualHeat ? true : false;
+    }
+    protected async setDisplayOptionsAsync(obj: any): Promise<void> {
+        if (typeof obj.solarAsHeatPump === 'undefined' && typeof obj.showBadgeColors === 'undefined') return;
+        let opts = sys.general.options;
+        let solarHP = typeof obj.solarAsHeatPump !== 'undefined' ? (obj.solarAsHeatPump ? true : false) : opts.solarAsHeatPump;
+        let badgeColors = typeof obj.showBadgeColors !== 'undefined' ? (obj.showBadgeColors ? true : false) : opts.showBadgeColors;
+        let vac = opts.vacation;
+        let startDate = vac.startDate ? new Date(vac.startDate) : new Date();
+        let endDate = vac.endDate ? new Date(vac.endDate) : new Date();
+        let vacPayload = [0, 0, 64,
+            vac.enabled ? 1 : 0,
+            vac.useTimeframe ? 1 : 0,
+            startDate.getUTCFullYear() - 2000, startDate.getUTCMonth() + 1, startDate.getUTCDate(),
+            endDate.getUTCFullYear() - 2000, endDate.getUTCMonth() + 1, endDate.getUTCDate(),
+            0, 30,
+            badgeColors ? 1 : 0,
+            0,
+            solarHP ? 1 : 0,
+            5
+        ];
+        let out = Outbound.create({
+            action: 168,
+            retries: 5,
+            payload: vacPayload,
+            response: IntelliCenterBoard.getAckResponse(168)
+        });
+        await out.sendAsync();
+        opts.solarAsHeatPump = solarHP;
+        opts.showBadgeColors = badgeColors;
     }
     public async setVacationAsync(obj?: any): Promise<Options> {
         try {
@@ -2282,7 +2126,7 @@ class IntelliCenterSystemCommands extends SystemCommands {
         catch (err) { return Promise.reject(err); }
     }
 }
-class IntelliCenterCircuitCommands extends CircuitCommands {
+export class IntelliCenterCircuitCommands extends CircuitCommands {
     declare board: IntelliCenterBoard;
     // Track pending circuit/feature state changes that have been sent but not yet confirmed by OCP.
     // This prevents race conditions when multiple circuit toggles are sent in quick succession.
@@ -2439,12 +2283,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     (i < obj.circuits.length) ? out.payload.push(obj.circuits[i].circuit - 1) : out.payload.push(255);
             }
             for (let i = 0; i < 16; i++) out.payload.push(0);
-            if (sys.equipment.isIntellicenterV3) {
-                out.payload.push(0, 0, eggHours, eggMins, 0, 0, 0);
-            } else {
-                out.payload.push(eggHours);
-                out.payload.push(eggMins);
-            }
+            out.payload.push(0, 0, eggHours, eggMins, 0, 0, 0);
             await out.sendAsync();
             group.eggTimer = eggTimer;
             group.dontStop = obj.dontStop;
@@ -2614,12 +2453,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
                     else out.payload.push(0);
                 }
             }
-            if (sys.equipment.isIntellicenterV3) {
-                out.payload.push(0, 0, eggHours, eggMins, 0, 0, 0);
-            } else {
-                out.payload.push(eggHours);
-                out.payload.push(eggMins);
-            }
+            out.payload.push(0, 0, eggHours, eggMins, 0, 0, 0);
             await out.sendAsync();
             sgroup.type = group.type = 1;
             sgroup.lightingTheme = group.lightingTheme = theme;
@@ -2785,52 +2619,28 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             if (isNaN(id)) return Promise.reject(new InvalidOperationError(`Light group ${id} does not exist`, 'runLightGroupCommandAsync'));
             let grp = sys.lightGroups.getItemById(id);
             let sgrp = state.lightGroups.getItemById(grp.id);
-            if (sys.equipment.isIntellicenterV3) {
-                let cmdByte = 0;
-                let actionName = '';
-                switch (cmd.name) {
-                    case 'colorswim': cmdByte = 1; actionName = 'colorswim'; break;
-                    case 'colorset': cmdByte = 2; actionName = 'colorset'; break;
-                    case 'colorsync': cmdByte = 3; actionName = 'colorsync'; break;
-                    default: return sgrp;
-                }
-                let nop = sys.board.valueMaps.circuitActions.getValue(actionName);
-                sgrp.action = nop;
-                sgrp.emitEquipmentChange();
-                for (let i = 0; i < grp.circuits.length; i++) {
-                    let mc = grp.circuits.getItemByIndex(i);
-                    if (mc.circuit) {
-                        let cs = state.circuits.getItemById(mc.circuit);
-                        if (cs) { cs.action = nop; cs.emitEquipmentChange(); }
-                    }
-                }
-                let groupIdx = id - sys.board.equipmentIds.circuitGroups.start;
-                let out = Outbound.createMessage(184, [88, 163, groupIdx, 0, 138, 177, cmdByte, 0, 0, 0], 3);
-                out.dest = 16;
-                await out.sendAsync();
-            } else {
-                let nop = sys.board.valueMaps.circuitActions.getValue(cmd.name);
-                sgrp.action = nop;
-                sgrp.emitEquipmentChange();
-                switch (cmd.name) {
-                    case 'colorset':
-                        await this.sequenceLightGroupAsync(id, 'colorset');
-                        break;
-                    case 'colorswim':
-                        await this.sequenceLightGroupAsync(id, 'colorswim');
-                        break;
-                    case 'colorhold':
-                        await this.setLightGroupThemeAsync(id, 12);
-                        break;
-                    case 'colorrecall':
-                        await this.setLightGroupThemeAsync(id, 13);
-                        break;
-                    case 'lightthumper':
-                        break;
-                }
-                sgrp.action = 0;
-                sgrp.emitEquipmentChange();
+            let cmdByte = 0;
+            let actionName = '';
+            switch (cmd.name) {
+                case 'colorswim': cmdByte = 1; actionName = 'colorswim'; break;
+                case 'colorset': cmdByte = 2; actionName = 'colorset'; break;
+                case 'colorsync': cmdByte = 3; actionName = 'colorsync'; break;
+                default: return sgrp;
             }
+            let nop = sys.board.valueMaps.circuitActions.getValue(actionName);
+            sgrp.action = nop;
+            sgrp.emitEquipmentChange();
+            for (let i = 0; i < grp.circuits.length; i++) {
+                let mc = grp.circuits.getItemByIndex(i);
+                if (mc.circuit) {
+                    let cs = state.circuits.getItemById(mc.circuit);
+                    if (cs) { cs.action = nop; cs.emitEquipmentChange(); }
+                }
+            }
+            let groupIdx = id - sys.board.equipmentIds.circuitGroups.start;
+            let out = Outbound.createMessage(184, [88, 163, groupIdx, 0, 138, 177, cmdByte, 0, 0, 0], 3);
+            out.dest = 16;
+            await out.sendAsync();
             return sgrp;
         }
         catch (err) { return Promise.reject(`Error runLightGroupCommandAsync ${err.message}`); }
@@ -2968,13 +2778,13 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
     //            return [];
     //    }
     //}
-    private async getConfigAsync(payload: number[]): Promise<boolean> {
+    protected async getConfigAsync(payload: number[]): Promise<boolean> {
 
-        const dest = sys.equipment.isIntellicenterV3 ? 16 : 15;
+        const dest = 16;
         let out = Outbound.create({
             dest,
             action: 222,
-            scope: sys.equipment.isIntellicenterV3 ? 'v3CommandReadback' : undefined,
+            scope: 'v3CommandReadback',
             retries: 3,
             payload: payload,
             response: Response.create({ dest: -1, action: 30, payload: payload })
@@ -2987,11 +2797,11 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
     public async setCircuitStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<ICircuitState> {
         // v3.004+ features: dashPanel (and other callers) may route feature toggles through the "circuit" path.
         // IntelliCenter features live in a different Action 184 channel (0xE89D), so delegate feature IDs here.
-        if (sys.equipment.isIntellicenterV3 && sys.board.equipmentIds.features.isInRange(id)) {
+        if (sys.board.equipmentIds.features.isInRange(id)) {
             logger.info(`v3.004+ setCircuitStateAsync: ID ${id} is a feature; delegating to setFeatureStateAsync -> ${val ? 'ON' : 'OFF'}`);
             return await this.board.features.setFeatureStateAsync(id, val, ignoreDelays);
         }
-        if (sys.equipment.isIntellicenterV3 && sys.board.equipmentIds.circuitGroups.isInRange(id)) {
+        if (sys.board.equipmentIds.circuitGroups.isInRange(id)) {
             await this.setCircuitGroupStateAsync(id, val);
             return state.circuitGroups.getInterfaceById(id);
         }
@@ -3029,7 +2839,7 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             // Captures show body control uses a "body toggle" primitive (target=168,237 state=0/1) plus
             // additional body context/selection packets (notably targets 212,182 and 114,145).
             // See .plan/202-intellicenter-bodies-temps.md for full protocol documentation.
-            if (sys.equipment.isIntellicenterV3 && this.isBodyCircuit(id)) {
+            if (this.isBodyCircuit(id)) {
                 const isPool = (id === 6);
                 const bodyName = isPool ? 'Pool' : 'Spa';
                 if (state.freeze) {
@@ -3046,73 +2856,28 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             }
 
             // v3.004+ non-body circuits: Use indexed Action 184 (Wireless-style)
-            if (sys.equipment.isIntellicenterV3) {
+            {
                 const circuit = sys.circuits.getItemById(id, false);
                 logger.info(`v3.004+ setCircuitStateAsync: Using indexed Action 184 for circuit ${id} (${circuit?.name || 'unnamed'}) -> ${val ? 'ON' : 'OFF'}`);
-                /**
-                 * v3.004+ Indexed Circuit Control (Wireless-style).
-                 * Action 184 is the native circuit control message used by the Wireless remote.
-                 *
-                 * Payload structure (10 bytes):
-                 *   Bytes 0-1: Channel (0x688F for circuits)
-                 *   Byte 2: Index (circuitId - 1 or featureId - 1)
-                 *   Byte 3: Format (255 = command mode)
-                 *   Bytes 4-5: Target (0xA8ED = control primitive)
-                 *   Byte 6: State (0=OFF, 1=ON)
-                 *   Bytes 7-9: Reserved (0,0,0)
-                 */
                 const idx = Math.max(0, Math.min(255, (id | 0) - 1));
                 const out = Outbound.createMessage(184, [
-                    104, 143,        // Channel 0x688F (circuits)
-                    idx,             // Index (circuitId - 1)
-                    255,             // Format (command)
-                    168, 237,        // Target 0xA8ED (control primitive)
-                    val ? 1 : 0,     // State
+                    104, 143,
+                    idx,
+                    255,
+                    168, 237,
+                    val ? 1 : 0,
                     0, 0, 0
                 ], 3);
-                out.dest = 16;  // Send to OCP
+                out.dest = 16;
                 out.scope = `circuitState${id}`;
                 out.retries = 5;
                 out.response = IntelliCenterBoard.getAckResponse(184);
                 await out.sendAsync();
-                // Request updated config to confirm state change
                 await this.getConfigAsync([15, 0]);
                 let circ = state.circuits.getInterfaceById(id);
                 state.emitEquipmentChanges();
                 return circ;
             }
-            
-            // v1.x or v3.004+ without known targetId: Use Action 168 (original method)
-            // (deprecated) historically attempted to mimic an ICP sequence (228→164 ACK, then 222[15,0]→30)
-            // before sending circuit state. We no longer run that here; it added bus noise and wasn't
-            // required for reliable 168 writes (and we never ACK(30) due to collision risk).
-            //if (b) b = await this.getConfigAsync([15, 0]);
-            let out = this.createCircuitStateMessage(id, val);
-            //if (sys.equipment.dual && id === 6) out.setPayloadByte(35, 1);
-            out.setPayloadByte(34, 1);
-            // v3.004+: Do NOT spoof the OCP as the sender. Commands must originate from our plugin address and be sent to OCP (16).
-            // v1.x: historically spoofed `out.source = 16` as a workaround ("Trying a different source for setting circuits on IntelliCenter."
-            // commit cc123002fb, 2021-10-23). Keep that behavior only for pre-v3.
-            if (sys.equipment.isIntellicenterV3) {
-                out.dest = 16;
-                logger.warn(`v3.004+ setCircuitStateAsync: No targetId known for circuit ${id}, falling back to Action 168. Circuit control may not work until targetId is learned from OCP broadcasts.`);
-            } else {
-                out.source = 16;
-            }
-            out.scope = `circuitState${id}`;
-            out.retries = 5;
-            out.response = IntelliCenterBoard.getAckResponse(168);
-            await out.sendAsync();
-            // There is a current bug in 1.047 where one controller will reset the settings
-            // of another when they are not the controller that set it.  Either this is a BS bug
-            // or there is some piece of information we do not have.
-            let b = await this.getConfigAsync([15, 0]);
-            let circ = state.circuits.getInterfaceById(id);
-            // This doesn't work to set it back because the ICP will set it back but often this
-            // can take several seconds to do so.
-            //if (circ.isOn !== utils.makeBool(val)) await this.setCircuitStateAsync(id, val);
-            state.emitEquipmentChanges();
-            return circ;
 
         }
         catch (err) { return Promise.reject(err); }
@@ -3208,24 +2973,20 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
             gstate.emitEquipmentChange();
         }
         try {
-            if (sys.equipment.isIntellicenterV3) {
-                let groupIdx = id - sys.board.equipmentIds.circuitGroups.start;
-                let out = Outbound.createMessage(184, [
-                    88, 163,         // Channel 0x58A3 (groups)
-                    groupIdx,        // Index (groupId - circuitGroups.start)
-                    0,               // Format
-                    168, 237,        // Primitive 0xA8ED (toggle)
-                    val ? 1 : 0,     // State
-                    0, 0, 0
-                ], 3);
-                out.dest = 16;
-                out.scope = `circuitGroupState${id}`;
-                out.retries = 5;
-                out.response = IntelliCenterBoard.getAckResponse(184);
-                await out.sendAsync();
-            } else {
-                await sys.board.circuits.setCircuitStateAsync(id, val);
-            }
+            let groupIdx = id - sys.board.equipmentIds.circuitGroups.start;
+            let out = Outbound.createMessage(184, [
+                88, 163,
+                groupIdx,
+                0,
+                168, 237,
+                val ? 1 : 0,
+                0, 0, 0
+            ], 3);
+            out.dest = 16;
+            out.scope = `circuitGroupState${id}`;
+            out.retries = 5;
+            out.response = IntelliCenterBoard.getAckResponse(184);
+            await out.sendAsync();
             if (isLightGroup && val) {
                 setTimeout(() => {
                     (gstate as LightGroupState).action = 0;
@@ -3522,22 +3283,170 @@ class IntelliCenterCircuitCommands extends CircuitCommands {
     }
     public async toggleCircuitStateAsync(id: number): Promise<ICircuitState> {
         // v3.004+ features: dashPanel may attempt to toggle features via the circuit endpoint.
-        if (sys.equipment.isIntellicenterV3 && sys.board.equipmentIds.features.isInRange(id)) {
+        if (sys.board.equipmentIds.features.isInRange(id)) {
             return await this.board.features.toggleFeatureStateAsync(id);
         }
         let circ = state.circuits.getInterfaceById(id);
         return sys.board.circuits.setCircuitStateAsync(id, !circ.isOn);
     }
+    public syncVirtualCircuitStates() {
+        try {
+            let arrCircuits = sys.board.valueMaps.virtualCircuits.toArray();
+            let poolStates = sys.board.bodies.getPoolStates();
+            let spaStates = sys.board.bodies.getSpaStates();
+            let allBodyStates = poolStates.concat(spaStates);
+            for (let i = 0; i < arrCircuits.length; i++) {
+                let vc = arrCircuits[i];
+                let remove = false;
+                let bState = false;
+                let cstate: VirtualCircuitState = null;
+                switch (vc.name) {
+                    case 'poolHeater':
+                        remove = true;
+                        for (let j = 0; j < poolStates.length; j++) {
+                            if (poolStates[j].heaterOptions.total > 0) remove = false;
+                        }
+                        if (!remove) {
+                            for (let j = 0; j < poolStates.length && !bState; j++) {
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(poolStates[j].heatStatus);
+                                if (hstatus !== 'off') bState = true;
+                            }
+                        }
+                        break;
+                    case 'spaHeater':
+                        remove = true;
+                        for (let j = 0; j < spaStates.length; j++) {
+                            if (spaStates[j].heaterOptions.total > 0) remove = false;
+                        }
+                        if (!remove) {
+                            for (let j = 0; j < spaStates.length && !bState; j++) {
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(spaStates[j].heatStatus);
+                                if (hstatus !== 'off') bState = true;
+                            }
+                        }
+                        break;
+                    case 'heater':
+                        remove = true;
+                        for (let j = 0; j < allBodyStates.length; j++) {
+                            if (allBodyStates[j].heaterOptions.gas > 0) remove = false;
+                        }
+                        if (!remove) {
+                            for (let j = 0; j < allBodyStates.length && !bState; j++) {
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(allBodyStates[j].heatStatus);
+                                if (hstatus === 'heater') bState = true;
+                            }
+                        }
+                        break;
+                    case 'freeze':
+                        bState = state.freeze;
+                        break;
+                    case 'poolSpa':
+                        for (let j = 0; j < allBodyStates.length && !bState; j++) {
+                            if (allBodyStates[j].isOn) bState = true;
+                        }
+                        break;
+                    case 'solarHeat':
+                    case 'solar':
+                        remove = true;
+                        for (let j = 0; j < allBodyStates.length; j++) {
+                            if (allBodyStates[j].heaterOptions.solar) remove = false;
+                        }
+                        if (!remove) {
+                            for (let j = 0; j < allBodyStates.length && !bState; j++) {
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(allBodyStates[j].heatStatus);
+                                if (hstatus === 'solar') bState = true;
+                            }
+                        }
+                        break;
+                    case 'anyHeater':
+                        remove = true;
+                        for (let j = 0; j < allBodyStates.length; j++) {
+                            if (allBodyStates[j].heaterOptions.total > 0) remove = false;
+                        }
+                        if (!remove) {
+                            for (let j = 0; j < allBodyStates.length && !bState; j++) {
+                                let heat = sys.board.valueMaps.heatStatus.getName(allBodyStates[j].heatStatus);
+                                if (heat !== 'off') bState = true;
+                            }
+                        }
+                        break;
+                    case 'heatPump':
+                        remove = true;
+                        for (let j = 0; j < allBodyStates.length; j++) {
+                            if (allBodyStates[j].heaterOptions.heatpump > 0) remove = false;
+                        }
+                        if (!remove) {
+                            for (let j = 0; j < allBodyStates.length && !bState; j++) {
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(allBodyStates[j].heatStatus);
+                                if (hstatus === 'hpheat') bState = true;
+                            }
+                        }
+                        break;
+                    case 'ultraTemp':
+                        remove = true;
+                        for (let j = 0; j < allBodyStates.length; j++) {
+                            if (allBodyStates[j].heaterOptions.ultratemp > 0) remove = false;
+                        }
+                        if (!remove) {
+                            for (let j = 0; j < allBodyStates.length && !bState; j++) {
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(allBodyStates[j].heatStatus);
+                                if (hstatus === 'utheat' || hstatus === 'utcool') bState = true;
+                            }
+                        }
+                        break;
+                    case 'hybrid':
+                        remove = true;
+                        for (let j = 0; j < allBodyStates.length; j++) {
+                            if (allBodyStates[j].heaterOptions.hybrid > 0) remove = false;
+                        }
+                        if (!remove) {
+                            for (let j = 0; j < allBodyStates.length && !bState; j++) {
+                                let hstatus = sys.board.valueMaps.heatStatus.getName(allBodyStates[j].heatStatus);
+                                if (hstatus === 'hybheat') bState = true;
+                            }
+                        }
+                        break;
+                    case 'heatBoost':
+                    case 'heatEnable':
+                    case 'poolHeatEnable':
+                    case 'pumpSpeedUp':
+                    case 'pumpSpeedDown':
+                        remove = true;
+                        break;
+                    default:
+                        remove = true;
+                        break;
+                }
+                if (remove) {
+                    if (state.virtualCircuits.exists(x => vc.val === x.id)) {
+                        cstate = state.virtualCircuits.getItemById(vc.val, true);
+                        cstate.isActive = false;
+                        cstate.emitEquipmentChange();
+                    }
+                    state.virtualCircuits.removeItemById(vc.val);
+                }
+                else {
+                    cstate = state.virtualCircuits.getItemById(vc.val, true);
+                    cstate.isActive = true;
+                    if (cstate !== null) {
+                        cstate.isOn = bState;
+                        cstate.type = vc.val;
+                        cstate.name = vc.desc;
+                    }
+                }
+            }
+        } catch (err) { logger.error(`Error synchronizing virtual circuits`); }
+    }
 }
-class IntelliCenterFeatureCommands extends FeatureCommands {
+export class IntelliCenterFeatureCommands extends FeatureCommands {
     declare board: IntelliCenterBoard;
 
-    private async getConfigAsync(payload: number[]): Promise<boolean> {
-        const dest = sys.equipment.isIntellicenterV3 ? 16 : 15;
+    protected async getConfigAsync(payload: number[]): Promise<boolean> {
+        const dest = 16;
         let out = Outbound.create({
             dest,
             action: 222,
-            scope: sys.equipment.isIntellicenterV3 ? 'v3CommandReadback' : undefined,
+            scope: 'v3CommandReadback',
             retries: 3,
             payload: payload,
             response: Response.create({ dest: -1, action: 30, payload: payload })
@@ -3548,51 +3457,32 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
     }
 
     public async setFeatureStateAsync(id: number, val: boolean, ignoreDelays?: boolean): Promise<ICircuitState> {
-        // v3.004+: Features are controlled via Action 184 channel 0xE89D (232,157), not the circuits channel.
-        if (sys.equipment.isIntellicenterV3) {
-            if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
-            if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
+        if (!sys.board.equipmentIds.features.isInRange(id)) return Promise.reject(new InvalidEquipmentIdError(`Invalid feature id: ${id}`, id, 'Feature'));
 
-            const feature = sys.features.getItemById(id, false, { isActive: false });
-            logger.info(`v3.004+ setFeatureStateAsync: Using indexed Action 184 for feature ${id} (${feature?.name || 'unnamed'}) -> ${val ? 'ON' : 'OFF'}`);
+        const feature = sys.features.getItemById(id, false, { isActive: false });
+        logger.info(`v3.004+ setFeatureStateAsync: Using indexed Action 184 for feature ${id} (${feature?.name || 'unnamed'}) -> ${val ? 'ON' : 'OFF'}`);
 
-            /**
-             * v3.004+ Indexed Feature Control (Wireless-style).
-             * Action 184 is the native feature control message used by the Wireless remote (channel 0xE89D).
-             *
-             * Payload structure (10 bytes):
-             *   Bytes 0-1: Channel (0xE89D for features)
-             *   Byte 2: Index (featureId - 1)
-             *   Byte 3: Format/mode (observed 0 in replays 132/138 feature toggles)
-             *   Bytes 4-5: Target (0xA8ED = control primitive)
-             *   Byte 6: State (0=OFF, 1=ON)
-             *   Bytes 7-9: Reserved (0,0,0)
-             */
-            const idx = Math.max(0, Math.min(255, (id | 0) - 1));
-            const out = Outbound.createMessage(184, [
-                232, 157,        // Channel 0xE89D (features)
-                idx,             // Index (featureId - 1)
-                0,               // Format/mode (observed)
-                168, 237,        // Target 0xA8ED (control primitive)
-                val ? 1 : 0,     // State
-                0, 0, 0
-            ], 3);
-            out.dest = 16;  // Send to OCP
-            out.scope = `featureState${id}`;
-            out.retries = 5;
-            out.response = IntelliCenterBoard.getAckResponse(184);
-            await out.sendAsync();
+        const idx = Math.max(0, Math.min(255, (id | 0) - 1));
+        const out = Outbound.createMessage(184, [
+            232, 157,
+            idx,
+            0,
+            168, 237,
+            val ? 1 : 0,
+            0, 0, 0
+        ], 3);
+        out.dest = 16;
+        out.scope = `featureState${id}`;
+        out.retries = 5;
+        out.response = IntelliCenterBoard.getAckResponse(184);
+        await out.sendAsync();
 
-            // Request updated system state to confirm feature change (authoritative source for v3 features).
-            await this.getConfigAsync([15, 0]);
+        await this.getConfigAsync([15, 0]);
 
-            const fstate = state.features.getItemById(id, true);
-            state.emitEquipmentChanges();
-            return fstate;
-        }
-
-        // Legacy behavior (v1.x): delegate to circuit state setter.
-        return sys.board.circuits.setCircuitStateAsync(id, val);
+        const fstate = state.features.getItemById(id, true);
+        state.emitEquipmentChanges();
+        return fstate;
     }
 
     public async toggleFeatureStateAsync(id: number): Promise<ICircuitState> {
@@ -3667,7 +3557,7 @@ class IntelliCenterFeatureCommands extends FeatureCommands {
     }
 
 }
-class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
+export class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
     public async setChlorAsync(obj: any): Promise<ChlorinatorState> {
         let id = parseInt(obj.id, 10);
         // Bail out right away if this is not controlled by the OCP.
@@ -3723,20 +3613,15 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
 
         let out = Outbound.create({
             action: 168,
-            payload: sys.equipment.isIntellicenterV3
-                ? [7, 0, id - 1, body.val, 1,
+            payload: [7, 0, id - 1, body.val, 1,
                     disabled ? 0 : isDosing ? 100 : poolSetpoint,
                     disabled ? 0 : isDosing ? 100 : spaSetpoint,
-                    0, 0, superChlorHours, 1, 20, 20]
-                : [7, 0, id - 1, body.val, 1,
-                    disabled ? 0 : isDosing ? 100 : poolSetpoint,
-                    disabled ? 0 : isDosing ? 100 : spaSetpoint,
-                    superChlorinate ? 1 : 0, superChlorHours, 0, 1],
+                    0, 0, superChlorHours, 1, 20, 20],
             response: IntelliCenterBoard.getAckResponse(168),
             retries: 5
         });
         await out.sendAsync();
-        if (sys.equipment.isIntellicenterV3 && superChlorinate !== utils.makeBool(chlor.superChlor)) {
+        if (superChlorinate !== utils.makeBool(chlor.superChlor)) {
             let scOut = Outbound.createMessage(184, [
                 128, 142, 0, 0, 236, 239, superChlorinate ? 1 : 0, 0, 0, 0
             ], 3);
@@ -3785,7 +3670,7 @@ class IntelliCenterChlorinatorCommands extends ChlorinatorCommands {
         return schlor;
     }
 }
-class IntelliCenterPumpCommands extends PumpCommands {
+export class IntelliCenterPumpCommands extends PumpCommands {
     private createPumpConfigMessages(pump: Pump): Outbound[] {
         let arr: Outbound[] = [];
         let outSettings = Outbound.createMessage(
@@ -3888,9 +3773,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
             // supplied then we will use what we already have.  This will make sure the information is valid and any change can be applied without the complete
             // definition of the pump.  This is important since additional attributes may be added in the future and this keeps us current no matter what
             // the endpoint capability is.
-            const isV3 = sys.equipment.isIntellicenterV3;
-            const dest = isV3 ? 16 : 15;
-            let outc = Outbound.create({ dest, action: 168, payload: [4, 0, id - 1, ntype, 0] });
+            let outc = Outbound.create({ dest: 16, action: 168, payload: [4, 0, id - 1, ntype, 0] });
             const normalizeNumber = (value: any): number | undefined => {
                 const parsed = parseInt(value, 10);
                 return isNaN(parsed) ? undefined : parsed;
@@ -3919,27 +3802,18 @@ class IntelliCenterPumpCommands extends PumpCommands {
             const resolvedPrimingTime = pickNumber(data.primingTime, pump.primingTime, type.maxPrimingTime, 0);
             outc.appendPayloadByte(resolvedAddress, id + 95);        // 5
             // v3.004+ uses big-endian for 16-bit speed/flow values
-            if (isV3) {
-                outc.appendPayloadIntBE(resolvedMinSpeed, 450);  // 6
-                outc.appendPayloadIntBE(resolvedMaxSpeed, 3450);  // 8
-            } else {
-                outc.appendPayloadInt(resolvedMinSpeed, 450);  // 6
-                outc.appendPayloadInt(resolvedMaxSpeed, 3450);  // 8
-            }
+            outc.appendPayloadIntBE(resolvedMinSpeed, 450);  // 6
+            outc.appendPayloadIntBE(resolvedMaxSpeed, 3450);  // 8
             outc.appendPayloadByte(resolvedMinFlow, 0);   // 10
             outc.appendPayloadByte(resolvedMaxFlow, 130);   // 11
             outc.appendPayloadByte(resolvedFlowStepSize, 1); // 12
-            if (isV3) {
-                outc.appendPayloadIntBE(resolvedPrimingSpeed, 2500); // 13
-            } else {
-                outc.appendPayloadInt(resolvedPrimingSpeed, 2500); // 13
-            }
+            outc.appendPayloadIntBE(resolvedPrimingSpeed, 2500); // 13
             outc.appendPayloadByte(Math.max(1, Math.floor((resolvedSpeedStepSize || 10) / 10)), 1); // 15
             outc.appendPayloadByte(resolvedPrimingTime, 0); // 17
             outc.appendPayloadByte(255); //
             outc.appendPayloadBytes(255, 8);    // 18
             outc.appendPayloadBytes(0, 8);      // 26
-            let outn = Outbound.create({ dest, action: 168, payload: [4, 1, id - 1] });
+            let outn = Outbound.create({ dest: 16, action: 168, payload: [4, 1, id - 1] });
             outn.appendPayloadBytes(0, 16);
             const pumpName = normalizeIntelliCenterName(data.name, pump.name || type.name);
             outn.appendPayloadString(pumpName, 16);
@@ -3974,31 +3848,22 @@ class IntelliCenterPumpCommands extends PumpCommands {
 
                 // At some point we may add these to the pump model.
                 // v3.004+ uses big-endian for 16-bit speed/flow values
-                if (isV3) {
-                    outc.setPayloadIntBE(6, type.minSpeed, 450);
-                    outc.setPayloadIntBE(8, type.maxSpeed, 3450);
-                } else {
-                    outc.setPayloadInt(6, type.minSpeed, 450);
-                    outc.setPayloadInt(8, type.maxSpeed, 3450);
-                }
+                outc.setPayloadIntBE(6, type.minSpeed, 450);
+                outc.setPayloadIntBE(8, type.maxSpeed, 3450);
                 outc.setPayloadByte(10, bodyWireCode);
                 outc.setPayloadByte(11, type.maxFlow, 130);
                 outc.setPayloadByte(12, 1);
-                if (isV3) {
-                    outc.setPayloadIntBE(13, type.primingSpeed, 2500);
-                } else {
-                    outc.setPayloadInt(13, type.primingSpeed, 2500);
-                }
+                outc.setPayloadIntBE(13, type.primingSpeed, 2500);
                 outc.setPayloadByte(15, 10);
                 outc.setPayloadByte(16, 1);
                 outc.setPayloadByte(17, 5);
                 outc.setPayloadByte(18, bodyPayload);
                 outc.setPayloadByte(26, 0);
-                if (isV3) outn.setPayloadIntBE(3, 0); else outn.setPayloadInt(3, 0);
+                outn.setPayloadIntBE(3, 0);
                 for (let i = 1; i < 8; i++) {
                     outc.setPayloadByte(i + 18, 255);
                     outc.setPayloadByte(i + 26, 0);
-                    if (isV3) outn.setPayloadIntBE((i * 2) + 3, 1000); else outn.setPayloadInt((i * 2) + 3, 1000);
+                    outn.setPayloadIntBE((i * 2) + 3, 1000);
                 }
             }
             else {
@@ -4020,13 +3885,13 @@ class IntelliCenterPumpCommands extends PumpCommands {
                                 // The incoming data does not include this circuit so we will set it to 255.
                                 outc.setPayloadByte(i + circuitPayloadNdx, 255);
                                 if (typeof type.minSpeed !== 'undefined')
-                                    isV3 ? outn.setPayloadIntBE((i * 2) + 3, type.minSpeed) : outn.setPayloadInt((i * 2) + 3, type.minSpeed);
+                                    outn.setPayloadIntBE((i * 2) + 3, type.minSpeed);
                                 else if (typeof type.minFlow !== 'undefined') {
-                                    isV3 ? outn.setPayloadIntBE((i * 2) + 3, type.minFlow) : outn.setPayloadInt((i * 2) + 3, type.minFlow);
+                                    outn.setPayloadIntBE((i * 2) + 3, type.minFlow);
                                     outc.setPayloadByte(i + unitsPayloadNdx, 1);
                                 }
                                 else
-                                    isV3 ? outn.setPayloadIntBE((i * 2) + 3, 0) : outn.setPayloadInt((i * 2) + 3, 0);
+                                    outn.setPayloadIntBE((i * 2) + 3, 0);
                             }
                             else {
                                 let c = data.circuits[i];
@@ -4063,14 +3928,14 @@ class IntelliCenterPumpCommands extends PumpCommands {
                                     const minSpeed = (typeof type.minSpeed === 'number' && !isNaN(type.minSpeed)) ? type.minSpeed : 450;
                                     const speedCandidate = !isNaN(speed) ? speed : existingSpeed;
                                     const safeSpeed = !isNaN(speedCandidate) ? Math.max(speedCandidate, minSpeed) : minSpeed;
-                                    isV3 ? outn.setPayloadIntBE((i * 2) + 3, safeSpeed, minSpeed) : outn.setPayloadInt((i * 2) + 3, safeSpeed, minSpeed);
+                                    outn.setPayloadIntBE((i * 2) + 3, safeSpeed, minSpeed);
                                 }
                                 else if (typeof type.minFlow !== 'undefined' && units === gpmUnits) {
                                     outc.setPayloadByte(i + unitsPayloadNdx, 1); // Set to gpm
                                     const minFlow = (typeof type.minFlow === 'number' && !isNaN(type.minFlow)) ? type.minFlow : 15;
                                     const flowCandidate = !isNaN(flow) ? flow : existingFlow;
                                     const safeFlow = !isNaN(flowCandidate) ? Math.max(flowCandidate, minFlow) : minFlow;
-                                    isV3 ? outn.setPayloadIntBE((i * 2) + 3, safeFlow, minFlow) : outn.setPayloadInt((i * 2) + 3, safeFlow, minFlow);
+                                    outn.setPayloadIntBE((i * 2) + 3, safeFlow, minFlow);
                                 }
                             }
                         }
@@ -4219,25 +4084,14 @@ class IntelliCenterPumpCommands extends PumpCommands {
         if (pump.master === 1) return super.deletePumpAsync(data);
 
         if (typeof pump.type === 'undefined') return Promise.reject(new InvalidEquipmentIdError(`Pump #${data.id} does not exist in configuration`, data.id, 'Schedule'));
-        const isV3 = sys.equipment.isIntellicenterV3;
         let outc = Outbound.create({ action: 168, payload: [4, 0, id - 1, 0, 0, id + 95] });
-        if (isV3) {
             outc.appendPayloadIntBE(450);  // 6
             outc.appendPayloadIntBE(3450);  // 8
-        } else {
-            outc.appendPayloadInt(450);  // 6
-            outc.appendPayloadInt(3450);  // 8
-        }
         outc.appendPayloadByte(15);   // 10
         outc.appendPayloadByte(130);   // 11
         outc.appendPayloadByte(1); // 12
-        if (isV3) {
             outc.appendPayloadIntBE(1000);  // 13
             outc.appendPayloadIntBE(10);   // 15
-        } else {
-            outc.appendPayloadInt(1000);  // 13
-            outc.appendPayloadInt(10);   // 15
-        }
         outc.appendPayloadByte(5);   // 17
         outc.appendPayloadBytes(255, 8);    // 18
         outc.appendPayloadBytes(0, 8);      // 26
@@ -4263,7 +4117,7 @@ class IntelliCenterPumpCommands extends PumpCommands {
         } catch (err) { return Promise.reject(err); }
     }
 }
-class IntelliCenterBodyCommands extends BodyCommands {
+export class IntelliCenterBodyCommands extends BodyCommands {
     private bodyHeatSettings: {
         processing: boolean,
         bytes: number[],
@@ -4271,8 +4125,8 @@ class IntelliCenterBodyCommands extends BodyCommands {
         body2: { heatMode: number, heatSetpoint: number, coolSetpoint: number },
         _processingStartTime?: number
     };
-    private async queueBodyHeatSettings(bodyId?: number, byte?: number, data?: any): Promise<Boolean> {
-        logger.debug(`queueBodyHeatSettings: ${JSON.stringify(this.bodyHeatSettings)}`);  // remove this line if #848 is fixed
+    protected async queueBodyHeatSettings(bodyId?: number, byte?: number, data?: any): Promise<Boolean> {
+        logger.debug(`queueBodyHeatSettings: ${JSON.stringify(this.bodyHeatSettings)}`);
         if (typeof this.bodyHeatSettings === 'undefined') {
             let body1 = sys.bodies.getItemById(1);
             let body2 = sys.bodies.getItemById(2);
@@ -4285,7 +4139,6 @@ class IntelliCenterBodyCommands extends BodyCommands {
         }
         let bhs = this.bodyHeatSettings;
         
-        // Reset processing state if it's been stuck for too long (more than 10 seconds)
         if (bhs.processing && bhs._processingStartTime && (Date.now() - bhs._processingStartTime > 10000)) {
             logger.warn(`Resetting stuck bodyHeatSettings processing state after timeout`);
             bhs.processing = false;
@@ -4305,49 +4158,10 @@ class IntelliCenterBodyCommands extends BodyCommands {
             bhs._processingStartTime = Date.now();
             let byte2 = bhs.bytes.shift();
 
-            // v3.004+: payload layout matches the wireless remote's Action 168 msgType 0 (Setpoints/HeatMode).
-            // Observed: [0,0,0,0,0,3,...,0xA0, YY,MM,DD,HH,MM, poolHeat,poolCool, spaHeat,spaCool, poolMode,spaMode, 15, ...zeros]
-            // v1.x: uses legacy sensor-calibration-heavy payload (kept for backward compatibility).
-            const isIntellicenterV3 = sys.equipment.isIntellicenterV3 === true;
-            let payload: number[];
-            if (isIntellicenterV3) {
-                const dt = new Date();
-                const yy = dt.getFullYear() - 2000;
-                const mm = dt.getMonth() + 1;
-                const dd = dt.getDate();
-                const hh = dt.getHours();
-                const min = dt.getMinutes();
-                payload = [
-                    0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0,
-                    160, yy, mm, dd, hh, min,
-                    bhs.body1.heatSetpoint, bhs.body1.coolSetpoint, bhs.body2.heatSetpoint, bhs.body2.coolSetpoint,
-                    bhs.body1.heatMode, bhs.body2.heatMode,
-                    15,
-                    0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-                ];
-            } else {
-                let fnToByte = function (num) { return num < 0 ? Math.abs(num) | 0x80 : Math.abs(num) || 0; };
-                payload = [0, 0, byte2, 1,
-                    fnToByte(sys.equipment.tempSensors.getCalibration('water1')),
-                    fnToByte(sys.equipment.tempSensors.getCalibration('solar1')),
-                    fnToByte(sys.equipment.tempSensors.getCalibration('air')),
-                    fnToByte(sys.equipment.tempSensors.getCalibration('water2')),
-                    fnToByte(sys.equipment.tempSensors.getCalibration('solar2')),
-                    fnToByte(sys.equipment.tempSensors.getCalibration('water3')),
-                    fnToByte(sys.equipment.tempSensors.getCalibration('solar3')),
-                    fnToByte(sys.equipment.tempSensors.getCalibration('water4')),
-                    fnToByte(sys.equipment.tempSensors.getCalibration('solar4')),
-                    0,
-                    0x10 | (sys.general.options.clockMode === 24 ? 0x40 : 0x00) | (sys.general.options.adjustDST ? 0x80 : 0x00) | (sys.general.options.clockSource === 'internet' ? 0x20 : 0x00),
-                    89, 27, 110, 3, 0, 0,
-                    bhs.body1.heatSetpoint, bhs.body1.coolSetpoint, bhs.body2.heatSetpoint, bhs.body2.coolSetpoint, bhs.body1.heatMode, bhs.body2.heatMode, 0, 0, 15,
-                    sys.general.options.pumpDelay ? 1 : 0, sys.general.options.cooldownDelay ? 1 : 0, 0, 100, 0, 0, 0, 0, sys.general.options.manualPriority ? 1 : 0, sys.general.options.manualHeat ? 1 : 0, 0
-                ];
-            }
+            let payload = this.buildBodyHeatPayload(bhs, byte2);
 
             let out = Outbound.create({
-                // v3.004+: write must be sent to OCP (16); leaving dest undefined defaults to broadcast (15) and is ignored.
-                dest: isIntellicenterV3 ? 16 : undefined,
+                dest: 16,
                 action: 168,
                 payload: payload,
                 retries: 2,
@@ -4355,20 +4169,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
             });
             try {
                 await out.sendAsync();
-                let body1 = sys.bodies.getItemById(1);
-                let sbody1 = state.temps.bodies.getItemById(1);
-                body1.heatMode = sbody1.heatMode = bhs.body1.heatMode;
-                body1.heatSetpoint = sbody1.heatSetpoint = bhs.body1.heatSetpoint;
-                body1.coolSetpoint = sbody1.coolSetpoint = bhs.body1.coolSetpoint;
-                // Body2 exists on many non-shared IntelliCenter systems (e.g. Pool+Spa). Keep state in sync regardless of shared/dual flags.
-                if (sys.bodies.length > 1) {
-                    let body2 = sys.bodies.getItemById(2);
-                    let sbody2 = state.temps.bodies.getItemById(2);
-                    body2.heatMode = sbody2.heatMode = bhs.body2.heatMode;
-                    body2.heatSetpoint = sbody2.heatSetpoint = bhs.body2.heatSetpoint;
-                    body2.coolSetpoint = sbody2.coolSetpoint = bhs.body2.coolSetpoint;
-                }
-                state.emitEquipmentChanges();
+                this.applyBodyHeatState(bhs);
             } catch (err) {
                 logger.error(`Error in queueBodyHeatSettings: ${err.message}`);
                 bhs.processing = false;
@@ -4384,7 +4185,6 @@ class IntelliCenterBodyCommands extends BodyCommands {
             return true;
         }
         else {
-            // Try every second to re-try if we have a bunch at once.
             if (bhs.bytes.length > 0) {
                 setTimeout(async () => {
                     try {
@@ -4401,6 +4201,37 @@ class IntelliCenterBodyCommands extends BodyCommands {
             }
             return true;
         }
+    }
+    protected buildBodyHeatPayload(bhs: any, byte2: number): number[] {
+        const dt = new Date();
+        const yy = dt.getFullYear() - 2000;
+        const mm = dt.getMonth() + 1;
+        const dd = dt.getDate();
+        const hh = dt.getHours();
+        const min = dt.getMinutes();
+        return [
+            0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0,
+            160, yy, mm, dd, hh, min,
+            bhs.body1.heatSetpoint, bhs.body1.coolSetpoint, bhs.body2.heatSetpoint, bhs.body2.coolSetpoint,
+            bhs.body1.heatMode, bhs.body2.heatMode,
+            15,
+            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+        ];
+    }
+    protected applyBodyHeatState(bhs: any): void {
+        let body1 = sys.bodies.getItemById(1);
+        let sbody1 = state.temps.bodies.getItemById(1);
+        body1.heatMode = sbody1.heatMode = bhs.body1.heatMode;
+        body1.heatSetpoint = sbody1.heatSetpoint = bhs.body1.heatSetpoint;
+        body1.coolSetpoint = sbody1.coolSetpoint = bhs.body1.coolSetpoint;
+        if (sys.bodies.length > 1) {
+            let body2 = sys.bodies.getItemById(2);
+            let sbody2 = state.temps.bodies.getItemById(2);
+            body2.heatMode = sbody2.heatMode = bhs.body2.heatMode;
+            body2.heatSetpoint = sbody2.heatSetpoint = bhs.body2.heatSetpoint;
+            body2.coolSetpoint = sbody2.coolSetpoint = bhs.body2.coolSetpoint;
+        }
+        state.emitEquipmentChanges();
     }
     public async setBodyAsync(obj: any): Promise<Body> {
         let byte = 0;
@@ -4645,13 +4476,10 @@ class IntelliCenterBodyCommands extends BodyCommands {
         // IntelliCenter v3.004+: keep body-level picklists aligned with what the controller actually presents.
         // Preferred modes are not reliably shown/used by Pentair clients on v3, so suppress them here (board-specific),
         // rather than gating shared SystemBoard behavior.
-        if (sys.equipment.isIntellicenterV3) {
-            return sources.filter(s => {
-                const name = s && (s as any).name;
-                return name !== 'solarpref' && name !== 'ultratemppref' && name !== 'heatpumppref';
-            });
-        }
-        return sources;
+        return sources.filter(s => {
+            const name = s && (s as any).name;
+            return name !== 'solarpref' && name !== 'ultratemppref' && name !== 'heatpumppref';
+        });
     }
     public getHeatModes(bodyId: number) {
         const sources = this.getHeatSources(bodyId);
@@ -4689,7 +4517,7 @@ class IntelliCenterBodyCommands extends BodyCommands {
         return heatModes;
     }
 }
-class IntelliCenterScheduleCommands extends ScheduleCommands {
+export class IntelliCenterScheduleCommands extends ScheduleCommands {
     _lastScheduleCheck: number = 0;
     public async setScheduleAsync(data: any): Promise<Schedule> {
         if (typeof data.id !== 'undefined') {
@@ -4752,15 +4580,14 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             let startTimeHi = Math.floor(startTime / 256);
             let endTimeLo = endTime - Math.floor(endTime / 256) * 256;
             let endTimeHi = Math.floor(endTime / 256);
-            let isV3 = sys.equipment.isIntellicenterV3;
             let out = Outbound.createMessage(168, [
                 3
                 , 0
                 , id - 1 // IntelliCenter schedules start at 0.
-                , isV3 ? startTimeHi : startTimeLo
-                , isV3 ? startTimeLo : startTimeHi
-                , isV3 ? endTimeHi : endTimeLo
-                , isV3 ? endTimeLo : endTimeHi
+                , startTimeHi
+                , startTimeLo
+                , endTimeHi
+                , endTimeLo
                 , circuit - 1
                 , runOnce
                 , schedDays
@@ -4807,14 +4634,19 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
             return Promise.reject(new InvalidEquipmentIdError('No schedule information provided', undefined, 'Schedule'));
     }
     public syncScheduleStates() {
-        // This is triggered from the 204 message in IntelliCenter.  We will
-        // be checking to ensure it does not load the server so we only do this every 10 seconds.
         if (this._lastScheduleCheck > new Date().getTime() - 10000) return;
         try {
-            // The call below also calculates the schedule window either the current or next.
-            ncp.schedules.triggerSchedules();  // At this point we are not adding Nixie schedules to IntelliCenter but this will trigger
-            // the proper time windows if they exist.
-            // Check each running circuit/feature to see when it will be going off.
+            ncp.schedules.triggerSchedules();
+            for (let i = 0; i < state.schedules.length; i++) {
+                let ssched = state.schedules.getItemByIndex(i);
+                if (ssched.disabled || !ssched.isActive) continue;
+                let scirc = state.circuits.getInterfaceById(ssched.circuit);
+                let schedIsOn = scirc.isOn && ssched.scheduleTime.shouldBeOn;
+                if (schedIsOn !== ssched.isOn) {
+                    ssched.isOn = schedIsOn;
+                    ssched.emitEquipmentChange();
+                }
+            }
             let scheds = state.schedules.getActiveSchedules();
             let circs: { state: ICircuitState, endTime: number }[] = [];
             for (let i = 0; i < scheds.length; i++) {
@@ -4884,7 +4716,9 @@ class IntelliCenterScheduleCommands extends ScheduleCommands {
     // RKS: 06-24-20 - Need to talk to Russ.  This needs to go away and reconstituted in the async.
     public setSchedule(sched: Schedule, obj: any) { }
 }
-class IntelliCenterHeaterCommands extends HeaterCommands {
+export class IntelliCenterHeaterCommands extends HeaterCommands {
+    protected get heatPumpValue(): number { return 14; }
+    protected get heatPumpPrefValue(): number { return 15; }
     private createHeaterConfigMessage(heater: Heater): Outbound {
         let out = Outbound.createMessage(
             168, [10, 0, heater.id, heater.type, heater.body, heater.differentialTemp, heater.startTempDelta, heater.stopTempDelta, heater.coolingEnabled ? 1 : 0,
@@ -4894,31 +4728,30 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         out.insertPayloadString(11, heater.name, 16);
         return out;
     }
+    // Per-controller body-association predicate. Default semantics here are the v1.x
+    // IntelliCenter encoding (body circuit IDs in Action 30 byte 17): 32 = shared, 6 =
+    // Pool circuit, 1 = Spa circuit, 12 = body 3, 22 = body 4. v3-WS uses a different
+    // encoding (parseBodyRef: 0 = unassigned, 1 = Pool, 2 = Spa, 32 = both) and overrides
+    // this method in IntelliCenterWSHeaterCommands.
+    protected matchesBody(heaterBody: number, requestedBody: number): boolean {
+        if (heaterBody === 32) return requestedBody <= 2;
+        if (heaterBody === 6) return sys.equipment.shared ? requestedBody <= 2 : requestedBody === 1; // Pool circuit
+        if (heaterBody === 1) return sys.equipment.shared ? requestedBody <= 2 : requestedBody === 2; // Spa circuit
+        if (heaterBody === 12) return requestedBody === 3; // Body 3 circuit
+        if (heaterBody === 22) return requestedBody === 4; // Body 4 circuit
+        // Fallback to existing generic formats.
+        return requestedBody === heaterBody + 1 || requestedBody === heaterBody;
+    }
     public getInstalledHeaterTypes(body?: number): any {
         const heaters = sys.heaters.get();
         const types = sys.board.valueMaps.heaterTypes.toArray();
         const inst: any = { total: 0 };
         for (let i = 0; i < types.length; i++) if (types[i].name !== 'none') inst[types[i].name] = 0;
 
-        const matchesBody = (heaterBody: number, requestedBody: number): boolean => {
-            // Shared-body sentinel used in existing logic.
-            if (heaterBody === 32) return requestedBody <= 2;
-
-            // IntelliCenter reports body associations using body circuit IDs in config payloads.
-            // Map those IDs so per-body heater options stay accurate in runtime state/UI.
-            if (heaterBody === 6) return sys.equipment.shared ? requestedBody <= 2 : requestedBody === 1; // Pool circuit
-            if (heaterBody === 1) return sys.equipment.shared ? requestedBody <= 2 : requestedBody === 2; // Spa circuit
-            if (heaterBody === 12) return requestedBody === 3; // Body 3 circuit
-            if (heaterBody === 22) return requestedBody === 4; // Body 4 circuit
-
-            // Fallback to existing generic formats.
-            return requestedBody === heaterBody + 1 || requestedBody === heaterBody;
-        };
-
         for (let i = 0; i < heaters.length; i++) {
             const heater = heaters[i];
             if (typeof body !== 'undefined' && typeof heater.body !== 'undefined') {
-                if (!matchesBody(heater.body, body)) continue;
+                if (!this.matchesBody(heater.body, body)) continue;
             }
             const type = types.find(elem => elem.val === heater.type);
             if (typeof type !== 'undefined') {
@@ -4936,19 +4769,10 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
         const inst: any = { total: 0 };
         for (let i = 0; i < types.length; i++) if (types[i].name !== 'none') inst[types[i].name] = 0;
 
-        const matchesBody = (heaterBody: number, requestedBody: number): boolean => {
-            if (heaterBody === 32) return requestedBody <= 2;
-            if (heaterBody === 6) return requestedBody === 1;
-            if (heaterBody === 1) return requestedBody === 2;
-            if (heaterBody === 12) return requestedBody === 3;
-            if (heaterBody === 22) return requestedBody === 4;
-            return requestedBody === heaterBody + 1 || requestedBody === heaterBody;
-        };
-
         for (let i = 0; i < heaters.length; i++) {
             const heater = heaters[i];
             if (typeof body !== 'undefined' && typeof heater.body !== 'undefined') {
-                if (!matchesBody(heater.body, body)) continue;
+                if (!this.matchesBody(heater.body, body)) continue;
             }
             const type = types.find(elem => elem.val === heater.type);
             if (typeof type !== 'undefined') {
@@ -5180,8 +5004,8 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             else if (solarInstalled && htypes.total > 1) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar Only', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
             else if (solarInstalled) sys.board.valueMaps.heatSources.merge([[3, { name: 'solar', desc: 'Solar', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
             // v3.004+ uses val=14 for heat pump (v1.x used val=9)
-            let hpVal = sys.equipment.isIntellicenterV3 ? 14 : 9;
-            let hpPrefVal = sys.equipment.isIntellicenterV3 ? 15 : 25;
+            let hpVal = this.heatPumpValue;
+            let hpPrefVal = this.heatPumpPrefValue;
             if (heatPumpInstalled && combustionHeaterInstalled) sys.board.valueMaps.heatSources.merge([[hpVal, { name: 'heatpump', desc: 'Heat Pump Only' }], [hpPrefVal, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
             else if (heatPumpInstalled && htypes.total > 1) sys.board.valueMaps.heatSources.merge([[hpVal, { name: 'heatpump', desc: 'Heat Pump Only' }]]);
             else if (heatPumpInstalled) sys.board.valueMaps.heatSources.merge([[hpVal, { name: 'heatpump', desc: 'Heat Pump' }]]);
@@ -5194,12 +5018,12 @@ class IntelliCenterHeaterCommands extends HeaterCommands {
             if (mastertempInstalled) sys.board.valueMaps.heatModes.merge([[11, { name: 'mtheater', desc: 'MasterTemp' }]]);
             if (maxethermInstalled) sys.board.valueMaps.heatModes.merge([[12, { name: 'maxetherm', desc: 'Max-E-Therm' }]]);
             if (eti250Installed) sys.board.valueMaps.heatModes.merge([[13, { name: 'eti250', desc: 'ETI250' }]]);
-            if (solarInstalled && combustionHeaterInstalled) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar Only' }], [4, { name: 'solarpref', desc: 'Solar Preferred' }]]);
-            else if (solarInstalled && htypes.total > 1) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar Only' }]]);
-            else if (solarInstalled) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar' }]]);
-            if (ultratempInstalled && combustionHeaterInstalled) sys.board.valueMaps.heatModes.merge([[5, { name: 'ultratemp', desc: 'UltraTemp Only' }], [6, { name: 'ultratemppref', desc: 'UltraTemp Preferred' }]]);
-            else if (ultratempInstalled && htypes.total > 1) sys.board.valueMaps.heatModes.merge([[5, { name: 'ultratemp', desc: 'UltraTemp Only' }]]);
-            else if (ultratempInstalled) sys.board.valueMaps.heatModes.merge([[5, { name: 'ultratemp', desc: 'UltraTemp' }]]);
+            if (solarInstalled && combustionHeaterInstalled) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar Only', hasCoolSetpoint: htypes.hasCoolSetpoint }], [4, { name: 'solarpref', desc: 'Solar Preferred', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
+            else if (solarInstalled && htypes.total > 1) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar Only', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
+            else if (solarInstalled) sys.board.valueMaps.heatModes.merge([[3, { name: 'solar', desc: 'Solar', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
+            if (ultratempInstalled && combustionHeaterInstalled) sys.board.valueMaps.heatModes.merge([[5, { name: 'ultratemp', desc: 'UltraTemp Only', hasCoolSetpoint: htypes.hasCoolSetpoint }], [6, { name: 'ultratemppref', desc: 'UltraTemp Preferred', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
+            else if (ultratempInstalled && htypes.total > 1) sys.board.valueMaps.heatModes.merge([[5, { name: 'ultratemp', desc: 'UltraTemp Only', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
+            else if (ultratempInstalled) sys.board.valueMaps.heatModes.merge([[5, { name: 'ultratemp', desc: 'UltraTemp', hasCoolSetpoint: htypes.hasCoolSetpoint }]]);
             if (heatPumpInstalled && combustionHeaterInstalled) sys.board.valueMaps.heatModes.merge([[hpVal, { name: 'heatpump', desc: 'Heat Pump Only' }], [hpPrefVal, { name: 'heatpumppref', desc: 'Heat Pump Preferred' }]]);
             else if (heatPumpInstalled && htypes.total > 1) sys.board.valueMaps.heatModes.merge([[hpVal, { name: 'heatpump', desc: 'Heat Pump Only' }]]);
             else if (heatPumpInstalled) sys.board.valueMaps.heatModes.merge([[hpVal, { name: 'heatpump', desc: 'Heat Pump' }]]);

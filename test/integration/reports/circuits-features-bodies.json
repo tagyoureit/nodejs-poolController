@@ -1,0 +1,459 @@
+{
+  "timestamp": "2026-05-21T03:20:20.265Z",
+  "transportsTested": [
+    "rs485",
+    "ocpws"
+  ],
+  "summary": {
+    "total": 12,
+    "pass": 11,
+    "fail": 0,
+    "skip": 1
+  },
+  "tests": [
+    {
+      "id": "T-01",
+      "name": "Circuit ON",
+      "category": "circuits",
+      "rs485": {
+        "apiState": {
+          "id": 3,
+          "freezeProtect": false,
+          "action": {
+            "val": 0,
+            "name": "ready",
+            "desc": "Ready"
+          },
+          "type": {
+            "val": 1,
+            "name": "spillway",
+            "desc": "Spillway"
+          },
+          "showInFeatures": true,
+          "startTime": "2026-05-20T20:13:40.255-0700",
+          "endTime": "2026-05-21T08:13:40.255-0700",
+          "isOn": true,
+          "name": "Spillway"
+        },
+        "ocpState": {
+          "STATUS": "ON"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {
+          "id": 3,
+          "freezeProtect": false,
+          "action": {
+            "val": 0,
+            "name": "ready",
+            "desc": "Ready"
+          },
+          "type": {
+            "val": 1,
+            "name": "spillway",
+            "desc": "Spillway"
+          },
+          "name": "Spillway",
+          "isActive": true,
+          "isOn": true,
+          "showInFeatures": true,
+          "startTime": "2026-05-20T20:13:59.453-0700"
+        },
+        "ocpState": {
+          "STATUS": "ON"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-02",
+      "name": "Circuit OFF",
+      "category": "circuits",
+      "rs485": {
+        "apiState": {
+          "id": 3,
+          "freezeProtect": false,
+          "action": {
+            "val": 0,
+            "name": "ready",
+            "desc": "Ready"
+          },
+          "type": {
+            "val": 1,
+            "name": "spillway",
+            "desc": "Spillway"
+          },
+          "showInFeatures": true,
+          "isOn": false,
+          "name": "Spillway"
+        },
+        "ocpState": {
+          "STATUS": "OFF"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {
+          "id": 3,
+          "freezeProtect": false,
+          "action": {
+            "val": 0,
+            "name": "ready",
+            "desc": "Ready"
+          },
+          "type": {
+            "val": 1,
+            "name": "spillway",
+            "desc": "Spillway"
+          },
+          "name": "Spillway",
+          "isActive": true,
+          "isOn": false,
+          "showInFeatures": true
+        },
+        "ocpState": {
+          "STATUS": "OFF"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-03",
+      "name": "Feature ON",
+      "category": "features",
+      "rs485": {
+        "apiState": {
+          "id": 129,
+          "freezeProtect": false,
+          "action": {
+            "val": 0,
+            "name": "ready",
+            "desc": "Ready"
+          },
+          "type": {
+            "val": 0,
+            "name": "generic",
+            "desc": "Generic"
+          }
+        },
+        "ocpState": {
+          "STATUS": "ON"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {
+          "id": 129,
+          "freezeProtect": false,
+          "action": {
+            "val": 0,
+            "name": "ready",
+            "desc": "Ready"
+          },
+          "type": {
+            "val": 0,
+            "name": "generic",
+            "desc": "Generic"
+          }
+        },
+        "ocpState": {
+          "STATUS": "ON"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-04",
+      "name": "Feature OFF",
+      "category": "features",
+      "rs485": {
+        "apiState": {
+          "id": 129,
+          "freezeProtect": false,
+          "action": {
+            "val": 0,
+            "name": "ready",
+            "desc": "Ready"
+          },
+          "type": {
+            "val": 0,
+            "name": "generic",
+            "desc": "Generic"
+          }
+        },
+        "ocpState": {
+          "STATUS": "OFF"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {
+          "id": 129,
+          "freezeProtect": false,
+          "action": {
+            "val": 0,
+            "name": "ready",
+            "desc": "Ready"
+          },
+          "type": {
+            "val": 0,
+            "name": "generic",
+            "desc": "Generic"
+          }
+        },
+        "ocpState": {
+          "STATUS": "OFF"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-05",
+      "name": "Pool body ON",
+      "category": "bodies",
+      "rs485": {
+        "apiState": {
+          "id": 6,
+          "freezeProtect": false,
+          "action": {
+            "val": 0,
+            "name": "ready",
+            "desc": "Ready"
+          },
+          "type": {
+            "val": 12,
+            "name": "pool",
+            "desc": "Pool",
+            "hasHeatSource": true,
+            "body": 1
+          },
+          "showInFeatures": true,
+          "isOn": true,
+          "name": "Pool",
+          "startTime": "2026-05-20T20:16:17.145-0700",
+          "endTime": "2026-05-21T08:16:17.145-0700"
+        },
+        "ocpState": {
+          "STATUS": "ON"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {
+          "id": 6,
+          "freezeProtect": true,
+          "action": {
+            "val": 0,
+            "name": "ready",
+            "desc": "Ready"
+          },
+          "type": {
+            "val": 12,
+            "name": "pool",
+            "desc": "Pool",
+            "hasHeatSource": true,
+            "body": 1
+          },
+          "name": "Pool",
+          "isActive": true,
+          "isOn": true,
+          "showInFeatures": true,
+          "startTime": "2026-05-20T20:16:37.468-0700"
+        },
+        "ocpState": {
+          "STATUS": "ON"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-06",
+      "name": "Spa body ON",
+      "category": "bodies",
+      "rs485": {
+        "apiState": {
+          "id": 1,
+          "freezeProtect": false,
+          "action": {
+            "val": 0,
+            "name": "ready",
+            "desc": "Ready"
+          },
+          "type": {
+            "val": 13,
+            "name": "spa",
+            "desc": "Spa",
+            "hasHeatSource": true,
+            "body": 2
+          },
+          "showInFeatures": true,
+          "startTime": "2026-05-20T20:16:56.580-0700",
+          "endTime": "2026-05-20T23:16:56.580-0700",
+          "isOn": true,
+          "name": "Spa"
+        },
+        "ocpState": {
+          "STATUS": "ON"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": {
+          "id": 1,
+          "freezeProtect": true,
+          "action": {
+            "val": 0,
+            "name": "ready",
+            "desc": "Ready"
+          },
+          "type": {
+            "val": 13,
+            "name": "spa",
+            "desc": "Spa",
+            "hasHeatSource": true,
+            "body": 2
+          },
+          "name": "Spa",
+          "isActive": true,
+          "isOn": true,
+          "showInFeatures": true,
+          "startTime": "2026-05-20T20:17:17.435-0700"
+        },
+        "ocpState": {
+          "STATUS": "ON"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-07",
+      "name": "Pool setpoint UP",
+      "category": "bodies",
+      "rs485": {
+        "apiState": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /state/body/1</pre>\n</body>\n</html>\n",
+        "ocpState": {
+          "HITMP": "96",
+          "HTMODE": "0",
+          "SETTMP": "88"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /state/body/1</pre>\n</body>\n</html>\n",
+        "ocpState": {
+          "HITMP": "96",
+          "HTMODE": "0",
+          "SETTMP": "88"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-08",
+      "name": "Pool setpoint DOWN",
+      "category": "bodies",
+      "rs485": {
+        "apiState": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /state/body/1</pre>\n</body>\n</html>\n",
+        "ocpState": {
+          "HITMP": "100",
+          "SETTMP": "84"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /state/body/1</pre>\n</body>\n</html>\n",
+        "ocpState": {
+          "HITMP": "100",
+          "SETTMP": "84"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-09",
+      "name": "Pool heat mode change",
+      "category": "bodies",
+      "rs485": {
+        "apiState": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /state/body/1</pre>\n</body>\n</html>\n",
+        "ocpState": {
+          "HTMODE": "0"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /state/body/1</pre>\n</body>\n</html>\n",
+        "ocpState": {
+          "HTMODE": "0"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-10",
+      "name": "Spa setpoint",
+      "category": "bodies",
+      "rs485": {
+        "apiState": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /state/body/2</pre>\n</body>\n</html>\n",
+        "ocpState": {},
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /state/body/2</pre>\n</body>\n</html>\n",
+        "ocpState": {},
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-11",
+      "name": "Cool setpoint",
+      "category": "bodies",
+      "rs485": {
+        "apiState": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /state/body/1</pre>\n</body>\n</html>\n",
+        "ocpState": {
+          "LOTMP": "87"
+        },
+        "status": "pass"
+      },
+      "ws": {
+        "apiState": "<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n<meta charset=\"utf-8\">\n<title>Error</title>\n</head>\n<body>\n<pre>Cannot GET /state/body/1</pre>\n</body>\n</html>\n",
+        "ocpState": {
+          "LOTMP": "87"
+        },
+        "status": "pass"
+      },
+      "comparison": "match",
+      "notes": ""
+    },
+    {
+      "id": "T-12",
+      "name": "Cancel delay",
+      "category": "system",
+      "rs485": null,
+      "ws": null,
+      "comparison": "skipped",
+      "notes": "ISSUE-125 Won't Fix — cancel delay has no WS equivalent (Action 168 cat 19 is RS-485 only)"
+    }
+  ],
+  "notAvailable": []
+}

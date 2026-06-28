@@ -1785,7 +1785,8 @@ export class NixieValveCommands extends ValveCommands {
     public async setValveStateAsync(valve: Valve, vstate: ValveState, isDiverted: boolean) {
         try {
             vstate.name = valve.name;
-            await ncp.valves.setValveStateAsync(vstate, isDiverted);
+            if (valve.master === 1) await ncp.valves.setValveStateAsync(vstate, isDiverted);
+            else vstate.isDiverted = isDiverted;
         } catch (err) { logger.error(`Nixie: Error setting valve ${vstate.id}-${vstate.name} state to ${isDiverted}: ${err}`); return Promise.reject(err); }
     }
 }

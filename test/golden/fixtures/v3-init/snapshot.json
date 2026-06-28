@@ -1,0 +1,1614 @@
+{
+  "capturedAt": "2026-05-15T22:47:50.737Z",
+  "source": "v3.008_replay.163",
+  "config": {
+    "lastUpdated": "2/25/2026, 10:02:32 AM",
+    "anslq25": {
+      "isActive": false
+    },
+    "pool": {
+      "master": 0,
+      "location": {
+        "master": 0,
+        "timeZone": 134,
+        "latitude": null,
+        "zip": "",
+        "address": "37 West Point Drivex",
+        "longitude": -80.61,
+        "country": "Canada",
+        "city": "Cocoa Beachx",
+        "state": "wis"
+      },
+      "options": {
+        "units": 0,
+        "clockMode": 12,
+        "adjustDST": true,
+        "freezeThreshold": 35,
+        "pumpDelay": false,
+        "valveDelayTime": 30,
+        "heaterStartDelay": true,
+        "cleanerStartDelay": true,
+        "cleanerSolarDelay": true,
+        "heaterStartDelayTime": 10,
+        "cleanerStartDelayTime": 300,
+        "cleanerSolarDelayTime": 300,
+        "master": 0,
+        "clockSource": "internet",
+        "cooldownDelay": false,
+        "manualPriority": false,
+        "manualHeat": false,
+        "vacation": {
+          "enabled": false,
+          "useTimeframe": false,
+          "startDate": "2026-02-25T00:00:00.000-0500",
+          "endDate": "2026-03-04T00:00:00.000-0500"
+        }
+      },
+      "owner": {
+        "master": 0,
+        "phone": "Chicago",
+        "phone2": "",
+        "name": "",
+        "email": "john@sunbeachandocean.comx",
+        "email2": "jtaylor08@tecosales.comx"
+      },
+      "alias": "60601"
+    },
+    "equipment": {
+      "single": false,
+      "softwareVersion": "3.008",
+      "maxBodies": 2,
+      "maxCircuits": 11,
+      "maxSchedules": 100,
+      "maxPumps": 16,
+      "maxValves": 10,
+      "maxCircuitGroups": 16,
+      "maxLightGroups": 40,
+      "maxChlorinators": 1,
+      "maxChemControllers": 1,
+      "maxFeatures": 32,
+      "model": "IntelliCenter i10PS",
+      "modules": [
+        {
+          "id": 0,
+          "master": 0,
+          "name": "i10PS",
+          "desc": "i10PS Personality Card",
+          "type": 5,
+          "part": "521873Z",
+          "bodies": 2,
+          "circuits": 11,
+          "valves": 4,
+          "chlorinators": 1,
+          "chemControllers": 1
+        },
+        {
+          "id": 1,
+          "master": 0,
+          "name": "Valve Exp",
+          "desc": "Valve Expansion Module",
+          "type": 8,
+          "part": "522440",
+          "valves": 6
+        }
+      ],
+      "expansions": [
+        {
+          "id": 1,
+          "master": 0,
+          "modules": [],
+          "isActive": false,
+          "type": 0,
+          "name": "Expansion 1"
+        },
+        {
+          "id": 2,
+          "master": 0,
+          "modules": [],
+          "isActive": false,
+          "type": 0,
+          "name": ""
+        },
+        {
+          "id": 3,
+          "master": 0,
+          "modules": [],
+          "isActive": false,
+          "type": 0,
+          "name": "Expansion 3"
+        }
+      ],
+      "shared": true,
+      "dual": false,
+      "tempSensors": [
+        {
+          "id": "air",
+          "isActive": true,
+          "calibration": 0,
+          "master": 0,
+          "name": "Air"
+        },
+        {
+          "id": "water1",
+          "isActive": true,
+          "calibration": 0,
+          "master": 0,
+          "name": "Water"
+        },
+        {
+          "id": "solar1",
+          "isActive": true,
+          "calibration": 3,
+          "master": 0,
+          "name": "Solar"
+        }
+      ],
+      "master": 0,
+      "equipmentIds": {
+        "circuits": {
+          "start": 1,
+          "end": 11
+        },
+        "features": {
+          "start": 129,
+          "end": 160
+        },
+        "circuitGroups": {
+          "start": 193,
+          "end": 208
+        },
+        "virtualCircuits": {
+          "start": 237,
+          "end": 254
+        },
+        "invalidIds": []
+      },
+      "bootloaderVersion": "",
+      "maxChemDosers": 10,
+      "name": "Main Panel",
+      "type": 0
+    },
+    "configVersion": {
+      "master": 0,
+      "equipment": 54056,
+      "options": 58371,
+      "systemState": 9472,
+      "lastUpdated": "2026-02-25T10:02:24.195-0500",
+      "chlorinators": 15764,
+      "circuitGroups": 57788,
+      "circuits": 52432,
+      "covers": 53070,
+      "features": 42211,
+      "general": 57403,
+      "heaters": 55060,
+      "intellichem": 51859,
+      "pumps": 8660,
+      "remotes": 39871,
+      "schedules": 54117,
+      "security": 51157,
+      "valves": 34066
+    },
+    "bodies": [
+      {
+        "id": 1,
+        "capacityUnits": 1,
+        "showInDashboard": true,
+        "heatMode": 100,
+        "isActive": true,
+        "master": 0,
+        "circuit": 6,
+        "type": 0,
+        "capacity": 1000,
+        "name": "Pool",
+        "setPoint": 0,
+        "coolSetpoint": 100,
+        "manualHeat": false
+      },
+      {
+        "id": 2,
+        "capacityUnits": 1,
+        "showInDashboard": true,
+        "heatMode": 100,
+        "isActive": true,
+        "circuit": 1,
+        "master": 0,
+        "type": 3,
+        "capacity": 0,
+        "name": "Spa",
+        "setPoint": 100,
+        "coolSetpoint": 100,
+        "manualHeat": false
+      }
+    ],
+    "schedules": [
+      {
+        "id": 1,
+        "startTimeType": 0,
+        "endTimeType": 0,
+        "display": 0,
+        "startTimeOffset": 0,
+        "endTimeOffset": 0,
+        "isActive": true,
+        "master": 0,
+        "scheduleType": 128,
+        "circuit": 6,
+        "scheduleDays": 127,
+        "startTime": 540,
+        "endTime": 1050,
+        "startDate": "2025-02-23T00:00:00.000-0500",
+        "heatSource": 0,
+        "heatSetpoint": 78,
+        "coolSetpoint": 100
+      },
+      {
+        "id": 2,
+        "startTimeType": 0,
+        "endTimeType": 0,
+        "display": 0,
+        "startTimeOffset": 0,
+        "endTimeOffset": 0,
+        "isActive": true,
+        "master": 0,
+        "scheduleType": 128,
+        "circuit": 3,
+        "scheduleDays": 127,
+        "startTime": 600,
+        "endTime": 780,
+        "startDate": "2025-02-23T00:00:00.000-0500",
+        "heatSource": 0,
+        "heatSetpoint": 78,
+        "coolSetpoint": 100
+      }
+    ],
+    "circuits": [
+      {
+        "id": 1,
+        "freeze": false,
+        "type": 13,
+        "isActive": true,
+        "eggTimer": 480,
+        "showInFeatures": false,
+        "name": "Spa",
+        "master": 0,
+        "lightingTheme": 0,
+        "dontStop": true
+      },
+      {
+        "id": 2,
+        "freeze": false,
+        "type": 5,
+        "isActive": true,
+        "eggTimer": 120,
+        "showInFeatures": false,
+        "name": "Lights",
+        "master": 0,
+        "lightingTheme": 4,
+        "dontStop": true
+      },
+      {
+        "id": 3,
+        "freeze": false,
+        "type": 0,
+        "isActive": true,
+        "eggTimer": 240,
+        "showInFeatures": true,
+        "name": "Vacuum",
+        "master": 0,
+        "lightingTheme": 0,
+        "dontStop": true
+      },
+      {
+        "id": 4,
+        "freeze": false,
+        "type": 0,
+        "isActive": true,
+        "eggTimer": 1440,
+        "showInFeatures": false,
+        "name": "AUX 3",
+        "master": 0,
+        "lightingTheme": 0,
+        "dontStop": true
+      },
+      {
+        "id": 5,
+        "freeze": false,
+        "type": 0,
+        "isActive": true,
+        "eggTimer": 1440,
+        "showInFeatures": false,
+        "name": "AUX 4",
+        "master": 0,
+        "lightingTheme": 0,
+        "dontStop": true
+      },
+      {
+        "id": 6,
+        "freeze": true,
+        "type": 12,
+        "isActive": true,
+        "eggTimer": 720,
+        "showInFeatures": false,
+        "name": "Pool",
+        "master": 0,
+        "lightingTheme": 0,
+        "dontStop": true
+      },
+      {
+        "id": 7,
+        "freeze": false,
+        "type": 0,
+        "isActive": true,
+        "eggTimer": 720,
+        "showInFeatures": false,
+        "name": "AUX 5",
+        "master": 0,
+        "lightingTheme": 0,
+        "dontStop": true
+      },
+      {
+        "id": 8,
+        "freeze": false,
+        "type": 0,
+        "isActive": true,
+        "eggTimer": 720,
+        "showInFeatures": false,
+        "name": "AUX 6",
+        "master": 0,
+        "lightingTheme": 0,
+        "dontStop": true
+      },
+      {
+        "id": 9,
+        "freeze": false,
+        "type": 1,
+        "isActive": true,
+        "eggTimer": 1440,
+        "showInFeatures": false,
+        "name": "AUX 7",
+        "master": 0,
+        "lightingTheme": 0,
+        "dontStop": true
+      },
+      {
+        "id": 10,
+        "freeze": false,
+        "type": 0,
+        "isActive": true,
+        "eggTimer": 1440,
+        "showInFeatures": false,
+        "name": "AUX 8",
+        "master": 0,
+        "lightingTheme": 0,
+        "dontStop": true
+      },
+      {
+        "id": 11,
+        "freeze": false,
+        "type": 0,
+        "isActive": true,
+        "eggTimer": 720,
+        "showInFeatures": false,
+        "name": "AUX 9",
+        "master": 0,
+        "lightingTheme": 0,
+        "dontStop": true
+      }
+    ],
+    "features": [],
+    "pumps": [
+      {
+        "id": 1,
+        "portId": 0,
+        "model": null,
+        "type": 4,
+        "master": 0,
+        "isActive": true,
+        "flowStepSize": 1,
+        "minFlow": 20,
+        "maxFlow": 130,
+        "address": 96,
+        "primingTime": 1,
+        "speedStepSize": 100,
+        "minSpeed": 450,
+        "maxSpeed": 3450,
+        "name": "VSF",
+        "circuits": [
+          {
+            "id": 1,
+            "master": 0,
+            "circuit": 6,
+            "units": 0,
+            "speed": 2200
+          },
+          {
+            "id": 2,
+            "master": 0,
+            "circuit": 1,
+            "units": 0,
+            "speed": 3350
+          },
+          {
+            "id": 3,
+            "master": 0,
+            "circuit": 3,
+            "units": 0,
+            "speed": 2200
+          }
+        ],
+        "primingSpeed": 2500
+      }
+    ],
+    "chlorinators": [
+      {
+        "id": 1,
+        "disabled": false,
+        "ignoreSaltReading": false,
+        "portId": 0,
+        "saltTarget": 3400,
+        "body": 32,
+        "poolSetpoint": 85,
+        "spaSetpoint": 5,
+        "superChlor": false,
+        "superChlorHours": 24,
+        "address": 80,
+        "isActive": true,
+        "type": 0,
+        "name": "Primary",
+        "isDosing": false,
+        "model": 3,
+        "master": 2
+      }
+    ],
+    "valves": [
+      {
+        "id": 1,
+        "type": 0,
+        "master": 0,
+        "circuit": 252,
+        "isIntake": false,
+        "isReturn": false,
+        "isActive": true,
+        "name": "Solar"
+      },
+      {
+        "id": 2,
+        "type": 0,
+        "master": 0,
+        "circuit": 3,
+        "isIntake": false,
+        "isReturn": false,
+        "isActive": true,
+        "name": "Vacuum1"
+      },
+      {
+        "id": 3,
+        "type": 0,
+        "master": 0,
+        "circuit": 247,
+        "isIntake": true,
+        "isReturn": false,
+        "isActive": true,
+        "name": "Intake"
+      },
+      {
+        "id": 4,
+        "type": 0,
+        "master": 0,
+        "circuit": 247,
+        "isIntake": false,
+        "isReturn": true,
+        "isActive": true,
+        "name": "Return"
+      },
+      {
+        "id": 7,
+        "type": 0,
+        "master": 0,
+        "circuit": 3,
+        "isIntake": false,
+        "isReturn": false,
+        "isActive": true,
+        "name": "Vacuum2"
+      },
+      {
+        "id": 8,
+        "type": 0,
+        "master": 0,
+        "circuit": 255,
+        "isIntake": false,
+        "isReturn": false,
+        "isActive": true,
+        "name": "Valve D"
+      },
+      {
+        "id": 9,
+        "type": 0,
+        "master": 0,
+        "circuit": 256,
+        "isIntake": false,
+        "isReturn": false,
+        "isActive": true,
+        "name": "Valve E"
+      },
+      {
+        "id": 10,
+        "type": 0,
+        "master": 0,
+        "circuit": 256,
+        "isIntake": false,
+        "isReturn": false,
+        "isActive": true,
+        "name": "Valve F"
+      },
+      {
+        "id": 11,
+        "type": 0,
+        "master": 0,
+        "circuit": 256,
+        "isIntake": false,
+        "isReturn": false,
+        "isActive": true,
+        "name": "Valve G"
+      },
+      {
+        "id": 12,
+        "type": 0,
+        "master": 0,
+        "circuit": 256,
+        "isIntake": false,
+        "isReturn": false,
+        "isActive": true,
+        "name": "Valve H"
+      }
+    ],
+    "heaters": [
+      {
+        "id": 1,
+        "isActive": true,
+        "portId": 0,
+        "type": 2,
+        "body": 32,
+        "cooldownDelay": 5,
+        "startTempDelta": 4,
+        "stopTempDelta": 3,
+        "coolingEnabled": false,
+        "differentialTemp": 3,
+        "address": 112,
+        "name": "Solar  Heater",
+        "efficiencyMode": 255,
+        "maxBoostTemp": 0,
+        "economyTime": 0,
+        "master": 0
+      },
+      {
+        "id": 2,
+        "isActive": true,
+        "portId": 0,
+        "type": 4,
+        "body": 32,
+        "cooldownDelay": 5,
+        "startTempDelta": 5,
+        "stopTempDelta": 0,
+        "coolingEnabled": false,
+        "differentialTemp": 0,
+        "address": 112,
+        "name": "Heat Pump",
+        "efficiencyMode": 255,
+        "maxBoostTemp": 0,
+        "economyTime": 0,
+        "master": 0
+      }
+    ],
+    "covers": [
+      {
+        "id": 1,
+        "circuits": [],
+        "master": 0,
+        "name": "Cover 1",
+        "body": 0,
+        "isActive": false,
+        "normallyOn": false
+      },
+      {
+        "id": 2,
+        "circuits": [],
+        "master": 0,
+        "name": "Cover 2",
+        "body": 1,
+        "isActive": false,
+        "normallyOn": false
+      }
+    ],
+    "circuitGroups": [],
+    "lightGroups": [],
+    "remotes": [
+      {
+        "id": 1,
+        "master": 0,
+        "type": 1,
+        "name": "iS4 #1",
+        "button1": 0,
+        "button2": 1,
+        "button3": 2,
+        "button4": 3,
+        "isActive": true,
+        "address": 0,
+        "pumpId": 255,
+        "body": 1
+      },
+      {
+        "id": 2,
+        "master": 0,
+        "type": 1,
+        "isActive": true,
+        "name": "iS4 #2",
+        "button1": 0,
+        "button2": 1,
+        "button3": 2,
+        "button4": 3,
+        "address": 0,
+        "pumpId": 255,
+        "body": 1
+      },
+      {
+        "id": 8,
+        "master": 0,
+        "type": 255,
+        "isActive": false
+      },
+      {
+        "id": 9,
+        "master": 0,
+        "type": 255,
+        "isActive": false
+      },
+      {
+        "id": 3,
+        "master": 0,
+        "type": 0,
+        "isActive": false,
+        "name": "Remote 3"
+      }
+    ],
+    "security": {
+      "master": 0,
+      "enabled": false,
+      "roles": [
+        {
+          "id": 1,
+          "master": 0,
+          "name": "Administrator",
+          "timeout": 5,
+          "flag1": 97,
+          "flag2": 30,
+          "pin": "0000"
+        }
+      ]
+    },
+    "customNames": [],
+    "eggTimers": [],
+    "chemControllers": [],
+    "chemDosers": [],
+    "filters": [
+      {
+        "id": 1,
+        "filterType": 1,
+        "name": "Filter",
+        "capacity": 500,
+        "capacityUnits": 1,
+        "cleanPressure": 5,
+        "dirtyPressure": 10,
+        "pressureUnits": 0,
+        "pressureCircuitId": 6,
+        "isActive": true,
+        "master": 0,
+        "body": 32
+      }
+    ],
+    "appVersion": "8.4.0",
+    "controllerType": "intellicenter"
+  },
+  "state": {
+    "mode": {
+      "val": 0,
+      "name": "auto",
+      "desc": "Auto"
+    },
+    "temps": {
+      "units": {
+        "val": 0,
+        "name": "F",
+        "desc": "Fahrenheit"
+      },
+      "waterSensor1": 66,
+      "air": 68,
+      "solar": 84,
+      "bodies": [
+        {
+          "id": 1,
+          "heaterOptions": {
+            "total": 2,
+            "gas": 0,
+            "solar": 1,
+            "heatpump": 0,
+            "ultratemp": 1,
+            "hybrid": 0,
+            "mastertemp": 0,
+            "maxetherm": 0
+          },
+          "isCovered": false,
+          "heaterCooldownDelay": false,
+          "startDelay": false,
+          "stopDelay": false,
+          "showInDashboard": true,
+          "heatMode": {
+            "val": 100
+          },
+          "circuit": 6,
+          "heatStatus": {
+            "val": 0,
+            "name": "off",
+            "desc": "Off"
+          },
+          "temp": 66,
+          "isOn": true,
+          "type": {
+            "val": 0,
+            "name": "pool",
+            "desc": "Pool"
+          },
+          "name": "Pool",
+          "setPoint": 0,
+          "coolSetpoint": 100
+        },
+        {
+          "id": 2,
+          "heaterOptions": {
+            "total": 2,
+            "gas": 0,
+            "solar": 1,
+            "heatpump": 0,
+            "ultratemp": 1,
+            "hybrid": 0,
+            "mastertemp": 0,
+            "maxetherm": 0
+          },
+          "isCovered": false,
+          "heaterCooldownDelay": false,
+          "startDelay": false,
+          "stopDelay": false,
+          "showInDashboard": true,
+          "heatMode": {
+            "val": 100
+          },
+          "circuit": 1,
+          "heatStatus": {
+            "val": 0,
+            "name": "off",
+            "desc": "Off"
+          },
+          "isOn": false,
+          "type": {
+            "val": 3,
+            "name": "spa",
+            "desc": "Spa"
+          },
+          "name": "Spa",
+          "setPoint": 100,
+          "coolSetpoint": 100,
+          "temp": 95
+        }
+      ],
+      "waterSensor2": 66
+    },
+    "equipment": {
+      "messages": [],
+      "controllerType": "intellicenter",
+      "model": "IntelliCenter i10PS",
+      "maxBodies": 2,
+      "maxCircuitGroups": 16,
+      "maxCircuits": 11,
+      "maxFeatures": 32,
+      "maxHeaters": 16,
+      "maxLightGroups": 40,
+      "maxPumps": 16,
+      "maxSchedules": 100,
+      "maxValves": 10,
+      "single": false,
+      "shared": true,
+      "dual": false,
+      "registration": {
+        "status": 1
+      }
+    },
+    "status": {
+      "val": 1,
+      "name": "ready",
+      "desc": "Ready",
+      "percent": 100
+    },
+    "pumps": [
+      {
+        "id": 1,
+        "status": {
+          "name": "ok",
+          "desc": "Ok",
+          "val": 0
+        },
+        "pumpOnDelay": false,
+        "type": {
+          "val": 4,
+          "name": "vsf",
+          "desc": "Intelliflo VSF",
+          "minSpeed": 450,
+          "maxSpeed": 3450,
+          "minFlow": 15,
+          "maxFlow": 130,
+          "maxCircuits": 8,
+          "hasAddress": true
+        },
+        "isActive": true,
+        "command": 10,
+        "mode": 1,
+        "driveState": 2,
+        "watts": 402,
+        "rpm": 2200,
+        "flow": 15,
+        "ppc": 15,
+        "time": 0,
+        "name": "VSF"
+      }
+    ],
+    "valves": [
+      {
+        "id": 1,
+        "type": {
+          "val": 0,
+          "name": "standard",
+          "desc": "Standard"
+        },
+        "name": "Solar",
+        "isDiverted": false
+      },
+      {
+        "id": 2,
+        "type": {
+          "val": 0,
+          "name": "standard",
+          "desc": "Standard"
+        },
+        "name": "Vacuum1",
+        "isDiverted": true
+      },
+      {
+        "id": 3,
+        "type": {
+          "val": 0,
+          "name": "standard",
+          "desc": "Standard"
+        },
+        "name": "Intake",
+        "isDiverted": false
+      },
+      {
+        "id": 4,
+        "type": {
+          "val": 0,
+          "name": "standard",
+          "desc": "Standard"
+        },
+        "name": "Return",
+        "isDiverted": false
+      },
+      {
+        "id": 7,
+        "type": {
+          "val": 0,
+          "name": "standard",
+          "desc": "Standard"
+        },
+        "isDiverted": true,
+        "name": "Vacuum2"
+      },
+      {
+        "id": 8,
+        "type": {
+          "val": 0,
+          "name": "standard",
+          "desc": "Standard"
+        },
+        "isDiverted": false,
+        "name": "Valve D"
+      },
+      {
+        "id": 9,
+        "type": {
+          "val": 0,
+          "name": "standard",
+          "desc": "Standard"
+        },
+        "isDiverted": false,
+        "name": "Valve E"
+      },
+      {
+        "id": 10,
+        "type": {
+          "val": 0,
+          "name": "standard",
+          "desc": "Standard"
+        },
+        "isDiverted": false,
+        "name": "Valve F"
+      },
+      {
+        "id": 11,
+        "type": {
+          "val": 0,
+          "name": "standard",
+          "desc": "Standard"
+        },
+        "isDiverted": false,
+        "name": "Valve G"
+      },
+      {
+        "id": 12,
+        "type": {
+          "val": 0,
+          "name": "standard",
+          "desc": "Standard"
+        },
+        "isDiverted": false,
+        "name": "Valve H"
+      }
+    ],
+    "heaters": [
+      {
+        "id": 1,
+        "startupDelay": false,
+        "shutdownDelay": false,
+        "type": {
+          "val": 2,
+          "name": "solar",
+          "desc": "Solar Heater",
+          "hasAddress": false,
+          "hasCoolSetpoint": true,
+          "hasPreference": true
+        },
+        "name": "Solar  Heater",
+        "endTime": "2026-02-24T17:30:04.224-0500",
+        "isOn": false,
+        "bodyId": 0,
+        "isCooling": false,
+        "commStatus": {
+          "val": 0,
+          "name": "ready",
+          "desc": "Ready"
+        },
+        "startTime": "2026-02-24T17:29:40.216-0500"
+      },
+      {
+        "id": 2,
+        "startupDelay": false,
+        "shutdownDelay": false,
+        "type": {
+          "val": 4,
+          "name": "ultratemp",
+          "desc": "UltraTemp",
+          "hasAddress": true,
+          "hasCoolSetpoint": true,
+          "hasPreference": true
+        },
+        "name": "Heat Pump",
+        "endTime": "2026-02-05T08:12:45.020-0500",
+        "isOn": false,
+        "bodyId": 0
+      }
+    ],
+    "circuits": [
+      {
+        "id": 1,
+        "freezeProtect": false,
+        "action": {
+          "val": 0,
+          "name": "ready",
+          "desc": "Ready"
+        },
+        "type": {
+          "val": 13,
+          "name": "spa",
+          "desc": "Spa",
+          "hasHeatSource": true,
+          "body": 2
+        },
+        "isOn": false,
+        "name": "Spa",
+        "showInFeatures": false
+      },
+      {
+        "id": 2,
+        "freezeProtect": false,
+        "action": {
+          "val": 0,
+          "name": "ready",
+          "desc": "Ready"
+        },
+        "type": {
+          "val": 5,
+          "name": "intellibrite",
+          "desc": "Intellibrite",
+          "isLight": true,
+          "theme": "intellibrite"
+        },
+        "isOn": false,
+        "name": "Lights",
+        "showInFeatures": false,
+        "lightingTheme": {
+          "val": 4,
+          "name": "red",
+          "desc": "Red",
+          "sequence": 10,
+          "types": [
+            "intellibrite",
+            "magicstream"
+          ]
+        }
+      },
+      {
+        "id": 3,
+        "freezeProtect": false,
+        "action": {
+          "val": 0,
+          "name": "ready",
+          "desc": "Ready"
+        },
+        "type": {
+          "val": 0,
+          "name": "generic",
+          "desc": "Generic"
+        },
+        "isOn": true,
+        "name": "Vacuum",
+        "showInFeatures": true,
+        "startTime": "2026-02-25T09:54:24.769-0500"
+      },
+      {
+        "id": 4,
+        "freezeProtect": false,
+        "action": {
+          "val": 0,
+          "name": "ready",
+          "desc": "Ready"
+        },
+        "type": {
+          "val": 0,
+          "name": "generic",
+          "desc": "Generic"
+        },
+        "isOn": false,
+        "name": "AUX 3",
+        "showInFeatures": false,
+        "isActive": true
+      },
+      {
+        "id": 5,
+        "freezeProtect": false,
+        "action": {
+          "val": 0,
+          "name": "ready",
+          "desc": "Ready"
+        },
+        "type": {
+          "val": 0,
+          "name": "generic",
+          "desc": "Generic"
+        },
+        "isOn": false,
+        "name": "AUX 4",
+        "showInFeatures": false,
+        "isActive": true
+      },
+      {
+        "id": 6,
+        "freezeProtect": false,
+        "action": {
+          "val": 0,
+          "name": "ready",
+          "desc": "Ready"
+        },
+        "type": {
+          "val": 12,
+          "name": "pool",
+          "desc": "Pool",
+          "hasHeatSource": true,
+          "body": 1
+        },
+        "isOn": true,
+        "name": "Pool",
+        "showInFeatures": false,
+        "startTime": "2026-02-25T09:54:17.949-0500"
+      },
+      {
+        "id": 7,
+        "freezeProtect": false,
+        "action": {
+          "val": 0,
+          "name": "ready",
+          "desc": "Ready"
+        },
+        "type": {
+          "val": 0,
+          "name": "generic",
+          "desc": "Generic"
+        },
+        "isOn": false,
+        "name": "AUX 5",
+        "showInFeatures": false
+      },
+      {
+        "id": 8,
+        "freezeProtect": false,
+        "action": {
+          "val": 0,
+          "name": "ready",
+          "desc": "Ready"
+        },
+        "type": {
+          "val": 0,
+          "name": "generic",
+          "desc": "Generic"
+        },
+        "isOn": false,
+        "name": "AUX 6",
+        "showInFeatures": false
+      },
+      {
+        "id": 9,
+        "freezeProtect": false,
+        "action": {
+          "val": 0,
+          "name": "ready",
+          "desc": "Ready"
+        },
+        "type": {
+          "val": 1,
+          "name": "spillway",
+          "desc": "Spillway"
+        },
+        "isOn": false,
+        "name": "AUX 7",
+        "showInFeatures": false,
+        "isActive": true
+      },
+      {
+        "id": 10,
+        "freezeProtect": false,
+        "action": {
+          "val": 0,
+          "name": "ready",
+          "desc": "Ready"
+        },
+        "type": {
+          "val": 0,
+          "name": "generic",
+          "desc": "Generic"
+        },
+        "isOn": false,
+        "name": "AUX 8",
+        "showInFeatures": false,
+        "isActive": true
+      },
+      {
+        "id": 11,
+        "freezeProtect": false,
+        "action": {
+          "val": 0,
+          "name": "ready",
+          "desc": "Ready"
+        },
+        "type": {
+          "val": 0,
+          "name": "generic",
+          "desc": "Generic"
+        },
+        "isOn": false,
+        "name": "AUX 9",
+        "showInFeatures": false
+      }
+    ],
+    "features": [],
+    "chlorinators": [
+      {
+        "id": 1,
+        "disabled": false,
+        "poolSetpoint": 85,
+        "spaSetpoint": 5,
+        "superChlorHours": 24,
+        "body": {
+          "val": 32,
+          "name": "poolspa",
+          "desc": "Pool/Spa"
+        },
+        "superChlorRemaining": 0,
+        "superChlor": false,
+        "lastComm": 1772029566942,
+        "isActive": true,
+        "targetOutput": 85,
+        "status": {
+          "val": 0,
+          "name": "ok",
+          "desc": "Ok"
+        },
+        "currentOutput": 85,
+        "type": {
+          "val": 0,
+          "name": "pentair",
+          "desc": "Pentair"
+        },
+        "model": {
+          "val": 3,
+          "name": "intellichlor--40",
+          "desc": "IntelliChlor IC40",
+          "capacity": 40000,
+          "chlorinePerDay": 1.4,
+          "chlorinePerSec": 0.000016203703703703704
+        },
+        "saltLevel": 2950,
+        "saltRequired": 3.75,
+        "name": "Primary"
+      }
+    ],
+    "schedules": [
+      {
+        "id": 1,
+        "startTimeType": {
+          "val": 0,
+          "name": "manual",
+          "desc": "Manual"
+        },
+        "endTimeType": {
+          "val": 0,
+          "name": "manual",
+          "desc": "Manual"
+        },
+        "display": {
+          "val": 0,
+          "name": "always",
+          "desc": "Always"
+        },
+        "circuit": 6,
+        "scheduleDays": {
+          "val": 127,
+          "days": [
+            {
+              "name": "sun",
+              "desc": "Sunday",
+              "dow": 0,
+              "bitval": 64
+            },
+            {
+              "name": "sat",
+              "desc": "Saturday",
+              "dow": 6,
+              "bitval": 32
+            },
+            {
+              "name": "fri",
+              "desc": "Friday",
+              "dow": 5,
+              "bitval": 16
+            },
+            {
+              "name": "thu",
+              "desc": "Thursday",
+              "dow": 4,
+              "bitval": 8
+            },
+            {
+              "name": "wed",
+              "desc": "Wednesday",
+              "dow": 3,
+              "bitval": 4
+            },
+            {
+              "name": "tue",
+              "desc": "Tuesday",
+              "dow": 2,
+              "bitval": 2
+            },
+            {
+              "name": "mon",
+              "desc": "Monday",
+              "dow": 1,
+              "bitval": 1
+            }
+          ]
+        },
+        "scheduleTime": {
+          "calculatedDate": "2026-02-25T00:00:00.000-0500",
+          "startTime": "2026-02-25T09:00:00.000-0500",
+          "endTime": "2026-02-25T17:30:59.999-0500",
+          "calculated": true,
+          "shouldBeOn": true
+        },
+        "startTime": 540,
+        "endTime": 1050,
+        "heatSource": {
+          "val": 0,
+          "name": "nochange",
+          "desc": "No Change"
+        },
+        "heatSetpoint": 78,
+        "coolSetpoint": 100,
+        "isOn": true,
+        "startDate": "2025-02-23T00:00:00.000-0500",
+        "scheduleType": {
+          "val": 128,
+          "name": "repeat",
+          "desc": "Repeats",
+          "startDate": false,
+          "startTime": true,
+          "endTime": true,
+          "days": "multi",
+          "heatSource": true,
+          "heatSetpoint": true
+        },
+        "triggered": false,
+        "manualPriorityActive": false,
+        "isActive": true
+      },
+      {
+        "id": 2,
+        "startTimeType": {
+          "val": 0,
+          "name": "manual",
+          "desc": "Manual"
+        },
+        "endTimeType": {
+          "val": 0,
+          "name": "manual",
+          "desc": "Manual"
+        },
+        "display": {
+          "val": 0,
+          "name": "always",
+          "desc": "Always"
+        },
+        "circuit": 3,
+        "scheduleDays": {
+          "val": 127,
+          "days": [
+            {
+              "name": "sun",
+              "desc": "Sunday",
+              "dow": 0,
+              "bitval": 64
+            },
+            {
+              "name": "sat",
+              "desc": "Saturday",
+              "dow": 6,
+              "bitval": 32
+            },
+            {
+              "name": "fri",
+              "desc": "Friday",
+              "dow": 5,
+              "bitval": 16
+            },
+            {
+              "name": "thu",
+              "desc": "Thursday",
+              "dow": 4,
+              "bitval": 8
+            },
+            {
+              "name": "wed",
+              "desc": "Wednesday",
+              "dow": 3,
+              "bitval": 4
+            },
+            {
+              "name": "tue",
+              "desc": "Tuesday",
+              "dow": 2,
+              "bitval": 2
+            },
+            {
+              "name": "mon",
+              "desc": "Monday",
+              "dow": 1,
+              "bitval": 1
+            }
+          ]
+        },
+        "scheduleTime": {
+          "calculatedDate": "2026-02-25T00:00:00.000-0500",
+          "startTime": "2026-02-25T10:00:00.000-0500",
+          "endTime": "2026-02-25T13:00:59.999-0500",
+          "calculated": true,
+          "shouldBeOn": false
+        },
+        "startTime": 600,
+        "endTime": 780,
+        "heatSource": {
+          "val": 0,
+          "name": "nochange",
+          "desc": "No Change"
+        },
+        "heatSetpoint": 78,
+        "coolSetpoint": 100,
+        "isOn": false,
+        "startDate": "2025-02-23T00:00:00.000-0500",
+        "scheduleType": {
+          "val": 128,
+          "name": "repeat",
+          "desc": "Repeats",
+          "startDate": false,
+          "startTime": true,
+          "endTime": true,
+          "days": "multi",
+          "heatSource": true,
+          "heatSetpoint": true
+        },
+        "triggered": false,
+        "manualPriorityActive": false,
+        "isActive": true,
+        "startTimeOffset": 0,
+        "endTimeOffset": 0
+      }
+    ],
+    "circuitGroups": [],
+    "lightGroups": [],
+    "virtualCircuits": [
+      {
+        "id": 246,
+        "isActive": true,
+        "isOn": false,
+        "type": {
+          "val": 246,
+          "name": "freeze",
+          "desc": "Freeze"
+        },
+        "name": "Freeze"
+      },
+      {
+        "id": 247,
+        "isActive": true,
+        "isOn": true,
+        "type": {
+          "val": 247,
+          "name": "poolSpa",
+          "desc": "Pool/Spa"
+        },
+        "name": "Pool/Spa"
+      },
+      {
+        "id": 244,
+        "isActive": true,
+        "isOn": false,
+        "type": {
+          "val": 244,
+          "name": "poolHeater",
+          "desc": "Pool Heater"
+        },
+        "name": "Pool Heater"
+      },
+      {
+        "id": 245,
+        "isActive": true,
+        "isOn": false,
+        "type": {
+          "val": 245,
+          "name": "spaHeater",
+          "desc": "Spa Heater"
+        },
+        "name": "Spa Heater"
+      },
+      {
+        "id": 248,
+        "isActive": true,
+        "isOn": false,
+        "type": {
+          "val": 248,
+          "name": "solarHeat",
+          "desc": "Solar Heat"
+        },
+        "name": "Solar Heat"
+      },
+      {
+        "id": 251,
+        "isActive": true,
+        "isOn": false,
+        "type": {
+          "val": 251,
+          "name": "heater",
+          "desc": "Heater"
+        },
+        "name": "Heater"
+      },
+      {
+        "id": 252,
+        "isActive": true,
+        "isOn": false,
+        "type": {
+          "val": 252,
+          "name": "solar",
+          "desc": "Solar"
+        },
+        "name": "Solar"
+      },
+      {
+        "id": 258,
+        "isActive": true,
+        "isOn": false,
+        "type": {
+          "val": 258,
+          "name": "anyHeater",
+          "desc": "Any Heater"
+        },
+        "name": "Any Heater"
+      }
+    ],
+    "chemControllers": [],
+    "chemDosers": [],
+    "covers": [],
+    "filters": [
+      {
+        "id": 1,
+        "name": "Filter",
+        "body": {
+          "val": 32,
+          "name": "poolspa",
+          "desc": "Pool/Spa"
+        },
+        "filterType": {
+          "val": 1,
+          "name": "cartridge",
+          "desc": "Cartridge",
+          "hasBackwash": false
+        },
+        "isOn": true,
+        "pressureUnits": {
+          "val": 0,
+          "name": "psi",
+          "desc": "Pounds per Sqare Inch"
+        }
+      }
+    ],
+    "appVersion": {
+      "gitLocalBranch": "master",
+      "gitLocalCommit": "d7def2f41e663d81777807277c2644e83d469364",
+      "installed": "8.4.0",
+      "status": {
+        "val": 0,
+        "name": "current",
+        "desc": "On current version"
+      },
+      "nextCheckTime": "2026-02-26T12:29:04.210-0500",
+      "githubRelease": "8.4.0"
+    },
+    "startTime": "2026-02-25T10:00:29.734-0500",
+    "general": {},
+    "valve": 0,
+    "delay": {
+      "val": 0,
+      "name": "nodelay",
+      "desc": "No Delay"
+    },
+    "freeze": false,
+    "batteryVoltage": 1.42,
+    "valveMode": {
+      "val": 1,
+      "name": "pool",
+      "desc": "Pool"
+    },
+    "time": "2026-02-25T09:02:53.000-0500",
+    "sunrise": "",
+    "sunset": "",
+    "nextSunrise": "",
+    "nextSunset": "",
+    "prevSunrise": "",
+    "prevSunset": ""
+  },
+  "valueMaps": {}
+}

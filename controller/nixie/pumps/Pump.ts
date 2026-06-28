@@ -553,7 +553,6 @@ export class NixiePumpRS485 extends NixiePump {
     public async setServiceModeAsync() {
         this._targetSpeed = 0;
         await this.setDriveStateAsync(false);
-        await this.setPumpToRemoteControlAsync(false);
     }
     public async setPumpStateAsync(pstate: PumpState) {
         // Don't poll while we are seting the state.
