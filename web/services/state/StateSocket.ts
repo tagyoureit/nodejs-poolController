@@ -195,7 +195,7 @@ export class StateSocket {
                 let id = parseInt(data.id, 10);
                 if (!isNaN(id) && typeof data.toggle !== 'undefined')
                     if (utils.makeBool(data.toggle)) await sys.board.circuits.toggleCircuitStateAsync(id);
-                else if (!isNaN(id) && (typeof data.isOn !== 'undefined' || typeof data.state !== 'undefined')) {
+                if (!isNaN(id) && (typeof data.isOn !== 'undefined' || typeof data.state !== 'undefined')) {
                     await sys.board.circuits.setCircuitStateAsync(id, utils.makeBool(data.isOn || typeof data.state));
                 }
             }
