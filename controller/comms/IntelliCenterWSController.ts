@@ -1238,14 +1238,15 @@ export class IntelliCenterWSController {
                 break;
             }
             case 'SCHED': {
-                const existing = sys.schedules.find(elem => elem.id === id);
+                const schedId = id + 1;
+                const existing = sys.schedules.find(elem => elem.id === schedId);
                 if (typeof existing !== 'undefined') {
-                    const ssched = state.schedules.getItemById(id);
+                    const ssched = state.schedules.getItemById(schedId);
                     ssched.isActive = false;
                     existing.isActive = false;
                     ssched.emitEquipmentChange();
-                    state.schedules.removeItemById(id);
-                    sys.schedules.removeItemById(id);
+                    state.schedules.removeItemById(schedId);
+                    sys.schedules.removeItemById(schedId);
                 }
                 break;
             }
