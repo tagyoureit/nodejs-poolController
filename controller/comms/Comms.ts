@@ -199,7 +199,7 @@ export class Connection {
             }
             existing = this.getPortByCfg(cfg);
 
-            if (typeof existing !== 'undefined') {
+            if (typeof existing !== 'undefined' && pdata.enabled) {
                 if (pdata.type === 'screenlogic') {
                     await sl.openAsync();
                 }
