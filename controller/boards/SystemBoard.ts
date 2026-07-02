@@ -1808,7 +1808,7 @@ export class BodyCommands extends BoardCommands {
         let heatTypes = this.board.heaters.getInstalledHeaterTypes(bodyId);
         heatSources.push(this.board.valueMaps.heatSources.transformByName('nochange'));
         if (heatTypes.total > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('off'));
-        if (heatTypes.gas > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('heater'));
+        if (heatTypes.gas > 0 || heatTypes.jxi > 0 || heatTypes.lxi > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('heater'));
         if (heatTypes.mastertemp > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('mastertemp'));
         if (heatTypes.solar > 0) {
             let hm = this.board.valueMaps.heatSources.transformByName('solar');
@@ -1849,7 +1849,7 @@ export class BodyCommands extends BoardCommands {
             heatModes.push(sys.board.valueMaps.heatModes.transformByName('hybdual'));
             //heatModes = this.board.valueMaps.heatModes.toArray();
         }
-        if (heatTypes.gas > 0) {
+        if (heatTypes.gas > 0 || heatTypes.jxi > 0 || heatTypes.lxi > 0) {
             heatModes.push(this.board.valueMaps.heatModes.transformByName('heater'));
         }
         if (heatTypes.mastertemp > 0) heatModes.push(this.board.valueMaps.heatModes.transformByName('mtheater'));
