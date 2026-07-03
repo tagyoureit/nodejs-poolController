@@ -189,12 +189,17 @@ export class HeaterStateMessage {
             (h.type === jxiType || h.type === lxiType) && h.isActive !== false
         );
         if (typeof heater === 'undefined') { msg.isProcessed = true; return; }
-        // Temperature is at payload byte 6 (after DLE-unstuffing).
-        // Response format: [GVhours_hi, GVhours_lo, cycles_hi, cycles_lo, unk, unk, temp+20]
+        let sheater = state.heaters.getItemById(heater.id);
+        // Response format (after DLE-unstuffing, 7 bytes):
+        // [GVhours_hi, GVhours_lo, cycles_hi, cycles_lo, unk, unk, temp+20]
+        let gvHours = (msg.extractPayloadByte(0, 0) << 8) | msg.extractPayloadByte(1, 0);
+        let cycles = (msg.extractPayloadByte(2, 0) << 8) | msg.extractPayloadByte(3, 0);
+        sheater.gasValveHours = gvHours;
+        sheater.cycleCount = cycles;
         let tempByte = msg.extractPayloadByte(6);
         if (typeof tempByte !== 'undefined' && tempByte > 20) {
             let tempF = tempByte - 20;
-            logger.info(`JXi heater ${heater.name}: water temp ${tempF}°F`);
+            logger.info(`JXi heater ${heater.name}: water temp ${tempF}°F gvHours=${gvHours} cycles=${cycles}`);
             if (heater.feedBodyTemp) {
                 // Feed heater-reported water temp to the assigned body when body is running.
                 // heater.body: 0=pool(bodyId 1), 1=spa(bodyId 2), 32=shared(active body)

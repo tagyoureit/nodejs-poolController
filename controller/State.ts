@@ -1959,6 +1959,10 @@ export class HeaterState extends EqState {
     public set isActive(val: boolean) { this.setDataVal('isActive', val); }
     public get bodyId(): number { return this.data.bodyId || 0 }
     public set bodyId(val: number) { this.setDataVal('bodyId', val); }
+    public get gasValveHours(): number { return this.data.gasValveHours; }
+    public set gasValveHours(val: number) { this.setDataVal('gasValveHours', val); }
+    public get cycleCount(): number { return this.data.cycleCount; }
+    public set cycleCount(val: number) { this.setDataVal('cycleCount', val); }
 
 }
 export class FeatureStateCollection extends EqStateCollection<FeatureState> {
