@@ -195,6 +195,24 @@ export class HeaterStateMessage {
         if (typeof tempByte !== 'undefined' && tempByte > 20) {
             let tempF = tempByte - 20;
             logger.info(`JXi heater ${heater.name}: water temp ${tempF}°F`);
+            if (heater.feedBodyTemp) {
+                // Feed heater-reported water temp to the assigned body when body is running.
+                // heater.body: 0=pool(bodyId 1), 1=spa(bodyId 2), 32=shared(active body)
+                let bodyId = heater.body === 1 ? 2 : 1;
+                if (heater.body === 32) {
+                    let active = state.temps.bodies.find(elem => elem.isOn);
+                    if (typeof active !== 'undefined') bodyId = active.id;
+                }
+                let body = state.temps.bodies.getItemById(bodyId);
+                if (body.isOn) {
+                    if (bodyId === 1) {
+                        state.temps.waterSensor1 = tempF;
+                    } else if (bodyId === 2) {
+                        state.temps.waterSensor2 = tempF;
+                    }
+                    body.temp = tempF;
+                }
+            }
         }
         msg.isProcessed = true;
     }

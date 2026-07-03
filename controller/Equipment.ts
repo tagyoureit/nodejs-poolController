@@ -1927,6 +1927,8 @@ export class Heater extends EqItem {
     public set minCycleTime(val: number) { this.setDataVal('minCycleTime', val); }
     public get deviceBinding(): string { return this.data.deviceBinding; }
     public set deviceBinding(val: string) { this.setDataVal('deviceBinding', val); }
+    public get feedBodyTemp(): boolean { return this.data.feedBodyTemp; }
+    public set feedBodyTemp(val: boolean) { this.setDataVal('feedBodyTemp', val); }
 }
 export class CoverCollection extends EqItemCollection<Cover> {
     constructor(data: any, name?: string) { super(data, name || "covers"); }
