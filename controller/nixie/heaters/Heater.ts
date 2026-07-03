@@ -626,7 +626,10 @@ export class NixieJxiHeater extends NixieHeaterBase {
             this._pollTimer = null;
             if (this._suspendPolling > 1) return;
             let sheater = state.heaters.getItemById(this.heater.id, !this.closing);
-            if (!this.closing) await this.setStatus(sheater);
+            if (!this.closing) {
+                await this.setStatus(sheater);
+                await this.requestTemp();
+            }
         }
         catch (err) { logger.error(`Error polling JXi heater - ${err}`); }
         finally {
@@ -660,6 +663,24 @@ export class NixieJxiHeater extends NixieHeaterBase {
             state.equipment.messages.setMessageByCode(`heater:${sheater.id}:comms`, 'error', `Communication error with ${sheater.name}`);
             logger.error(`Communication error with JXi heater: ${err.message}`);
             return false;
+        }
+    }
+    public async requestTemp(): Promise<void> {
+        try {
+            let out = Outbound.create({
+                portId: this.heater.portId || 0,
+                protocol: Protocol.Jandy,
+                source: 0,
+                dest: this.heater.address,
+                action: 0x25,
+                payload: [0x00],
+                retries: 1,
+                response: Response.create({ protocol: Protocol.Jandy, action: 0x25 }),
+                onAbort: () => { }
+            });
+            await out.sendAsync();
+        } catch (err) {
+            logger.error(`Error requesting JXi heater temp: ${err.message}`);
         }
     }
     public async setServiceModeAsync() {
