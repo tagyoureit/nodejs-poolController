@@ -279,7 +279,8 @@ export class IntelliCenterBoard extends SystemBoard {
             [6, { name: 'mtheat', desc: 'Heater' }],
             [7, { name: 'meheat', desc: 'Heater' }],
             [8, { name: 'eti250heat', desc: 'Heating' }],
-            [9, { name: 'utcool', desc: 'Cooling' }]
+            [9, { name: 'utcool', desc: 'Cooling' }],
+            [10, { name: 'solcool', desc: 'Cooling' }]
         ]);
         this.valueMaps.scheduleTypes = new byteValueMap([
             [0, { name: 'runonce', desc: 'Run Once', startDate: true, startTime: true, endTime: true, days: false, heatSource: true, heatSetpoint: true }],
@@ -3354,7 +3355,7 @@ export class IntelliCenterCircuitCommands extends CircuitCommands {
                         if (!remove) {
                             for (let j = 0; j < allBodyStates.length && !bState; j++) {
                                 let hstatus = sys.board.valueMaps.heatStatus.getName(allBodyStates[j].heatStatus);
-                                if (hstatus === 'solar') bState = true;
+                                if (hstatus === 'solar' || hstatus === 'solcool') bState = true;
                             }
                         }
                         break;
@@ -4472,14 +4473,7 @@ export class IntelliCenterBodyCommands extends BodyCommands {
     // IntelliCenter: body heat modes are encoded using IntelliCenter heatSources values (1=off,3=solar,4=solarpref,5=ultratemp,6=ultratemppref,...),
     // not the *Touch heatModes value map. Returning heatSources here fixes dashPanel's blank entries and makes validation accept the right values.
     public getHeatSources(bodyId: number) {
-        const sources = super.getHeatSources(bodyId);
-        // IntelliCenter v3.004+: keep body-level picklists aligned with what the controller actually presents.
-        // Preferred modes are not reliably shown/used by Pentair clients on v3, so suppress them here (board-specific),
-        // rather than gating shared SystemBoard behavior.
-        return sources.filter(s => {
-            const name = s && (s as any).name;
-            return name !== 'solarpref' && name !== 'ultratemppref' && name !== 'heatpumppref';
-        });
+        return super.getHeatSources(bodyId);
     }
     public getHeatModes(bodyId: number) {
         const sources = this.getHeatSources(bodyId);

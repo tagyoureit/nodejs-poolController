@@ -981,7 +981,7 @@ class IntelliCenterWSScheduleCommands extends IntelliCenterScheduleCommands {
                 }
             }
             if (typeof data.isActive !== 'undefined')
-                params.MODE = utils.makeBool(data.isActive) ? '3' : '0';
+                params.STATUS = utils.makeBool(data.isActive) ? 'ON' : 'OFF';
             if (typeof data.startTimeType !== 'undefined') {
                 let stt = parseInt(data.startTimeType, 10);
                 params.START = stt === 1 ? 'SRIS' : stt === 2 ? 'SSET' : 'ABSTIM';
@@ -992,7 +992,34 @@ class IntelliCenterWSScheduleCommands extends IntelliCenterScheduleCommands {
             }
             if (typeof data.heatSource !== 'undefined') {
                 let hs = parseInt(data.heatSource, 10);
-                params.HEATER = hs > 0 ? 'H' + String(hs).padStart(4, '0') : '00000';
+                if (hs === 0 || hs === 32) {
+                    params.HEATER = 'HOLD';  // OCP keyword for "Don't Change"
+                    params.MODE = '0';
+                } else if (hs <= 1) {
+                    params.HEATER = '00000';
+                    params.MODE = String(hs);
+                } else {
+                    // Map heatSource enum to the heater object name.
+                    // heatSource 2=gas(heaterType1), 3/4=solar(heaterType2),
+                    // 5/6=ultratemp(heaterType4), 9/25=heatpump(heaterType3)
+                    // "Preferred" modes use OCP HX tokens (e.g. HXSLR for solar pref)
+                    let heaterType = 0;
+                    let preferredToken = '';
+                    if (hs === 2) heaterType = 1;            // gas
+                    else if (hs === 3) heaterType = 2;       // solar
+                    else if (hs === 4) { heaterType = 2; preferredToken = 'HXSLR'; }  // solar pref
+                    else if (hs === 5) heaterType = 4;       // ultratemp
+                    else if (hs === 6) { heaterType = 4; preferredToken = 'HXUT'; }   // ultratemp pref
+                    else if (hs === 9) heaterType = 3;       // heatpump
+                    else if (hs === 25) { heaterType = 3; preferredToken = 'HXHTP'; } // heatpump pref
+                    if (preferredToken) {
+                        params.HEATER = preferredToken;
+                    } else {
+                        let heater = heaterType > 0 ? sys.heaters.find(h => h.type === heaterType && h.isActive) : undefined;
+                        params.HEATER = heater ? (heater.objnam || 'H' + String(heater.id).padStart(4, '0')) : '00000';
+                    }
+                    params.MODE = String(hs);
+                }
             }
             if (typeof data.coolSetpoint !== 'undefined')
                 params.COOLING = String(parseInt(data.coolSetpoint, 10));

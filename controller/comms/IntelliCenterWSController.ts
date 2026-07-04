@@ -525,8 +525,45 @@ function decodeSchedule(objnam: string, params: ParamMap): void {
         sched.scheduleType = st; ssched.scheduleType = st;
     }
     if (typeof params['HEATER'] !== 'undefined') {
-        const hs = parseIntSafe(params['HEATER']);
+        const hval = (params['HEATER'] || '').toUpperCase();
+        let hs = 0;
+        if (hval === 'HOLD') {
+            hs = 0; // OCP "HOLD" = "Don't Change"
+        } else if (hval === '00000' || hval === '' || hval === '0' || hval === 'NONE') {
+            hs = 1; // No heater = Off
+        } else if (hval === 'HXSLR') {
+            hs = 4; // OCP token for Solar Preferred
+        } else if (hval === 'HXUT') {
+            hs = 6; // OCP token for UltraTemp Preferred
+        } else if (hval === 'HXHTP') {
+            hs = 25; // OCP token for HeatPump Preferred
+        } else {
+            // Resolve heater object name to heatSource enum via heater type
+            const hid = parseInt(hval.replace(/\D/g, ''), 10);
+            const heater = hid > 0 ? sys.heaters.find(h => h.id === hid && h.isActive) : undefined;
+            if (heater) {
+                // heaterType 1=gas→heatSource2, 2=solar→3, 3=heatpump→9, 4=ultratemp→5
+                switch (heater.type) {
+                    case 1: hs = 2; break;  // gas → heater
+                    case 2: hs = 3; break;  // solar → solar
+                    case 3: hs = 9; break;  // heatpump → heatpump
+                    case 4: hs = 5; break;  // ultratemp → ultratemp
+                    default: hs = 2; break; // fallback to generic heater
+                }
+            } else {
+                hs = 1; // Can't resolve → off
+            }
+        }
         sched.heatSource = hs; ssched.heatSource = hs;
+    }
+    if (typeof params['MODE'] !== 'undefined') {
+        // MODE in schedule context is the heat source enum directly
+        const m = parseIntSafe(params['MODE']);
+        if (m === 0) {
+            sched.heatSource = 0; ssched.heatSource = 0; // 0 = "Don't Change"
+        } else if (sys.board.valueMaps.heatSources.valExists(m)) {
+            sched.heatSource = m; ssched.heatSource = m;
+        }
     }
     if (typeof params['LOTMP'] !== 'undefined') {
         const ht = parseIntSafe(params['LOTMP']);
@@ -913,21 +950,26 @@ function decodeSensor(objnam: string, params: ParamMap): void {
     }
     if (typeof params['CALIB'] !== 'undefined') {
         const cal = parseIntSafe(params['CALIB']);
-        sys.equipment.tempSensors[target] = cal;
+        sys.equipment.tempSensors.setCalibration(target, cal);
     }
     // OCP NotifyList delivers the live sensor reading on either PROBE or
     // SOURCE depending on the sensor (verified via Wireshark June 2026):
     //   SSS11 (solar1) -> {"SOURCE":"76"}
     //   _A135 (air)    -> {"PROBE":"72"}
     //   SSW11 (water1) -> PROBE
-    // Accept both keys and treat them as the same temperature value.
-    const probeVal = typeof params['PROBE'] !== 'undefined'
-        ? params['PROBE']
-        : (typeof params['SOURCE'] !== 'undefined' ? params['SOURCE'] : undefined);
-    if (typeof probeVal !== 'undefined') {
-        const temp = parseIntSafe(probeVal);
-        const which = typeof params['PROBE'] !== 'undefined' ? 'PROBE' : 'SOURCE';
-        logger.debug(`decodeSensor ${objnam}: target=${target} ${which}=${temp}`);
+    // PROBE is the calibrated reading; SOURCE is the raw sensor value.
+    // When only SOURCE arrives (push notifications), apply calibration offset.
+    let temp: number | undefined;
+    if (typeof params['PROBE'] !== 'undefined') {
+        temp = parseIntSafe(params['PROBE']);
+        logger.debug(`decodeSensor ${objnam}: target=${target} PROBE=${temp}`);
+    } else if (typeof params['SOURCE'] !== 'undefined') {
+        const raw = parseIntSafe(params['SOURCE']);
+        const cal = sys.equipment.tempSensors.getCalibration(target);
+        temp = raw + cal;
+        logger.debug(`decodeSensor ${objnam}: target=${target} SOURCE=${raw} +calib=${cal} =${temp}`);
+    }
+    if (typeof temp !== 'undefined') {
         if (target === 'air') state.temps.air = temp;
         else if (target === 'solar1') state.temps.solar = temp;
         else if (target === 'water1') {
