@@ -191,11 +191,16 @@ export class HeaterStateMessage {
         if (typeof heater === 'undefined') { msg.isProcessed = true; return; }
         let sheater = state.heaters.getItemById(heater.id);
         // Response format (after DLE-unstuffing, 7 bytes):
-        // [cycles_hi, cycles_lo, GVhours_hi, GVhours_lo, unk, unk, temp+20]
-        let cycles = (msg.extractPayloadByte(0, 0) << 8) | msg.extractPayloadByte(1, 0);
-        let gvHours = (msg.extractPayloadByte(2, 0) << 8) | msg.extractPayloadByte(3, 0);
+        // [GVhours_lo, GVhours_hi, cycles_lo, cycles_hi, lastFault, prevFault, temp+20]
+        // Both 16-bit fields are little-endian (low byte first).
+        let gvHours = msg.extractPayloadByte(0, 0) | (msg.extractPayloadByte(1, 0) << 8);
+        let cycles = msg.extractPayloadByte(2, 0) | (msg.extractPayloadByte(3, 0) << 8);
         sheater.gasValveHours = gvHours;
         sheater.cycleCount = cycles;
+        // Data[4] = last fault, Data[5] = previous fault
+        let lastFault = msg.extractPayloadByte(4, 0);
+        let prevFault = msg.extractPayloadByte(5, 0);
+        HeaterStateMessage.processJxiFaultCode(heater, lastFault);
         let tempByte = msg.extractPayloadByte(6);
         if (typeof tempByte !== 'undefined' && tempByte > 20) {
             let tempF = tempByte - 20;
@@ -220,6 +225,26 @@ export class HeaterStateMessage {
             }
         }
         msg.isProcessed = true;
+    }
+    private static processJxiFaultCode(heater: Heater, faultCode: number) {
+        // Fault codes from 0x25 response Data[4] (last fault)
+        const code = `heater:${heater.id}:fault`;
+        if (faultCode === 0x00) {
+            state.equipment.messages.removeItemByCode(code);
+            return;
+        }
+        let desc: string;
+        switch (faultCode) {
+            case 0xF0: desc = 'Open flue sensor'; break;
+            case 0xF2: desc = 'Check louver'; break;
+            case 0xF5: desc = 'Check ignition control'; break;
+            case 0xFB: desc = 'Shorted water sensor'; break;
+            case 0xFC: desc = 'Open water sensor'; break;
+            case 0xFD: desc = 'High limit'; break;
+            case 0xFE: desc = 'AUX monitor'; break;
+            default: desc = `Unknown fault 0x${faultCode.toString(16)}`; break;
+        }
+        state.equipment.messages.setMessageByCode(code, 'error', `${heater.name}: ${desc}`);
     }
 
 }
