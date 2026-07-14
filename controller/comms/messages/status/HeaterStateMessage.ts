@@ -191,9 +191,9 @@ export class HeaterStateMessage {
         if (typeof heater === 'undefined') { msg.isProcessed = true; return; }
         let sheater = state.heaters.getItemById(heater.id);
         // Response format (after DLE-unstuffing, 7 bytes):
-        // [GVhours_hi, GVhours_lo, cycles_hi, cycles_lo, unk, unk, temp+20]
-        let gvHours = (msg.extractPayloadByte(0, 0) << 8) | msg.extractPayloadByte(1, 0);
-        let cycles = (msg.extractPayloadByte(2, 0) << 8) | msg.extractPayloadByte(3, 0);
+        // [cycles_hi, cycles_lo, GVhours_hi, GVhours_lo, unk, unk, temp+20]
+        let cycles = (msg.extractPayloadByte(0, 0) << 8) | msg.extractPayloadByte(1, 0);
+        let gvHours = (msg.extractPayloadByte(2, 0) << 8) | msg.extractPayloadByte(3, 0);
         sheater.gasValveHours = gvHours;
         sheater.cycleCount = cycles;
         let tempByte = msg.extractPayloadByte(6);
