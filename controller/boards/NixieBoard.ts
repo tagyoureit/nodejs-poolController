@@ -394,6 +394,7 @@ export class NixieBoard extends SystemBoard {
                 pool.capacityUnits = bodyUnits;
                 sbody.name = pool.name;
                 sbody.setPoint = pool.setPoint;
+                sbody.heatMode = pool.heatMode;
                 sbody.circuit = pool.circuit;
                 sbody.type = pool.type;
                 // We need to add in a circuit for 6.
@@ -425,6 +426,7 @@ export class NixieBoard extends SystemBoard {
                     sbody = state.temps.bodies.getItemById(2, true);
                     sbody.name = spa.name;
                     sbody.setPoint = spa.setPoint;
+                    sbody.heatMode = spa.heatMode;
                     sbody.circuit = spa.circuit;
                     sbody.type = spa.type;
                     spa.capacityUnits = bodyUnits;

@@ -3622,11 +3622,11 @@ export class ScheduleCommands extends BoardCommands {
                 const days = (sched.scheduleDays as any).days.map(d => d.dow)
                 // if scheduleDays includes today
                 if (days.includes(state.time.toDate().getDay())) {
-                    if (sched.changeHeatSetpoint && (sched.heatSource as any).val !== sys.board.valueMaps.heatSources.getValue('off') && sched.heatSetpoint > 0 && sched.heatSetpoint !== tbody.setPoint) {
+                    if (sched.changeHeatSetpoint && sched.heatSource !== sys.board.valueMaps.heatSources.getValue('off') && sched.heatSetpoint > 0 && sched.heatSetpoint !== tbody.setPoint) {
                         setTimeoutSync(() => sys.board.bodies.setHeatSetpointAsync(cbody, sched.heatSetpoint), 100);
                     }
-                    if ((sched.heatSource as any).val !== sys.board.valueMaps.heatSources.getValue('nochange') && sched.heatSource !== tbody.heatMode) {
-                        setTimeoutSync(() => sys.board.bodies.setHeatModeAsync(cbody, sys.board.valueMaps.heatModes.getValue((sched.heatSource as any).name)), 100);
+                    if (sched.heatSource !== sys.board.valueMaps.heatSources.getValue('nochange') && sched.heatSource !== tbody.heatMode) {
+                        setTimeoutSync(() => sys.board.bodies.setHeatModeAsync(cbody, sys.board.valueMaps.heatModes.getValue(sys.board.valueMaps.heatSources.getName(sched.heatSource))), 100);
                     }
                 }
             }
@@ -4313,20 +4313,18 @@ export class HeaterCommands extends BoardCommands {
                                             // RSG 04.15.2024 - Updates to heater logic for start/stop deltas.  #925
                                             // 1.  For all heating cases in order for the heater to turn on, the solar temp > water temp.
                                             // 2.  If the water temp is below the set point, we want to turn on the heater
-                                            // 3.  But only if the prevHeaterOffTemp - water temp > start temp delta
+                                            // 3.  But only if the solar collector has risen startTempDelta above prevHeaterOffTemp (collector reheated)
                                             // 4.  Also only if there is enough heat ('run') to make it worthwhile
                                             // 5.  The heater should run until it reaches the set point + stop delta
-                                            // 6.  When the heater turns off, note the water temp ("prevHeaterOffTemp").  This will only live in the application, not persisted.
+                                            // 6.  When the heater turns off, note the solar collector temp. Collector reheats quickly in the sun. (#1212)
                                             let hState: HeaterState = 
                                             state.heaters.getItemById(heater.id);
                                             if (state.temps.solar > body.temp // 1
                                                 && body.temp < cfgBody.heatSetpoint // 2
-                                                && (typeof hState.prevHeaterOffTemp === 'undefined' || ((hState.prevHeaterOffTemp - body.temp) > heater.startTempDelta)) // 3
+                                                && (typeof hState.prevHeaterOffTemp === 'undefined' || ((state.temps.solar - hState.prevHeaterOffTemp) > heater.startTempDelta)) // 3
                                                 && (state.temps.solar - body.temp) > heater.stopTempDelta // 4
                                                 && body.temp < cfgBody.heatSetpoint // 5
                                             ) {
-                                                // if (((hstate.isOn && body.temp < cfgBody.heatSetpoint + heater.stopTempDelta) || (!hstate.isOn && body.temp > cfgBody.heatSetpoint - heater.startTempDelta)) 
-                                                //     && state.temps.solar > body.temp ) {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('solar');
                                                 isHeating = true;
@@ -4336,18 +4334,17 @@ export class HeaterCommands extends BoardCommands {
                                                 && state.heliotrope.isNight
                                                 && state.temps.solar < body.temp // 1
                                                 && body.temp > cfgBody.coolSetpoint // 2
-                                                && (typeof hState.prevHeaterOffTemp === 'undefined' || ((hState.prevHeaterOffTemp - body.temp) < heater.startTempDelta)) // 3
+                                                && (typeof hState.prevHeaterOffTemp === 'undefined' || ((hState.prevHeaterOffTemp - state.temps.solar) > heater.startTempDelta)) // 3
                                                 && (body.temp - state.temps.solar) > heater.stopTempDelta // 4
                                                 && body.temp > (cfgBody.coolSetpoint + heater.stopTempDelta) // 5
                                             ) {
-                                                // else if (heater.coolingEnabled && (body.temp > cfgBody.coolSetpoint -  heater.stopTempDelta && body.temp < cfgBody.coolSetpoint - heater.startTempDelta) && state.heliotrope.isNight && state.temps.solar < body.temp) {
                                                 isOn = true;
                                                 body.heatStatus = sys.board.valueMaps.heatStatus.getValue('cooling');
                                                 isHeating = true;
                                                 isCooling = true;
                                             }
                                             if (hstate.isOn && !isOn) { 
-                                                hState.prevHeaterOffTemp = body.temp; 
+                                                hState.prevHeaterOffTemp = state.temps.solar; 
                                             } // 6  
                                         }
                                         break;
