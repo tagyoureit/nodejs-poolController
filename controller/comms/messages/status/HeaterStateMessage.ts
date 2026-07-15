@@ -241,6 +241,7 @@ export class HeaterStateMessage {
             case 0xFB: desc = 'Shorted water sensor'; break;
             case 0xFC: desc = 'Open water sensor'; break;
             case 0xFD: desc = 'High limit'; break;
+            case 0xF3: desc = 'Check Versaflo'; break;
             case 0xFE: desc = 'AUX monitor'; break;
             default: desc = `Unknown fault 0x${faultCode.toString(16)}`; break;
         }
