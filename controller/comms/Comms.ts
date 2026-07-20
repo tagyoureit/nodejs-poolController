@@ -101,7 +101,7 @@ export class Connection {
                 pdata.screenlogic = {
                     connectionType: "local",
                     systemName: "Pentair: 00-00-00",
-                    password: 1234
+                    password: ""
                 }
             }
 
@@ -129,7 +129,6 @@ export class Connection {
                 let systemName = data.screenlogic.systemName;
                 if (type !== 'remote' && type !== 'local') return Promise.reject(new InvalidEquipmentDataError(`An invalid type was supplied for Screenlogic ${type}.  Must be remote or local.`, 'Screenlogic', data));
                 if (systemName.match(regx) === null) return Promise.reject(new InvalidEquipmentDataError(`An invalid system name was supplied for Screenlogic ${systemName}}.  Must be in the format 'Pentair: xx-xx-xx'.`, 'Screenlogic', data));
-                if (password.length !== 4) return Promise.reject(new InvalidEquipmentDataError(`An invalid password was supplied for Screenlogic ${password}. (Length must be <= 4)}`, 'Screenlogic', data));
                 pdata.screenlogic = data.screenlogic;
             }
             if (pdata.type === 'ocpws') {
@@ -190,11 +189,11 @@ export class Connection {
                 netPort: 9801,
                 inactivityRetry: 10
             });
-            if (portId === 0) {
+            if (portId === 0 && !cfg.screenlogic) {
                 cfg.screenlogic = {
                     connectionType: "local",
                     systemName: "Pentair: 00-00-00",
-                    password: 1234
+                    password: ""
                 }
             }
             existing = this.getPortByCfg(cfg);
