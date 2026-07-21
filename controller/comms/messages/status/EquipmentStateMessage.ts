@@ -102,19 +102,20 @@ export class EquipmentStateMessage {
         // [1,5] = i10+3d
         // IntelliCenter v3.x reports model1=3 with model2 carrying the panel/expansion variant
         // (same convention IntelliTouch used for the `[1, N]` family above).  Observed so far:
+        //   [3, 1] = v3.x i5P personality (Discussion #1223 / ISSUE-001)
         //   [3, 2] = v3.004+ i8PS / i10PS personality card only
         //   [3, 3] = v3.008 i10D personality card + i10X expansion panels (Discussion #1171 / ISSUE-081)
         // EasyTouch ET24P ALSO reports model1=3 (with model2 in {13,14}; see
         // EasyTouchBoard.expansionBoards), and IntelliTouch reuses model2 in {0..5}, so
         // model1=3 alone is NOT a safe IntelliCenter-v3 marker.  Disambiguate by requiring
-        // BOTH that model2 is a known v3 personality byte ({2,3} above) AND header[1]===1
+        // BOTH that model2 is a known v3 personality byte ({1,2,3} above) AND header[1]===1
         // (IntelliCenter uses header[1]=1; Touch systems use other values, e.g. 18).
         // This rejects EasyTouch ([3,13]/[3,14]) while preserving the #1171 / ISSUE-081
         // fix for v3.008 i10D + i10X ([3,3]).  If a future v3 personality appears, add its
         // model2 byte to the set below (and to the variant table at lines 105-106).
         if ((model2 === 0 && (model1 === 23 || model1 >= 40)) ||
             (model2 === 2 && model1 == 0 && msg.header[1] === 1) ||
-            (model1 === 3 && (model2 === 2 || model2 === 3) && msg.header[1] === 1)) {
+            (model1 === 3 && (model2 === 1 || model2 === 2 || model2 === 3) && msg.header[1] === 1)) {
             state.equipment.controllerType = 'intellicenter';
             sys.board.modulesAcquired = false;
             sys.controllerType = ControllerType.IntelliCenter;
