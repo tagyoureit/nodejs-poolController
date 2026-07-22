@@ -409,11 +409,23 @@ export class MqttInterfaceBindings extends BaseInterfaceBindings {
                             logger.error(`Inbound MQTT ${topics} has an invalid id (${id}) in the message (${msg}).`)
                         };
                         let isOn = typeof msg.isOn !== 'undefined' ? utils.makeBool(msg.isOn) : typeof msg.state !== 'undefined' ? utils.makeBool(msg.state) : undefined;
+                        var lightingTheme;
+                        if (typeof msg.lightingTheme === 'string') {
+                            logger.info("searching for light theme");
+                            lightingTheme = sys.board.valueMaps.lightThemes.transformByName(msg.lightingTheme);
+                            logger.info(`found light theme ${JSON.stringify(lightingTheme)}`);
+                            if (typeof lightingTheme !== 'undefined') lightingTheme = lightingTheme.val;
+                        }
                         switch (topics[topics.length - 2].toLowerCase()) {
                             case 'circuits':
                             case 'circuit': {
                                 try {
-                                    if(typeof isOn !== 'undefined') await sys.board.circuits.setCircuitStateAsync(id, isOn);
+                                    if(typeof lightingTheme !== 'undefined') {
+                                        logger.info(`setting light theme of ${id} to ${lightingTheme}`)
+                                        await sys.board.circuits.setLightThemeAsync(id, lightingTheme);
+                                    } else if(typeof isOn !== 'undefined') {
+                                        await sys.board.circuits.setCircuitStateAsync(id, isOn);
+                                    }
                                 }
                                 catch (err) { logger.error(`Error processing MQTT topic ${topics[topics.length - 2]}: ${err.message}`); }
                                 break;
