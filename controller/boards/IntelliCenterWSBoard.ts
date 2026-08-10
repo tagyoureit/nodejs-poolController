@@ -959,25 +959,39 @@ class IntelliCenterWSScheduleCommands extends IntelliCenterScheduleCommands {
             if (typeof data.scheduleDays !== 'undefined' || typeof data.flags !== 'undefined') {
                 let days = typeof data.scheduleDays !== 'undefined' ? data.scheduleDays : data.flags;
                 let dayVal = typeof days === 'number' ? days : parseInt(days, 10);
+                // IntelliCenter's scheduleDays bitmask is mon=1..sun=64, and the OCP's
+                // DAY letters are M,T,W,R,F,A,U for Mon..Sun.  Emit in the OCP's own
+                // canonical MTWRFAU order.
                 let dayStr = '';
-                if (dayVal & 1) dayStr += 'U';
-                if (dayVal & 2) dayStr += 'M';
-                if (dayVal & 4) dayStr += 'T';
-                if (dayVal & 8) dayStr += 'W';
-                if (dayVal & 16) dayStr += 'R';
-                if (dayVal & 32) dayStr += 'F';
-                if (dayVal & 64) dayStr += 'A';
+                if (dayVal & 1) dayStr += 'M';
+                if (dayVal & 2) dayStr += 'T';
+                if (dayVal & 4) dayStr += 'W';
+                if (dayVal & 8) dayStr += 'R';
+                if (dayVal & 16) dayStr += 'F';
+                if (dayVal & 32) dayStr += 'A';
+                if (dayVal & 64) dayStr += 'U';
                 params.DAY = dayStr || 'MTWRFAU';
             }
             if (typeof data.scheduleType !== 'undefined')
                 params.SINGLE = parseInt(data.scheduleType, 10) === 128 ? 'OFF' : 'ON';
             if (typeof data.startDate !== 'undefined') {
-                let dt = new Date(data.startDate);
-                if (!isNaN(dt.getTime())) {
-                    let mm = String(dt.getMonth() + 1).padStart(2, '0');
-                    let dd = String(dt.getDate()).padStart(2, '0');
-                    let yy = String(dt.getFullYear() - 2000).padStart(2, '0');
+                // A date-only string like '2026-05-20' parses as UTC midnight, which is
+                // the previous day in any negative-offset zone.  Read the calendar date
+                // from the string itself so the OCP gets the day the user picked.
+                let mm: string, dd: string, yy: string;
+                let parts = typeof data.startDate === 'string' ? /^(\d{4})-(\d{2})-(\d{2})/.exec(data.startDate) : null;
+                if (parts) {
+                    mm = parts[2]; dd = parts[3]; yy = String(parseInt(parts[1], 10) - 2000).padStart(2, '0');
                     params.UPDATE = `${mm}/${dd}/${yy}`;
+                }
+                else {
+                    let dt = new Date(data.startDate);
+                    if (!isNaN(dt.getTime())) {
+                        mm = String(dt.getMonth() + 1).padStart(2, '0');
+                        dd = String(dt.getDate()).padStart(2, '0');
+                        yy = String(dt.getFullYear() - 2000).padStart(2, '0');
+                        params.UPDATE = `${mm}/${dd}/${yy}`;
+                    }
                 }
             }
             if (typeof data.isActive !== 'undefined')
@@ -993,7 +1007,11 @@ class IntelliCenterWSScheduleCommands extends IntelliCenterScheduleCommands {
             if (typeof data.heatSource !== 'undefined') {
                 let hs = parseInt(data.heatSource, 10);
                 if (hs === 0 || hs === 32) {
-                    params.HEATER = 'HOLD';  // OCP keyword for "Don't Change"
+                    // "Don't Change".  MODE is the authoritative heat source field and the
+                    // OCP derives HEATER from it, reporting HEATER=HOLD on read.  HOLD is
+                    // read-only: writing it makes the OCP reject the entire SetParamList
+                    // with response=400, which silently discards every other field in the
+                    // same request.  Send MODE alone and let the OCP fill in HEATER.
                     params.MODE = '0';
                 } else if (hs <= 1) {
                     params.HEATER = '00000';
@@ -1002,14 +1020,18 @@ class IntelliCenterWSScheduleCommands extends IntelliCenterScheduleCommands {
                     // Map heatSource enum to the heater object name.
                     // heatSource 2=gas(heaterType1), 3/4=solar(heaterType2),
                     // 5/6=ultratemp(heaterType4), 9/25=heatpump(heaterType3)
-                    // "Preferred" modes use OCP HX tokens (e.g. HXSLR for solar pref)
+                    // "Preferred" modes are separate pseudo-heater objects on the OCP.
+                    // Verified objnams (enumerated from an i5P): HXSLR = "Solar Pref",
+                    // HXULT = "UltraTemp Pref".  HXHTP is still a guess — no heat pump was
+                    // available to confirm it, and a wrong objnam makes the OCP reject the
+                    // whole SetParamList with a 400.
                     let heaterType = 0;
                     let preferredToken = '';
                     if (hs === 2) heaterType = 1;            // gas
                     else if (hs === 3) heaterType = 2;       // solar
                     else if (hs === 4) { heaterType = 2; preferredToken = 'HXSLR'; }  // solar pref
                     else if (hs === 5) heaterType = 4;       // ultratemp
-                    else if (hs === 6) { heaterType = 4; preferredToken = 'HXUT'; }   // ultratemp pref
+                    else if (hs === 6) { heaterType = 4; preferredToken = 'HXULT'; } // ultratemp pref
                     else if (hs === 14) heaterType = 3;      // heatpump (v3 value)
                     else if (hs === 15) { heaterType = 3; preferredToken = 'HXHTP'; } // heatpump pref (v3 value)
                     if (preferredToken) {
@@ -1021,6 +1043,8 @@ class IntelliCenterWSScheduleCommands extends IntelliCenterScheduleCommands {
                     params.MODE = String(hs);
                 }
             }
+            if (typeof data.heatSetpoint !== 'undefined')
+                params.LOTMP = String(parseInt(data.heatSetpoint, 10));
             if (typeof data.coolSetpoint !== 'undefined')
                 params.COOLING = String(parseInt(data.coolSetpoint, 10));
             if (typeof data.dontStop !== 'undefined')
@@ -1032,7 +1056,11 @@ class IntelliCenterWSScheduleCommands extends IntelliCenterScheduleCommands {
                 if (resp?.objnam) id = parseInt(resp.objnam.replace(/\D/g, ''), 10) + 1;
                 else id = sys.schedules.getNextEquipmentId(new EquipmentIdRange(1, 100));
             } else {
-                await icws.setParamList('SCH' + String(id - 1).padStart(2, '0'), params);
+                // Prefer the objnam the OCP gave us.  Deriving it from the id only holds
+                // while ids and SCH## slots stay in lockstep, so a stale assumption would
+                // silently rewrite a different schedule.
+                let existing = sys.schedules.getItemById(id, false);
+                await icws.setParamList(existing.objnam || 'SCH' + String(id - 1).padStart(2, '0'), params);
             }
             let sched = sys.schedules.getItemById(id, isNew);
             let ssched = state.schedules.getItemById(id, isNew);
@@ -1045,6 +1073,7 @@ class IntelliCenterWSScheduleCommands extends IntelliCenterScheduleCommands {
             if (typeof data.startTimeType !== 'undefined') sched.startTimeType = parseInt(data.startTimeType, 10);
             if (typeof data.endTimeType !== 'undefined') sched.endTimeType = parseInt(data.endTimeType, 10);
             if (typeof data.heatSource !== 'undefined') sched.heatSource = parseInt(data.heatSource, 10);
+            if (typeof data.heatSetpoint !== 'undefined') sched.heatSetpoint = parseInt(data.heatSetpoint, 10);
             if (typeof data.coolSetpoint !== 'undefined') sched.coolSetpoint = parseInt(data.coolSetpoint, 10);
             ssched.emitEquipmentChange();
             return sched;
@@ -1346,7 +1375,13 @@ class IntelliCenterWSHeaterCommands extends IntelliCenterHeaterCommands {
             if (typeof obj.type !== 'undefined') {
                 let htype = sys.board.valueMaps.heaterTypes.transform(parseInt(obj.type, 10));
                 let subtypMap = { gas: 'MASTER', solar: 'SOLAR', ultratemp: 'ULTRA', hybrid: 'HCOMBO', heatpump: 'HTPMP', maxetherm: 'MAXE', mastertemp: 'MASTER', eti250: 'ETI' };
-                params.SUBTYP = subtypMap[htype.name] || 'MASTER';
+                let subtyp = subtypMap[htype.name] || 'MASTER';
+                // SUBTYP is read-only once the heater exists — the OCP answers a write with
+                // 404 and discards the rest of the request.  dashPanel always posts `type`,
+                // so including it unconditionally broke every heater edit.
+                if (isNew) params.SUBTYP = subtyp;
+                else if (parseInt(obj.type, 10) !== heater.type)
+                    return Promise.reject(new InvalidEquipmentDataError('The heater type cannot be changed on an existing heater. Delete the heater and add it back with the new type.', 'Heater', id));
             }
             if (isNew)
                 await icws.createObject('HEATER', params);

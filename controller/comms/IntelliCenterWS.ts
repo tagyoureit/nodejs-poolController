@@ -307,6 +307,17 @@ export class IntelliCenterWSComms extends EventEmitter {
             clearTimeout(pr.timer);
             this._pending.delete(id);
             this.counter.responses++;
+            // The OCP signals acceptance with response='200'.  Anything else means the
+            // request was refused and none of it was applied.  Resolving regardless
+            // makes callers persist values the OCP never took.
+            if (!this.isSuccessResponse(msg)) {
+                this.counter.errors++;
+                const err = new Error(`IntelliCenterWS: '${pr.command}' rejected by OCP (response=${msg.response}${msg.description ? `, ${msg.description}` : ''})`);
+                logger.warn(`${err.message} frame=${JSON.stringify(msg).slice(0, 500)}`);
+                try { pr.reject(err); } catch (e) { logger.error(`IntelliCenterWS: reject handler error: ${e.message}`); }
+                this.emitStats();
+                return;
+            }
             try { pr.resolve(msg); } catch (e) { logger.error(`IntelliCenterWS: response handler error: ${e.message}`); }
             this.emitStats();
             return;
@@ -320,12 +331,33 @@ export class IntelliCenterWSComms extends EventEmitter {
             this.counter.notifications++;
             this.handleNotifyList(msg);
         } else {
-            if (msg?.command === 'Error') {
-                logger.debug(`IntelliCenterWS: Error frame: ${JSON.stringify(msg).slice(0, 500)}`);
+            // The OCP is known to return a messageID that does not match the request it
+            // is rejecting, so an error can arrive here rather than at a pending entry.
+            // Surface it loudly — the matching request will otherwise just time out with
+            // no indication of why.
+            if (!this.isSuccessResponse(msg)) {
+                this.counter.errors++;
+                logger.warn(`IntelliCenterWS: unmatched error frame (response=${msg?.response}, id=${msg?.messageID}): ${JSON.stringify(msg).slice(0, 500)}`);
             }
             this.emit('frame', msg);
         }
         this.emitStats();
+    }
+
+    /**
+     * True when a frame is not an OCP rejection.  Notifications carry no `response`
+     * field at all, so absence counts as success.  The codes mirror HTTP: `200` for
+     * a normal request and `201` when CREATEOBJECT creates an object, so accept the
+     * whole 2xx range rather than a single literal.  A lone `Error` command always
+     * fails.
+     */
+    private isSuccessResponse(msg: any): boolean {
+        if (msg?.command === 'Error') return false;
+        const resp = msg?.response;
+        if (typeof resp === 'undefined' || resp === null || resp === '') return true;
+        const code = parseInt(String(resp), 10);
+        if (isNaN(code)) return true; // Unrecognised shape — don't invent a failure.
+        return code >= 200 && code < 300;
     }
 
     private logFrame(dir: 'in' | 'out', msg: any): void {
@@ -333,8 +365,37 @@ export class IntelliCenterWSComms extends EventEmitter {
             const cmd = msg?.command;
             const id = msg?.messageID;
             const objCount = Array.isArray(msg?.objectList) ? msg.objectList.length : undefined;
-            logger.silly(`IntelliCenterWS:${dir} cmd=${cmd} id=${id} objs=${objCount}`);
+            // The response code is the only signal that a write was accepted, and the
+            // objnam/params are the only way to tell which write is being talked about.
+            // Without both, a rejected SetParamList is indistinguishable from a
+            // successful one in a packet capture.
+            const resp = typeof msg?.response !== 'undefined' ? ` response=${msg.response}` : '';
+            const desc = msg?.description ? ` desc=${msg.description}` : '';
+            logger.silly(`IntelliCenterWS:${dir} cmd=${cmd} id=${id} objs=${objCount}${resp}${desc} ${this.describeObjectList(msg)}`);
         } catch { /* */ }
+    }
+    /**
+     * Renders objectList entries as `objnam{K=V,...}` for logging.  Truncated so a
+     * full-config frame cannot flood the log.
+     */
+    private describeObjectList(msg: any): string {
+        if (!Array.isArray(msg?.objectList)) return '';
+        const parts: string[] = [];
+        for (const obj of msg.objectList.slice(0, 8)) {
+            const objnam = obj?.objnam ?? obj?.objtyp ?? '?';
+            let detail = '';
+            if (obj?.params && typeof obj.params === 'object') {
+                detail = Object.keys(obj.params).slice(0, 24).map(k => `${k}=${obj.params[k]}`).join(',');
+            } else if (Array.isArray(obj?.keys)) detail = obj.keys.slice(0, 24).join(',');
+            else {
+                for (const sub of ['created', 'changes', 'deleted']) {
+                    if (Array.isArray(obj?.[sub])) detail += `${detail ? ' ' : ''}${sub}[${obj[sub].length}]`;
+                }
+            }
+            parts.push(`${objnam}{${detail}}`);
+        }
+        if (msg.objectList.length > parts.length) parts.push(`+${msg.objectList.length - parts.length} more`);
+        return parts.join(' ');
     }
 
     private handleNotifyList(msg: any): void {
@@ -1119,7 +1180,10 @@ export class IntelliCenterWSComms extends EventEmitter {
             case 'PMPCIRC':
                 return ['CIRCUIT', 'SELECT'];
             case 'SCHED':
-                return ['CIRCUIT', 'DAY', 'TIME', 'TIMOUT', 'START', 'STOP', 'MODE', 'STATUS', 'ACT', 'VACFLO', 'UPDATE'];
+                // Must stay in step with the snapshot key list.  Omitting SINGLE, HEATER,
+                // LOTMP or COOLING means run-once, heat source and the setpoints are read
+                // at startup and then never refreshed when changed at the panel.
+                return ['CIRCUIT', 'DAY', 'TIME', 'TIMOUT', 'START', 'STOP', 'MODE', 'STATUS', 'SINGLE', 'HEATER', 'LOTMP', 'COOLING', 'ACT', 'VACFLO', 'UPDATE'];
             case 'VALVE':
                 return ['CIRCUIT', 'ASSIGN', 'POSIT', 'SNAME'];
             case 'CHEM':

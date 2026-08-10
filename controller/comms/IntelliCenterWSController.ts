@@ -177,13 +177,15 @@ function parseDayMask(val: string): number {
     if (!val) return 0;
     let mask = 0;
     const upper = val.toUpperCase();
-    if (upper.includes('U')) mask |= 0x01;
-    if (upper.includes('M')) mask |= 0x02;
-    if (upper.includes('T') && !upper.includes('TH') || (upper.indexOf('T') !== upper.lastIndexOf('T'))) mask |= 0x04;
-    if (upper.includes('W')) mask |= 0x08;
-    if (upper.includes('R')) mask |= 0x10;
-    if (upper.includes('F')) mask |= 0x20;
-    if (upper.includes('A')) mask |= 0x40;
+    // OCP DAY letters are M,T,W,R,F,A,U for Mon..Sun (Thursday is 'R', Saturday is
+    // 'A').  They map onto IntelliCenter's scheduleDays bitmask of mon=1..sun=64.
+    if (upper.includes('M')) mask |= 0x01;
+    if (upper.includes('T')) mask |= 0x02;
+    if (upper.includes('W')) mask |= 0x04;
+    if (upper.includes('R')) mask |= 0x08;
+    if (upper.includes('F')) mask |= 0x10;
+    if (upper.includes('A')) mask |= 0x20;
+    if (upper.includes('U')) mask |= 0x40;
     if (mask === 0) {
         const n = parseIntSafe(val);
         if (n > 0) return n;
@@ -532,11 +534,12 @@ function decodeSchedule(objnam: string, params: ParamMap): void {
         } else if (hval === '00000' || hval === '' || hval === '0' || hval === 'NONE') {
             hs = 1; // No heater = Off
         } else if (hval === 'HXSLR') {
-            hs = 4; // OCP token for Solar Preferred
-        } else if (hval === 'HXUT') {
-            hs = 6; // OCP token for UltraTemp Preferred
+            hs = 4; // OCP objnam for Solar Preferred (verified)
+        } else if (hval === 'HXULT' || hval === 'HXUT') {
+            hs = 6; // OCP objnam for UltraTemp Preferred (verified as HXULT; HXUT accepted
+                    // on read only, since older njsPC builds wrote that wrong value)
         } else if (hval === 'HXHTP') {
-            hs = 15; // OCP token for HeatPump Preferred (v3 value)
+            hs = 15; // HeatPump Preferred — objnam unverified, no heat pump available
         } else {
             // Resolve heater object name to heatSource enum via heater type
             const hid = parseInt(hval.replace(/\D/g, ''), 10);
