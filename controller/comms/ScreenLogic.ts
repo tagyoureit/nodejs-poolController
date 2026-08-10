@@ -323,7 +323,7 @@ export class ScreenLogicComms {
     }
   }
   public async closeAsync() {
-    await this._client.closeAsync();
+    try { await this._client.closeAsync(); } catch (err) { logger.warn(`Screenlogic close error (ignored): ${err.message}`); }
     this._client.removeAllListeners();
     this.isOpen = false;
     this.enabled = false;

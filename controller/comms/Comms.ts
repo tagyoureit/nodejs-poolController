@@ -149,7 +149,7 @@ export class Connection {
             if (typeof existing !== 'undefined') {
                 existing.cancelReconnect();
                 if (existing.type === 'screenlogic' || sl.enabled) {
-                    await sl.closeAsync();
+                    try { await sl.closeAsync(); } catch (e) { logger.warn(`setPortAsync: failed closing screenlogic: ${e.message}`); }
                 }
                 else if (existing.type === 'ocpws' || icws.enabled) {
                     await icws.closeAsync();

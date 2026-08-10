@@ -536,17 +536,17 @@ function decodeSchedule(objnam: string, params: ParamMap): void {
         } else if (hval === 'HXUT') {
             hs = 6; // OCP token for UltraTemp Preferred
         } else if (hval === 'HXHTP') {
-            hs = 25; // OCP token for HeatPump Preferred
+            hs = 15; // OCP token for HeatPump Preferred (v3 value)
         } else {
             // Resolve heater object name to heatSource enum via heater type
             const hid = parseInt(hval.replace(/\D/g, ''), 10);
             const heater = hid > 0 ? sys.heaters.find(h => h.id === hid && h.isActive) : undefined;
             if (heater) {
-                // heaterType 1=gas→heatSource2, 2=solar→3, 3=heatpump→9, 4=ultratemp→5
+                // heaterType 1=gas→heatSource2, 2=solar→3, 3=heatpump→14(v3), 4=ultratemp→5
                 switch (heater.type) {
                     case 1: hs = 2; break;  // gas → heater
                     case 2: hs = 3; break;  // solar → solar
-                    case 3: hs = 9; break;  // heatpump → heatpump
+                    case 3: hs = 14; break; // heatpump → heatpump (v3 value)
                     case 4: hs = 5; break;  // ultratemp → ultratemp
                     default: hs = 2; break; // fallback to generic heater
                 }

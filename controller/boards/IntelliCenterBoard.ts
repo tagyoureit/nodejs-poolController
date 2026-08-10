@@ -81,12 +81,12 @@ export class IntelliCenterBoard extends SystemBoard {
         this.valueMaps.pumpTypes = new byteValueMap([
             [1, { name: 'ss', desc: 'Single Speed', maxCircuits: 0, hasAddress: false, hasBody: true }],
             [2, { name: 'ds', desc: 'Two Speed', maxCircuits: 8, hasAddress: false, hasBody: true }],
-            [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true }],
-            [4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
+            [3, { name: 'vs', desc: 'Intelliflo VS', maxPrimingTime: 6, minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true }],
+            [4, { name: 'vsf', desc: 'Intelliflo VSF', minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, minFlow: 15, maxFlow: 130, flowStepSize: 1, maxCircuits: 8, hasAddress: true }],
             [5, { name: 'vf', desc: 'Intelliflo VF', maxPrimingTime: 6, minFlow: 15, maxFlow: 130, maxCircuits: 8, hasAddress: true }],
             [100, { name: 'sf', desc: 'SuperFlo VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1, maxSpeeds: 4, relays: [{ id: 1, name: 'Program #1' }, { id: 2, name: 'Program #2' }, { id: 3, name: 'Program #3' }, { id: 4, name: 'Program #4' }] }],
             [101, { name: 'hwrly', desc: 'Hayward Relay VS', hasAddress: false, maxCircuits: 8, maxRelays: 4, equipmentMaster: 1, maxSpeeds: 8, relays: [{ id: 1, name: 'Step #1' }, { id: 2, name: 'Step #2' }, { id: 3, name: 'Step #3' }, { id: 4, name: 'Pump On' }] }],
-            [102, { name: 'hwvs', desc: 'Hayward Eco/TriStar VS', minSpeed: 450, maxSpeed: 3450, maxCircuits: 8, hasAddress: true, equipmentMaster: 1 }]
+            [102, { name: 'hwvs', desc: 'Hayward Eco/TriStar VS', minSpeed: 450, maxSpeed: 3450, speedStepSize: 10, maxCircuits: 8, hasAddress: true, equipmentMaster: 1 }]
         ]);
         // RSG - same as systemBoard definition; can delete.
         this.valueMaps.heatModes = new byteValueMap([
@@ -2225,6 +2225,28 @@ export class IntelliCenterCircuitCommands extends CircuitCommands {
             return Promise.reject(err);
         }
 
+    }
+    public async deleteCircuitAsync(data: any): Promise<ICircuit> {
+        let id = parseInt(data.id, 10);
+        if (isNaN(id)) return Promise.reject(new InvalidEquipmentIdError('Circuit Id has not been defined', data.id, 'Circuit'));
+        let circuit = sys.circuits.getItemById(id, false);
+        if (circuit.master === 1) return await super.deleteCircuitAsync(data);
+        let out = Outbound.create({
+            action: 168,
+            payload: [1, 0, id - 1,
+                255, // Delete the circuit
+                0, 0, 0, 0, 0, 0],
+            response: IntelliCenterBoard.getAckResponse(168),
+            retries: 5
+        });
+        out.appendPayloadString(normalizeIntelliCenterName(data.name, circuit.name), 16);
+        await out.sendAsync();
+        sys.circuits.removeItemById(id);
+        circuit.isActive = false;
+        let cstate = state.circuits.getItemById(id, false);
+        cstate.showInFeatures = false;
+        state.circuits.removeItemById(id);
+        return circuit;
     }
     public async setCircuitGroupAsync(obj: any): Promise<CircuitGroup> {
         // When we save circuit groups we are going to reorder the whole mess.  IntelliCenter does some goofy
@@ -5045,6 +5067,15 @@ export class IntelliCenterHeaterCommands extends HeaterCommands {
             let btemp = state.temps.bodies.getItemById(body.id, body.isActive !== false);
             let opts = sys.board.heaters.getInstalledHeaterTypes(body.id);
             btemp.heaterOptions = opts;
+        }
+        // Re-transform schedule heatSource descriptors so stale names are refreshed
+        // after the heatSources valueMap is rebuilt.
+        for (let i = 0; i < state.schedules.length; i++) {
+            let ssched = state.schedules.getItemByIndex(i);
+            let val = ssched.heatSource;
+            if (typeof val !== 'undefined' && val !== null) {
+                ssched.data.heatSource = sys.board.valueMaps.heatSources.transform(val);
+            }
         }
         this.setActiveTempSensors();
     }

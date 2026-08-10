@@ -1010,8 +1010,8 @@ class IntelliCenterWSScheduleCommands extends IntelliCenterScheduleCommands {
                     else if (hs === 4) { heaterType = 2; preferredToken = 'HXSLR'; }  // solar pref
                     else if (hs === 5) heaterType = 4;       // ultratemp
                     else if (hs === 6) { heaterType = 4; preferredToken = 'HXUT'; }   // ultratemp pref
-                    else if (hs === 9) heaterType = 3;       // heatpump
-                    else if (hs === 25) { heaterType = 3; preferredToken = 'HXHTP'; } // heatpump pref
+                    else if (hs === 14) heaterType = 3;      // heatpump (v3 value)
+                    else if (hs === 15) { heaterType = 3; preferredToken = 'HXHTP'; } // heatpump pref (v3 value)
                     if (preferredToken) {
                         params.HEATER = preferredToken;
                     } else {
