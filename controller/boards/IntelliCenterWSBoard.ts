@@ -1383,6 +1383,14 @@ class IntelliCenterWSHeaterCommands extends IntelliCenterHeaterCommands {
                 else if (parseInt(obj.type, 10) !== heater.type)
                     return Promise.reject(new InvalidEquipmentDataError('The heater type cannot be changed on an existing heater. Delete the heater and add it back with the new type.', 'Heater', id));
             }
+            // COMUART is the 1-based unit index the OCP shows as "Heater Address"; njsPC's
+            // canonical address is the RS-485 bus address (112-128), so COMUART = address - 111.
+            let addrType = sys.board.valueMaps.heaterTypes.transform(typeof obj.type !== 'undefined' ? parseInt(obj.type, 10) : heater.type);
+            if (addrType.hasAddress && typeof obj.address !== 'undefined') {
+                let address = parseInt(obj.address, 10);
+                if (isNaN(address) || address < 112 || address > 128) return Promise.reject(new InvalidEquipmentDataError(`Invalid Heater address was specified`, 'Heater', obj.address));
+                params.COMUART = String(address - 111);
+            }
             if (isNew)
                 await icws.createObject('HEATER', params);
             else if (Object.keys(params).length > 0)
@@ -1392,6 +1400,7 @@ class IntelliCenterWSHeaterCommands extends IntelliCenterHeaterCommands {
             if (typeof obj.body !== 'undefined') heater.body = parseInt(obj.body, 10);
             if (typeof obj.coolingEnabled !== 'undefined') heater.coolingEnabled = utils.makeBool(obj.coolingEnabled);
             if (typeof obj.cooldownDelay !== 'undefined') heater.cooldownDelay = parseInt(obj.cooldownDelay, 10);
+            if (typeof params.COMUART !== 'undefined') heater.address = parseInt(obj.address, 10);
             heater.isActive = true;
             sys.board.heaters.updateHeaterServices();
             let sheater = state.heaters.getItemById(id, true);

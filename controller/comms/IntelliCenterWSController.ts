@@ -417,6 +417,7 @@ function decodeBody(objnam: string, params: ParamMap): void {
     if (typeof params['STATUS'] !== 'undefined') {
         sbody.isOn = parseBool(params['STATUS']);
         syncValveStatesWS();
+        syncChlorinatorOutputWS();
         sys.board.circuits.syncVirtualCircuitStates();
     }
     if (typeof params['TEMP'] !== 'undefined') {
@@ -748,7 +749,14 @@ function decodeHeater(objnam: string, params: ParamMap): void {
     if (typeof params['COOL'] !== 'undefined') heater.coolingEnabled = parseBool(params['COOL']);
     if (typeof params['DLY'] !== 'undefined') heater.cooldownDelay = parseIntSafe(params['DLY']);
     if (typeof params['BOOST'] !== 'undefined') heater.maxBoostTemp = parseIntSafe(params['BOOST']);
-    if (typeof params['COMUART'] !== 'undefined') heater.address = parseIntSafe(params['COMUART']);
+    if (typeof params['COMUART'] !== 'undefined') {
+        // COMUART is the 1-based unit index shown as "Heater Address" on the OCP.  njsPC's
+        // canonical heater.address is the RS-485 bus address (112-128), so unit N => 111 + N.
+        // Verified on i5P/ICv3: OCP address 2 => COMUART=2, OCP address 4 => COMUART=4.
+        // Non-addressable types (solar/gas) report COMUART=0 and must stay at 0.
+        const htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
+        heater.address = htype.hasAddress ? parseIntSafe(params['COMUART']) + 111 : 0;
+    }
     heater.isActive = true;
     sheater.isActive = true;
     sys.board.heaters.updateHeaterServices();
@@ -793,6 +801,24 @@ function syncValveStatesWS(): void {
             isDiverted = circ ? circ.isOn : false;
         }
         vstate.isDiverted = isDiverted;
+    }
+}
+
+// The IntelliCenter WS API exposes only the setpoints (PRIM/SEC), SALT, SUPER and TIMOUT
+// for CHR objects -- there is no live output telemetry key the way RS-485 has Action 18/22.
+// Derive the output from the active body + setpoint exactly as the RS-485 path does
+// (ChlorinatorMessage.ts:216-217, ChlorinatorStateMessage.ts:125) so dashPanel, MQTT and
+// InfluxDB see the same fields on both transports.
+function syncChlorinatorOutputWS(): void {
+    for (let i = 0; i < sys.chlorinators.length; i++) {
+        const chlor = sys.chlorinators.getItemByIndex(i);
+        if (!chlor.isActive) continue;
+        const schlor = state.chlorinators.getItemById(chlor.id);
+        let target = 0;
+        if (state.temps.bodies.getItemById(1).isOn) target = chlor.disabled ? 0 : chlor.poolSetpoint;
+        else if (state.temps.bodies.getItemById(2).isOn) target = chlor.disabled ? 0 : chlor.spaSetpoint;
+        schlor.targetOutput = target;
+        schlor.currentOutput = chlor.disabled ? 0 : target || schlor.setPointForCurrentBody;
     }
 }
 
@@ -867,6 +893,12 @@ function decodeChlorinator(objnam: string, params: ParamMap): void {
     if (typeof params['BODY'] !== 'undefined') { chlor.body = parseIntSafe(params['BODY']); schlor.body = parseIntSafe(params['BODY']); }
     if (typeof params['SUBTYP'] !== 'undefined') { chlor.type = parseIntSafe(params['SUBTYP']); schlor.type = parseIntSafe(params['SUBTYP']); }
     chlor.isActive = true;
+    schlor.isActive = true;
+    // WS has no chlorinator fault/comms telemetry.  The object only exists while the OCP
+    // reports it, so 0 ('Ok') is the correct status.  Leaving it unset yields -1, which
+    // blanks the dashPanel status line and hides the Super Chlorinate button.
+    if (schlor.status < 0) schlor.status = 0;
+    syncChlorinatorOutputWS();
 }
 
 function decodeCover(objnam: string, params: ParamMap): void {
