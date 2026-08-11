@@ -1,5 +1,34 @@
 # Changelog
 
+## 10.0.2 (unreleased)
+
+### Bug Fixes
+1. **Heater preferred heat sources** — guard preferred heat source picklist behind combustion check to prevent missing heat sources on systems without gas heaters (#1199).
+
+## 10.0.1
+
+### New Features
+1. **Versaflo check error code** — added 0xF3 fault code for "Check Versaflo" heater status (#1215).
+2. **JXi/LXi gas valve hours & cycle count** — expose lifetime gas valve hours and ignition cycle count from 0x25 response (#1128).
+3. **JXi/LXi feedBodyTemp option** — allow JXi/LXi heaters to report body temperature from their own sensor (#1128).
+
+### Bug Fixes
+4. **IntelliCenter schedule/heater/circuit param handling** — correct WS parameter names for schedule heat source, day mask, and delete operations (#1199).
+5. **Heater WS address mapping** — correct heater address assignment over WebSocket and sync chlorinator output percentage via WS (#1199).
+6. **Schedule day bitmask & timezone** — fix day-of-week bitmask mapping and date timezone handling for schedules (#1199).
+7. **Heatpump source values** — correct heatpump source enum values, add deleteCircuit support, and refresh schedule heat sources on heater config change (#1199).
+8. **v3.x i5P personality detection** — add support for IntelliCenter v3.x i5P personality byte [3,1] (#1223).
+9. **ScreenLogic hardcoded password** — remove hardcoded password and fix port condition for ScreenLogic connections (#1220).
+10. **Versaflo case position** — move 'Check Versaflo' case to correct enum position in HeaterStateMessage (#1215).
+11. **JXi/LXi 0x25 byte layout** — correct response byte layout and add additional fault codes; swap GV hours and cycle count byte positions (#1215).
+12. **Heat source comparison & solar collector** — correct heat source comparison logic and solar collector temperature threshold handling (#1212).
+13. **WS schedule heat source/day/delete** — fix WebSocket schedule heat source assignment, day mask encoding, and schedule delete handling (#1199).
+14. **JXi/LXi temp polling** — send explicit 0x25 temperature query on each JXi/LXi poll cycle (#1128).
+15. **JXi/LXi in Nixie picklists** — include JXi/LXi heaters in heat mode and heat source picklists for Nixie systems (#1128).
+16. **StateSocket update condition** — replace else-if with if for state update condition to ensure all state changes are emitted.
+17. **WebSocket pdata guard** — skip update when websocket pdata is not enabled to prevent null reference errors.
+18. **Schedule ID offset** — correct schedule ID offset by incrementing ID before lookup (#1199).
+
 ## 10.0.0
 **IntelliCenter WebSocket Protocol — Communicate Without RS-485 Hardware**
 
