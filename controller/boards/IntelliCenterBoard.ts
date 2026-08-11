@@ -4495,7 +4495,39 @@ export class IntelliCenterBodyCommands extends BodyCommands {
     // IntelliCenter: body heat modes are encoded using IntelliCenter heatSources values (1=off,3=solar,4=solarpref,5=ultratemp,6=ultratemppref,...),
     // not the *Touch heatModes value map. Returning heatSources here fixes dashPanel's blank entries and makes validation accept the right values.
     public getHeatSources(bodyId: number) {
-        return super.getHeatSources(bodyId);
+        // Must mirror getHeatModesV2 combustion-check logic. super.getHeatSources uses `total > 1`
+        // for pref entries, but updateHeaterServices only puts solarpref/ultratemppref/heatpumppref
+        // in the valueMap when combustionInstalled=true. On non-combustion systems those entries
+        // have no `val`, causing the dashPanel _buildOptionList to crash (val.toString() → undefined).
+        sys.board.heaters.updateHeaterServices();
+        let heatTypes = (sys.board.heaters as IntelliCenterHeaterCommands).getInstalledHeaterTypesV2(bodyId);
+        let combustionInstalled = (heatTypes.gas > 0 || heatTypes.mastertemp > 0 || heatTypes.maxetherm > 0 || heatTypes.eti250 > 0);
+        let heatSources = [];
+        heatSources.push(this.board.valueMaps.heatSources.transformByName('nochange'));
+        if (heatTypes.total > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('off'));
+        if (heatTypes.hybrid > 0) {
+            heatSources.push(this.board.valueMaps.heatSources.transformByName('hybheat'));
+            heatSources.push(this.board.valueMaps.heatSources.transformByName('hybheatpump'));
+            heatSources.push(this.board.valueMaps.heatSources.transformByName('hybhybrid'));
+            heatSources.push(this.board.valueMaps.heatSources.transformByName('hybdual'));
+        }
+        if (heatTypes.gas > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('heater'));
+        if (heatTypes.mastertemp > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('mtheater'));
+        if (heatTypes.maxetherm > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('maxetherm'));
+        if (heatTypes.eti250 > 0) heatSources.push(this.board.valueMaps.heatSources.transformByName('eti250'));
+        if (heatTypes.solar > 0) {
+            heatSources.push(this.board.valueMaps.heatSources.transformByName('solar'));
+            if (combustionInstalled) heatSources.push(this.board.valueMaps.heatSources.transformByName('solarpref'));
+        }
+        if (heatTypes.ultratemp > 0) {
+            heatSources.push(this.board.valueMaps.heatSources.transformByName('ultratemp'));
+            if (combustionInstalled) heatSources.push(this.board.valueMaps.heatSources.transformByName('ultratemppref'));
+        }
+        if (heatTypes.heatpump > 0) {
+            heatSources.push(this.board.valueMaps.heatSources.transformByName('heatpump'));
+            if (combustionInstalled) heatSources.push(this.board.valueMaps.heatSources.transformByName('heatpumppref'));
+        }
+        return heatSources;
     }
     public getHeatModes(bodyId: number) {
         const sources = this.getHeatSources(bodyId);

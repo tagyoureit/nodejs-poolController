@@ -406,6 +406,9 @@ export class ConfigRoute {
                     bodies: [],
                     eggTimers: sys.eggTimers.get() // needed for *Touch to not overwrite real schedules
                 };
+                // Rebuild heat source/mode valueMaps before fetching per-body lists so
+                // transformByName returns entries with valid `val` fields.
+                sys.board.heaters.updateHeaterServices();
                 // Now get all the body heat sources.
                 for (let i = 0; i < sys.bodies.length; i++) {
                     let body = sys.bodies.getItemByIndex(i);
