@@ -373,7 +373,18 @@ class IntelliCenterWSValveCommands extends ValveCommands {
             const objnam = 'VAL' + String(id).padStart(2, '0');
             const params: Record<string, string> = {};
             if (typeof obj.name !== 'undefined') params.SNAME = obj.name;
-            if (typeof obj.circuit !== 'undefined') params.CIRCUIT = 'X' + String(parseInt(obj.circuit, 10)).padStart(4, '0');
+            if (typeof obj.circuit !== 'undefined') {
+                // Verified against the official Pentair app (ws16 capture):
+                // SETPARAMLIST VAL02{SNAME,CIRCUIT=C0002} -> 200.  The circuit is referenced
+                // by its real objnam, not an 'X' prefix.  Unassigned is '00000'.
+                let cid = parseInt(obj.circuit, 10);
+                if (isNaN(cid) || cid === 0) params.CIRCUIT = '00000';
+                else if (cid >= sys.board.equipmentIds.circuitGroups.start)
+                    params.CIRCUIT = 'GRP' + String(cid - sys.board.equipmentIds.circuitGroups.start + 1).padStart(2, '0');
+                else if (cid >= sys.board.equipmentIds.features.start)
+                    params.CIRCUIT = 'FTR' + String(cid - sys.board.equipmentIds.features.start + 1).padStart(2, '0');
+                else params.CIRCUIT = 'C' + String(cid).padStart(4, '0');
+            }
             if (Object.keys(params).length > 0)
                 await icws.setParamList(objnam, params);
             if (typeof obj.name !== 'undefined') valve.name = obj.name;
@@ -983,6 +994,13 @@ class IntelliCenterWSScheduleCommands extends IntelliCenterScheduleCommands {
                 if (parts) {
                     mm = parts[2]; dd = parts[3]; yy = String(parseInt(parts[1], 10) - 2000).padStart(2, '0');
                     params.UPDATE = `${mm}/${dd}/${yy}`;
+                    // Run-once schedules: OCP expects only the single day-of-week letter
+                    // matching the start date (e.g. DAY=M for Monday).  Sending MTWRFAU
+                    // causes the WCP to display all days before the date label.
+                    if (params.SINGLE === 'ON' || (typeof data.scheduleType !== 'undefined' && parseInt(data.scheduleType, 10) !== 128)) {
+                        const dow = new Date(parseInt(parts[1], 10), parseInt(parts[2], 10) - 1, parseInt(parts[3], 10)).getDay();
+                        params.DAY = ['U', 'M', 'T', 'W', 'R', 'F', 'A'][dow];
+                    }
                 }
                 else {
                     let dt = new Date(data.startDate);
@@ -1365,7 +1383,13 @@ class IntelliCenterWSHeaterCommands extends IntelliCenterHeaterCommands {
             const params: Record<string, string> = {};
             if (typeof obj.name !== 'undefined') params.SNAME = obj.name;
             if (typeof obj.coolingEnabled !== 'undefined') params.COOL = utils.makeBool(obj.coolingEnabled) ? 'ON' : 'OFF';
-            if (typeof obj.cooldownDelay !== 'undefined') params.DLY = String(parseInt(obj.cooldownDelay, 10));
+            if (typeof obj.cooldownDelay !== 'undefined') {
+                // DLY=0 is rejected by the OCP with 416.  The official app omits DLY entirely
+                // on create and the OCP defaults it (observed DLY=5).  Verified: ws16 capture
+                // CREATEOBJECT HEATER{SNAME,BODY,SUBTYP} -> 201.
+                let dly = parseInt(obj.cooldownDelay, 10);
+                if (!isNaN(dly) && dly > 0) params.DLY = String(dly);
+            }
             if (typeof obj.body !== 'undefined') {
                 let bodyVal = parseInt(obj.body, 10);
                 if (bodyVal === 32) params.BODY = 'B1101 B1202';
@@ -1374,8 +1398,12 @@ class IntelliCenterWSHeaterCommands extends IntelliCenterHeaterCommands {
             }
             if (typeof obj.type !== 'undefined') {
                 let htype = sys.board.valueMaps.heaterTypes.transform(parseInt(obj.type, 10));
-                let subtypMap = { gas: 'MASTER', solar: 'SOLAR', ultratemp: 'ULTRA', hybrid: 'HCOMBO', heatpump: 'HTPMP', maxetherm: 'MAXE', mastertemp: 'MASTER', eti250: 'ETI' };
-                let subtyp = subtypMap[htype.name] || 'MASTER';
+                // All eight tokens verified 2026-08-10 against the OCP's own created-object
+                // pushes after adding each type at the panel.  Note there is NO derivable
+                // naming rule — MAX but MASTER, HTPMP but ULTRA, ETI250 spelled in full, and
+                // gas is GENERIC.  Never infer a token; observe it.
+                let subtypMap = { gas: 'GENERIC', solar: 'SOLAR', ultratemp: 'ULTRA', hybrid: 'HCOMBO', heatpump: 'HTPMP', maxetherm: 'MAX', mastertemp: 'MASTER', eti250: 'ETI250' };
+                let subtyp = subtypMap[htype.name] || 'GENERIC';
                 // SUBTYP is read-only once the heater exists — the OCP answers a write with
                 // 404 and discards the rest of the request.  dashPanel always posts `type`,
                 // so including it unconditionally broke every heater edit.
@@ -1391,6 +1419,16 @@ class IntelliCenterWSHeaterCommands extends IntelliCenterHeaterCommands {
                 if (isNaN(address) || address < 112 || address > 128) return Promise.reject(new InvalidEquipmentDataError(`Invalid Heater address was specified`, 'Heater', obj.address));
                 params.COMUART = String(address - 111);
             }
+            if (typeof obj.startTempDelta !== 'undefined') {
+                // HEATER START/STOP are the numeric temp deltas.  Omitting them let the OCP
+                // apply its own defaults (6/3), silently discarding the user's values.
+                let sd = parseInt(obj.startTempDelta, 10);
+                if (!isNaN(sd)) params.START = String(sd);
+            }
+            if (typeof obj.stopTempDelta !== 'undefined') {
+                let sd = parseInt(obj.stopTempDelta, 10);
+                if (!isNaN(sd)) params.STOP = String(sd);
+            }
             if (isNew)
                 await icws.createObject('HEATER', params);
             else if (Object.keys(params).length > 0)
@@ -1401,6 +1439,8 @@ class IntelliCenterWSHeaterCommands extends IntelliCenterHeaterCommands {
             if (typeof obj.coolingEnabled !== 'undefined') heater.coolingEnabled = utils.makeBool(obj.coolingEnabled);
             if (typeof obj.cooldownDelay !== 'undefined') heater.cooldownDelay = parseInt(obj.cooldownDelay, 10);
             if (typeof params.COMUART !== 'undefined') heater.address = parseInt(obj.address, 10);
+            if (typeof params.START !== 'undefined') heater.startTempDelta = parseInt(obj.startTempDelta, 10);
+            if (typeof params.STOP !== 'undefined') heater.stopTempDelta = parseInt(obj.stopTempDelta, 10);
             heater.isActive = true;
             sys.board.heaters.updateHeaterServices();
             let sheater = state.heaters.getItemById(id, true);

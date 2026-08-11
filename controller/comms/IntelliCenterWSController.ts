@@ -749,13 +749,21 @@ function decodeHeater(objnam: string, params: ParamMap): void {
     if (typeof params['COOL'] !== 'undefined') heater.coolingEnabled = parseBool(params['COOL']);
     if (typeof params['DLY'] !== 'undefined') heater.cooldownDelay = parseIntSafe(params['DLY']);
     if (typeof params['BOOST'] !== 'undefined') heater.maxBoostTemp = parseIntSafe(params['BOOST']);
+    // On a HEATER, START/STOP are the numeric start/stop temp deltas.  Do NOT reuse the SCHED
+    // interpretation (SRIS/SSET/ABSTIM time types) — same key names, different meaning.
+    // Verified: changing Start/Stop Temp Delta to 9/5 at the OCP pushes START=9, STOP=5.
+    if (typeof params['START'] !== 'undefined') heater.startTempDelta = parseIntSafe(params['START']);
+    if (typeof params['STOP'] !== 'undefined') heater.stopTempDelta = parseIntSafe(params['STOP']);
     if (typeof params['COMUART'] !== 'undefined') {
         // COMUART is the 1-based unit index shown as "Heater Address" on the OCP.  njsPC's
         // canonical heater.address is the RS-485 bus address (112-128), so unit N => 111 + N.
         // Verified on i5P/ICv3: OCP address 2 => COMUART=2, OCP address 4 => COMUART=4.
-        // Non-addressable types (solar/gas) report COMUART=0 and must stay at 0.
+        // COMUART=0 means "no address assigned" — non-addressable types (solar/gas) always
+        // report 0, and an addressable heater the OCP just created also starts at 0.  It must
+        // NOT decode to 111, which is not a valid bus address.
         const htype = sys.board.valueMaps.heaterTypes.transform(heater.type);
-        heater.address = htype.hasAddress ? parseIntSafe(params['COMUART']) + 111 : 0;
+        const unit = parseIntSafe(params['COMUART']);
+        heater.address = (htype.hasAddress && unit > 0) ? unit + 111 : 0;
     }
     heater.isActive = true;
     sheater.isActive = true;
@@ -772,7 +780,7 @@ function encodeHeaterType(subtyp: string): number {
         case 'ULTRA': case 'ULTRATEMP': return 4;
         case 'HYBRID': case 'HCOMBO': return 5;
         case 'MASTER': case 'MSTR': return 6;
-        case 'MAXE': return 7;
+        case 'MAX': case 'MAXE': return 7;
         case 'ETI250': case 'ETI': return 8;
         default:
             if (s && s !== 'NONE' && s !== '') logger.info(`encodeHeaterType: unknown SUBTYP='${subtyp}'`);

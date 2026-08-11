@@ -388,8 +388,20 @@ export class IntelliCenterWSComms extends EventEmitter {
                 detail = Object.keys(obj.params).slice(0, 24).map(k => `${k}=${obj.params[k]}`).join(',');
             } else if (Array.isArray(obj?.keys)) detail = obj.keys.slice(0, 24).join(',');
             else {
+                // Log the actual change/created payloads, not just counts.  A bare
+                // "changes[4]" hid the SUBTYP token the OCP sends when a heater is
+                // reconfigured at the panel, and hid a silently-dropped param write.
                 for (const sub of ['created', 'changes', 'deleted']) {
-                    if (Array.isArray(obj?.[sub])) detail += `${detail ? ' ' : ''}${sub}[${obj[sub].length}]`;
+                    if (!Array.isArray(obj?.[sub])) continue;
+                    const items = obj[sub].slice(0, 8).map(item => {
+                        if (typeof item === 'string') return item;
+                        const nm = item?.objnam ?? item?.objtyp ?? '?';
+                        if (item?.params && typeof item.params === 'object')
+                            return `${nm}{${Object.keys(item.params).slice(0, 24).map(k => `${k}=${item.params[k]}`).join(',')}}`;
+                        return nm;
+                    }).join(' ');
+                    const more = obj[sub].length > 8 ? ` +${obj[sub].length - 8} more` : '';
+                    detail += `${detail ? ' ' : ''}${sub}[${obj[sub].length}: ${items}${more}]`;
                 }
             }
             parts.push(`${objnam}{${detail}}`);
@@ -509,7 +521,9 @@ export class IntelliCenterWSComms extends EventEmitter {
     }
 
     public async deleteObject(objnam: string): Promise<any> {
-        return this.request({ command: 'SetCommand', method: 'DeleteObject', objectList: [{ objnam }] });
+        // Verified against the official Pentair app (ws16 capture): DeleteObject takes a bare
+        // `arguments` array of objnams.  Passing `objectList:[{objnam}]` is answered with 400.
+        return this.request({ command: 'SetCommand', method: 'DeleteObject', arguments: [objnam] } as any);
     }
 
     public async destroyObject(objnam: string): Promise<any> {
@@ -1012,7 +1026,9 @@ export class IntelliCenterWSComms extends EventEmitter {
             case 'PMPCIRC':
                 return ['CIRCUIT', 'SPEED', 'SELECT', 'BODY', 'PARENT', 'INDEX'];
             case 'HEATER':
-                return ['SNAME', 'SUBTYP', 'BODY', 'STATUS', 'COOL', 'DLY', 'BOOST', 'COMUART'];
+                // START/STOP on a HEATER are the numeric temp deltas (not the SRIS/SSET/ABSTIM
+                // time types they carry on a SCHED).  Verified: OCP panel 9/5 -> START=9,STOP=5.
+                return ['SNAME', 'SUBTYP', 'BODY', 'STATUS', 'COOL', 'DLY', 'BOOST', 'COMUART', 'START', 'STOP'];
             case 'VALVE':
                 return ['SNAME', 'CIRCUIT', 'ASSIGN', 'POSIT'];
             case 'CHEM':

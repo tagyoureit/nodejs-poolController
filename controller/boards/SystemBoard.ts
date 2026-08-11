@@ -3616,17 +3616,40 @@ export class ScheduleCommands extends BoardCommands {
             let sched = schedules[i];
             // check if the id's, min, hour match
             if (sched.circuit === cbody.circuit && sched.isActive && Math.floor(sched.startTime / 60) === state.time.hours && sched.startTime % 60 === state.time.minutes) {
-                // check day match next as we need to iterate another array
-                // let days = sys.board.valueMaps.scheduleDays.transform(sched.scheduleDays);
-                // const days = sys.board.valueMaps.scheduleDays.transform(sched.scheduleDays);
-                const days = (sched.scheduleDays as any).days.map(d => d.dow)
-                // if scheduleDays includes today
-                if (days.includes(state.time.toDate().getDay())) {
-                    if (sched.changeHeatSetpoint && sched.heatSource !== sys.board.valueMaps.heatSources.getValue('off') && sched.heatSetpoint > 0 && sched.heatSetpoint !== tbody.setPoint) {
+                // .get(true) returns raw JSON objects, so sched.scheduleType and sched.scheduleDays
+                // are {val,name,desc} and {val,days:[{dow,...}]}, not plain numbers.
+                const schedTypeVal: number = (sched.scheduleType as any)?.val ?? (sched.scheduleType as any);
+                const isRunOnce = schedTypeVal === sys.board.valueMaps.scheduleTypes.getValue('runonce');
+
+                let shouldApply = false;
+                if (isRunOnce) {
+                    // For run-once schedules, match on today's date rather than day-of-week.
+                    // OCP always sends scheduleDays=127 for run-once so the bitmask is meaningless.
+                    const today = state.time.toDate();
+                    const sd = (sched as any).startDate;
+                    if (sd) {
+                        const startDay = new Date(sd);
+                        shouldApply = startDay.getFullYear() === today.getFullYear() &&
+                            startDay.getMonth() === today.getMonth() &&
+                            startDay.getDate() === today.getDate();
+                    }
+                } else {
+                    // For repeating schedules, match on day-of-week bitmask.
+                    const daysObj = (sched.scheduleDays as any);
+                    const days: number[] = Array.isArray(daysObj?.days) ? daysObj.days.map((d: any) => d.dow) : [];
+                    shouldApply = days.includes(state.time.toDate().getDay());
+                }
+
+                if (shouldApply) {
+                    // sched.heatSource is {val, name, desc} from raw JSON — extract the numeric value.
+                    const heatSourceVal: number = (sched.heatSource as any)?.val ?? (sched.heatSource as any);
+                    const offVal = sys.board.valueMaps.heatSources.getValue('off');
+                    const noChangeVal = sys.board.valueMaps.heatSources.getValue('nochange');
+                    if (sched.changeHeatSetpoint && heatSourceVal !== offVal && sched.heatSetpoint > 0 && sched.heatSetpoint !== tbody.setPoint) {
                         setTimeoutSync(() => sys.board.bodies.setHeatSetpointAsync(cbody, sched.heatSetpoint), 100);
                     }
-                    if (sched.heatSource !== sys.board.valueMaps.heatSources.getValue('nochange') && sched.heatSource !== tbody.heatMode) {
-                        setTimeoutSync(() => sys.board.bodies.setHeatModeAsync(cbody, sys.board.valueMaps.heatModes.getValue(sys.board.valueMaps.heatSources.getName(sched.heatSource))), 100);
+                    if (heatSourceVal !== noChangeVal && heatSourceVal !== tbody.heatMode) {
+                        setTimeoutSync(() => sys.board.bodies.setHeatModeAsync(cbody, sys.board.valueMaps.heatModes.getValue(sys.board.valueMaps.heatSources.getName(heatSourceVal))), 100);
                     }
                 }
             }

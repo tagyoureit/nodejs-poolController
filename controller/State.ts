@@ -1468,7 +1468,14 @@ export class ScheduleState extends EqState {
     }
     public get scheduleDays(): number { return typeof (this.data.scheduleDays) !== 'undefined' ? this.data.scheduleDays.val : undefined; }
     public set scheduleDays(val: number) {
-        if (this.scheduleDays !== val) {
+        // Run-once schedules always report scheduleDays=127 from the OCP regardless of
+        // actual day selection (days are irrelevant for run-once).  Normalize to 0 so the
+        // API does not expose a misleading wire value.  Use raw this.data access for both
+        // the type check and the equality check to avoid circular getter interactions.
+        const typeVal = typeof this.data.scheduleType !== 'undefined' ? (this.data.scheduleType.val ?? this.data.scheduleType) : undefined;
+        if (typeVal === sys.board.valueMaps.scheduleTypes.getValue('runonce')) val = 0;
+        const curVal = typeof this.data.scheduleDays !== 'undefined' ? this.data.scheduleDays.val : undefined;
+        if (curVal !== val) {
             this.data.scheduleDays = sys.board.valueMaps.scheduleDays.transform(val);
             this.hasChanged = true;
         }
