@@ -562,7 +562,15 @@ export class byteValueMaps {
         [9, { name: 'aquarite-925', desc: 'AquaRite 925', capacity: 25000, chlorinePerDay: 0.98, chlorinePerSec: 0.98 / 86400 }],
         [10, { name: 'aquarite-940', desc: 'AquaRite 940', capacity: 40000, chlorinePerDay: 1.47, chlorinePerSec: 1.47 / 86400 }],
         [11, { name: 'ichlor-ic15', desc: 'iChlor IC15', capacity: 15000, chlorinePerDay: 0.6, chlorinePerSec: 0.6 / 86400 }],
-        [12, { name: 'ichlor-ic30', desc: 'iChlor IC30', capacity: 30000, chlorinePerDay: 1.0, chlorinePerSec: 1.0 / 86400 }]
+        [12, { name: 'ichlor-ic30', desc: 'iChlor IC30', capacity: 30000, chlorinePerDay: 1.0, chlorinePerSec: 1.0 / 86400 }],
+        // IntelliChlor Plus & LT series (2025+).  These are protocol and power compatible with the legacy
+        // IntelliChlor/iChlor cells -- same PC100 PowerCenter connector and same plumbing -- so no OCP upgrade
+        // is required.  See .plan/503-pentair-intellichlor-plus-lt.md for the Pentair source citations.
+        [13, { name: 'intellichlor-lt15', desc: 'IntelliChlor LT15', capacity: 15000, chlorinePerDay: 0.65, chlorinePerSec: 0.65 / 86400 }],
+        [14, { name: 'intellichlor-lt25', desc: 'IntelliChlor LT25', capacity: 25000, chlorinePerDay: 0.90, chlorinePerSec: 0.90 / 86400 }],
+        [15, { name: 'intellichlor-plus30', desc: 'IntelliChlor Plus30', capacity: 30000, chlorinePerDay: 1.10, chlorinePerSec: 1.10 / 86400 }],
+        [16, { name: 'intellichlor-plus40', desc: 'IntelliChlor Plus40', capacity: 40000, chlorinePerDay: 1.40, chlorinePerSec: 1.40 / 86400 }],
+        [17, { name: 'intellichlor-plus60', desc: 'IntelliChlor Plus60', capacity: 60000, chlorinePerDay: 2.00, chlorinePerSec: 2.00 / 86400 }]
     ]);
     public customNames: byteValueMap = new byteValueMap();
     public circuitNames: byteValueMap = new byteValueMap();

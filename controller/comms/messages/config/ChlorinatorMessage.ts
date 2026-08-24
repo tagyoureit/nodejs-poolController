@@ -20,6 +20,8 @@ import { Inbound } from "../Messages";
 import { state } from "../../../State";
 import { logger } from "../../../../logger/Logger"
 export class ChlorinatorMessage {
+    // Ephemeral, session-only set of model strings we have already warned about.  See ChlorinatorStateMessage.
+    private static _loggedUnknownModels: Set<string> = new Set<string>();
     public static process(msg: Inbound): void {
         var chlorId;
         var chlor: Chlorinator;
@@ -187,6 +189,12 @@ export class ChlorinatorMessage {
                 chlor.model = sys.board.valueMaps.chlorinatorModel.getValue(schlor.name.toLowerCase());
                 if (typeof chlor.model === 'undefined') {
                     if (name.startsWith('iChlor')) chlor.model = sys.board.valueMaps.chlorinatorModel.getValue('ichlor-ic30');
+                }
+                // RG: 08-24-26 -- See ChlorinatorStateMessage case 3.  Log unrecognized model strings (eg the
+                // IntelliChlor Plus/LT series) instead of guessing at a mapping.  Logged once per distinct string.
+                if (typeof chlor.model === 'undefined' && !ChlorinatorMessage._loggedUnknownModels.has(schlor.name)) {
+                    ChlorinatorMessage._loggedUnknownModels.add(schlor.name);
+                    logger.info(`Unrecognized chlorinator model reported: '${schlor.name}'. Please report this string along with your cell model. ${msg.toPacket()}`);
                 }
             }
             if (typeof chlor.type === 'undefined') chlor.type = schlor.type = 0; 

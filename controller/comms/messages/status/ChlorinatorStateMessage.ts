@@ -18,8 +18,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import { Inbound, Protocol } from "../Messages";
 import { state, BodyTempState, ChlorinatorState } from "../../../State";
 import { sys, ControllerType, Chlorinator } from "../../../Equipment";
+import { logger } from "../../../../logger/Logger";
 
 export class ChlorinatorStateMessage {
+    // Ephemeral, session-only set of model strings we have already warned about.  Prevents the unrecognized-model
+    // log below from repeating on every poll cycle, since getModelAsync() runs inside the Nixie poll loop.
+    private static _loggedUnknownModels: Set<string> = new Set<string>();
     public static process(msg: Inbound) {
         if (msg.protocol === Protocol.Chlorinator) {
             // RKS: 03-29-22 A lot of water has gone under the bridge at this point and we know much more.  First there are two types of messages.  Those inbound
@@ -78,6 +82,15 @@ export class ChlorinatorStateMessage {
                         // With iChlor it does not report the model.
                         if (typeof chlor.model === 'undefined') {
                             if (name.startsWith('iChlor')) chlor.model = sys.board.valueMaps.chlorinatorModel.getValue('ichlor-ic30');
+                        }
+                        // RG: 08-24-26 -- We have no capture of the model string reported by the IntelliChlor Plus/LT
+                        // series.  Log it rather than guess so it can be mapped once a real capture is available.  We
+                        // deliberately leave chlor.model unset here so any model the user selected manually survives.
+                        // Logged once per distinct string because this path runs on every poll cycle.
+                        // See .plan/503-pentair-intellichlor-plus-lt.md.
+                        if (typeof chlor.model === 'undefined' && !ChlorinatorStateMessage._loggedUnknownModels.has(name)) {
+                            ChlorinatorStateMessage._loggedUnknownModels.add(name);
+                            logger.info(`Unrecognized chlorinator model reported: '${name}'. Please report this string along with your cell model. ${msg.toPacket()}`);
                         }
                     }
                     cstate.isActive = chlor.isActive;
