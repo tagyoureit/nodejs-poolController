@@ -1759,6 +1759,8 @@ export class BodyHeaterTypeState extends EqState {
 }
 export class BodyTempState extends EqState {
     public dataName = 'bodyTempState';
+    // Ephemeral flag (not persisted): suppresses repeated "no temp" warnings within a session.
+    public _warnedNoTemp = false;
     public initData() {
         if (typeof this.data.heaterOptions === 'undefined') this.data.heaterOptions = { total: 0 };
         if (typeof this.data.isCovered === 'undefined') this.data.isCovered = false;
