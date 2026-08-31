@@ -4276,7 +4276,12 @@ export class HeaterCommands extends BoardCommands {
                 let hstatus = sys.board.valueMaps.heatStatus.getName(body.heatStatus);
                 let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
                 if (body.isOn) {
-                    if (typeof body.temp === 'undefined' && heaters.length > 0) logger.warn(`The body temperature for ${body.name} cannot be determined. Heater status for this body cannot be calculated.`);
+                    if (typeof body.temp === 'undefined' && heaters.length > 0) {
+                        if (!body._warnedNoTemp) {
+                            logger.warn(`The body temperature for ${body.name} cannot be determined. Heater status for this body cannot be calculated.`);
+                            body._warnedNoTemp = true;
+                        }
+                    } else body._warnedNoTemp = false;
                     // Now get all the heaters associated with the body in an array.
                     let bodyHeaters: Heater[] = [];
                     for (let j = 0; j < heaters.length; j++) {
@@ -4582,6 +4587,7 @@ export class HeaterCommands extends BoardCommands {
                         if (isOn === true) break;
                     }
                 }
+                else body._warnedNoTemp = false;
                 if (sys.controllerType === ControllerType.Nixie && !isHeating && !isCooling && hstatus !== 'cooldown') body.heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
                 //else if (sys.controllerType === ControllerType.Nixie) body.heatStatus = 0;
             }
