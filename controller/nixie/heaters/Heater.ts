@@ -187,7 +187,7 @@ export class NixieGasHeater extends NixieHeaterBase {
         // Delays are always in terms of seconds so convert the minute to seconds.
         if (this.heater.cooldownDelay === 0 || typeof this.lastHeatCycle === 'undefined') return 0;
         let now = new Date().getTime();
-        let cooldown = this.isOn ? this.heater.cooldownDelay * 60000 : Math.round(((this.lastHeatCycle.getDate() + this.heater.cooldownDelay * 60000) - now) / 1000);
+        let cooldown = this.isOn ? this.heater.cooldownDelay * 60 : Math.round(((this.lastHeatCycle.getTime() + this.heater.cooldownDelay * 60000) - now) / 1000);
         return Math.min(Math.max(0, cooldown), this.heater.cooldownDelay * 60);
     }
     public async setHeaterStateAsync(hstate: HeaterState, isOn: boolean) {
