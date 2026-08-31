@@ -76,6 +76,21 @@ export class IntelliCenterWSBoard extends IntelliCenterBoard {
                 try {
                     state.time.setTimeFromSystemClock();
                     sys.board.system.setTZ();
+                    // The OCP pushes ACT=ON when a schedule starts but may not push ACT=OFF
+                    // when it ends.  Clear stale isOn flags once per minute so dashPanel
+                    // indicators go grey without a page reload.
+                    let schedChanged = false;
+                    for (let i = 0; i < state.schedules.length; i++) {
+                        const ssched = state.schedules.getItemByIndex(i);
+                        if (ssched.isOn) {
+                            ssched.recalculate(true);
+                            if (!ssched.scheduleTime.shouldBeOn) {
+                                ssched.isOn = false;
+                                schedChanged = true;
+                            }
+                        }
+                    }
+                    if (schedChanged) state.emitEquipmentChanges();
                 } catch (err) { logger.error(`Error updating WS clock: ${err.message}`); }
                 this.processStatusAsync();
             }, 60000);
