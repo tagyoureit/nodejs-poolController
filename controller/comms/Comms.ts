@@ -97,7 +97,12 @@ export class Connection {
                 netPort: 9801,
                 inactivityRetry: 10
             });
-            if (portId === 0) {
+            // Seed only when absent.  This ran unconditionally, so every write
+            // to this endpoint for port 0 wiped an existing screenlogic block --
+            // password included -- and it is only restored from the request when
+            // the port type is 'screenlogic'.  Same guard as the cfg.screenlogic
+            // initialiser further down.
+            if (portId === 0 && !pdata.screenlogic) {
                 pdata.screenlogic = {
                     connectionType: "local",
                     systemName: "Pentair: 00-00-00",
