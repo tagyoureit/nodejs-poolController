@@ -86,7 +86,7 @@ export class State implements IState {
         var self = this;
         Promise.resolve()
             .then(() => {
-                fs.writeFileSync(self.statePath, JSON.stringify(self.data, undefined, 2));
+                utils.writeFileAtomicSync(self.statePath, JSON.stringify(self.data, undefined, 2));
             })
             .catch(function (err) { if (err) logger.error('Error writing pool state %s %s', err, self.statePath); });
     }

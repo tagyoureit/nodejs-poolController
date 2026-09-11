@@ -18,6 +18,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 import { EventEmitter } from 'events';
 import { logger } from "../logger/Logger";
 import * as util from 'util';
+import * as fs from 'fs';
+import * as path from 'path';
 class HeliotropeContext {
     constructor(longitude: number, latitude: number, zenith: number) {
         this._zenith = typeof zenith !== 'undefined' ? zenith : 90 + 50 / 60;
@@ -813,6 +815,37 @@ export class Utils {
     }
     public dec2bin(dec) {
         return (dec >>> 0).toString(2).padStart(8, '0');
+    }
+    /**
+     * Write a file so that a crash or power loss mid-write leaves either the
+     * previous contents or the new ones, never a truncated file.
+     *
+     * fs.writeFileSync truncates the target before writing, so an interruption
+     * between the two leaves it empty or partial. Writing a temporary file in the
+     * same directory, flushing it, and renaming it over the target avoids that:
+     * rename is atomic on POSIX filesystems and replaces the target in place on
+     * Windows.
+     *
+     * Do not use this for a file watched with fs.watch on its own path. The
+     * rename replaces the inode, and on Linux such a watch stops firing
+     * afterwards.
+     */
+    public writeFileAtomicSync(filePath: string, data: string) {
+        const tmpPath = `${filePath}.tmp`;
+        const fd = fs.openSync(tmpPath, 'w');
+        try {
+            fs.writeFileSync(fd, data);
+            fs.fsyncSync(fd);
+        }
+        finally { fs.closeSync(fd); }
+        fs.renameSync(tmpPath, filePath);
+        // Make the rename itself durable. Directories cannot be opened this way
+        // on every platform; the rename is still atomic without it.
+        try {
+            const dirFd = fs.openSync(path.dirname(filePath), 'r');
+            try { fs.fsyncSync(dirFd); } finally { fs.closeSync(dirFd); }
+        }
+        catch (err) { }
     }
 }
 

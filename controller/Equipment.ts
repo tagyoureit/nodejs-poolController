@@ -470,7 +470,7 @@ export class PoolSystem implements IPoolSystem {
         }
         sys.emitEquipmentChange();
         Promise.resolve()
-            .then(() => { fs.writeFileSync(sys.cfgPath, JSON.stringify(sys.data, undefined, 2)); })
+            .then(() => { utils.writeFileAtomicSync(sys.cfgPath, JSON.stringify(sys.data, undefined, 2)); })
             .catch(function (err) { if (err) logger.error('Error writing pool config %s %s', err, sys.cfgPath); });
     }
     // We are doing this because TS is lame. Accessing the app servers from the routes causes a cyclic include.
