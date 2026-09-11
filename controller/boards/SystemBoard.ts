@@ -4260,6 +4260,10 @@ export class HeaterCommands extends BoardCommands {
     }
     // This updates the heater states based upon the installed heaters.  This is true for heaters that are tied to the OCP
     // and those that are not.
+    // Bodies already warned about for having no temperature, by id. Held here rather than on
+    // BodyTempState because state.temps.bodies.toArray() builds a new BodyTempState for every entry
+    // on every call, so an instance field is back to its initial value by the next pass.
+    private static _warnedNoTemp: Set<number> = new Set<number>();
     public syncHeaterStates() {
         try {
 
@@ -4277,11 +4281,11 @@ export class HeaterCommands extends BoardCommands {
                 let mode = sys.board.valueMaps.heatModes.getName(body.heatMode);
                 if (body.isOn) {
                     if (typeof body.temp === 'undefined' && heaters.length > 0) {
-                        if (!body._warnedNoTemp) {
+                        if (!HeaterCommands._warnedNoTemp.has(body.id)) {
                             logger.warn(`The body temperature for ${body.name} cannot be determined. Heater status for this body cannot be calculated.`);
-                            body._warnedNoTemp = true;
+                            HeaterCommands._warnedNoTemp.add(body.id);
                         }
-                    } else body._warnedNoTemp = false;
+                    } else HeaterCommands._warnedNoTemp.delete(body.id);
                     // Now get all the heaters associated with the body in an array.
                     let bodyHeaters: Heater[] = [];
                     for (let j = 0; j < heaters.length; j++) {
@@ -4587,7 +4591,7 @@ export class HeaterCommands extends BoardCommands {
                         if (isOn === true) break;
                     }
                 }
-                else body._warnedNoTemp = false;
+                else HeaterCommands._warnedNoTemp.delete(body.id);
                 if (sys.controllerType === ControllerType.Nixie && !isHeating && !isCooling && hstatus !== 'cooldown') body.heatStatus = sys.board.valueMaps.heatStatus.getValue('off');
                 //else if (sys.controllerType === ControllerType.Nixie) body.heatStatus = 0;
             }
