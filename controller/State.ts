@@ -386,6 +386,9 @@ export class State implements IState {
             for (let i = 0; i < sdata.schedules.length; i++) {
                 let ssched = sdata.schedules[i];
                 ssched.manualPriorityActive = ssched.isOn = ssched.triggered = false;
+                // divergedSince is a diagnostic condition, not control state.  A value carried
+                // across a restart would report a stranded schedule that no longer exists.
+                ssched.divergedSince = undefined;
                 if (typeof ssched.scheduleTime !== 'undefined') ssched.scheduleTime.calculated = false;
             }
         }
@@ -1443,6 +1446,15 @@ export class ScheduleState extends EqState {
     public set disabled(val: boolean) { this.setDataVal('disabled', val); }
     public get triggered(): boolean { return this.data.triggered || false; }
     public set triggered(val: boolean) { this.setDataVal('triggered', val); }
+    // Diagnostic condition, not a control input.  Set to the instant at which this schedule was
+    // first observed wanting its circuit on while the circuit was off and every matching schedule
+    // was already triggered -- i.e. the scheduler is not going to act and cannot say whether that
+    // is a deliberate manual off or another subsystem having stomped the circuit.  Undefined means
+    // no divergence.  Nothing branches on this value; it exists so a stranded schedule is visible
+    // in /state/schedules instead of only in the log.  An instant rather than a flag so consumers
+    // can show how long it has been stranded.  (#1243 / ISSUE-232)
+    public get divergedSince(): Date { return typeof this.data.divergedSince !== 'undefined' && this.data.divergedSince !== '' ? new Date(this.data.divergedSince) : undefined; }
+    public set divergedSince(val: Date) { this.setDataVal('divergedSince', typeof val === 'undefined' ? undefined : Timestamp.toISOLocal(val)); }
     public get scheduleType(): number { return typeof (this.data.scheduleType) !== 'undefined' ? this.data.scheduleType.val : undefined; }
     public set scheduleType(val: number) {
         if (this.scheduleType !== val) {

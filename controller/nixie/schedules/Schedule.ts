@@ -44,8 +44,61 @@ export class NixieScheduleCollection extends NixieEquipmentCollection<NixieSched
         }
         catch (err) { logger.error(`Nixie Schedule initAsync: ${err.message}`); return Promise.reject(err); }
     }
+    // Ephemeral, per-process bookkeeping for suppression logging only.  This carries no
+    // authority over schedule behavior and is deliberately not persisted.
+    private _suppressionLogged: Set<number> = new Set();
+    private _triggering: boolean = false;
+    /**
+     * Lifecycle cleanup for the schedule trigger latches.
+     *
+     * This MUST run before the `getActiveSchedules()` eligibility filter below.  A schedule
+     * that is fully quiescent -- not on, and outside its window -- is either dropped by
+     * `getActiveSchedules()` entirely (inactive, disabled, expired runonce) or discarded by
+     * the `!isOn && !shouldBeOn` filter in the hashing loop.  Either way it never lands in a
+     * `circuits[]` bucket, so the `!cstate.isOn && !shouldBeOn` reset branch at the bottom of
+     * the evaluation loop cannot see it.  A `triggered` flag left set in that state has no
+     * reachable reset path and silently disables the schedule until the process restarts.
+     *
+     * `triggerSchedules()` is the sole owner of the `triggered` / `manualPriorityActive`
+     * lifecycle.  `syncScheduleStates()` owns `isOn` and must not reset these -- it cannot do
+     * so correctly because its reset is gated on an `isOn` change that never fires once `isOn`
+     * is already false.
+     *
+     * `isOn` is cleared here only when the circuit is already off, so a schedule whose window
+     * closed while its circuit is still on keeps `isOn === true` and survives the filter long
+     * enough for the evaluation loop to issue its off command.  (#1243)
+     */
+    private clearExpiredTriggerState() {
+        for (let i = 0; i < state.schedules.length; i++) {
+            let ssched = state.schedules.getItemByIndex(i);
+            // Anything inside its window is still owned by the evaluation loop below.
+            if (ssched.scheduleTime.shouldBeOn) continue;
+            let scirc = state.circuits.getInterfaceById(ssched.circuit);
+            // The window has closed.  If the circuit is already off there is no off command left
+            // to issue, so isOn can be cleared here too.  That removes the residual case where a
+            // schedule the evaluation loop never reaches (an OCP-owned circuit, or a record
+            // getActiveSchedules() drops) depends on the syncScheduleStates() isOn clobber to
+            // become eligible for cleanup.  While the circuit is still on, isOn must be left
+            // alone so the schedule survives the filter and its off command is issued.
+            let circuitOff = typeof scirc === 'undefined' || !scirc.isOn;
+            if (ssched.isOn && !circuitOff) continue;
+            this._suppressionLogged.delete(ssched.id);
+            if (typeof ssched.divergedSince !== 'undefined') ssched.divergedSince = undefined;
+            if (!ssched.isOn && !ssched.triggered && !ssched.manualPriorityActive) continue;
+            logger.info(`Clearing stale trigger state for schedule ${ssched.id} (isOn=${ssched.isOn} triggered=${ssched.triggered} manualPriorityActive=${ssched.manualPriorityActive})`);
+            ssched.isOn = ssched.manualPriorityActive = ssched.triggered = false;
+        }
+    }
     public async triggerSchedules() {
+        // A prior pass may still be suspended on an equipment write.  Circuit completion can
+        // re-enter status processing, which calls syncScheduleStates() -- and therefore this
+        // method -- again.  Drop the overlapping pass instead of waiting on ourselves; the
+        // next poll re-evaluates from current state.  (#1243)
+        if (this._triggering) return;
+        this._triggering = true;
         try {
+            // Clear orphaned trigger latches before anything filters the candidate list.
+            this.clearExpiredTriggerState();
             // This is a listing of all the active schedules that are either currently on or should be on.
             let sscheds: ScheduleState[] = state.schedules.getActiveSchedules();
             // Go through all the schedules and hash them by circuit id.
@@ -67,7 +120,12 @@ export class NixieScheduleCollection extends NixieEquipmentCollection<NixieSched
             // Sort this so that body circuits are evaluated first.  This is required when there are schedules for things like cleaner
             // or delay circuits.  If we do not do this then a schedule that requires the pool to be on for instance will never
             // get triggered.
-            circuits.sort((x, y) => y.circuitId === 6 || y.circuitId === 1 ? 1 : y.circuitId - x.circuitId);
+            circuits.sort((left, right) => {
+                const leftIsBody = typeof sys.bodies.find(body => body.circuit === left.circuitId) !== 'undefined';
+                const rightIsBody = typeof sys.bodies.find(body => body.circuit === right.circuitId) !== 'undefined';
+                if (leftIsBody !== rightIsBody) return leftIsBody ? -1 : 1;
+                return leftIsBody ? 0 : right.circuitId - left.circuitId;
+            });
 
 
             /*
@@ -99,115 +157,143 @@ export class NixieScheduleCollection extends NixieEquipmentCollection<NixieSched
             for (let i = 0; i < circuits.length; i++) {
                 let c = circuits[i];
                 if (!c.hasNixie) continue; // If this has nothing to do with Nixie move on.
-                let shouldBeOn = typeof c.sscheds.find(elem => elem.scheduleTime.shouldBeOn === true) !== 'undefined';
-                // 1. If the feature is currently running and the schedule is not on then it will set the priority for the circuit to [scheduled].
-                // 2. If the feature is currently running but there are overlapping schedules then this will catch any schedules that need to be turned off.
-                if (c.cstate.isOn && shouldBeOn) {
-                    c.cstate.priority = shouldBeOn ? 'scheduled' : 'manual';
-                    for (let j = 0; j < c.sscheds.length; j++) {
-                        let ssched = c.sscheds[j];
-                        ssched.triggered = ssched.scheduleTime.shouldBeOn;
-                        if (mOP && ssched.manualPriorityActive) {
-                            ssched.isOn = false;
-                            // Not sure what setting a delay for this does but ok.
-                            if (!c.cstate.manualPriorityActive) delayMgr.setManualPriorityDelay(c.cstate);
-                        }
-                        else ssched.isOn = ssched.scheduleTime.shouldBeOn && !ssched.manualPriorityActive;
-                    }
-                }
-                // 3. If the schedule should be on and it isn't and the schedule has not been triggered then we need to 
-                // turn the schedule and circuit on.
-                else if (!c.cstate.isOn && shouldBeOn) {
-                    // The circuit is not on but it should be. Check to ensure all schedules have been triggered.
-                    let untriggered = false;
-                    // If this schedule has been triggered then mOP comes into play if manualPriority has been set in the config.
-                    for (let j = 0; j < c.sscheds.length; j++) {
-                        let ssched = c.sscheds[j];
-                        // If this schedule is turned back on then the egg timer will come into play.  This is all that is required
-                        // for the mOP function.  The setEndDate for the circuit makes the determination as to when off will occur.
-                        if (mOP && ssched.scheduleTime.shouldBeOn && ssched.triggered) {
-                            ssched.manualPriorityActive = true;
-                        }
-                        // The reason we check to see if anything has not been triggered is so we do not have to perform the circuit changes
-                        // if the schedule has already been triggered.
-                        else if (!ssched.triggered) untriggered = true;
-                    }
-                    let heatSource = { heatMode: 'nochange', heatSetpoint: undefined, coolSetpoint: undefined };
-                    // Check to see if any of the schedules have not been triggered.  If they haven't then trigger them and turn the circuit on.
-                    if (untriggered) {
-                        // Get the heat modes and temps for all the schedules that have not been triggered.
-                        let body = sys.bodies.find(elem => elem.circuit === c.circuitId);
-                        if (typeof body !== 'undefined') {
-                            // If this is a body circuit then we need to set the heat mode and the temperature but only do this once. If
-                            // the user changes it later then that is on them.
-                            for (let j = 0; j < c.sscheds.length; j++) {
-                                if (sscheds[j].triggered) continue;
-                                let ssched = sscheds[j];
-                                let hs = sys.board.valueMaps.heatSources.transform(c.sscheds[i].heatSource);
-                                switch (hs.name) {
-                                    case 'nochange':
-                                    case 'dontchange':
-                                        break;
-                                    case 'off':
-                                        // If the heatsource setting is off only change it if it is currently don't change.
-                                        if (heatSource.heatMode === 'nochange') heatSource.heatMode = hs.name;
-                                        break;
-                                    default:
-                                        switch (heatSource.heatMode) {
-                                            case 'off':
-                                            case 'nochange':
-                                            case 'dontchange':
-                                                heatSource.heatMode = hs.name;
-                                                heatSource.heatSetpoint = ssched.heatSetpoint;
-                                                heatSource.coolSetpoint = hs.hasCoolSetpoint ? ssched.coolSetpoint : undefined;
-                                                break;
-                                        }
-                                        break;
-                                }
-                                // Ok if we need to change the setpoint or the heatmode then lets do it.
-                                if (heatSource.heatMode !== 'nochange') {
-                                    await sys.board.bodies.setHeatModeAsync(body, sys.board.valueMaps.heatSources.getValue(heatSource.heatMode));
-                                    if (typeof heatSource.heatSetpoint !== 'undefined') await sys.board.bodies.setHeatSetpointAsync(body, heatSource.heatSetpoint);
-                                    if (typeof heatSource.coolSetpoint !== 'undefined') await sys.board.bodies.setCoolSetpointAsync(body, heatSource.coolSetpoint);
-                                }
-                            }
-                        }
-                        // By now we have everything we need to turn on the circuit.
+                try {
+                    let shouldBeOn = typeof c.sscheds.find(elem => elem.scheduleTime.shouldBeOn === true) !== 'undefined';
+                    // 1. If the feature is currently running and the schedule is not on then it will set the priority for the circuit to [scheduled].
+                    // 2. If the feature is currently running but there are overlapping schedules then this will catch any schedules that need to be turned off.
+                    if (c.cstate.isOn && shouldBeOn) {
+                        c.cstate.priority = shouldBeOn ? 'scheduled' : 'manual';
                         for (let j = 0; j < c.sscheds.length; j++) {
                             let ssched = c.sscheds[j];
-                            if (!ssched.triggered && ssched.scheduleTime.shouldBeOn) {
-                                if (!c.cstate.isOn) {
-                                    await sys.board.circuits.setCircuitStateAsync(c.circuitId, true);
-                                }
+                            ssched.triggered = ssched.scheduleTime.shouldBeOn;
+                            if (mOP && ssched.manualPriorityActive) {
+                                ssched.isOn = false;
+                                // Not sure what setting a delay for this does but ok.
+                                if (!c.cstate.manualPriorityActive) delayMgr.setManualPriorityDelay(c.cstate);
+                            }
+                            else ssched.isOn = ssched.scheduleTime.shouldBeOn && !ssched.manualPriorityActive;
+                        }
+                    }
+                    // 3. If the schedule should be on and it isn't and the schedule has not been triggered then we need to 
+                    // turn the schedule and circuit on.
+                    else if (!c.cstate.isOn && shouldBeOn) {
+                        // The circuit is not on but it should be. Check to ensure all schedules have been triggered.
+                        let untriggered = false;
+                        // If this schedule has been triggered then mOP comes into play if manualPriority has been set in the config.
+                        for (let j = 0; j < c.sscheds.length; j++) {
+                            let ssched = c.sscheds[j];
+                            // If this schedule is turned back on then the egg timer will come into play.  This is all that is required
+                            // for the mOP function.  The setEndDate for the circuit makes the determination as to when off will occur.
+                            if (mOP && ssched.scheduleTime.shouldBeOn && ssched.triggered) {
+                                ssched.manualPriorityActive = true;
+                            }
+                            // The reason we check to see if anything has not been triggered is so we do not have to perform the circuit changes
+                            // if the schedule has already been triggered.
+                            else if (!ssched.triggered) untriggered = true;
+                        }
+                        if (!untriggered) {
+                            // Every schedule that wants this circuit on has already been triggered, yet
+                            // the circuit is off.  That is the documented manual-off suppression for the
+                            // remainder of the occurrence -- but it is also exactly what an external isOn
+                            // clobber, a group egg-timer cascade, or a write that never reached the relay
+                            // looks like from here.  Telling those apart needs the provenance plumbing in
+                            // .plan/pool-schedule-execution-rewrite.md step 3, which is out of scope for a
+                            // bug fix, so the scheduler deliberately does not act.
+                            //
+                            // What it must not do is fail silently.  Record the divergence as an instant on
+                            // the schedule state so /state/schedules exposes the stranded schedule to
+                            // dashPanel, and log it once per occurrence rather than on every poll.
+                            // (#1243 / ISSUE-232)
+                            for (let j = 0; j < c.sscheds.length; j++) {
                                 let ssched = c.sscheds[j];
-                                c.cstate.priority = 'scheduled';
-                                ssched.triggered = ssched.isOn = ssched.scheduleTime.shouldBeOn;
-                                ssched.manualPriorityActive = false;
+                                if (!ssched.scheduleTime.shouldBeOn) continue;
+                                if (typeof ssched.divergedSince === 'undefined') ssched.divergedSince = new Date();
+                                if (this._suppressionLogged.has(ssched.id)) continue;
+                                this._suppressionLogged.add(ssched.id);
+                                logger.info(`Schedule ${ssched.id} should be on but circuit ${c.circuitId} is off and all matching schedules are already triggered; the scheduler will not act until the window resets. Diverged since ${Timestamp.toISOLocal(ssched.divergedSince)}.`);
+                            }
+                        }
+                        let heatSource = { heatMode: 'nochange', heatSetpoint: undefined, coolSetpoint: undefined };
+                        // Check to see if any of the schedules have not been triggered.  If they haven't then trigger them and turn the circuit on.
+                        if (untriggered) {
+                            // Get the heat modes and temps for all the schedules that have not been triggered.
+                            let body = sys.bodies.find(elem => elem.circuit === c.circuitId);
+                            if (typeof body !== 'undefined') {
+                                // If this is a body circuit then we need to set the heat mode and the temperature but only do this once. If
+                                // the user changes it later then that is on them.
+                                for (let j = 0; j < c.sscheds.length; j++) {
+                                    let ssched = c.sscheds[j];
+                                    if (ssched.triggered) continue;
+                                    let hs = sys.board.valueMaps.heatSources.transform(ssched.heatSource);
+                                    switch (hs.name) {
+                                        case 'nochange':
+                                        case 'dontchange':
+                                            break;
+                                        case 'off':
+                                            // If the heatsource setting is off only change it if it is currently don't change.
+                                            if (heatSource.heatMode === 'nochange') heatSource.heatMode = hs.name;
+                                            break;
+                                        default:
+                                            switch (heatSource.heatMode) {
+                                                case 'off':
+                                                case 'nochange':
+                                                case 'dontchange':
+                                                    heatSource.heatMode = hs.name;
+                                                    heatSource.heatSetpoint = ssched.heatSetpoint;
+                                                    heatSource.coolSetpoint = hs.hasCoolSetpoint ? ssched.coolSetpoint : undefined;
+                                                    break;
+                                            }
+                                            break;
+                                    }
+                                    // Ok if we need to change the setpoint or the heatmode then lets do it.
+                                    if (heatSource.heatMode !== 'nochange') {
+                                        await sys.board.bodies.setHeatModeAsync(body, sys.board.valueMaps.heatSources.getValue(heatSource.heatMode));
+                                        if (typeof heatSource.heatSetpoint !== 'undefined') await sys.board.bodies.setHeatSetpointAsync(body, heatSource.heatSetpoint);
+                                        if (typeof heatSource.coolSetpoint !== 'undefined') await sys.board.bodies.setCoolSetpointAsync(body, heatSource.coolSetpoint);
+                                    }
+                                }
+                            }
+                            // By now we have everything we need to turn on the circuit.
+                            for (let j = 0; j < c.sscheds.length; j++) {
+                                let ssched = c.sscheds[j];
+                                if (!ssched.triggered && ssched.scheduleTime.shouldBeOn) {
+                                    if (!c.cstate.isOn) {
+                                        await sys.board.circuits.setCircuitStateAsync(c.circuitId, true);
+                                    }
+                                    c.cstate.priority = 'scheduled';
+                                    ssched.triggered = ssched.isOn = ssched.scheduleTime.shouldBeOn;
+                                    ssched.manualPriorityActive = false;
+                                    ssched.divergedSince = undefined;
+                                    this._suppressionLogged.delete(ssched.id);
+                                }
                             }
                         }
                     }
-                }
-                else if (c.cstate.isOn && !shouldBeOn) {
-                    // Time to turn off the schedule.
-                    for (let j = 0; j < c.sscheds.length; j++) {
-                        let ssched = c.sscheds[j];
-                        // Only turn off the schedule if it is not actively mOP.
-                        if (c.cstate.isOn && !ssched.manualPriorityActive) await sys.board.circuits.setCircuitStateAsync(c.circuitId, false);
-                        c.cstate.priority = 'manual';
-                        // The schedule has expired we need to clear all the info for it.
-                        ssched.manualPriorityActive = ssched.triggered = ssched.isOn = c.sscheds[j].scheduleTime.shouldBeOn;
+                    else if (c.cstate.isOn && !shouldBeOn) {
+                        // Time to turn off the schedule.
+                        for (let j = 0; j < c.sscheds.length; j++) {
+                            let ssched = c.sscheds[j];
+                            // Only turn off the schedule if it is not actively mOP.
+                            if (c.cstate.isOn && !ssched.manualPriorityActive) await sys.board.circuits.setCircuitStateAsync(c.circuitId, false);
+                            c.cstate.priority = 'manual';
+                            // The schedule has expired we need to clear all the info for it.
+                            ssched.manualPriorityActive = ssched.triggered = ssched.isOn = c.sscheds[j].scheduleTime.shouldBeOn;
+                        }
                     }
-                }
-                else if (!c.cstate.isOn && !shouldBeOn) {
-                    // Everything is off so lets clear it all.
-                    for (let j = 0; j < c.sscheds.length; j++) {
-                        let ssched = c.sscheds[j];
-                        ssched.isOn = ssched.manualPriorityActive = ssched.triggered = false;
+                    else if (!c.cstate.isOn && !shouldBeOn) {
+                        // Everything is off so lets clear it all.
+                        for (let j = 0; j < c.sscheds.length; j++) {
+                            let ssched = c.sscheds[j];
+                            ssched.isOn = ssched.manualPriorityActive = ssched.triggered = false;
+                        }
                     }
+                    state.emitEquipmentChanges();
+                } catch (err) {
+                    logger.error(`Error triggering nixie schedules for circuit ${c.circuitId} (schedules ${c.sscheds.map(schedule => schedule.id).join(', ')}): ${err instanceof Error ? err.message : String(err)}`);
                 }
-                state.emitEquipmentChanges();
             }
         } catch (err) { logger.error(`Error triggering nixie schedules: ${err.message}`); }
+        finally { this._triggering = false; }
     }
 }
 export class NixieSchedule extends NixieEquipment {

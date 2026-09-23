@@ -22,6 +22,7 @@
         "start:cached": "node dist/app.js",
         "build": "tsc",
         "watch": "tsc -w",
+        "test:unit": "vitest run --config test/unit/vitest.config.ts",
         "test:integration": "vitest run --config test/integration/vitest.config.ts",
         "test:integration:watch": "vitest --config test/integration/vitest.config.ts"
     },

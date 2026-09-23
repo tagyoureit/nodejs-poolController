@@ -4681,10 +4681,13 @@ export class IntelliCenterScheduleCommands extends ScheduleCommands {
         else
             return Promise.reject(new InvalidEquipmentIdError('No schedule information provided', undefined, 'Schedule'));
     }
-    public syncScheduleStates() {
+    public async syncScheduleStates() {
         if (this._lastScheduleCheck > new Date().getTime() - 10000) return;
+        // Stamp before the first await, not after the loop.  The throttle has to bound
+        // overlapping entries now that triggerSchedules() is awaited.  (#1243)
+        this._lastScheduleCheck = new Date().getTime();
         try {
-            ncp.schedules.triggerSchedules();
+            await ncp.schedules.triggerSchedules();
             for (let i = 0; i < state.schedules.length; i++) {
                 let ssched = state.schedules.getItemByIndex(i);
                 if (ssched.disabled || !ssched.isActive) continue;
@@ -4715,7 +4718,6 @@ export class IntelliCenterScheduleCommands extends ScheduleCommands {
                     c.state.emitEquipmentChange();
                 }
             }
-            this._lastScheduleCheck = new Date().getTime();
         } catch (err) { logger.error(`Error synchronizing schedule states`); }
     }
     public async deleteScheduleAsync(data: any): Promise<Schedule> {

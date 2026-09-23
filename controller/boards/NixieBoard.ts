@@ -664,8 +664,10 @@ export class NixieSystemCommands extends SystemCommands {
         else {
             webApp.emitToClients('panelMode', { mode: sys.board.valueMaps.panelModes.transform(0), remaining: 0 });
             state.mode = 0;
-            // Resume schedules immediately when timeout expires naturally.
-            sys.board.schedules.syncScheduleStates();
+            // Resume schedules immediately when timeout expires naturally.  This is a sync timer
+            // callback so it cannot await; attach explicit rejection handlers instead of leaving
+            // floating promises.  (#1243)
+            sys.board.schedules.syncScheduleStates().catch(err => logger.error(`Error resuming schedules after service timeout: ${err.message}`));
             sys.board.circuits.syncCircuitRelayStates();
         }
     }

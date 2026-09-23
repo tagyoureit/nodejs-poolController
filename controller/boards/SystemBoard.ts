@@ -3755,10 +3755,13 @@ export class ScheduleCommands extends BoardCommands {
         ssched.emitEquipmentChange();
         return new Promise<Schedule>((resolve, reject) => { resolve(sched); });
     }
-    public syncScheduleStates() {
+    public async syncScheduleStates() {
         try {
             // The call below also calculates the schedule window either the current or next.
-            ncp.schedules.triggerSchedules();
+            // This MUST be awaited.  It performs circuit writes and the loop below derives
+            // ssched.isOn from the post-write circuit state; without the await the loop
+            // observes pre-write state and clobbers isOn.  (#1243)
+            await ncp.schedules.triggerSchedules();
             for (let i = 0; i < state.schedules.length; i++) {
                 let schedIsOn: boolean;
                 let ssched = state.schedules.getItemByIndex(i);
@@ -3766,6 +3769,10 @@ export class ScheduleCommands extends BoardCommands {
                 let mOP = sys.board.schedules.manualPriorityActive(ssched);  //sys.board.schedules.manualPriorityActiveByProxy(scirc.id);
                 if (scirc.isOn && !mOP && ssched.scheduleTime.shouldBeOn) schedIsOn = true
                 else schedIsOn = false;
+                // This loop owns ssched.isOn only.  It must NOT reset triggered or
+                // manualPriorityActive: the reset would be gated on an isOn change that never
+                // fires once isOn is already false, so it cannot clear an orphaned latch.
+                // triggerSchedules() owns that lifecycle and clears it when the window closes.
                 if (schedIsOn !== ssched.isOn) {
                     // if the schedule state changes, it may affect the end time
                     ssched.isOn = schedIsOn;
