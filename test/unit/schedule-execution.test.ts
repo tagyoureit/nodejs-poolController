@@ -58,6 +58,7 @@ import { NixieScheduleCollection } from '../../controller/nixie/schedules/Schedu
 function addSchedule(id: number, circuit: number, overrides: Record<string, any> = {}, master = 1) {
     const schedule = {
         id, circuit, isOn: false, triggered: false, manualPriorityActive: false,
+        divergedSince: undefined as Date | undefined,
         heatSource: 0, heatSetpoint: 82, coolSetpoint: 95,
         scheduleTime: { shouldBeOn: true }, ...overrides,
     };
@@ -463,5 +464,46 @@ describe('divergence condition is observable (ISSUE-232 resolution c)', () => {
         await tick();
         expect(fixtures.setCircuit).toHaveBeenCalledWith(8, true);
         expect(schedule.divergedSince).toBeUndefined();
+    });
+});
+
+describe('no-retry policy is cause-independent (ISSUE-232 resolution b)', () => {
+    // The scheduler cannot read provenance, and the agreed policy is that it does not need to:
+    // an off circuit stands the schedule down for the occurrence whatever turned it off.  These
+    // tests pin that policy so a future change cannot quietly introduce a re-assert.
+    it.each([
+        ['a deliberate manual off', false],
+        ['a non-user actor such as a group egg-timer cascade', false],
+    ])('does not re-assert the circuit after %s', async (_cause, priority) => {
+        fixtures.options.manualPriority = priority;
+        const schedule = addSchedule(1, 8, { triggered: true, isOn: false, scheduleTime: { shouldBeOn: true } });
+        const tickOnce = collection();
+        for (let i = 0; i < 4; i++) await tickOnce();
+        expect(fixtures.setCircuit).not.toHaveBeenCalled();
+        expect(schedule.divergedSince).toBeInstanceOf(Date);
+    });
+
+    it('stands down only for the occurrence — the next window fires normally', async () => {
+        const schedule = addSchedule(1, 8, { triggered: true, isOn: false, scheduleTime: { shouldBeOn: true } });
+        const tickOnce = collection();
+        await tickOnce();
+        expect(fixtures.setCircuit).not.toHaveBeenCalled();
+        // Window closes: the stand-down state is cleared, proving this is a deadline and not a latch.
+        schedule.scheduleTime.shouldBeOn = false;
+        await tickOnce();
+        expect([schedule.triggered, schedule.isOn]).toEqual([false, false]);
+        expect(schedule.divergedSince).toBeUndefined();
+        // Next occurrence opens.
+        schedule.scheduleTime.shouldBeOn = true;
+        await tickOnce();
+        expect(fixtures.setCircuit).toHaveBeenCalledWith(8, true);
+        expect(schedule.triggered).toBe(true);
+    });
+
+    it('stands down per circuit without blocking an unrelated schedule in the same pass', async () => {
+        addSchedule(1, 8, { triggered: true, isOn: false, scheduleTime: { shouldBeOn: true } });
+        addSchedule(2, 2);
+        await tick();
+        expect(fixtures.setCircuit.mock.calls).toEqual([[2, true]]);
     });
 });

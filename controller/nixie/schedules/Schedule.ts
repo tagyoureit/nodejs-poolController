@@ -192,18 +192,33 @@ export class NixieScheduleCollection extends NixieEquipmentCollection<NixieSched
                             else if (!ssched.triggered) untriggered = true;
                         }
                         if (!untriggered) {
-                            // Every schedule that wants this circuit on has already been triggered, yet
-                            // the circuit is off.  That is the documented manual-off suppression for the
-                            // remainder of the occurrence -- but it is also exactly what an external isOn
-                            // clobber, a group egg-timer cascade, or a write that never reached the relay
-                            // looks like from here.  Telling those apart needs the provenance plumbing in
-                            // .plan/pool-schedule-execution-rewrite.md step 3, which is out of scope for a
-                            // bug fix, so the scheduler deliberately does not act.
+                            // POLICY (#1243 / ISSUE-232): an off circuit stands the schedule down for
+                            // the remainder of the occurrence, whatever turned it off.  Do NOT add a
+                            // re-assert or retry here.
                             //
-                            // What it must not do is fail silently.  Record the divergence as an instant on
-                            // the schedule state so /state/schedules exposes the stranded schedule to
-                            // dashPanel, and log it once per occurrence rather than on every poll.
-                            // (#1243 / ISSUE-232)
+                            // The scheduler cannot tell a deliberate manual off from another subsystem
+                            // stomping the circuit -- a group egg-timer cascade, freeze protection, a
+                            // relay write that never landed.  There is no provenance to read:
+                            // cstate.priority is written only by this file, on this file's own actions,
+                            // so it carries no actor information (invariant I3 in
+                            // .plan/pool-schedule-execution-rewrite.md).  Acquiring that provenance is
+                            // step 3 of the rewrite plan, not a bug fix.
+                            //
+                            // Given the ambiguity, standing down is the deliberate choice, per
+                            // mitigation 2 of the rewrite plan: a circuit that stays off is safe, while
+                            // re-asserting means the scheduler overrides the user -- unacceptable on a
+                            // spa heater or a drain circuit.  The schedule must never try to overcome a
+                            // user's setup, and the cause of the off is immaterial to that.
+                            //
+                            // This is a stand-down for the occurrence, not a latch: the divergence
+                            // condition and the trigger flags are cleared by clearExpiredTriggerState()
+                            // when the window closes, so the next occurrence fires normally.  If a
+                            // circuit is being stomped mid-window, fix the actor doing the stomping
+                            // (e.g. ISSUE-231) -- do not teach the scheduler to fight it.
+                            //
+                            // What this branch owes the operator is visibility, which is the only thing
+                            // it does: record the divergence as an instant for /state/schedules and log
+                            // it once per occurrence rather than on every poll.
                             for (let j = 0; j < c.sscheds.length; j++) {
                                 let ssched = c.sscheds[j];
                                 if (!ssched.scheduleTime.shouldBeOn) continue;
