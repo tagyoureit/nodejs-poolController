@@ -13,11 +13,12 @@ const fixtures = vi.hoisted(() => ({
     emit: vi.fn(),
     error: vi.fn(),
     info: vi.fn(),
+    warn: vi.fn(),
     delay: vi.fn(),
     activeFilter: (s: any): boolean => true,
 }));
 
-vi.mock('../../logger/Logger', () => ({ logger: { error: fixtures.error, info: fixtures.info } }));
+vi.mock('../../logger/Logger', () => ({ logger: { error: fixtures.error, info: fixtures.info, warn: fixtures.warn, verbose: () => {}, debug: () => {}, silly: () => {} } }));
 vi.mock('../../controller/Equipment', () => ({ sys: {
     schedules: { getItemById: (id: number) => fixtures.configs.get(id) },
     bodies: { find: (predicate: any) => fixtures.bodies.find(predicate) },
@@ -50,6 +51,8 @@ vi.mock('../../controller/State', () => ({ state: {
 vi.mock('../../controller/Lockouts', () => ({ delayMgr: { setManualPriorityDelay: fixtures.delay } }));
 vi.mock('../../controller/nixie/NixieEquipment', () => ({
     NixieEquipment: class {},
+    // Stub needed only because the ScheduleTime block below loads the real State module graph.
+    NixieChildEquipment: class {},
     NixieEquipmentCollection: class extends Array {},
 }));
 
@@ -505,5 +508,116 @@ describe('no-retry policy is cause-independent (ISSUE-232 resolution b)', () => 
         addSchedule(2, 2);
         await tick();
         expect(fixtures.setCircuit.mock.calls).toEqual([[2, true]]);
+    });
+});
+
+// ScheduleTime window calculation (ISSUE-240/241/242).  The real State module is loaded with
+// vi.importActual; its `sys` import resolves to the Equipment mock above, which we extend with
+// the value maps calcScheduleDate()/calcSchedule() read.
+describe('ScheduleTime window calculation (ISSUE-240/241/242)', () => {
+    const timeTypes = ['manual', 'sunrise', 'sunset'];
+    let real: any;
+    let Heliotrope: any;
+    let Timestamp: any;
+    let sysMock: any;
+    const LAT = 40.7128, LON = -74.006;   // New York
+
+    beforeEach(async () => {
+        real = await vi.importActual<any>('../../controller/State');
+        ({ Heliotrope, Timestamp } = await vi.importActual<any>('../../controller/Constants'));
+        sysMock = (await import('../../controller/Equipment')).sys as any;
+        Object.assign(sysMock.board.valueMaps, {
+            scheduleTimeTypes: { transform: (v: number) => ({ val: v, name: timeTypes[v] }) },
+            scheduleTypes: { transform: (v: number) => ({ val: v, name: v === 26 ? 'runonce' : 'repeat' }) },
+            scheduleDays: { toArray: () => [0, 1, 2, 3, 4, 5, 6].map(dow => ({ dow, bitval: 1 << dow })) },
+        });
+        sysMock.general.location = { latitude: LAT, longitude: LON };
+    });
+
+    function at(dt: Date) {
+        const s = real.state;
+        s._dt = new Timestamp(new Date(dt.getTime()));
+        return s;
+    }
+    function validHeliotrope(dt: Date) {
+        const h = new Heliotrope();
+        h.date = dt; h.latitude = LAT; h.longitude = LON;
+        return h;
+    }
+    function makeSchedTime() {
+        return new real.ScheduleTime({}, 'scheduleTime', undefined);
+    }
+    const sched = (o: Record<string, any> = {}) => ({
+        id: 77, isActive: true, disabled: false, scheduleType: 128, scheduleDays: 127,
+        startTimeType: 1, startTimeOffset: 0, endTimeType: 2, endTimeOffset: 0,
+        startTime: 0, endTime: 0, ...o,
+    });
+
+    it('(a) sunrise→sunset evaluated at midday ends at today\'s sunset (+offset)', () => {
+        const noon = new Date(2026, 5, 15, 12, 0, 0);
+        const s = at(noon);
+        s.heliotrope = validHeliotrope(noon);
+        const sun = s.heliotrope.calcAdjustedTimes(new Date(2026, 5, 15), 0, 0);
+        const times = makeSchedTime().calcScheduleDate(new Timestamp(noon), sched({ endTimeOffset: 15 }) as any);
+        expect(times.startTime.getDate()).toBe(15);
+        expect(times.endTime.getDate()).toBe(15);
+        const expectedEnd = new Date(sun.sunset.getTime() + 15 * 60000);
+        expectedEnd.setSeconds(59, 999);
+        expect(times.endTime.getTime()).toBe(expectedEnd.getTime());
+        expect(times.startTime.getTime()).toBeLessThanOrEqual(noon.getTime());
+        expect(times.endTime.getTime()).toBeLessThan(sun.nextSunset.getTime());
+    });
+
+    it('(b) sunset-start / sunset-end: end after start rolls to the next sunset, never ~36h', () => {
+        // Sunset start with a later sunset end (+60m) evaluated before sunset: today's window.
+        const afternoon = new Date(2026, 5, 15, 15, 0, 0);
+        const s = at(afternoon);
+        s.heliotrope = validHeliotrope(afternoon);
+        const sun = s.heliotrope.calcAdjustedTimes(new Date(2026, 5, 15), 0, 0);
+        const st = makeSchedTime();
+        let times = st.calcScheduleDate(new Timestamp(afternoon), sched({ startTimeType: 2, endTimeType: 2, endTimeOffset: 60 }) as any);
+        expect(times.startTime.getDate()).toBe(15);
+        expect(times.endTime.getDate()).toBe(15);
+        expect(times.endTime.getTime() - times.startTime.getTime()).toBeLessThan(2 * 3600000);
+        // Equal start/end (both sunset, no offset): start >= sunset, so the end rolls to the next
+        // sunset — a ~24h window, not the ~48h the true arm would produce from tomorrow's start.
+        times = st.calcScheduleDate(new Timestamp(afternoon), sched({ startTimeType: 2, endTimeType: 2 }) as any);
+        expect(times.endTime.getTime()).toBeGreaterThan(sun.sunset.getTime());
+        expect(times.endTime.getTime() - times.startTime.getTime()).toBeLessThan(25 * 3600000);
+    });
+
+    it('(c) invalid heliotrope on pass 1, valid on pass 2 → second pass computes the window', () => {
+        const noon = new Date();
+        noon.setHours(12, 0, 0, 0);
+        const s = at(noon);
+        s.heliotrope = new Heliotrope();   // no date / coordinates, as before the first clock 'change'
+        fixtures.warn.mockClear();
+        const st = makeSchedTime();
+        const cfg = sched() as any;
+        st.calcSchedule(new Timestamp(noon), cfg);
+        expect(st.calculated).toBeFalsy();
+        expect(st.startTime).toBeNull();
+        expect(st.endTime).toBeNull();
+        // A second failing pass the same day must not log again.
+        st.calcSchedule(new Timestamp(noon), cfg);
+        expect(fixtures.warn).toHaveBeenCalledTimes(1);
+        // Next pass, same day: the heliotrope is now ready.
+        s.heliotrope = validHeliotrope(noon);
+        const on = st.calcSchedule(new Timestamp(noon), cfg);
+        expect(st.calculated).toBe(true);
+        expect(st.startTime).not.toBeNull();
+        expect(st.endTime).not.toBeNull();
+        expect(st.endTime.getDate()).toBe(noon.getDate());
+        expect(on).toBe(true);
+    });
+
+    it('seeds the heliotrope from configured coordinates without a clock change (ISSUE-242)', () => {
+        const s = at(new Date(2026, 5, 15, 12, 0, 0));
+        s.heliotrope = new Heliotrope();
+        s.data = s.data || {};   // state.init() is not run in this harness
+        expect(s.heliotrope.isValid).toBe(false);
+        s.syncHeliotrope();
+        expect(s.heliotrope.isValid).toBe(true);
+        expect(s.data.sunrise).not.toBe('');
     });
 });

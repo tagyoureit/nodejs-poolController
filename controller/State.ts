@@ -405,33 +405,7 @@ export class State implements IState {
         this._dt.emitter.on('change', function () {
             self.data.time = self._dt.format();
             self.hasChanged = true;
-            self.heliotrope.date = self._dt.toDate();
-            // Provide safe access & environment fallback for coordinates
-            const loc = sys?.general?.location || {} as any;
-            let lon = loc.longitude;
-            let lat = loc.latitude;
-            if (typeof lon !== 'number' || typeof lat !== 'number') {
-                const envLat = process.env.POOL_LATITUDE ? parseFloat(process.env.POOL_LATITUDE) : undefined;
-                const envLon = process.env.POOL_LONGITUDE ? parseFloat(process.env.POOL_LONGITUDE) : undefined;
-                if (typeof lon !== 'number' && typeof envLon === 'number' && !isNaN(envLon)) lon = envLon;
-                if (typeof lat !== 'number' && typeof envLat === 'number' && !isNaN(envLat)) lat = envLat;
-            }
-            if (typeof lon !== 'number' || typeof lat !== 'number') {
-                const zipCoords = getCoordinatesForZip(loc.zip);
-                if (zipCoords) {
-                    if (typeof lat !== 'number') lat = zipCoords.latitude;
-                    if (typeof lon !== 'number') lon = zipCoords.longitude;
-                }
-            }
-            self.heliotrope.longitude = lon;
-            self.heliotrope.latitude = lat;
-            let times = self.heliotrope.calculatedTimes;
-            self.data.sunrise = times.isValid ? Timestamp.toISOLocal(times.sunrise) : '';
-            self.data.sunset = times.isValid ? Timestamp.toISOLocal(times.sunset) : '';
-            self.data.nextSunrise = times.isValid ? Timestamp.toISOLocal(times.nextSunrise) : '';
-            self.data.nextSunset = times.isValid ? Timestamp.toISOLocal(times.nextSunset) : '';
-            self.data.prevSunrise = times.isValid ? Timestamp.toISOLocal(times.prevSunrise) : '';
-            self.data.prevSunset = times.isValid ? Timestamp.toISOLocal(times.prevSunset) : '';
+            self.syncHeliotrope();
             versionCheck.checkGitRemote();
         });
         this.status = 0; // Initializing
@@ -453,9 +427,41 @@ export class State implements IState {
         this.filters = new FilterStateCollection(this.data, 'filters');
         this.comms = new CommsState();
         this.heliotrope = new Heliotrope();
+        // The clock only emits 'change' when the minute moves, so seed the heliotrope now or the
+        // first schedule pass after a restart can see it without a date or coordinates.
+        this.syncHeliotrope();
         this.appVersion = new AppVersionState(this.data, 'appVersion');
         this.data.startTime = Timestamp.toISOLocal(new Date());
         versionCheck.checkGitLocal();
+    }
+    public syncHeliotrope() {
+        this.heliotrope.date = this._dt.toDate();
+        // Provide safe access & environment fallback for coordinates
+        const loc = sys?.general?.location || {} as any;
+        let lon = loc.longitude;
+        let lat = loc.latitude;
+        if (typeof lon !== 'number' || typeof lat !== 'number') {
+            const envLat = process.env.POOL_LATITUDE ? parseFloat(process.env.POOL_LATITUDE) : undefined;
+            const envLon = process.env.POOL_LONGITUDE ? parseFloat(process.env.POOL_LONGITUDE) : undefined;
+            if (typeof lon !== 'number' && typeof envLon === 'number' && !isNaN(envLon)) lon = envLon;
+            if (typeof lat !== 'number' && typeof envLat === 'number' && !isNaN(envLat)) lat = envLat;
+        }
+        if (typeof lon !== 'number' || typeof lat !== 'number') {
+            const zipCoords = getCoordinatesForZip(loc.zip);
+            if (zipCoords) {
+                if (typeof lat !== 'number') lat = zipCoords.latitude;
+                if (typeof lon !== 'number') lon = zipCoords.longitude;
+            }
+        }
+        this.heliotrope.longitude = lon;
+        this.heliotrope.latitude = lat;
+        let times = this.heliotrope.calculatedTimes;
+        this.data.sunrise = times.isValid ? Timestamp.toISOLocal(times.sunrise) : '';
+        this.data.sunset = times.isValid ? Timestamp.toISOLocal(times.sunset) : '';
+        this.data.nextSunrise = times.isValid ? Timestamp.toISOLocal(times.nextSunrise) : '';
+        this.data.nextSunset = times.isValid ? Timestamp.toISOLocal(times.nextSunset) : '';
+        this.data.prevSunrise = times.isValid ? Timestamp.toISOLocal(times.prevSunrise) : '';
+        this.data.prevSunset = times.isValid ? Timestamp.toISOLocal(times.prevSunset) : '';
     }
     private sanitizeTransientLightGroupState(sdata: any) {
         if (!sdata || !Array.isArray(sdata.lightGroups)) return;
@@ -1275,7 +1281,7 @@ export class ScheduleTime extends ChildEqState {
                     let ss = state.heliotrope.calcAdjustedTimes(sod.toDate(), 0, sched.endTimeOffset);
                     if (!ss.isValid) return times;
                     ytimes.endTime = ytimes.startTime >= ss.prevSunset ? ss.sunset : ss.prevSunset;
-                    ttimes.endTime = ttimes.startTime >= ss.sunset ? ss.nextSunset : ss.nextSunset;
+                    ttimes.endTime = ttimes.startTime >= ss.sunset ? ss.nextSunset : ss.sunset;
                     ntimes.endTime = ntimes.startTime >= ss.nextSunset ? new Timestamp(ss.nextSunset).addHours(24).toDate() : ss.nextSunset;
                     break;
                 }
@@ -1397,15 +1403,27 @@ export class ScheduleTime extends ChildEqState {
                 }
                 this.startTime = times.startTime;
                 this.endTime = times.endTime;
-                this.calculated = true;
+                // A null window means the times could not be resolved (e.g. the heliotrope is not
+                // ready yet).  Leave calculated false so the next status pass retries.
+                this.calculated = !!(times.startTime && times.endTime);
+                if (!this.calculated) ScheduleTime.warnUncalculated(sched.id, 'start or end time could not be resolved');
             }
             return this.shouldBeOn;
         } catch (err) {
-            this.calculated = true;
-            this.calculatedDate = new Date(new Date().setHours(0, 0, 0, 0));
+            this.calculated = false;
             this.startTime = null;
             this.endTime = null;
+            ScheduleTime.warnUncalculated(sched?.id, err.message);
         }
+    }
+    // Schedule id -> start of day the last warning was logged.  Static because a ScheduleTime
+    // instance is created on every access.
+    private static _uncalcWarned = new Map<number, number>();
+    private static warnUncalculated(id: number, reason: string) {
+        let sod = new Date().setHours(0, 0, 0, 0);
+        if (ScheduleTime._uncalcWarned.get(id) === sod) return;
+        ScheduleTime._uncalcWarned.set(id, sod);
+        logger.warn(`Schedule ${id} window not calculated (${reason}); will retry on the next pass.`);
     }
 }
 export class ScheduleState extends EqState {
