@@ -863,8 +863,7 @@ class IntelliCenterWSBodyCommands extends IntelliCenterBodyCommands {
             try {
                 const objnam = bodyId === 2 ? 'B1202' : 'B1101';
                 const body = bodyId === 2 ? bhs.body2 : bhs.body1;
-                const params: Record<string, string> = {};
-                params.LOTMP = String(body.heatSetpoint);
+                const params = this.coupledSetpointParams(bodyId === 2 ? 2 : 1, body.heatSetpoint, undefined);
                 params.MODE = String(body.heatMode);
                 await icws.setParamList(objnam, params);
                 this.applyBodyHeatState(bhs);
@@ -934,10 +933,11 @@ class IntelliCenterWSBodyCommands extends IntelliCenterBodyCommands {
         if (typeof setPoint === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot set heat setpoint to undefined for the ${body.name}`, 'Body', setPoint));
         if (setPoint < 0 || setPoint > 110) return Promise.reject(new InvalidEquipmentDataError(`Cannot set heat setpoint to ${setPoint} for the ${body.name}`, 'Body', setPoint));
         const objnam = body.id === 2 ? 'B1202' : 'B1101';
-        await icws.setParamList(objnam, { LOTMP: String(setPoint) });
-        body.heatSetpoint = setPoint;
+        const params = this.coupledSetpointParams(body.id, setPoint, undefined);
+        await icws.setParamList(objnam, params);
         let bstate = state.temps.bodies.getItemById(body.id);
-        bstate.heatSetpoint = setPoint;
+        body.heatSetpoint = bstate.heatSetpoint = setPoint;
+        if (typeof params.HITMP !== 'undefined') body.coolSetpoint = bstate.coolSetpoint = parseInt(params.HITMP, 10);
         state.emitEquipmentChanges();
         return bstate;
     }
@@ -945,12 +945,33 @@ class IntelliCenterWSBodyCommands extends IntelliCenterBodyCommands {
         if (typeof setPoint === 'undefined') return Promise.reject(new InvalidEquipmentDataError(`Cannot set cooling setpoint to undefined for the ${body.name}`, 'Body', setPoint));
         if (setPoint < 0 || setPoint > 110) return Promise.reject(new InvalidEquipmentDataError(`Cannot set cooling setpoint to ${setPoint} for the ${body.name}`, 'Body', setPoint));
         const objnam = body.id === 2 ? 'B1202' : 'B1101';
-        await icws.setParamList(objnam, { HITMP: String(setPoint) });
-        body.coolSetpoint = setPoint;
+        const params = this.coupledSetpointParams(body.id, undefined, setPoint);
+        await icws.setParamList(objnam, params);
         let bstate = state.temps.bodies.getItemById(body.id);
-        bstate.coolSetpoint = setPoint;
+        body.coolSetpoint = bstate.coolSetpoint = setPoint;
+        if (typeof params.LOTMP !== 'undefined') body.heatSetpoint = bstate.heatSetpoint = parseInt(params.LOTMP, 10);
         state.emitEquipmentChanges();
         return bstate;
+    }
+    // The OCP rejects (response=400) a body setpoint write that leaves HITMP less than
+    // 3 degrees above LOTMP.  The OCP/WCP panels push the other setpoint along to keep
+    // the gap, so mirror that and send both in one SetParamList (discussion #1199).
+    private static readonly minSetpointGap = 3;
+    private coupledSetpointParams(bodyId: number, heat?: number, cool?: number): Record<string, string> {
+        const gap = IntelliCenterWSBodyCommands.minSetpointGap;
+        const sbody = state.temps.bodies.getItemById(bodyId);
+        const params: Record<string, string> = {};
+        if (typeof heat !== 'undefined') {
+            params.LOTMP = String(heat);
+            const curCool = parseInt(sbody.coolSetpoint as any, 10);
+            if (!isNaN(curCool) && curCool - heat < gap) params.HITMP = String(heat + gap);
+        }
+        else if (typeof cool !== 'undefined') {
+            params.HITMP = String(cool);
+            const curHeat = parseInt(sbody.heatSetpoint as any, 10);
+            if (!isNaN(curHeat) && cool - curHeat < gap) params.LOTMP = String(cool - gap);
+        }
+        return params;
     }
 }
 
