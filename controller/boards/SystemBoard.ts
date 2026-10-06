@@ -2226,6 +2226,10 @@ export class CircuitCommands extends BoardCommands {
             return true;
         } catch (err) { logger.error(`Error validating circuits for restore: ${err.message}`); }
     }
+    // Called when a group's egg timer expires.  Boards that own the group cascade can override
+    // these to treat an expiry differently from an explicit OFF.
+    public async expireCircuitGroupAsync(id: number): Promise<ICircuitGroupState> { return this.setCircuitGroupStateAsync(id, false); }
+    public async expireLightGroupAsync(id: number): Promise<ICircuitGroupState> { return this.setLightGroupStateAsync(id, false); }
     public async checkEggTimerExpirationAsync() {
         // turn off any circuits that have reached their egg timer;
         // Nixie circuits we have 100% control over; 
@@ -2251,7 +2255,7 @@ export class CircuitCommands extends BoardCommands {
                 let cgstate = state.circuitGroups.getItemByIndex(i);
                 if (!cgstate.isActive || !cgstate.isOn || typeof cgstate.endTime === 'undefined') continue;
                 if (cgstate.endTime.toDate() < new Timestamp().toDate()) {
-                    await sys.board.circuits.setCircuitGroupStateAsync(cgstate.id, false);
+                    await sys.board.circuits.expireCircuitGroupAsync(cgstate.id);
                     cgstate.emitEquipmentChange();
                 }
             }
@@ -2259,7 +2263,7 @@ export class CircuitCommands extends BoardCommands {
                 let lgstate = state.lightGroups.getItemByIndex(i);
                 if (!lgstate.isActive || !lgstate.isOn || typeof lgstate.endTime === 'undefined') continue;
                 if (lgstate.endTime.toDate() < new Timestamp().toDate()) {
-                    await sys.board.circuits.setLightGroupStateAsync(lgstate.id, false);
+                    await sys.board.circuits.expireLightGroupAsync(lgstate.id);
                     lgstate.emitEquipmentChange();
                 }
             }

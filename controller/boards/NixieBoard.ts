@@ -1438,13 +1438,28 @@ export class NixieCircuitCommands extends CircuitCommands {
         } catch (err) { return Promise.reject(err); }
         finally { sgroup.action = 0; sgroup.emitEquipmentChange(); }
     }
-    public async setCircuitGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
+    // A schedule is currently holding this circuit on (directly, or through a group it targets).
+    private isHeldBySchedule(circuitId: number): boolean {
+        for (let i = 0; i < state.schedules.length; i++) {
+            let ssched = state.schedules.getItemByIndex(i);
+            if (!ssched.isOn) continue;
+            let sched = sys.schedules.getItemById(ssched.id);
+            if (sched.isActive !== false && sys.board.schedules.includesCircuit(sched, circuitId)) return true;
+        }
+        return false;
+    }
+    // An egg-timer expiry is not a user OFF: members a schedule is holding on are left on.
+    public async expireCircuitGroupAsync(id: number): Promise<ICircuitGroupState> { return this.setCircuitGroupStateAsync(id, false, true); }
+    public async expireLightGroupAsync(id: number): Promise<ICircuitGroupState> { return this.setLightGroupStateAsync(id, false, true); }
+    public async setCircuitGroupStateAsync(id: number, val: boolean, isExpiry: boolean = false): Promise<ICircuitGroupState> {
         let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
         if (grp.dataName !== 'circuitGroupConfig') return await sys.board.circuits.setLightGroupStateAsync(id, val);
         let gstate = state.circuitGroups.getItemById(grp.id, grp.isActive !== false);
         if (state.mode !== 0) return gstate;
         let circuits = grp.circuits.toArray();
-        sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(gstate.id), gstate, val);
+        // An explicit ON stamps the egg timer even when the group already looks on from its
+        // members (syncGroupStates no longer stamps one).  A timer already running is kept.
+        sys.board.circuits.setEndTime(sys.circuits.getInterfaceById(gstate.id), gstate, val, val && typeof gstate.endTime === 'undefined');
         gstate.isOn = val;
         let arr = [];
         for (let i = 0; i < circuits.length; i++) {
@@ -1465,6 +1480,10 @@ export class NixieCircuitCommands extends CircuitCommands {
                 if (val) cval = false;
                 else continue;
             }
+            if (isExpiry && !cval && this.isHeldBySchedule(circuit.circuit)) {
+                logger.info(`Circuit group ${grp.id} egg timer expired; leaving circuit ${circuit.circuit} on for its active schedule.`);
+                continue;
+            }
             await sys.board.circuits.setCircuitStateAsync(circuit.circuit, cval);
             //arr.push(sys.board.circuits.setCircuitStateAsync(circuit.circuit, cval));
         }
@@ -1474,17 +1493,21 @@ export class NixieCircuitCommands extends CircuitCommands {
         //    resolve(gstate);
         //});
     }
-    public async setLightGroupStateAsync(id: number, val: boolean): Promise<ICircuitGroupState> {
+    public async setLightGroupStateAsync(id: number, val: boolean, isExpiry: boolean = false): Promise<ICircuitGroupState> {
         let grp = sys.circuitGroups.getItemById(id, false, { isActive: false });
         if (grp.dataName === 'circuitGroupConfig') return await sys.board.circuits.setCircuitGroupStateAsync(id, val);
         let gstate = state.lightGroups.getItemById(grp.id, grp.isActive !== false);
         if (state.mode !== 0) return gstate;
         let circuits = grp.circuits.toArray();
-        sys.board.circuits.setEndTime(grp, gstate, val);
+        sys.board.circuits.setEndTime(grp, gstate, val, val && typeof gstate.endTime === 'undefined');
         gstate.isOn = val;
         let arr = [];
         for (let i = 0; i < circuits.length; i++) {
             let circuit = circuits[i];
+            if (isExpiry && !val && this.isHeldBySchedule(circuit.circuit)) {
+                logger.info(`Light group ${grp.id} egg timer expired; leaving circuit ${circuit.circuit} on for its active schedule.`);
+                continue;
+            }
             // RSG 4/3/24 - This function was executing and returing the results to the array; not pushing the fn to the array.
             //arr.push(sys.board.circuits.setCircuitStateAsync(circuit.circuit, val));
             arr.push(async () => { await sys.board.circuits.setCircuitStateAsync(circuit.circuit, val) });
@@ -1649,6 +1672,9 @@ export class NixieFeatureCommands extends FeatureCommands {
         let feat = state.features.getItemById(id);
         return this.setFeatureStateAsync(id, !(feat.isOn || false));
     }
+    private hasExpiredEndTime(sgrp: { endTime: Timestamp }): boolean {
+        return typeof sgrp.endTime !== 'undefined' && sgrp.endTime.getTime() <= new Date().getTime();
+    }
     public syncGroupStates() {
         // The way this should work is that when all of the states are met
         // the group should be on.  Otherwise it should be off.  That means that if
@@ -1676,9 +1702,12 @@ export class NixieFeatureCommands extends FeatureCommands {
                     }
                 }
                 let sgrp = state.circuitGroups.getItemById(grp.id);
-                if (bIsOn && typeof sgrp.endTime === 'undefined') {
-                    sys.board.circuits.setEndTime(grp, sgrp, bIsOn, true);
-                }
+                // Group state is inferred from its members here, so no egg timer is started; the
+                // members keep their own.  Only an explicit group ON (or a schedule on the group)
+                // stamps one.  Drop an already-expired deadline once the group is off so it cannot
+                // fire the moment the members line up again.  Only expired ones: member writes run
+                // this mid-cascade during an explicit ON, before every member has switched.
+                if (!bIsOn && this.hasExpiredEndTime(sgrp)) sys.board.circuits.setEndTime(grp, sgrp, false);
                 sgrp.isOn = bIsOn;
 
                 if (!sgrp.isOn && sgrp.manualPriorityActive){
@@ -1701,8 +1730,9 @@ export class NixieFeatureCommands extends FeatureCommands {
                     if (!utils.makeBool(cstate.isOn)) bIsOn = false;
                 }
                 let sgrp = state.lightGroups.getItemById(grp.id);
+                // Inferred state: no egg timer (see circuit groups above).
+                if (!bIsOn && this.hasExpiredEndTime(sgrp)) sys.board.circuits.setEndTime(grp, sgrp, false);
                 sgrp.isOn = bIsOn;
-                if (sgrp.isOn && typeof sgrp.endTime === 'undefined') sys.board.circuits.setEndTime(grp, sgrp, sgrp.isOn, true);
                 if (!sgrp.isOn && sgrp.manualPriorityActive){
                     delayMgr.cancelManualPriorityDelay(grp.id);
                     sgrp.manualPriorityActive = false; // if the delay was previously cancelled, still need to turn this off
