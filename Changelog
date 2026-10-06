@@ -1,9 +1,24 @@
 # Changelog
 
-## 10.0.2 (unreleased)
+## 10.0.2
+
+### New Features
+1. **IntelliChlor Plus/LT models** — add IntelliChlor Plus and LT series chlorinator models and log unknown models for identification (#1229).
+2. **Nixie solar/UltraTemp cool setpoint** — add `hasCoolSetpoint` to solar and UltraTemp heat modes so the cool setpoint is exposed (#1249).
 
 ### Bug Fixes
-1. **Heater preferred heat sources** — guard preferred heat source picklist behind combustion check to prevent missing heat sources on systems without gas heaters (#1199).
+3. **Heater preferred heat sources** — guard preferred heat source picklist behind combustion check to prevent missing heat sources on systems without gas heaters (#1199).
+4. **Stale schedule `isOn` flags** — clear stale schedule `isOn` flags when a schedule end is not pushed by the controller (#1199).
+5. **Heater cooldown delay** — correct cooldown delay calculation and time method (#1238).
+6. **Repeated body temperature warnings** — suppress repeated "no temperature" body warnings, and keep them suppressed across heater passes (#1239, #1241).
+7. **ScreenLogic config preserved on RS-485 writes** — saving RS-485 port settings no longer clobbers ScreenLogic configuration (#1237).
+8. **Atomic config/state persistence** — write `poolConfig.json` and `poolState.json` atomically to prevent corruption on crash or power loss (#1240).
+9. **IntelliCenter WS setpoint gap** — couple heat/cool setpoints on body setpoint writes to maintain the controller's minimum gap (#1199).
+10. **Shutdown handling** — deduplicate shutdown logic and handle `SIGTERM` for clean exits (e.g., Docker/systemd) (#1247).
+11. **StateSocket circuit state** — correct circuit state boolean evaluation logic.
+
+### CI
+12. **GHCR publish** — bump GitHub Actions versions and add ephemeral warn flag.
 
 ## 10.0.1
 
