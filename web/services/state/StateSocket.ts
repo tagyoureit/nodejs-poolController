@@ -196,7 +196,7 @@ export class StateSocket {
                 if (!isNaN(id) && typeof data.toggle !== 'undefined')
                     if (utils.makeBool(data.toggle)) await sys.board.circuits.toggleCircuitStateAsync(id);
                 if (!isNaN(id) && (typeof data.isOn !== 'undefined' || typeof data.state !== 'undefined')) {
-                    await sys.board.circuits.setCircuitStateAsync(id, utils.makeBool(data.isOn || typeof data.state));
+                    await sys.board.circuits.setCircuitStateAsync(id, utils.makeBool(typeof data.isOn !== 'undefined' ? data.isOn : data.state));
                 }
             }
             catch (err) { logger.error(`Socket /circuit error: ${err.message}`); }
