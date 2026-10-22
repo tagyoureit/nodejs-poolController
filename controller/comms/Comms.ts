@@ -845,6 +845,9 @@ export class RS485Port {
                     });
                     if (!this.mock) this.resetConnTimer();
                     this.emitPortStats();
+                    // #1255: drain anything queued while the port was closing/reopening (mirrors the net connect path).
+                    // On a silent bus nothing else would kick processing and the queued message would strand forever.
+                    setImmediate(() => { if (this.isOpen && !this.closing && this._port === sp) this.processPackets(); });
                 });
                 sp.on('close', (err) => {
                     this.isOpen = false;
