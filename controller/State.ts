@@ -162,6 +162,7 @@ export class State implements IState {
     public async stopAsync() {
         try {
             if (this._timerDirty) clearTimeout(this._timerDirty);
+            if (this._emitTimerDirty) { clearTimeout(this._emitTimerDirty); this._emitTimerDirty = null; }
             this.persist();
 /*             if (sys.controllerType === ControllerType.Virtual) {
                 for (let i = 0; i < state.temps.bodies.length; i++) {

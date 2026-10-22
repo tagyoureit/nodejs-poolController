@@ -882,6 +882,8 @@ export class byteValueMaps {
 export class SystemBoard {
     protected _statusTimer: NodeJS.Timeout;
     protected _statusCheckRef: number = 0;
+    protected _stopping: boolean = false;
+    protected _statusPass: Promise<void>;
     protected _statusInterval: number = 3000;
 
     // TODO: (RSG) Do we even need to pass in system?  We don't seem to be using it and we're overwriting the var with the SystemCommands anyway.
@@ -899,7 +901,10 @@ export class SystemBoard {
         //sys.board.virtualChlorinatorController.stop();
         if (sys.controllerType === ControllerType.Nixie) this.turnOffAllCircuits();
         // sys.board.virtualChemControllers.stop();
+        this._stopping = true;
         this.killStatusCheck();
+        // Let an in-flight status pass finish before closing NCP so it doesn't sync against closed equipment.
+        if (this._statusPass) { try { await this._statusPass; } catch (err) { } }
         await ncp.closeAsync();
         // return sys.board.virtualPumpControllers.stopAsync()
     }
@@ -972,6 +977,11 @@ export class SystemBoard {
     /// relays.  This method does not control RS485 operations such as pumps and chlorinators.  These are done through the respective
     /// equipment polling functions.
     public async processStatusAsync() {
+        if (this._stopping) return;
+        this._statusPass = this.processStatusPassAsync();
+        return this._statusPass;
+    }
+    private async processStatusPassAsync() {
         let self = this;
         try {
             if (this._statusCheckRef > 0) return;
@@ -990,7 +1000,7 @@ export class SystemBoard {
             this.suspendStatus(false);
         } catch (err) { this.suspendStatus(false); state.status = 255; logger.error(`Error performing processStatusAsync ${err.message}`); }
         finally {
-            if (this._statusCheckRef === 0) this._statusTimer = setTimeoutSync(async () => await self.processStatusAsync(), this.statusInterval);
+            if (this._statusCheckRef === 0 && !this._stopping) this._statusTimer = setTimeoutSync(async () => await self.processStatusAsync(), this.statusInterval);
         }
     }
     public async syncEquipmentItems() {

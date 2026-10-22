@@ -145,12 +145,13 @@ export class WebServer {
     }
     public emitToClients(evt: string, ...data: any) {
         for (let i = 0; i < this._servers.length; i++) {
-            this._servers[i].emitToClients(evt, ...data);
+            // Slots are cleared one at a time during stopAsync; skip any already stopped.
+            this._servers[i]?.emitToClients(evt, ...data);
         }
     }
     public emitToChannel(channel: string, evt: string, ...data: any) {
         for (let i = 0; i < this._servers.length; i++) {
-            this._servers[i].emitToChannel(channel, evt, ...data);
+            this._servers[i]?.emitToChannel(channel, evt, ...data);
         }
     }
     public get mdnsServer(): MdnsServer { return this._servers.find(elem => elem instanceof MdnsServer) as MdnsServer; }
@@ -167,6 +168,8 @@ export class WebServer {
                     this._servers[s] = undefined;
                 } catch (err) { console.log(`Error stopping server ${s}: ${err.message}`); }
             }
+            // Drop the stopped slots so late emits (timers firing during shutdown) become no-ops.
+            this._servers = [];
         } catch (err) { `Error stopping servers` }
     }
     private getInterface() {
@@ -219,12 +222,12 @@ export class WebServer {
     public ip() { return typeof this.getInterface() === 'undefined' ? '0.0.0.0' : this.getInterface().address; }
     public mac() { return typeof this.getInterface() === 'undefined' ? '00:00:00:00' : this.getInterface().mac; }
     public httpPort(): number { return this._httpPort }
-    public findServer(name: string): ProtoServer { return this._servers.find(elem => elem.name === name); }
-    public findServersByType(type: string) { return this._servers.filter(elem => elem.type === type); }
-    public findServerByGuid(uuid: string) { return this._servers.find(elem => elem.uuid === uuid); }
+    public findServer(name: string): ProtoServer { return this._servers.find(elem => elem?.name === name); }
+    public findServersByType(type: string) { return this._servers.filter(elem => elem?.type === type); }
+    public findServerByGuid(uuid: string) { return this._servers.find(elem => elem?.uuid === uuid); }
     public removeServerByGuid(uuid: string) {
         for (let i = 0; i < this._servers.length; i++) {
-            if (this._servers[i].uuid === uuid) this._servers.splice(i, 1);
+            if (this._servers[i]?.uuid === uuid) this._servers.splice(i, 1);
         }
     }
     public async updateServerInterface(obj: any): Promise<any> {
