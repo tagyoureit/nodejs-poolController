@@ -158,6 +158,13 @@ If you find yourself writing `if (sys.controllerType === ...)` inside `SystemBoa
 
 **Context:** Added after investigation/fix for discussion #1159 (acid feeder relay dot not reflecting REM dosing state in dashPanel).
 
+### 7.2 REM Data Direction: Outputs Are Pushed, Inputs Are Read (CRITICAL)
+**Rule:** Data direction between njsPC and REM depends on whether the device is an output or an input.
+- **Outputs njsPC controls (relays, etc.):** njsPC is master and REM is a slave. njsPC's persisted state is the desired state; njsPC pushes it to REM. Never read output state back from REM to decide or reconcile njsPC state, including after restarts or reconnects.
+- **Read-only inputs (temp sensors, pH, ORP, etc.):** data flows REM → njsPC only.
+
+**Context:** Added during the GitHub #1247 restart-recovery design (stale relay after unclean restart), where querying REM for relay state was rejected.
+
 ## Analysis Patterns
 
 ### 6. Examine Working State, Not Just Failures

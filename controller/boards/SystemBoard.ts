@@ -2226,6 +2226,10 @@ export class CircuitCommands extends BoardCommands {
             return true;
         } catch (err) { logger.error(`Error validating circuits for restore: ${err.message}`); }
     }
+    // Called when a group's egg timer expires.  Boards that own the group cascade can override
+    // these to treat an expiry differently from an explicit OFF.
+    public async expireCircuitGroupAsync(id: number): Promise<ICircuitGroupState> { return this.setCircuitGroupStateAsync(id, false); }
+    public async expireLightGroupAsync(id: number): Promise<ICircuitGroupState> { return this.setLightGroupStateAsync(id, false); }
     public async checkEggTimerExpirationAsync() {
         // turn off any circuits that have reached their egg timer;
         // Nixie circuits we have 100% control over; 
@@ -2251,7 +2255,7 @@ export class CircuitCommands extends BoardCommands {
                 let cgstate = state.circuitGroups.getItemByIndex(i);
                 if (!cgstate.isActive || !cgstate.isOn || typeof cgstate.endTime === 'undefined') continue;
                 if (cgstate.endTime.toDate() < new Timestamp().toDate()) {
-                    await sys.board.circuits.setCircuitGroupStateAsync(cgstate.id, false);
+                    await sys.board.circuits.expireCircuitGroupAsync(cgstate.id);
                     cgstate.emitEquipmentChange();
                 }
             }
@@ -2259,7 +2263,7 @@ export class CircuitCommands extends BoardCommands {
                 let lgstate = state.lightGroups.getItemByIndex(i);
                 if (!lgstate.isActive || !lgstate.isOn || typeof lgstate.endTime === 'undefined') continue;
                 if (lgstate.endTime.toDate() < new Timestamp().toDate()) {
-                    await sys.board.circuits.setLightGroupStateAsync(lgstate.id, false);
+                    await sys.board.circuits.expireLightGroupAsync(lgstate.id);
                     lgstate.emitEquipmentChange();
                 }
             }
@@ -3755,10 +3759,13 @@ export class ScheduleCommands extends BoardCommands {
         ssched.emitEquipmentChange();
         return new Promise<Schedule>((resolve, reject) => { resolve(sched); });
     }
-    public syncScheduleStates() {
+    public async syncScheduleStates() {
         try {
             // The call below also calculates the schedule window either the current or next.
-            ncp.schedules.triggerSchedules();
+            // This MUST be awaited.  It performs circuit writes and the loop below derives
+            // ssched.isOn from the post-write circuit state; without the await the loop
+            // observes pre-write state and clobbers isOn.  (#1243)
+            await ncp.schedules.triggerSchedules();
             for (let i = 0; i < state.schedules.length; i++) {
                 let schedIsOn: boolean;
                 let ssched = state.schedules.getItemByIndex(i);
@@ -3766,6 +3773,10 @@ export class ScheduleCommands extends BoardCommands {
                 let mOP = sys.board.schedules.manualPriorityActive(ssched);  //sys.board.schedules.manualPriorityActiveByProxy(scirc.id);
                 if (scirc.isOn && !mOP && ssched.scheduleTime.shouldBeOn) schedIsOn = true
                 else schedIsOn = false;
+                // This loop owns ssched.isOn only.  It must NOT reset triggered or
+                // manualPriorityActive: the reset would be gated on an isOn change that never
+                // fires once isOn is already false, so it cannot clear an orphaned latch.
+                // triggerSchedules() owns that lifecycle and clears it when the window closes.
                 if (schedIsOn !== ssched.isOn) {
                     // if the schedule state changes, it may affect the end time
                     ssched.isOn = schedIsOn;
