@@ -536,6 +536,13 @@ export class DelayManager extends Array<EquipmentDelay> {
             for (let i = 0; i < this.length; i++) {
                 delays.push(this[i].serialize());
             }
+            // Hardware OCPs (*Touch/IntelliCenter) report their active delay only through state.delay.  Derive
+            // an entry from it so clients listening for delays see it.  It is not stored in this list so it
+            // cannot go stale across restarts and cancelling it is handled by sys.board.system.cancelDelay().
+            let cdelay = state.data.delay;
+            if (typeof cdelay !== 'undefined' && cdelay.val > 0 && cdelay.name !== 'nodelay') {
+                delays.push({ id: 'controller', type: 'controllerDelay', canCancel: true, message: cdelay.desc, duration: 0 });
+            }
             return delays;
         } catch (err) { logger.error(`Error serializing delays: ${err.message}`); }
     }

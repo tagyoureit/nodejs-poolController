@@ -349,6 +349,8 @@ export class State implements IState {
         if (this.delay !== val) {
             this.data.delay = sys.board.valueMaps.delay.transform(val);
             this.hasChanged = true;
+            // The controller delay is surfaced in the delays list so emit that as well.
+            delayMgr.setDirty();
         }
     }
     public get batteryVoltage(): number { return this.data.batteryVoltage; }
