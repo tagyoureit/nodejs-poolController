@@ -1,5 +1,24 @@
 # Changelog
 
+## 10.1.0
+
+### New Features
+1. **Hardware controller delays in Lockouts** — surface the hardware controller's active delay (e.g., valve/heater cooldown) in the active delays list so dashPanel shows it (#1258).
+2. **EasyTouch COM-connected UltraTemp cool setpoint** — add `hasCoolSetpoint` support for UltraTemp heat pumps connected via COM so the cool setpoint is exposed.
+3. **Nixie group egg timers respect schedules** — when a circuit group / light group egg timer expires, members still held on by an active schedule are preserved instead of being turned off; inferred group ON no longer starts a group egg timer, explicit ON stamps one, and expired deadlines are cleared (#1243).
+
+### Bug Fixes
+4. **Comms: outbound packets stranded after port reopen** — drain queued packets after the serial port reopens (e.g., inactivity reset) so messages are no longer stranded and chlorinator polling resumes (#1255).
+5. **Comms: \*Touch circuit groups only set first member** — scoped outbound packets are no longer cleared by unrelated bare ACKs, so all queued group member commands are delivered (#1256).
+6. **Shutdown race conditions** — guard timers and await in-flight status passes during shutdown to avoid writes/emits after teardown.
+7. **Nixie schedule stranded trigger latches** — schedule `triggered` latches are now cleaned up before eligibility filtering, overlapping schedule passes are dropped instead of interleaving, a single circuit error no longer abandons the whole pass, and floating promises are awaited (#1243).
+8. **Nixie schedule in-window divergence** — if a schedule-controlled circuit is turned off manually during its window, the schedule stands down for that occurrence instead of fighting the user; adds a `divergedSince` diagnostic condition (#1243).
+9. **Sunrise/sunset schedules** — seed heliotrope before the first clock tick so sun-based schedules resolve correctly at startup; fix sunset end-time calculation that could produce a ~36h window; unresolved windows are retried and warned once per schedule per day (#1247, #1248).
+
+### CI
+10. **Build check workflow** — add GitHub Actions workflow that fails on code that doesn't compile.
+11. **Repo cleanup** — remove generated integration test report artifacts from source control.
+
 ## 10.0.2
 
 ### New Features
