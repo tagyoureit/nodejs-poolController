@@ -186,7 +186,8 @@ export class EasyTouchBoard extends SystemBoard {
             [0, { name: 'none', desc: 'No Heater', hasAddress: false }],
             [1, { name: 'gas', desc: 'Gas Heater', hasAddress: false }],
             [2, { name: 'solar', desc: 'Solar Heater', hasAddress: false, hasPreference: true }],
-            [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true, hasPreference: true }],
+            // Touch reports a COM-connected UltraTemp (HEATPUMPCOM) as heater id 3 / type 3, which can cool (#1254).
+            [3, { name: 'heatpump', desc: 'Heat Pump', hasAddress: true, hasCoolSetpoint: true, hasPreference: true }],
             [4, { name: 'ultratemp', desc: 'UltraTemp', hasAddress: true, hasCoolSetpoint: true, hasPreference: true }],
             [5, { name: 'hybrid', desc: 'Hybrid', hasAddress: true }],
             [6, { name: 'maxetherm', desc: 'Max-E-Therm', hasAddress: true }],
@@ -3022,10 +3023,10 @@ class TouchHeaterCommands extends HeaterCommands {
                 sys.board.valueMaps.heatSources.set(21, { name: 'solar', desc: 'Solar Only' });
             }
             else if (heatPumpInstalled && gasHeaterInstalled) {
-                sys.board.valueMaps.heatModes.set(2, { name: 'heatpumppref', desc: 'Heat Pump Preferred' });
-                sys.board.valueMaps.heatModes.set(3, { name: 'heatpump', desc: 'Heat Pump Only' });
-                sys.board.valueMaps.heatSources.set(5, { name: 'heatpumppref', desc: 'Heat Pump Preferred' });
-                sys.board.valueMaps.heatSources.set(21, { name: 'heatpump', desc: 'Heat Pump Only' });
+                sys.board.valueMaps.heatModes.set(2, { name: 'heatpumppref', desc: 'Heat Pump Preferred', hasCoolSetpoint: htypes.hasCoolSetpoint });
+                sys.board.valueMaps.heatModes.set(3, { name: 'heatpump', desc: 'Heat Pump Only', hasCoolSetpoint: htypes.hasCoolSetpoint });
+                sys.board.valueMaps.heatSources.set(5, { name: 'heatpumppref', desc: 'Heat Pump Preferred', hasCoolSetpoint: htypes.hasCoolSetpoint });
+                sys.board.valueMaps.heatSources.set(21, { name: 'heatpump', desc: 'Heat Pump Only', hasCoolSetpoint: htypes.hasCoolSetpoint });
             }
             else if (ultratempInstalled && gasHeaterInstalled) {
                 sys.board.valueMaps.heatModes.merge([
