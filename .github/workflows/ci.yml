@@ -1,0 +1,112 @@
+name: CI - Build & Startup Check
+
+on:
+  push:
+    branches: ['**']
+    tags-ignore: ['**']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: [22, 24]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Setup Node ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Compile (tsc)
+        run: npm run build
+
+      - name: Unit tests
+        run: npm run test:unit
+
+      - name: Startup smoke test (mock RS-485 port)
+        shell: bash
+        run: |
+          set -u
+          # Seed config.json from defaults with a mock port so no hardware is needed.
+          node -e "
+            const fs = require('fs');
+            const c = JSON.parse(fs.readFileSync('defaultConfig.json', 'utf8').trim());
+            c.controller.comms.mock = true;
+            c.controller.comms.netConnect = false;
+            fs.writeFileSync('config.json', JSON.stringify(c, null, 2));
+          "
+
+          node dist/app.js > startup.log 2>&1 &
+          PID=$!
+
+          ready=0
+          for i in $(seq 1 60); do
+            if ! kill -0 "$PID" 2>/dev/null; then
+              echo "::error::njsPC exited during startup"
+              cat startup.log
+              exit 1
+            fi
+            if curl -fsS -o /dev/null http://127.0.0.1:4200/state/all; then
+              ready=1
+              break
+            fi
+            sleep 1
+          done
+
+          if [ "$ready" -ne 1 ]; then
+            echo "::error::njsPC did not respond on :4200 within 60s"
+            cat startup.log
+            kill "$PID" 2>/dev/null || true
+            exit 1
+          fi
+          echo "njsPC responded after ${i}s"
+
+          # Let init settle, then require a clean shutdown on SIGINT.
+          sleep 10
+          kill -INT "$PID"
+          for i in $(seq 1 20); do
+            kill -0 "$PID" 2>/dev/null || break
+            sleep 1
+          done
+          if kill -0 "$PID" 2>/dev/null; then
+            echo "::error::njsPC did not shut down within 20s of SIGINT"
+            kill -9 "$PID" || true
+            cat startup.log
+            exit 1
+          fi
+
+          wait "$PID"; rc=$?
+          cat startup.log
+          if [ "$rc" -ne 0 ]; then
+            echo "::error::njsPC exited with code $rc"
+            exit 1
+          fi
+          if grep -Eiq '\berror\b|unhandled|uncaught|^\s+at .+:[0-9]+:[0-9]+\)?$' startup.log; then
+            echo "::error::Errors or stack traces found in startup log"
+            exit 1
+          fi
+
+      - name: Upload startup log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: startup-log-node${{ matrix.node-version }}
+          path: |
+            startup.log
+            logs/
+          if-no-files-found: ignore

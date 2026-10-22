@@ -47,3 +47,4 @@ web/bindings/custom/
 agent_briefs.md
 memories/
 .snowflake
+test/integration/reports/
