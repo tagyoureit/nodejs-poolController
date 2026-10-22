@@ -1297,11 +1297,16 @@ export class RS485Port {
         if (this._outBuffer.length === 0 && (typeof this._waitingPacket === 'undefined' || this._waitingPacket === null)) return;
         var callback;
         let msgOut = this._waitingPacket;
+        // #1256: scope of the waiting packet this inbound actually answered (undefined if it answered none).
+        let matchedScope: string;
+        let matchedWaiting = false;
         if (typeof (this._waitingPacket) !== 'undefined' && this._waitingPacket) {
             var resp = msgOut.response;
             if (msgOut.requiresResponse) {
                 if (resp instanceof Response && resp.isResponse(msgIn, msgOut)) {
                     this._waitingPacket = null;
+                    matchedWaiting = true;
+                    matchedScope = msgOut.scope;
                     if (typeof msgOut.onComplete === 'function') msgOut.onComplete(undefined, msgIn);
                     callback = resp.callback;
                     resp.message = msgIn;
@@ -1326,7 +1331,11 @@ export class RS485Port {
             // but if it is the only packet on the queue the outbound will have been cleared out already.
             // ISSUE-121: scope check now uses out.scope only — do NOT require scope match against msgOut
             // (which is _waitingPacket, often unrelated to the buffered out being matched).
-            if (out.requiresResponse) {
+            // #1256: a scoped out (e.g. circuitState2) may only be cleared by a response to a waiting packet of the
+            // same scope. *Touch ACKs ([134]) carry no id, so without this one ACK silently drops queued commands
+            // for other circuits. Unscoped outs (e.g. duplicate config requests) keep the dedup behavior.
+            const scopeOk = typeof out.scope === 'undefined' || (matchedWaiting && out.scope === matchedScope);
+            if (out.requiresResponse && scopeOk) {
                 if (resp instanceof Response && resp.isResponse(msgIn, out)) {
                     resp.message = msgIn;
                     if (typeof (resp.callback) === 'function' && resp.callback) callback = resp.callback;
