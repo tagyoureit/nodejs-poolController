@@ -411,11 +411,13 @@
         {
           "topic": "state/pumps/@bind=data.id;/@bind=data.name;",
           "message": "{\"id\":@bind=data.id;,\"isOn\":@bind=data.flow > 0 || data.rpm > 0?'\"on\"':'\"off\"';}",
-          "description": "Bind 'on'/'off' as a message to the state topic."
+          "description": "Bind 'on'/'off' as a message to the state topic.",
+	  "enabled": true
         },
         {
           "topic": "state/pumps/@bind=data.id;/@bind=data.name;/rpm",
-          "message": "{\"rpm\":@bind=data.rpm;}"
+          "message": "{\"rpm\":@bind=data.rpm;}",
+	  "enabled": true
         },
         {
           "topic": "state/pumps/@bind=data.id;/@bind=data.name;/flow",
